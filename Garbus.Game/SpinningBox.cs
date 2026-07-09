@@ -9,7 +9,7 @@ namespace Garbus.Game
 {
     public partial class SpinningBox : CompositeDrawable
     {
-        private Container box;
+        private Container box = null!;
 
         public SpinningBox()
         {

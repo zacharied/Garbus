@@ -1,9 +1,11 @@
+using Garbus.Game.Configuration;
+using Garbus.Resources;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.IO.Stores;
+using osu.Framework.Platform;
 using osuTK;
-using Garbus.Resources;
 
 namespace Garbus.Game
 {
@@ -15,6 +17,10 @@ namespace Garbus.Game
 
         protected override Container<Drawable> Content { get; }
 
+        protected GarbusConfigManager LocalConfig { get; private set; } = null!;
+
+        private DependencyContainer dependencies = null!;
+
         protected GarbusGameBase()
         {
             // Ensure game and tests scale with window size and screen DPI.
@@ -25,10 +31,22 @@ namespace Garbus.Game
             });
         }
 
+        protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent) =>
+            dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
         [BackgroundDependencyLoader]
-        private void load()
+        private void load(Storage storage)
         {
             Resources.AddStore(new DllResourceStore(typeof(GarbusResources).Assembly));
+
+            dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+
+            LocalConfig?.Dispose(); // performs a final save of any changed settings.
         }
     }
 }

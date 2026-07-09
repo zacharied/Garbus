@@ -2,6 +2,8 @@
 <Project>
   <PropertyGroup>
     <ApplicationManifest>$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Label="Documentation">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

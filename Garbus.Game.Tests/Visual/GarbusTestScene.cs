@@ -8,7 +8,7 @@ namespace Garbus.Game.Tests.Visual
 
         private partial class GarbusTestSceneTestRunner : GarbusGameBase, ITestSceneTestRunner
         {
-            private TestSceneTestRunner.TestRunner runner;
+            private TestSceneTestRunner.TestRunner runner = null!;
 
             protected override void LoadAsyncComplete()
             {

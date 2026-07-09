@@ -6,7 +6,7 @@ namespace Garbus.Game
 {
     public partial class GarbusGame : GarbusGameBase
     {
-        private ScreenStack screenStack;
+        private ScreenStack screenStack = null!;
 
         [BackgroundDependencyLoader]
         private void load()

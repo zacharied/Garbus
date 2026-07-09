@@ -26,6 +26,9 @@ osu.Game plugin; if the port works out, development moves here entirely.
   timing import (nice-to-have, not core).
 - **No mods, no difficulty calc, no replays, no skinning in v1.** These exist to satisfy osu's plugin
   contract. Autoplay can return later as a debug input feeder if needed.
+- **`Bac*` prefixes are renamed to `Garbus*` during the copy** (BacHitObject → GarbusHitObject, etc.),
+  and osu's "beatmap" terminology becomes "chart" (e.g. the vendored FramedBeatmapClock is
+  `FramedChartClock`).
 
 ## Investigation findings (2026-07, don't re-derive)
 
@@ -95,9 +98,17 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
 
 - [x] New game project on `ppy.osu.Framework` — this repo, `osu-framework-game` template
       (`Garbus.Game` / `Garbus.Desktop` / `Garbus.Game.Tests` / `Garbus.Resources`)
-- [ ] Vendor the clock stack (4 files above), trimmed of realm/`OsuConfigManager`
-- [ ] Load and play a track through the vendored `FramedBeatmapClock`; on-screen time readout
-- [ ] Sanity-check offsets: Windows platform offset applied, global user offset from our own config
+- [x] Vendor the clock stack (`Garbus.Game/Timing/`: `FramedChartClock`, `OffsetCorrectionClock`,
+      `GameplayClockContainer`, `MasterGameplayClockContainer`, `IGameplayClock`) — realm per-beatmap
+      offset became the plain `FramedChartClock.ChartOffset` property; mod adjustments dropped;
+      `MasterGameplayClockContainer` takes a `Track` directly (no `WorkingBeatmap`)
+- [x] Load and play a track through the vendored clock stack — `MainScreen` auto-plays
+      `Garbus.Resources/Tracks/sample-track.mp3` with live time/offset/state readouts and
+      space/R/arrows controls
+- [x] Sanity-check offsets — `GarbusConfigManager` (`garbus.ini`, `GarbusSetting.AudioOffset`) cached
+      in `GarbusGameBase`; `TestSceneClockStack` asserts platform offset (+15ms on Windows), user
+      offset flow-through, clock advancement and offset-aware seeking (`dotnet test --filter
+      TestSceneClockStack`, 5/5 passing)
 
 ### Phase 2 — gameplay vertical slice
 
@@ -132,5 +143,5 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
 ## Open questions
 
 - Chart format details: JSON vs binary, versioning, how control-point types serialize
-- Whether to keep the `Garbus.iOS` template project or delete it until desktop is proven
-- Whether "Garbus" hit-object/class prefixes replace `Bac*` during the copy, or `Bac*` names stay
+- Whether to keep the `Garbus.iOS` template project or delete it until desktop is proven (it doesn't
+  build on this machine — no iOS workload — but only the desktop slnf is used)
