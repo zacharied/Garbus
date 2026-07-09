@@ -5,7 +5,8 @@
 // constructor-injected settable ControlPointInfo property (no osu.Game.Beatmaps dependency);
 // constructor takes (ControlPointInfo, double trackLength, BindableBeatDivisor); TrackLength
 // uses injected fallback when track is not yet loaded; IBeatSyncProvider/kiai plumbing removed
-// (no osu.Game.Rulesets.Edit types in Garbus); namespace Garbus.Game.Edit.
+// (no osu.Game.Rulesets.Edit types in Garbus); applyOffsets: false on the inner clock (editor
+// needs no gameplay latency corrections); namespace Garbus.Game.Edit.
 
 #nullable disable
 
