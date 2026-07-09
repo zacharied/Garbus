@@ -1,7 +1,10 @@
-// Stub — filled by later tasks (Task 15+).
+// The Compose tab: hosts the GarbusHitObjectComposer (editor timeline playfield + toolbox + blueprints).
+// The editor shell (GarbusEditor) DI-caches EditorChart / EditorClock / IEditorChangeHandler /
+// BindableBeatDivisor, which the composer tree resolves. The top timeline strip slot stays empty until
+// Task 17 wires the timeline + zoom sync.
 
+using Garbus.Game.Edit;
 using osu.Framework.Graphics;
-using osu.Framework.Graphics.Sprites;
 
 namespace Garbus.Game.Edit.Screens
 {
@@ -10,12 +13,9 @@ namespace Garbus.Game.Edit.Screens
         public ComposeTab()
         {
             RelativeSizeAxes = Axes.Both;
-            AddInternal(new SpriteText
-            {
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Text = "Compose",
-            });
+
+            // Timeline strip slot (top) stays empty until Task 17; the composer fills the rest.
+            AddInternal(new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both });
         }
     }
 }

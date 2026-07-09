@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -99,14 +100,23 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
     /// continue through the ghost bands.
     ///
     /// Adapted for Garbus: OsuSpriteText/OsuFont/OsuColour replaced by osu.Framework SpriteText;
-    /// AngleSnap is not resolved here — the default 45° is used for the grid lines.
+    /// the snap increment binds to the composer's <see cref="GarbusHitObjectComposer.AngleSnap"/>
+    /// (resolved from DI, as BAC did) so the faint snap lines track the selected increment live.
     /// </summary>
     private partial class AngleGrid : CompositeDrawable
     {
+        [Resolved(CanBeNull = true)]
+        private GarbusHitObjectComposer? composer { get; set; }
+
+        private readonly IBindable<int> angleSnap = new BindableInt(45);
+
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            regenerate();
+
+            if (composer != null)
+                angleSnap.BindTo(composer.AngleSnap);
+            angleSnap.BindValueChanged(_ => regenerate(), true);
         }
 
         private void regenerate()
@@ -114,7 +124,7 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
             ClearInternal();
 
             var lines = new List<Drawable>();
-            const int snap = 45; // default; Task 15's composer will expose AngleSnap
+            int snap = angleSnap.Value;
 
             for (int gridDeg = -EditorAngleMapping.GHOST_DEGREES; gridDeg <= 360 + EditorAngleMapping.GHOST_DEGREES; gridDeg += 1)
             {
