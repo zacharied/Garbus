@@ -1,14 +1,12 @@
 // Bespoke for Garbus (modeled on osu.Game/Screens/Edit/BottomBar.cs).
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // Adapted for Garbus: four fixed-width columns (150 | flex | 220 | 90); no osu.Game
-// OverlayColourProvider/EdgeEffect/TestGameplayButton wiring; Test button placeholder
-// (disabled BasicButton — wired in Task 19).
+// OverlayColourProvider/EdgeEffect/TestGameplayButton wiring; Test button wired in Task 19.
 
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
-using osu.Framework.Graphics.UserInterface;
 using osuTK.Graphics;
 
 namespace Garbus.Game.Edit.Screens.BottomBar
@@ -19,6 +17,8 @@ namespace Garbus.Game.Edit.Screens.BottomBar
     /// </summary>
     public partial class BottomBar : CompositeDrawable
     {
+        private TestButton testButton = null!;
+
         public BottomBar()
         {
             Anchor = Anchor.BottomLeft;
@@ -28,8 +28,17 @@ namespace Garbus.Game.Edit.Screens.BottomBar
         }
 
         [BackgroundDependencyLoader]
-        private void load()
+        private void load(GarbusEditor editor)
         {
+            testButton = new TestButton
+            {
+                Enabled = { Value = editor.HasRealTrack },
+                Action = editor.StartTestMode,
+            };
+
+            // Bind enabled state to whether the editor has a real track.
+            editor.TrackIsReal.BindValueChanged(e => testButton.Enabled.Value = e.NewValue, true);
+
             InternalChildren = new Drawable[]
             {
                 new Box
@@ -54,13 +63,7 @@ namespace Garbus.Game.Edit.Screens.BottomBar
                             new TimeInfoDisplay { RelativeSizeAxes = Axes.Both },
                             new SummaryTimeline { RelativeSizeAxes = Axes.Both },
                             new PlaybackControl { RelativeSizeAxes = Axes.Both },
-                            // Test button placeholder — wired in Task 19.
-                            new BasicButton
-                            {
-                                RelativeSizeAxes = Axes.Both,
-                                Text = "Test",
-                                Enabled = { Value = false },
-                            },
+                            testButton,
                         },
                     },
                 },

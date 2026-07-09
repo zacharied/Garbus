@@ -3,9 +3,11 @@
 using System;
 using System.Collections.Generic;
 using Garbus.Game.Charts;
+using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit.Screens.BottomBar;
 using Garbus.Game.Edit.Screens.Dialogs;
+using Garbus.Game.Screens;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
@@ -32,11 +34,42 @@ namespace Garbus.Game.Edit.Screens
 
         public EditorChart EditorChart { get; private set; } = null!;
 
+        /// <summary>
+        /// Whether the editor currently has a real (non-virtual) track loaded.
+        /// Bound to the Test button's enabled state.
+        /// </summary>
+        public readonly Bindable<bool> TrackIsReal = new Bindable<bool>(false);
+
+        /// <summary>Convenience accessor for the current <see cref="TrackIsReal"/> value.</summary>
+        public bool HasRealTrack => TrackIsReal.Value;
+
+        // --- Internal test seam ---
+
+        private Func<Track>? trackFactoryOverride;
+
+        /// <summary>
+        /// When set, this factory is called instead of <see cref="ChartFile.GetTrackStore"/> to
+        /// obtain a fresh track for test mode. Intended for headless tests only — in production this
+        /// is always null and the directory store is used.
+        /// Setting this also forces <see cref="TrackIsReal"/> to true so the Test button is enabled.
+        /// </summary>
+        internal Func<Track>? TrackFactoryOverride
+        {
+            get => trackFactoryOverride;
+            set
+            {
+                trackFactoryOverride = value;
+                if (value != null)
+                    TrackIsReal.Value = true;
+            }
+        }
+
         // --- Private state ---
 
         private EditorClock editorClock = null!;
         private GarbusChartChangeHandler changeHandler = null!;
         private BindableBeatDivisor beatDivisor = null!;
+        private AudioManager audioManager = null!;
 
         private string hashAtLastSave = string.Empty;
 
@@ -92,8 +125,9 @@ namespace Garbus.Game.Edit.Screens
         }
 
         [BackgroundDependencyLoader]
-        private void load(AudioManager audioManager)
+        private void load(AudioManager audio)
         {
+            audioManager = audio;
             RelativeSizeAxes = Axes.Both;
 
             // Load track.
@@ -197,7 +231,62 @@ namespace Garbus.Game.Edit.Screens
                 track = new TrackVirtual(60000);
             }
 
+            // Update the TrackIsReal bindable: a real track is anything that is NOT a TrackVirtual,
+            // OR when a test factory override is set (which always provides a headless "real" track).
+            // This controls whether the Test button is enabled.
+            TrackIsReal.Value = track is not TrackVirtual || trackFactoryOverride != null;
+
             editorClock.ChangeSource(track);
+        }
+
+        // --- Test mode ---
+
+        /// <summary>
+        /// Launches a <see cref="PlayScreen"/> with a deep clone of the current chart, starting
+        /// 1500 ms before the current editor position. Called by the Test button and F5.
+        /// When <see cref="TrackFactoryOverride"/> is set (headless tests only), that factory is
+        /// used to create the track instead of the chart directory store.
+        /// </summary>
+        public void StartTestMode()
+        {
+            // Determine which track to use.
+            Track? freshTrack = null;
+
+            if (trackFactoryOverride != null)
+            {
+                // Test seam: headless tests inject a factory so the push can happen without a real
+                // audio file on disk.
+                freshTrack = trackFactoryOverride();
+            }
+            else
+            {
+                // Production path: obtain a NEW track instance from the chart directory store.
+                // We must NOT share the editor's own track instance with the gameplay clock.
+                var store = ChartFile.GetTrackStore(audioManager);
+                if (store != null && !string.IsNullOrEmpty(ChartFile.Chart.Metadata.AudioFile))
+                    freshTrack = store.Get(ChartFile.Chart.Metadata.AudioFile);
+            }
+
+            if (freshTrack == null)
+                return; // No track available; button should have been disabled.
+
+            // Deep-clone the chart via the serializer (ensures zero shared references).
+            var clonedChart = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(EditorChart.Chart));
+            clonedChart.ApplyDefaults();
+
+            // Start 1500 ms before the editor's current position, clamped to ≥ 0.
+            double startTime = Math.Max(0, editorClock.CurrentTime - 1500);
+
+            this.Push(new PlayScreen(clonedChart, freshTrack, startTime));
+        }
+
+        public override void OnResuming(ScreenTransitionEvent e)
+        {
+            base.OnResuming(e);
+
+            // If returning from a PlayScreen, seek the editor clock to where gameplay ended.
+            if (e.Last is PlayScreen playScreen && playScreen.ExitTime.HasValue)
+                editorClock.Seek(playScreen.ExitTime.Value);
         }
 
         // --- Layout helpers ---
@@ -364,6 +453,14 @@ namespace Garbus.Game.Edit.Screens
         {
             if (e.Repeat)
                 return base.OnKeyDown(e);
+
+            // F5: launch test mode (no modifiers required).
+            if (e.Key == Key.F5 && !e.ControlPressed && !e.AltPressed && !e.SuperPressed)
+            {
+                if (TrackIsReal.Value || trackFactoryOverride != null)
+                    StartTestMode();
+                return true;
+            }
 
             if (e.ControlPressed)
             {

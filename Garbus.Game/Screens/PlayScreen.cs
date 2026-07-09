@@ -66,15 +66,73 @@ namespace Garbus.Game.Screens
         /// </summary>
         public const string DEFAULT_CHART = @"test-chart.garbus";
 
+        // --- Editor test mode ---
+
+        /// <summary>
+        /// When non-null, this chart and track are used instead of the bundled default.
+        /// Set by the editor test-mode constructor.
+        /// </summary>
+        private readonly GarbusChart? injectedChart;
+        private readonly Track? injectedTrack;
+
+        /// <summary>The gameplay start time passed from the editor (milliseconds). Exposed for tests.</summary>
+        public double StartTime { get; }
+
+        /// <summary>
+        /// The gameplay clock time at which the player exited, or null if the screen has not yet exited.
+        /// Set during <see cref="OnExiting"/> so the editor can seek back to the exit position.
+        /// </summary>
+        public double? ExitTime { get; private set; }
+
+        /// <summary>The chart this screen is playing. Exposed for editor test-mode assertions.</summary>
+        public GarbusChart Chart => chart;
+
+        // ---
+
+        /// <summary>
+        /// Creates a <see cref="PlayScreen"/> that loads the bundled test chart.
+        /// Used by the main menu "Play" button and <see cref="TestScenePlayScreen"/>.
+        /// </summary>
+        public PlayScreen()
+        {
+        }
+
+        /// <summary>
+        /// Creates a <see cref="PlayScreen"/> pre-loaded with the given chart and track, starting
+        /// at the specified time. Used by the editor's Test mode (F5 / Test button).
+        /// </summary>
+        /// <param name="chart">A deep-cloned chart (no shared references with the editor).</param>
+        /// <param name="track">A fresh track instance (never the editor's own track).</param>
+        /// <param name="startTime">
+        /// Gameplay start time in milliseconds.
+        /// Typically <c>EditorClock.CurrentTime − 1500</c>, clamped to ≥ 0.
+        /// </param>
+        public PlayScreen(GarbusChart chart, Track track, double startTime = 0)
+        {
+            injectedChart = chart;
+            injectedTrack = track;
+            StartTime = startTime;
+        }
+
         [BackgroundDependencyLoader]
         private void load(ITrackStore tracks, ChartStore charts)
         {
-            chart = charts.Get(DEFAULT_CHART);
-            chart.ApplyDefaults();
+            if (injectedChart != null && injectedTrack != null)
+            {
+                // Editor test mode: use the pre-provided chart + track.
+                chart = injectedChart;
+                track = injectedTrack;
+            }
+            else
+            {
+                // Normal (standalone) path: load the bundled chart.
+                chart = charts.Get(DEFAULT_CHART);
+                chart.ApplyDefaults();
 
-            // The chart references its audio by full filename (TrackStore only probes ".mp3" for
-            // extension-less lookups).
-            track = tracks.Get(chart.Metadata.AudioFile);
+                // The chart references its audio by full filename (TrackStore only probes ".mp3" for
+                // extension-less lookups).
+                track = tracks.Get(chart.Metadata.AudioFile);
+            }
 
             chartEndTime = chart.HitObjects.Count == 0
                 ? 0
@@ -87,7 +145,7 @@ namespace Garbus.Game.Screens
                     Colour = new Color4(18, 18, 26, 255),
                     RelativeSizeAxes = Axes.Both,
                 },
-                gameplayClock = new MasterGameplayClockContainer(track, 0)
+                gameplayClock = new MasterGameplayClockContainer(track, StartTime)
                 {
                     Child = new GarbusInputManager
                     {
@@ -293,6 +351,13 @@ namespace Garbus.Game.Screens
             }
 
             return base.OnKeyDown(e);
+        }
+
+        public override bool OnExiting(ScreenExitEvent e)
+        {
+            // Record where gameplay was when the player exited so the editor can seek back there.
+            ExitTime = gameplayClock?.CurrentTime;
+            return base.OnExiting(e);
         }
 
         protected override void Dispose(bool isDisposing)
