@@ -1,0 +1,11 @@
+﻿{
+  "solution": {
+    "path": "Garbus.sln",
+    "projects": [
+      "Garbus.Desktop\\Garbus.Desktop.csproj",
+      "Garbus.Game\\Garbus.Game.csproj",
+      "Garbus.Game.Tests\\Garbus.Game.Tests.csproj",
+      "Garbus.Resources\\Garbus.Resources.csproj"
+    ]
+  }
+}
