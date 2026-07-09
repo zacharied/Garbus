@@ -85,7 +85,7 @@ namespace Garbus.Game.Screens
         public double? ExitTime { get; private set; }
 
         /// <summary>The chart this screen is playing. Exposed for editor test-mode assertions.</summary>
-        public GarbusChart Chart => chart;
+        public GarbusChart? Chart => chart;
 
         // ---
 

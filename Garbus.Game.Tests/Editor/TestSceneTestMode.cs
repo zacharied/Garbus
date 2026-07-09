@@ -114,7 +114,7 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("cloned chart has same object count", () =>
             {
                 var ps = (PlayScreen)stack.CurrentScreen;
-                return ps.Chart.HitObjects.Count == 3;
+                return ps.Chart!.HitObjects.Count == 3;
             });
         }
 
@@ -131,7 +131,7 @@ namespace Garbus.Game.Tests.Editor
             {
                 var ps = (PlayScreen)stack.CurrentScreen;
                 var editorFirst = editor.EditorChart.HitObjects.First();
-                var playFirst = ps.Chart.HitObjects.First();
+                var playFirst = ps.Chart!.HitObjects.First();
                 return !ReferenceEquals(editorFirst, playFirst);
             });
         }

@@ -457,7 +457,7 @@ namespace Garbus.Game.Edit.Screens
             // F5: launch test mode (no modifiers required).
             if (e.Key == Key.F5 && !e.ControlPressed && !e.AltPressed && !e.SuperPressed)
             {
-                if (TrackIsReal.Value || trackFactoryOverride != null)
+                if (TrackIsReal.Value)
                     StartTestMode();
                 return true;
             }
