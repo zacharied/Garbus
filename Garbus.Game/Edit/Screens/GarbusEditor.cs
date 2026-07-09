@@ -68,6 +68,9 @@ namespace Garbus.Game.Edit.Screens
 
         private EditorClock editorClock = null!;
         private GarbusChartChangeHandler changeHandler = null!;
+
+        /// <summary>Exposed for tests that need to assert undo/redo state directly.</summary>
+        internal GarbusChartChangeHandler ChangeHandlerForTests => changeHandler;
         private BindableBeatDivisor beatDivisor = null!;
         private AudioManager audioManager = null!;
 
