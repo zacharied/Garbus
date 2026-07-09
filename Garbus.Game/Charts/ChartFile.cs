@@ -93,7 +93,12 @@ public class ChartFile : IDisposable
             throw new InvalidOperationException("Cannot import resource: chart has no directory. Save the chart first.");
 
         string fileName = Path.GetFileName(sourcePath);
-        File.Copy(sourcePath, Path.Combine(Directory, fileName), overwrite: true);
+        string dest = Path.Combine(Directory, fileName);
+
+        // Guard against copying a file onto itself (e.g., when the source is already in the chart directory).
+        if (!string.Equals(Path.GetFullPath(sourcePath), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+            File.Copy(sourcePath, dest, overwrite: true);
+
         return fileName;
     }
 

@@ -56,5 +56,22 @@ namespace Garbus.Game.Tests.Charts
             Assert.That(name, Is.EqualTo("song.ogg"));
             Assert.That(File.Exists(Path.Combine(tempDir, "song.ogg")));
         }
+
+        [Test]
+        public void TestImportResourceFromSameDirectoryDoesNotThrow()
+        {
+            var chart = new GarbusChart();
+            var file = new ChartFile(chart);
+            file.Save(Path.Combine(tempDir, "chart.garbus"));
+
+            // Create a file inside the chart directory.
+            string resourcePath = Path.Combine(tempDir, "resource.wav");
+            File.WriteAllBytes(resourcePath, new byte[] { 42 });
+
+            // ImportResource should not throw even when source == dest.
+            string name = file.ImportResource(resourcePath);
+            Assert.That(name, Is.EqualTo("resource.wav"));
+            Assert.That(File.Exists(resourcePath));
+        }
     }
 }
