@@ -2,7 +2,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: effect points removed (no kiai; timing is the only control point type),
-// BindableBeatDivisor.PREDEFINED_DIVISORS inlined (editor bindable not vendored), Newtonsoft
+// PREDEFINED_DIVISORS now sourced from BindableBeatDivisor (vendored in Phase 4), Newtonsoft
 // attributes dropped (serialization goes through the chart format DTOs instead).
 
 #nullable disable
@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Garbus.Game.Edit;
 using JetBrains.Annotations;
 using osu.Framework.Bindables;
 using osu.Framework.Lists;
@@ -22,9 +23,9 @@ namespace Garbus.Game.Charts.Timing
     public class ControlPointInfo
     {
         /// <summary>
-        /// The beat divisors an editor time-snap can land on (osu's BindableBeatDivisor.PREDEFINED_DIVISORS).
+        /// The beat divisors an editor time-snap can land on. Delegates to BindableBeatDivisor.PREDEFINED_DIVISORS.
         /// </summary>
-        public static readonly int[] PREDEFINED_DIVISORS = { 1, 2, 3, 4, 6, 8, 12, 16 };
+        public static int[] PREDEFINED_DIVISORS => BindableBeatDivisor.PREDEFINED_DIVISORS;
 
         /// <summary>
         /// Invoked on any change to the set of control points.
