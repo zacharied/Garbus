@@ -41,6 +41,14 @@ namespace Garbus.Game.Edit.Compose
         // building InternalChildren (BDL runs base-first, before this class's own BDL).
         public override Playfield Playfield => playfield ??= CreatePlayfield();
 
+        /// <summary>
+        /// Tracks the non-pooled drawable created for each live hit object so Remove/Update can reach the
+        /// correct <see cref="DrawableHitObject"/> overload on <see cref="Playfield"/> (the
+        /// <see cref="HitObject"/> overload goes through <c>entryManager</c>, which is never populated by
+        /// the non-pooled Add path and would silently no-op).
+        /// </summary>
+        private readonly Dictionary<GarbusHitObject, DrawableHitObject> drawableMap = new Dictionary<GarbusHitObject, DrawableHitObject>();
+
         public override IEnumerable<DrawableHitObject> HitObjects => Playfield.AllHitObjects;
 
         public override bool CursorInPlacementArea => Playfield.ReceivePositionalInputAt(InputManager.CurrentState.Mouse.Position);
@@ -90,16 +98,28 @@ namespace Garbus.Game.Edit.Compose
                 return;
 
             var drawable = CreateDrawableRepresentation(typed);
-            if (drawable != null)
-                Playfield.Add(drawable);
+            if (drawable == null)
+                return;
+
+            drawableMap[hitObject] = drawable;
+            Playfield.Add(drawable);
         }
 
-        private void removeHitObject(GarbusHitObject hitObject) => Playfield.Remove(hitObject);
+        private void removeHitObject(GarbusHitObject hitObject)
+        {
+            if (!drawableMap.TryGetValue(hitObject, out var drawable))
+                return;
+
+            drawableMap.Remove(hitObject);
+            // Note: Playfield.Remove(DrawableHitObject) has a pre-existing vendored quirk of returning
+            // false even on success — we deliberately ignore the return value here.
+            Playfield.Remove(drawable);
+        }
 
         private void updateHitObject(GarbusHitObject hitObject)
         {
             // Remove the existing drawable and re-create it so nested objects / geometry are rebuilt.
-            Playfield.Remove(hitObject);
+            removeHitObject(hitObject);
             addHitObject(hitObject);
         }
 
@@ -144,6 +164,8 @@ namespace Garbus.Game.Edit.Compose
                 EditorChart.HitObjectRemoved -= removeHitObject;
                 EditorChart.HitObjectUpdated -= updateHitObject;
             }
+
+            drawableMap.Clear();
         }
     }
 }
