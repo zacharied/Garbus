@@ -2,11 +2,12 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: namespace Garbus.Game.Edit.Compose; ScreenSpaceAdditionalNodes/ScreenSpaceSnapPoints
-// stripped (composer snapping infrastructure added in Task 12); JetBrains annotations removed; nullable
-// enabled. Task 11 re-added ContextMenuItems using GarbusMenuItem (no osu.Game dependency).
+// restored in Task 12 (required by BlueprintContainer movement tracking); JetBrains annotations removed;
+// nullable enabled. Task 11 re-added ContextMenuItems using GarbusMenuItem (no osu.Game dependency).
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using osu.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -136,6 +137,17 @@ namespace Garbus.Game.Edit.Compose
         /// The screen-space main point that causes this blueprint to be selected via a drag.
         /// </summary>
         public virtual Vector2 ScreenSpaceSelectionPoint => ScreenSpaceDrawQuad.Centre;
+
+        /// <summary>
+        /// Any points that should be used for snapping purposes in addition to <see cref="ScreenSpaceSelectionPoint"/>.
+        /// </summary>
+        protected virtual Vector2[] ScreenSpaceAdditionalNodes => Array.Empty<Vector2>();
+
+        /// <summary>
+        /// The screen-space collection of base points on this blueprint that other objects can be snapped to.
+        /// The first element of this collection is <see cref="ScreenSpaceSelectionPoint"/>.
+        /// </summary>
+        public Vector2[] ScreenSpaceSnapPoints => ScreenSpaceAdditionalNodes.Prepend(ScreenSpaceSelectionPoint).ToArray();
 
         /// <summary>
         /// The screen-space quad that outlines this blueprint for selections.
