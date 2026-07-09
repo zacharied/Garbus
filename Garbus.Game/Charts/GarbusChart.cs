@@ -13,21 +13,15 @@ public class GarbusChart
 
     public ControlPointInfo ControlPointInfo { get; init; } = new ControlPointInfo();
 
-    /// <summary>
-    /// The overall difficulty [0..10] feeding hit window sizes (see
-    /// <see cref="Gameplay.Scoring.DefaultHitWindows.SetDifficulty"/>).
-    /// </summary>
-    public double OverallDifficulty { get; set; } = 5;
-
     public List<GarbusHitObject> HitObjects { get; init; } = new List<GarbusHitObject>();
 
     /// <summary>
-    /// Applies defaults (hit windows from <see cref="OverallDifficulty"/>, nested object creation)
-    /// to every hit object. Must be called after loading and before play.
+    /// Applies defaults (hit windows, nested object creation) to every hit object. Must be called
+    /// after loading and before play.
     /// </summary>
     public void ApplyDefaults()
     {
         foreach (var hitObject in HitObjects)
-            hitObject.ApplyDefaults(OverallDifficulty);
+            hitObject.ApplyDefaults();
     }
 }

@@ -1,7 +1,7 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Rulesets/Scoring/HitWindows.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: namespaces only.
+// Adapted for Garbus: SetDifficulty removed — hit windows are fixed, there is no per-chart difficulty.
 
 using System;
 using System.Collections.Generic;
@@ -70,12 +70,6 @@ namespace Garbus.Game.Gameplay.Scoring
         public virtual bool IsHitResultAllowed(HitResult result) => true;
 
         /// <summary>
-        /// Sets hit windows with values that correspond to a difficulty parameter.
-        /// </summary>
-        /// <param name="difficulty">The parameter.</param>
-        public abstract void SetDifficulty(double difficulty);
-
-        /// <summary>
         /// Retrieves the <see cref="HitResult"/> for a time offset.
         /// </summary>
         /// <param name="timeOffset">The time offset.</param>
@@ -112,8 +106,6 @@ namespace Garbus.Game.Gameplay.Scoring
         private class EmptyHitWindows : HitWindows
         {
             public override bool IsHitResultAllowed(HitResult result) => true;
-
-            public override void SetDifficulty(double difficulty) { }
 
             public override double WindowFor(HitResult result) => 0;
         }

@@ -25,7 +25,6 @@ public class GarbusTestChartGenerator
                 ChartName = "test chart",
                 AudioFile = "test-track.ogg",
             },
-            OverallDifficulty = 5,
             HitObjects =
             [
                 new SliderBody()

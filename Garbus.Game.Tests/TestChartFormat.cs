@@ -81,7 +81,6 @@ namespace Garbus.Game.Tests
                 Assert.That(actual.Metadata.Charter, Is.EqualTo(expected.Metadata.Charter));
                 Assert.That(actual.Metadata.ChartName, Is.EqualTo(expected.Metadata.ChartName));
                 Assert.That(actual.Metadata.AudioFile, Is.EqualTo(expected.Metadata.AudioFile));
-                Assert.That(actual.OverallDifficulty, Is.EqualTo(expected.OverallDifficulty));
 
                 Assert.That(actual.ControlPointInfo.TimingPoints, Has.Count.EqualTo(expected.ControlPointInfo.TimingPoints.Count));
 

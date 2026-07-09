@@ -18,8 +18,6 @@ public class ChartFileDto
 
     public ChartMetadataDto Metadata { get; set; } = new ChartMetadataDto();
 
-    public double OverallDifficulty { get; set; } = 5;
-
     public List<TimingPointDto> TimingPoints { get; set; } = new List<TimingPointDto>();
 
     public List<HitObjectDto> HitObjects { get; set; } = new List<HitObjectDto>();

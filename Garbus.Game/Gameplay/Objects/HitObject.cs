@@ -2,8 +2,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: ControlPointInfo/Kiai and IBeatmapDifficultyInfo removed (ApplyDefaults takes no
-// timing/difficulty arguments; hit windows use a fixed default difficulty), combo information and legacy
-// sample helpers (CreateSlidingSamples/CreateHitSampleInfo) removed, nullability enabled.
+// timing/difficulty arguments; hit windows are fixed), combo information and legacy sample helpers
+// (CreateSlidingSamples/CreateHitSampleInfo) removed, nullability enabled.
 
 using System;
 using System.Collections.Generic;
@@ -26,11 +26,6 @@ namespace Garbus.Game.Gameplay.Objects
     /// </summary>
     public class HitObject
     {
-        /// <summary>
-        /// The default difficulty applied to hit windows until charts carry their own difficulty setting.
-        /// </summary>
-        public const double DEFAULT_DIFFICULTY = 5;
-
         /// <summary>
         /// Invoked after <see cref="ApplyDefaults"/> has completed on this <see cref="HitObject"/>.
         /// </summary>
@@ -74,13 +69,12 @@ namespace Garbus.Game.Gameplay.Objects
         /// <summary>
         /// Applies default values to this HitObject.
         /// </summary>
-        /// <param name="difficulty">The overall difficulty [0..10] applied to the hit windows.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public void ApplyDefaults(double difficulty = DEFAULT_DIFFICULTY, CancellationToken cancellationToken = default)
+        public void ApplyDefaults(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            ApplyDefaultsToSelf(difficulty);
+            ApplyDefaultsToSelf();
 
             nestedHitObjects.Clear();
 
@@ -89,7 +83,7 @@ namespace Garbus.Game.Gameplay.Objects
             nestedHitObjects.Sort((h1, h2) => h1.StartTime.CompareTo(h2.StartTime));
 
             foreach (var h in nestedHitObjects)
-                h.ApplyDefaults(difficulty, cancellationToken);
+                h.ApplyDefaults(cancellationToken);
 
             // `ApplyDefaults()` may be called multiple times on a single hitobject.
             // to prevent subscribing to `StartTimeBindable.ValueChanged` multiple times with the same callback,
@@ -112,10 +106,9 @@ namespace Garbus.Game.Gameplay.Objects
             }
         }
 
-        protected virtual void ApplyDefaultsToSelf(double difficulty)
+        protected virtual void ApplyDefaultsToSelf()
         {
             HitWindows ??= CreateHitWindows();
-            HitWindows?.SetDifficulty(difficulty);
         }
 
         protected virtual void CreateNestedHitObjects(CancellationToken cancellationToken)

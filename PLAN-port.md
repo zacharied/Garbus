@@ -154,14 +154,14 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
 top-level integer `version` field (decoder rejects unknown versions), control points as typed lists
 (currently just `timingPoints`), hit objects polymorphic on a `"type"` discriminator that must stay the
 first property of each object (System.Text.Json net8 requirement). Extension: `.garbus`. Hit object
-samples are not yet serialized (every note still uses the soft-hitnormal default).
+samples are not yet serialized (every note still uses the soft-hitnormal default). Hit windows are
+fixed (no per-chart difficulty — `DefaultHitWindows` carries constant values).
 
 - [x] Native chart format defined — `Charts/GarbusChart` grew metadata (`ChartMetadata`: title, artist,
-      charter, chart name, audio filename), vendored `Charts/Timing/` (`ControlPointInfo` +
+      charter, chart name, audio filename) and vendored `Charts/Timing/` (`ControlPointInfo` +
       `TimingControlPoint`/`ControlPointGroup`/`TimeSignature`, trimmed to timing-only: no
       effect/sample/difficulty points since kiai/skin-samples/variable-scroll are dropped;
-      `BindableBeatDivisor.PREDEFINED_DIVISORS` inlined), and `OverallDifficulty` now actually feeds
-      hit windows (`HitObject.ApplyDefaults(difficulty)` replaces the fixed Phase 2 constant)
+      `BindableBeatDivisor.PREDEFINED_DIVISORS` inlined)
 - [x] Serializer/deserializer — `Charts/Format/` DTO layer + `GarbusChartSerializer`
       (System.Text.Json); `TestChartFormat` covers roundtrip equality, unknown-version rejection, and
       bundled-file-vs-generator agreement

@@ -64,7 +64,6 @@ public static class GarbusChartSerializer
             ChartName = chart.Metadata.ChartName,
             AudioFile = chart.Metadata.AudioFile,
         },
-        OverallDifficulty = chart.OverallDifficulty,
         TimingPoints = chart.ControlPointInfo.TimingPoints.Select(t => new TimingPointDto
         {
             Time = t.Time,
@@ -115,7 +114,6 @@ public static class GarbusChartSerializer
                 ChartName = dto.Metadata.ChartName,
                 AudioFile = dto.Metadata.AudioFile,
             },
-            OverallDifficulty = dto.OverallDifficulty,
             HitObjects = dto.HitObjects.Select(fromDto).ToList(),
         };
 

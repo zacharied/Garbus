@@ -7,7 +7,6 @@
     "chartName": "test chart",
     "audioFile": "test-track.ogg"
   },
-  "overallDifficulty": 5,
   "timingPoints": [
     {
       "time": 0,
