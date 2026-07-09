@@ -106,6 +106,8 @@ namespace Garbus.Game.Edit.Compose
             return true;
         }
 
+        protected override SelectionBlueprintContainer CreateSelectionBlueprintContainer() => new HitObjectOrderedSelectionContainer { RelativeSizeAxes = Axes.Both };
+
         protected override SelectionHandler<GarbusHitObject> CreateSelectionHandler() => new EditorSelectionHandler();
 
         protected override void SelectAll()
