@@ -255,6 +255,61 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
+        // 8. Wheel seek direction
+        //
+        // osu-framework: positive ScrollDelta.Y = wheel-up.
+        // Spec: wheel-down (negative Y) → forward; wheel-up (positive Y) → backward.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestWheelDownSeeksForward()
+        {
+            waitForEditor();
+
+            AddStep("stop clock and seek to mid-track", () =>
+            {
+                editorClock!.Stop();
+                editorClock.Seek(editorClock.TrackLength / 2);
+            });
+
+            double capturedTime = 0;
+            AddStep("capture current time", () => capturedTime = editorClock!.CurrentTime);
+
+            AddStep("wheel down over compose area", () =>
+            {
+                var compose = editor.ChildrenOfType<ComposeTab>().First();
+                input.MoveMouseTo(compose.ToScreenSpace(new Vector2(compose.DrawWidth * 0.5f, compose.DrawHeight * 0.5f)));
+                input.ScrollVerticalBy(-1);
+            });
+
+            AddUntilStep("time increased (wheel-down = forward)", () => editorClock!.CurrentTime > capturedTime + 10);
+        }
+
+        [Test]
+        public void TestWheelUpSeeksBackward()
+        {
+            waitForEditor();
+
+            AddStep("stop clock and seek to mid-track", () =>
+            {
+                editorClock!.Stop();
+                editorClock.Seek(editorClock.TrackLength / 2);
+            });
+
+            double capturedTime = 0;
+            AddStep("capture current time", () => capturedTime = editorClock!.CurrentTime);
+
+            AddStep("wheel up over compose area", () =>
+            {
+                var compose = editor.ChildrenOfType<ComposeTab>().First();
+                input.MoveMouseTo(compose.ToScreenSpace(new Vector2(compose.DrawWidth * 0.5f, compose.DrawHeight * 0.5f)));
+                input.ScrollVerticalBy(1);
+            });
+
+            AddUntilStep("time decreased (wheel-up = backward)", () => editorClock!.CurrentTime < capturedTime - 10);
+        }
+
+        // ------------------------------------------------------------------
         // 7. TimelineStrip raw-drag / snap-on-release (carried from Task 17)
         //
         // The TimelineStrip drag mechanism: scroll position → time via TimeAtPosition(Current).

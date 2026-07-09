@@ -446,13 +446,15 @@ namespace Garbus.Game.Edit.Screens
         protected override bool OnScroll(ScrollEvent e)
         {
             // Mouse wheel over the compose area: seek one divisor step.
-            // Wheel-down = forward (osu convention: positive Y = scroll down = time forward).
+            // Wheel-down (negative ScrollDelta.Y in osu-framework) = forward in time.
+            // Wheel-up   (positive ScrollDelta.Y)                   = backward in time.
+            // Matches osu's Editor.cs: scrollAccumulation > 0 → seek(e, -1) (backward).
             if (!isTextBoxFocused() && !e.ControlPressed && !e.AltPressed && !e.SuperPressed)
             {
                 double scrollY = e.ScrollDelta.Y;
-                if (scrollY > 0)
+                if (scrollY < 0)
                     editorClock.SeekForward(snapped: true);
-                else if (scrollY < 0)
+                else if (scrollY > 0)
                     editorClock.SeekBackward(snapped: true);
 
                 return true;

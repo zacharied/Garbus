@@ -96,9 +96,12 @@ namespace Garbus.Game.Edit.Screens.BottomBar
         protected override void LoadComplete()
         {
             base.LoadComplete();
+            editorChart.ControlPointInfo.ControlPointsChanged += onControlPointsChanged;
             rebuildTicks();
             updatePreviewMarker();
         }
+
+        private void onControlPointsChanged() => rebuildTicks();
 
         private void rebuildTicks()
         {
@@ -188,6 +191,13 @@ namespace Garbus.Game.Edit.Screens.BottomBar
             double seekTime = Math.Clamp(localX / DrawWidth * editorClock.TrackLength, 0, editorClock.TrackLength);
             // Raw seek — no snapping.
             editorClock.Seek(seekTime);
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            if (editorChart != null)
+                editorChart.ControlPointInfo.ControlPointsChanged -= onControlPointsChanged;
         }
     }
 }
