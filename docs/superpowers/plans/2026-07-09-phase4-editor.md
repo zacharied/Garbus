@@ -801,7 +801,7 @@ public abstract partial class HitObjectSelectionBlueprint : SelectionBlueprint<G
 }
 public abstract partial class HitObjectSelectionBlueprint<T> : HitObjectSelectionBlueprint where T : GarbusHitObject
 {
-    public new T Item { get; }  // typed shadow, osu's exact pattern
+    public T HitObject => (T)Item;  // typed accessor, osu's exact pattern
 }
 ```
 
