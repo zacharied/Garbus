@@ -19,6 +19,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.UserInterface;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit.Screens.Timeline;
 
@@ -40,9 +41,32 @@ namespace Garbus.Game.Edit.Screens
             // Timeline strip above, composer fills the rest.
             // Use a plain Container with Padding (same pattern as GarbusEditor's tab container) to
             // avoid the FillFlowContainer + RelativeSizeAxes.Both collapse issue.
+            const float ZOOM_BUTTON_WIDTH = 26;
+
             InternalChildren = new Drawable[]
             {
                 timelineStrip = new TimelineStrip(),
+                // Zoom-out button (–) at the right edge of the timeline strip.
+                new BasicButton
+                {
+                    Anchor = Anchor.TopRight,
+                    Origin = Anchor.TopRight,
+                    Width = ZOOM_BUTTON_WIDTH,
+                    Height = TimelineStrip.HEIGHT / 2,
+                    Text = "–",
+                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value - 1f,
+                },
+                // Zoom-in button (+) just to the left of the zoom-out button.
+                new BasicButton
+                {
+                    Anchor = Anchor.TopRight,
+                    Origin = Anchor.TopRight,
+                    Width = ZOOM_BUTTON_WIDTH,
+                    Height = TimelineStrip.HEIGHT / 2,
+                    Position = new osuTK.Vector2(-ZOOM_BUTTON_WIDTH, 0),
+                    Text = "+",
+                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value + 1f,
+                },
                 new Container
                 {
                     RelativeSizeAxes = Axes.Both,

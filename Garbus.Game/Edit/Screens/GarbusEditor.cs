@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
+using Garbus.Game.Edit.Screens.BottomBar;
 using Garbus.Game.Edit.Screens.Dialogs;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -337,22 +338,7 @@ namespace Garbus.Game.Edit.Screens
             return new[] { undoItem, redoItem };
         }
 
-        private Drawable createBottomBar()
-        {
-            // Placeholder; content arrives in Task 17/18.
-            return new Container
-            {
-                Anchor = Anchor.BottomLeft,
-                Origin = Anchor.BottomLeft,
-                RelativeSizeAxes = Axes.X,
-                Height = 60,
-                Child = new Box
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    Colour = new osuTK.Graphics.Color4(20, 20, 28, 255),
-                },
-            };
-        }
+        private Drawable createBottomBar() => new BottomBar.BottomBar();
 
         // --- Screen exit ---
 
@@ -400,7 +386,94 @@ namespace Garbus.Game.Edit.Screens
                 }
             }
 
+            // Transport keys — only when no textbox is focused (textbox consumes its own input
+            // before the event bubbles here, but we double-check to be safe).
+            if (!isTextBoxFocused())
+            {
+                if (!e.ControlPressed && !e.AltPressed && !e.SuperPressed)
+                {
+                    switch (e.Key)
+                    {
+                        case Key.Space:
+                            togglePlayPause();
+                            return true;
+
+                        case Key.Z:
+                            // Seek to track start
+                            editorClock.Seek(0);
+                            return true;
+
+                        case Key.X:
+                            // Play from start
+                            editorClock.Seek(0);
+                            editorClock.Start();
+                            return true;
+
+                        case Key.C:
+                            // Pause/resume
+                            if (editorClock.IsRunning) editorClock.Stop(); else editorClock.Start();
+                            return true;
+
+                        case Key.V:
+                            // Seek to end
+                            editorClock.Seek(editorClock.TrackLength);
+                            return true;
+
+                        case Key.Left:
+                            editorClock.SeekBackward(snapped: true);
+                            return true;
+
+                        case Key.Right:
+                            editorClock.SeekForward(snapped: true);
+                            return true;
+
+                        case Key.Up:
+                            // Decrease divisor (fewer subdivisions, coarser grid)
+                            beatDivisor.SelectPrevious();
+                            return true;
+
+                        case Key.Down:
+                            // Increase divisor (more subdivisions, finer grid)
+                            beatDivisor.SelectNext();
+                            return true;
+                    }
+                }
+            }
+
             return base.OnKeyDown(e);
+        }
+
+        protected override bool OnScroll(ScrollEvent e)
+        {
+            // Mouse wheel over the compose area: seek one divisor step.
+            // Wheel-down = forward (osu convention: positive Y = scroll down = time forward).
+            if (!isTextBoxFocused() && !e.ControlPressed && !e.AltPressed && !e.SuperPressed)
+            {
+                double scrollY = e.ScrollDelta.Y;
+                if (scrollY > 0)
+                    editorClock.SeekForward(snapped: true);
+                else if (scrollY < 0)
+                    editorClock.SeekBackward(snapped: true);
+
+                return true;
+            }
+
+            return base.OnScroll(e);
+        }
+
+        private void togglePlayPause()
+        {
+            if (editorClock.IsRunning)
+                editorClock.Stop();
+            else
+                editorClock.Start();
+        }
+
+        private bool isTextBoxFocused()
+        {
+            var focusManager = GetContainingFocusManager();
+            var inputManager = focusManager as osu.Framework.Input.InputManager;
+            return inputManager?.FocusedDrawable is osu.Framework.Graphics.UserInterface.TextBox;
         }
 
         // --- Dialog helpers ---

@@ -184,7 +184,13 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private void seekTrackToCurrent()
         {
             double target = TimeAtPosition(Current);
-            editorClock.SeekSnapped(Math.Clamp(target, 0, editorClock.TrackLength));
+            target = Math.Clamp(target, 0, editorClock.TrackLength);
+
+            if (handlingDragInput)
+                // Raw (unsnapped) seek while dragging — snapping happens on mouse-up.
+                editorClock.Seek(target);
+            else
+                editorClock.SeekSnapped(target);
         }
 
         private void scrollToTrackTime()
