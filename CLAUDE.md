@@ -28,7 +28,21 @@ attribution headers kept).
   `Garbus*` when ported.
 - No mods, difficulty calculation, replays, skinning, or realm — deliberately dropped (see plan).
 
-## Current state (Phase 2 complete)
+## Current state (Phase 3 complete)
+
+Phase 3 additions — the native chart format:
+
+- `Garbus.Game/Charts/` — `GarbusChart` (metadata + timing + difficulty + hit objects,
+  `ApplyDefaults()` feeds `OverallDifficulty` into hit windows), `ChartMetadata`, `ChartStore`
+  (decodes `.garbus` resources; cached in `GarbusGameBase`), `Charts/Timing/` (vendored
+  `ControlPointInfo` stack, timing-only), `Charts/Format/` (versioned JSON DTOs +
+  `GarbusChartSerializer`; `"type"` discriminator must stay first per hit object).
+- `PlayScreen` loads `Garbus.Resources/Charts/test-chart.garbus` and resolves audio from the chart's
+  `audioFile`. The bundled file's source of truth is `GarbusTestChartGenerator` — regenerate via the
+  `[Explicit]` test `TestChartFormat.RegenerateBundledTestChart` after changing generator or format.
+- 20 headless tests green (`TestChartFormat` adds roundtrip/version/bundled-file coverage).
+
+## Phase 2 state (gameplay vertical slice)
 
 - `Garbus.Game/Timing/` — the vendored gameplay clock stack: `FramedChartClock` (née
   `FramedBeatmapClock`; realm per-beatmap offset → plain `ChartOffset` property),
@@ -56,6 +70,7 @@ attribution headers kept).
   Gotcha: manual-clock jumps larger than an object's alive window skip judgement entirely — step in
   sub-window increments (`TestSceneGameplay.playThrough`).
 - Resources: `Textures/` (square, paddle, arrow from BAC), `Samples/Gameplay/soft-hitnormal.wav`
-  (synthesized — osu-resources assets aren't freely reusable), `Tracks/sample-track.mp3`.
+  (synthesized — osu-resources assets aren't freely reusable), `Tracks/test-track.ogg` (track lookups
+  need the full filename — `TrackStore` only probes `.mp3`), `Charts/test-chart.garbus`.
 
-Next: Phase 3 (native chart format) per `PLAN-port.md`.
+Next: Phase 4 (editor rebuild) per `PLAN-port.md`.

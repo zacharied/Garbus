@@ -1,0 +1,113 @@
+// Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Beatmaps/ControlPoints/TimingControlPoint.cs
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
+// Adapted for Garbus: editor representing-colour hook removed.
+
+using System;
+using osu.Framework.Bindables;
+
+namespace Garbus.Game.Charts.Timing
+{
+    public class TimingControlPoint : ControlPoint, IEquatable<TimingControlPoint>
+    {
+        /// <summary>
+        /// The time signature at this control point.
+        /// </summary>
+        public readonly Bindable<TimeSignature> TimeSignatureBindable = new Bindable<TimeSignature>(TimeSignature.SimpleQuadruple);
+
+        /// <summary>
+        /// Whether the first bar line of this control point is ignored.
+        /// </summary>
+        public readonly BindableBool OmitFirstBarLineBindable = new BindableBool();
+
+        /// <summary>
+        /// Default length of a beat in milliseconds. Used whenever there is no chart or track playing.
+        /// </summary>
+        private const double default_beat_length = 60000.0 / 60.0;
+
+        public static readonly TimingControlPoint DEFAULT = new TimingControlPoint
+        {
+            BeatLengthBindable =
+            {
+                Value = default_beat_length,
+                Disabled = true
+            },
+            OmitFirstBarLineBindable = { Disabled = true },
+            TimeSignatureBindable = { Disabled = true }
+        };
+
+        /// <summary>
+        /// The time signature at this control point.
+        /// </summary>
+        public TimeSignature TimeSignature
+        {
+            get => TimeSignatureBindable.Value;
+            set => TimeSignatureBindable.Value = value;
+        }
+
+        /// <summary>
+        /// Whether the first bar line of this control point is ignored.
+        /// </summary>
+        public bool OmitFirstBarLine
+        {
+            get => OmitFirstBarLineBindable.Value;
+            set => OmitFirstBarLineBindable.Value = value;
+        }
+
+        public const double DEFAULT_BEAT_LENGTH = 1000;
+
+        /// <summary>
+        /// The beat length at this control point.
+        /// </summary>
+        public readonly BindableDouble BeatLengthBindable = new BindableDouble(DEFAULT_BEAT_LENGTH)
+        {
+            MinValue = 6,
+            MaxValue = 60000
+        };
+
+        /// <summary>
+        /// The beat length at this control point.
+        /// </summary>
+        public double BeatLength
+        {
+            get => BeatLengthBindable.Value;
+            set => BeatLengthBindable.Value = value;
+        }
+
+        /// <summary>
+        /// The BPM at this control point.
+        /// </summary>
+        public double BPM => 60000 / BeatLength;
+
+        public TimingControlPoint()
+        {
+            TimeSignatureBindable.BindValueChanged(_ => RaiseChanged());
+            OmitFirstBarLineBindable.BindValueChanged(_ => RaiseChanged());
+            BeatLengthBindable.BindValueChanged(_ => RaiseChanged());
+        }
+
+        // Timing points are never redundant as they can change the time signature.
+        public override bool IsRedundant(ControlPoint? existing) => false;
+
+        public override void CopyFrom(ControlPoint other)
+        {
+            TimeSignature = ((TimingControlPoint)other).TimeSignature;
+            OmitFirstBarLine = ((TimingControlPoint)other).OmitFirstBarLine;
+            BeatLength = ((TimingControlPoint)other).BeatLength;
+
+            base.CopyFrom(other);
+        }
+
+        public override bool Equals(ControlPoint? other)
+            => other is TimingControlPoint otherTimingControlPoint
+               && Equals(otherTimingControlPoint);
+
+        public bool Equals(TimingControlPoint? other)
+            => base.Equals(other)
+               && TimeSignature.Equals(other?.TimeSignature)
+               && OmitFirstBarLine == other?.OmitFirstBarLine
+               && BeatLength.Equals(other.BeatLength);
+
+        public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), TimeSignature, BeatLength, OmitFirstBarLine);
+    }
+}

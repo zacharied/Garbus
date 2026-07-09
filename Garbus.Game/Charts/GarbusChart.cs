@@ -1,12 +1,33 @@
-// The minimal chart model for the Phase 2 vertical slice: just the hit objects. Phase 3 (native chart
-// format) grows this with timing (ControlPointInfo), metadata and the audio reference.
+// The native chart model (Phase 3): hit objects + timing + metadata + audio reference. Serialized
+// through Charts/Format (versioned JSON), replacing osu's Beatmap/WorkingBeatmap/converter pipeline.
 
 using System.Collections.Generic;
+using Garbus.Game.Charts.Timing;
 using Garbus.Game.Objects;
 
 namespace Garbus.Game.Charts;
 
 public class GarbusChart
 {
+    public ChartMetadata Metadata { get; init; } = new ChartMetadata();
+
+    public ControlPointInfo ControlPointInfo { get; init; } = new ControlPointInfo();
+
+    /// <summary>
+    /// The overall difficulty [0..10] feeding hit window sizes (see
+    /// <see cref="Gameplay.Scoring.DefaultHitWindows.SetDifficulty"/>).
+    /// </summary>
+    public double OverallDifficulty { get; set; } = 5;
+
     public List<GarbusHitObject> HitObjects { get; init; } = new List<GarbusHitObject>();
+
+    /// <summary>
+    /// Applies defaults (hit windows from <see cref="OverallDifficulty"/>, nested object creation)
+    /// to every hit object. Must be called after loading and before play.
+    /// </summary>
+    public void ApplyDefaults()
+    {
+        foreach (var hitObject in HitObjects)
+            hitObject.ApplyDefaults(OverallDifficulty);
+    }
 }

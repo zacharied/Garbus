@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "metadata": {
+    "title": "test track",
+    "artist": "unknown",
+    "charter": "garbus",
+    "chartName": "test chart",
+    "audioFile": "test-track.ogg"
+  },
+  "overallDifficulty": 5,
+  "timingPoints": [
+    {
+      "time": 0,
+      "beatLength": 500,
+      "timeSignature": 4,
+      "omitFirstBarLine": false
+    }
+  ],
+  "hitObjects": [
+    {
+      "type": "slider",
+      "angleDeg": 0,
+      "side": "Right",
+      "controlPoints": [
+        {
+          "timeOffset": 1000,
+          "rotationOffset": 0,
+          "smooth": false,
+          "sweepEasing": "None"
+        },
+        {
+          "timeOffset": 2000,
+          "rotationOffset": 90,
+          "smooth": false,
+          "sweepEasing": "None"
+        },
+        {
+          "timeOffset": 4000,
+          "rotationOffset": 90,
+          "smooth": false,
+          "sweepEasing": "None"
+        }
+      ],
+      "time": 2000
+    },
+    {
+      "type": "slider",
+      "angleDeg": 0,
+      "side": "Left",
+      "controlPoints": [
+        {
+          "timeOffset": 1000,
+          "rotationOffset": 0,
+          "smooth": false,
+          "sweepEasing": "None"
+        },
+        {
+          "timeOffset": 2000,
+          "rotationOffset": 90,
+          "smooth": false,
+          "sweepEasing": "None"
+        },
+        {
+          "timeOffset": 4000,
+          "rotationOffset": 90,
+          "smooth": false,
+          "sweepEasing": "None"
+        }
+      ],
+      "time": 5000
+    },
+    {
+      "type": "cardinal",
+      "angleDeg": 90,
+      "time": 2000
+    },
+    {
+      "type": "cardinal",
+      "angleDeg": 90,
+      "time": 2150
+    },
+    {
+      "type": "cardinal",
+      "angleDeg": 90,
+      "time": 4000
+    },
+    {
+      "type": "shoulder",
+      "side": "Right",
+      "time": 3000
+    },
+    {
+      "type": "shoulder",
+      "side": "Left",
+      "time": 3500
+    },
+    {
+      "type": "hold",
+      "angleDeg": 180,
+      "duration": 1000,
+      "time": 6000
+    },
+    {
+      "type": "hold",
+      "angleDeg": 270,
+      "duration": 2000,
+      "time": 8000
+    },
+    {
+      "type": "hold",
+      "angleDeg": 0,
+      "duration": 80,
+      "time": 11000
+    }
+  ]
+}

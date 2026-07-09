@@ -74,12 +74,13 @@ namespace Garbus.Game.Gameplay.Objects
         /// <summary>
         /// Applies default values to this HitObject.
         /// </summary>
+        /// <param name="difficulty">The overall difficulty [0..10] applied to the hit windows.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        public void ApplyDefaults(CancellationToken cancellationToken = default)
+        public void ApplyDefaults(double difficulty = DEFAULT_DIFFICULTY, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            ApplyDefaultsToSelf();
+            ApplyDefaultsToSelf(difficulty);
 
             nestedHitObjects.Clear();
 
@@ -88,7 +89,7 @@ namespace Garbus.Game.Gameplay.Objects
             nestedHitObjects.Sort((h1, h2) => h1.StartTime.CompareTo(h2.StartTime));
 
             foreach (var h in nestedHitObjects)
-                h.ApplyDefaults(cancellationToken);
+                h.ApplyDefaults(difficulty, cancellationToken);
 
             // `ApplyDefaults()` may be called multiple times on a single hitobject.
             // to prevent subscribing to `StartTimeBindable.ValueChanged` multiple times with the same callback,
@@ -111,10 +112,10 @@ namespace Garbus.Game.Gameplay.Objects
             }
         }
 
-        protected virtual void ApplyDefaultsToSelf()
+        protected virtual void ApplyDefaultsToSelf(double difficulty)
         {
             HitWindows ??= CreateHitWindows();
-            HitWindows?.SetDifficulty(DEFAULT_DIFFICULTY);
+            HitWindows?.SetDifficulty(difficulty);
         }
 
         protected virtual void CreateNestedHitObjects(CancellationToken cancellationToken)

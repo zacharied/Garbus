@@ -61,16 +61,20 @@ namespace Garbus.Game.Screens
         private TextFlowContainer resultsText = null!;
         private bool resultsShown;
 
+        /// <summary>
+        /// The chart file to load. Hardcoded until song select arrives in Phase 5.
+        /// </summary>
+        public const string DEFAULT_CHART = @"test-chart.garbus";
+
         [BackgroundDependencyLoader]
-        private void load(ITrackStore tracks)
+        private void load(ITrackStore tracks, ChartStore charts)
         {
-            // Full filename: TrackStore only probes ".mp3" for extension-less lookups.
-            track = tracks.Get(@"test-track.ogg");
+            chart = charts.Get(DEFAULT_CHART);
+            chart.ApplyDefaults();
 
-            chart = GarbusTestChartGenerator.GenerateChart();
-
-            foreach (var hitObject in chart.HitObjects)
-                hitObject.ApplyDefaults();
+            // The chart references its audio by full filename (TrackStore only probes ".mp3" for
+            // extension-less lookups).
+            track = tracks.Get(chart.Metadata.AudioFile);
 
             chartEndTime = chart.HitObjects.Count == 0
                 ? 0

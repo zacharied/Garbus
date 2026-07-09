@@ -1,3 +1,4 @@
+using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
 using Garbus.Resources;
 using osu.Framework.Allocation;
@@ -40,6 +41,7 @@ namespace Garbus.Game
             Resources.AddStore(new DllResourceStore(typeof(GarbusResources).Assembly));
 
             dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
+            dependencies.Cache(new ChartStore(Resources));
 
             // Reduced master volume, pinned on every startup until the Phase 5 settings screen exposes
             // volume control (the framework would otherwise persist whatever value was last set).

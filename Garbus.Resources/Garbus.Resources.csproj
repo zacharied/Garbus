@@ -3,6 +3,7 @@
         <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Charts\**\*" />
     <EmbeddedResource Include="Fonts\**\*" />
     <EmbeddedResource Include="Samples\**\*" />
     <EmbeddedResource Include="Textures\**\*" />

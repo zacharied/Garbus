@@ -148,11 +148,28 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
       window skips entryBecameAlive/Dead entirely and the object is never judged — step in sub-window
       increments (see `TestSceneGameplay.playThrough`)
 
-### Phase 3 — chart format
+### Phase 3 — chart format ✅ (2026-07-09)
 
-- [ ] Define native chart format: hit objects + timing (`ControlPointInfo`) + metadata + audio ref
-- [ ] Serializer/deserializer + roundtrip tests
-- [ ] Replace `BigAssCircleBeatmapConverter` path: game loads charts directly, no conversion step
+**Format decisions (resolving the open questions):** JSON (readable/diffable/editor-friendly), a
+top-level integer `version` field (decoder rejects unknown versions), control points as typed lists
+(currently just `timingPoints`), hit objects polymorphic on a `"type"` discriminator that must stay the
+first property of each object (System.Text.Json net8 requirement). Extension: `.garbus`. Hit object
+samples are not yet serialized (every note still uses the soft-hitnormal default).
+
+- [x] Native chart format defined — `Charts/GarbusChart` grew metadata (`ChartMetadata`: title, artist,
+      charter, chart name, audio filename), vendored `Charts/Timing/` (`ControlPointInfo` +
+      `TimingControlPoint`/`ControlPointGroup`/`TimeSignature`, trimmed to timing-only: no
+      effect/sample/difficulty points since kiai/skin-samples/variable-scroll are dropped;
+      `BindableBeatDivisor.PREDEFINED_DIVISORS` inlined), and `OverallDifficulty` now actually feeds
+      hit windows (`HitObject.ApplyDefaults(difficulty)` replaces the fixed Phase 2 constant)
+- [x] Serializer/deserializer — `Charts/Format/` DTO layer + `GarbusChartSerializer`
+      (System.Text.Json); `TestChartFormat` covers roundtrip equality, unknown-version rejection, and
+      bundled-file-vs-generator agreement
+- [x] Charts load directly (converter path never existed to remove) — bundled
+      `Garbus.Resources/Charts/test-chart.garbus` is decoded by `ChartStore` (cached in
+      `GarbusGameBase`); `PlayScreen` loads it and resolves audio from the chart's `audioFile`.
+      `GarbusTestChartGenerator` remains the file's source of truth — regenerate via the `[Explicit]`
+      test `TestChartFormat.RegenerateBundledTestChart` after changing either side
 
 ### Phase 4 — editor rebuild (the big one)
 
@@ -171,6 +188,7 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
 
 ## Open questions
 
-- Chart format details: JSON vs binary, versioning, how control-point types serialize
+- ~~Chart format details: JSON vs binary, versioning, how control-point types serialize~~ — resolved in
+  Phase 3 (see decisions there)
 - Whether to keep the `Garbus.iOS` template project or delete it until desktop is proven (it doesn't
   build on this machine — no iOS workload — but only the desktop slnf is used)

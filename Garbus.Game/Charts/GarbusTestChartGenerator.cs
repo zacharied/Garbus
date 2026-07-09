@@ -1,8 +1,11 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Beatmaps/BacTestBeatmapGenerator.cs).
 // BacTestBeatmapGenerator → GarbusTestChartGenerator; returns a GarbusChart instead of Beatmap<T>.
+// Since Phase 3 this is the source of truth for the bundled test chart file — regenerate it via the
+// explicit test TestChartFormat.RegenerateBundledTestChart after changing anything here.
 
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using Garbus.Game.Charts.Timing;
 using Garbus.Game.Core;
 using Garbus.Game.Objects;
 
@@ -12,8 +15,17 @@ public class GarbusTestChartGenerator
 {
     public static GarbusChart GenerateChart()
     {
-        return new GarbusChart
+        var chart = new GarbusChart
         {
+            Metadata = new ChartMetadata
+            {
+                Title = "test track",
+                Artist = "unknown",
+                Charter = "garbus",
+                ChartName = "test chart",
+                AudioFile = "test-track.ogg",
+            },
+            OverallDifficulty = 5,
             HitObjects =
             [
                 new SliderBody()
@@ -108,5 +120,11 @@ public class GarbusTestChartGenerator
                 }
             ]
         };
+
+        // Placeholder timing until the track is properly timed: 120 BPM from zero. Nothing consumes
+        // this during gameplay yet; it exists for the chart format roundtrip and the Phase 4 beat snap.
+        chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+
+        return chart;
     }
 }
