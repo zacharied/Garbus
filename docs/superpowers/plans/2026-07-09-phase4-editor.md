@@ -289,7 +289,7 @@ git add -A && git commit -m "ChartFile: disk load/save and per-chart resource re
 - Test: `Garbus.Game.Tests/Editor/TestBindableBeatDivisor.cs`
 
 **Interfaces:**
-- Produces: `Garbus.Game.Edit.BindableBeatDivisor : BindableInt` — `static readonly int[] PREDEFINED_DIVISORS = { 1, 2, 3, 4, 6, 8, 12, 16 }`, `SetArbitraryDivisor(int)`, `ValidDivisors` bindable, `Next()`/`Previous()` snap cycling, static `GetDivisorForBeatIndex(int index, int beatDivisor)`. Keep osu's API surface — the beat snap grid, timeline ticks, and divisor control (later tasks) call these.
+- Produces: `Garbus.Game.Edit.BindableBeatDivisor : BindableInt` — `static readonly int[] PREDEFINED_DIVISORS = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 16 }` (osu's real list), `SetArbitraryDivisor(int)`, `ValidDivisors` bindable, `SelectNext()`/`SelectPrevious()` snap cycling (osu's real names), static `GetDivisorForBeatIndex(int index, int beatDivisor)`. Keep osu's API surface — the beat snap grid, timeline ticks, and divisor control (later tasks) call these.
 - Trims: any `OsuColour`/display helpers (e.g. `GetColourFor`) — replace call sites later with hardcoded colours; keep the numeric logic verbatim.
 
 - [ ] **Step 1: Write the failing test** — divisor presets, arbitrary divisor, next/previous cycling:
