@@ -1,0 +1,139 @@
+// Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Rulesets/Edit/HitObjectPlacementBlueprint.cs
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
+// Adapted for Garbus: IPlacementHandler indirection replaced with direct EditorChart calls (osu's
+// handler ultimately routes to the same operations via ComposeBlueprintContainer — keeping the shape
+// without the extra interface is fine here); HitObject → GarbusHitObject; sample bank/combo
+// auto-assignment stripped (Garbus has no per-chart banks or combos); ApplyDefaults takes no
+// arguments (Garbus hit windows are fixed, no ControlPointInfo/Difficulty needed); auto-seek on
+// placement uses a plain Bindable<bool> defaulting true (wired to config in Task 17); namespace
+// Garbus.Game.Edit.Compose.
+
+using System.Linq;
+using osu.Framework.Allocation;
+using osu.Framework.Bindables;
+using osu.Framework.Graphics;
+using osu.Framework.Utils;
+using Garbus.Game.Objects;
+using osuTK;
+
+namespace Garbus.Game.Edit.Compose
+{
+    /// <summary>
+    /// A blueprint which governs the creation of a new <see cref="GarbusHitObject"/> through to
+    /// its placement in the chart.
+    /// </summary>
+    public abstract partial class HitObjectPlacementBlueprint : PlacementBlueprint
+    {
+        /// <summary>
+        /// The <see cref="GarbusHitObject"/> that is being placed.
+        /// </summary>
+        public GarbusHitObject HitObject { get; }
+
+        /// <summary>
+        /// Whether the editor should automatically seek to the placement time after committing.
+        /// Defaults to <c>true</c>; wired to the View toggle config binding in Task 17.
+        /// </summary>
+        protected readonly Bindable<bool> AutoSeekOnPlacement = new Bindable<bool>(true);
+
+        [Resolved]
+        protected EditorClock EditorClock { get; private set; } = null!;
+
+        [Resolved]
+        private EditorChart editorChart { get; set; } = null!;
+
+        [Resolved]
+        private IEditorChangeHandler? changeHandler { get; set; }
+
+        /// <summary>
+        /// Acceptable leniency to account for rounding errors and minor unsnaps.
+        /// </summary>
+        private const double placement_replace_start_time_leniency_ms = 2;
+
+        protected override bool IsValidForPlacement
+        {
+            get
+            {
+                var firstTimingPoint = editorChart.ControlPointInfo.TimingPoints.FirstOrDefault();
+                return firstTimingPoint == null || HitObject.StartTime >= firstTimingPoint.Time;
+            }
+        }
+
+        protected HitObjectPlacementBlueprint(GarbusHitObject hitObject)
+        {
+            HitObject = hitObject;
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            Colour = IsValidForPlacement ? Colour4.White : Colour4.Red;
+        }
+
+        /// <summary>
+        /// Signals that the placement has started.
+        /// </summary>
+        protected override void BeginPlacement(bool commitStart = false)
+        {
+            base.BeginPlacement(commitStart);
+        }
+
+        /// <summary>
+        /// Signals that the placement has finished. Commits the hit object to the chart if valid.
+        /// </summary>
+        public override void EndPlacement(bool commit)
+        {
+            base.EndPlacement(commit);
+
+            if (IsValidForPlacement && commit)
+            {
+                changeHandler?.BeginChange();
+
+                // Remove any existing objects this placement replaces.
+                var toRemove = editorChart.HitObjects.Where(h => ReplacesExistingObject(h)).ToArray();
+                foreach (var h in toRemove)
+                    editorChart.Remove(h);
+
+                editorChart.Add(HitObject);
+
+                changeHandler?.EndChange();
+
+                if (AutoSeekOnPlacement.Value)
+                    EditorClock.SeekSmoothlyTo(HitObject.StartTime);
+            }
+        }
+
+        /// <summary>
+        /// Updates the time and position of this <see cref="HitObjectPlacementBlueprint"/>.
+        /// Writes <c>StartTime</c> onto the hit object while in the Waiting state.
+        /// </summary>
+        public override SnapResult UpdateTimeAndPosition(Vector2 screenSpacePosition, double fallbackTime)
+        {
+            if (PlacementActive == PlacementState.Waiting)
+                HitObject.StartTime = fallbackTime;
+
+            return new SnapResult(screenSpacePosition, fallbackTime);
+        }
+
+        /// <summary>
+        /// Whether an existing <see cref="GarbusHitObject"/> should be removed because
+        /// <see cref="HitObject"/> is being placed on top of it.
+        /// </summary>
+        /// <remarks>
+        /// By default, it matches when start times are within ±<see cref="placement_replace_start_time_leniency_ms"/> ms.
+        /// </remarks>
+        public virtual bool ReplacesExistingObject(GarbusHitObject existing)
+            => Precision.AlmostEquals(existing.StartTime, HitObject.StartTime, placement_replace_start_time_leniency_ms);
+
+        protected override void PopIn()
+        {
+            base.PopIn();
+        }
+
+        protected override void PopOut()
+        {
+            base.PopOut();
+        }
+    }
+}
