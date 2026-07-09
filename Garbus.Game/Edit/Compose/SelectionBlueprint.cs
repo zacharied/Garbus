@@ -1,16 +1,17 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Rulesets/Edit/SelectionBlueprint.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: namespace Garbus.Game.Edit.Compose; ContextMenuItems/MenuItem stripped (osu.Game
-// dependency, wired in Task 11 if needed); ScreenSpaceAdditionalNodes/ScreenSpaceSnapPoints stripped
-// (composer snapping infrastructure added in Task 12); JetBrains annotations removed; nullable
-// enabled.
+// Adapted for Garbus: namespace Garbus.Game.Edit.Compose; ScreenSpaceAdditionalNodes/ScreenSpaceSnapPoints
+// stripped (composer snapping infrastructure added in Task 12); JetBrains annotations removed; nullable
+// enabled. Task 11 re-added ContextMenuItems using GarbusMenuItem (no osu.Game dependency).
 
 using System;
+using System.Collections.Generic;
 using osu.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.UserInterface;
 using osuTK;
 
 namespace Garbus.Game.Edit.Compose
@@ -146,5 +147,11 @@ namespace Garbus.Game.Edit.Compose
         /// </summary>
         /// <returns>True if the deletion was handled by this blueprint. Returning false will delete the full object.</returns>
         public virtual bool HandleQuickDeletion() => false;
+
+        /// <summary>
+        /// Context menu items specific to this blueprint. Combined with <see cref="SelectionHandler{T}"/>'s
+        /// items when only one blueprint is selected.
+        /// </summary>
+        public virtual IEnumerable<MenuItem> ContextMenuItems => Array.Empty<MenuItem>();
     }
 }
