@@ -102,17 +102,18 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
-        public void TestSnapXInLeftGhostBandStaysInBand()
+        public void TestSnapXInLeftGhostBandSnapsToGridOrigin()
         {
-            // A cursor in the left ghost band (x < GHOST/TOTAL) snaps but the returned x should
-            // still be in the left ghost band (below the grid start).
+            // A cursor half-way into the left ghost band resolves to the nearest 45° grid snap.
+            // Input x = ghostFrac * 0.5 = 15/420 → unwrapped angle = 120° → nearest 45° is 135°.
+            // SnapX must return that exact snap target: snappedX = (135 - 135 + 30) / 420 = ghostFrac,
+            // and angleDeg = 135.
             float ghostFrac = (float)EditorAngleMapping.GHOST_DEGREES / EditorAngleMapping.TOTAL_DEGREES;
-            float xInLeftGhost = ghostFrac * 0.5f; // half-way into the ghost band
-            (float snappedX, _) = EditorAngleMapping.SnapX(xInLeftGhost, 45);
+            float xInLeftGhost = ghostFrac * 0.5f;
+            (float snappedX, int angleDeg) = EditorAngleMapping.SnapX(xInLeftGhost, 45);
 
-            // The snapped x might not be inside the band (the nearest 45° snap may be at the origin),
-            // but it must not jump to the opposite edge.
-            Assert.That(snappedX, Is.LessThanOrEqualTo(ghostFrac + 0.01f));
+            Assert.That(angleDeg, Is.EqualTo(135), "nearest 45° snap from 120° unwrapped should be 135°");
+            Assert.That(snappedX, Is.EqualTo(ghostFrac).Within(1e-5f), "snapped x should be exactly ghostFrac (the grid-left edge)");
         }
 
         [Test]

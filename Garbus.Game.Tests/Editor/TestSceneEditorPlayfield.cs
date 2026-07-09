@@ -103,8 +103,11 @@ namespace Garbus.Game.Tests.Editor
                 harness.Composer.Playfield.ChildrenOfType<SliderPolylineVisual>().Any());
 
             // Give the Update() loop a frame to build the wrap copies.
-            AddUntilStep("at least 2 SmoothPaths (wrap copies)", () =>
-                harness.Composer.Playfield.ChildrenOfType<SmoothPath>().Count() >= 2);
+            // The slider (AngleDeg=130, bodyGridDeg=355, offset=-40) spans grid range [315, 355].
+            // VisibleWrapCopies(315, 355) → k ∈ {0, 1} → exactly 2 active copies.
+            // Active copies have their SmoothPath populated (ClearGeometry calls ClearVertices on idle pool slots).
+            AddUntilStep("exactly 2 active SmoothPath wrap copies", () =>
+                harness.Composer.Playfield.ChildrenOfType<SmoothPath>().Count(p => p.Vertices.Count > 0) == 2);
         }
 
         // ---------------------------------------------------------------------------
