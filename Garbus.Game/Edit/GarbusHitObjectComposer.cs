@@ -32,6 +32,15 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
     /// <summary>The x-axis snapping increment, in degrees of absolute angle.</summary>
     public readonly BindableInt AngleSnap = new BindableInt(45);
 
+    /// <summary>
+    /// Whether placing a hit object should automatically seek the editor clock to its start time.
+    /// Wired from <see cref="GarbusSetting.EditorAutoSeekOnPlacement"/> via ComposeTab (Task 17).
+    /// Placement blueprints bind their own <c>AutoSeekOnPlacement</c> to this when the composer is
+    /// in their DI hierarchy.
+    /// </summary>
+    [Cached]
+    public readonly Bindable<bool> AutoSeekOnPlacement = new Bindable<bool>(true);
+
     private static readonly int[] angle_snap_options = { 5, 15, 45, 90 };
 
     public GarbusHitObjectComposer()

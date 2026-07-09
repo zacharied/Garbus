@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using Garbus.Game.Charts;
+using Garbus.Game.Configuration;
 using Garbus.Game.Edit.Screens.Dialogs;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -82,6 +83,9 @@ namespace Garbus.Game.Edit.Screens
             dependencies.Cache(beatDivisor);
             dependencies.CacheAs(this);
             dependencies.CacheAs(ChartFile);
+            // Cache ControlPointInfo directly so timeline components (TimelineTickDisplay,
+            // TimelineTimingChangeDisplay) can resolve it without going through EditorChart.
+            dependencies.CacheAs(EditorChart.ControlPointInfo);
 
             return dependencies;
         }
@@ -243,9 +247,31 @@ namespace Garbus.Game.Edit.Screens
                     {
                         Items = createEditMenuItems(),
                     },
-                    new MenuItem("View"),
+                    new MenuItem("View")
+                    {
+                        Items = createViewMenuItems(),
+                    },
                     new MenuItem("Timing"),
                 },
+            };
+        }
+
+        private IReadOnlyList<MenuItem> createViewMenuItems()
+        {
+            // Resolve config from DI. The editor shell is loaded under GarbusGameBase which caches it.
+            var config = dependencies.Get<GarbusConfigManager>();
+
+            var showTicks = config.GetBindable<bool>(GarbusSetting.EditorShowTicks);
+            var showTimingChanges = config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges);
+            var autoSeek = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
+            var contractSidebars = config.GetBindable<bool>(GarbusSetting.EditorContractSidebars);
+
+            return new[]
+            {
+                new MenuItem("Show Beat Ticks", () => showTicks.Value = !showTicks.Value),
+                new MenuItem("Show Timing Changes", () => showTimingChanges.Value = !showTimingChanges.Value),
+                new MenuItem("Auto-Seek on Placement", () => autoSeek.Value = !autoSeek.Value),
+                new MenuItem("Contract Sidebars", () => contractSidebars.Value = !contractSidebars.Value),
             };
         }
 

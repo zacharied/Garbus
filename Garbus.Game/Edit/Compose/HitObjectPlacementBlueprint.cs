@@ -9,8 +9,9 @@
 // entirely the blueprint container's responsibility (disposes on PlacementState.Finished regardless
 // of commit); sample bank/combo auto-assignment stripped (Garbus has no per-chart banks or combos);
 // ApplyDefaults takes no arguments (Garbus hit windows are fixed, no ControlPointInfo/Difficulty
-// needed); auto-seek on placement uses a plain Bindable<bool> defaulting true (wired to config in
-// Task 17); namespace Garbus.Game.Edit.Compose.
+// needed); auto-seek on placement uses a plain Bindable<bool> defaulting true — Task 17 wires it to
+// the GarbusHitObjectComposer.AutoSeekOnPlacement DI-cached bindable so the View menu config toggle
+// propagates; namespace Garbus.Game.Edit.Compose.
 
 using System.Linq;
 using osu.Framework.Allocation;
@@ -35,9 +36,13 @@ namespace Garbus.Game.Edit.Compose
 
         /// <summary>
         /// Whether the editor should automatically seek to the placement time after committing.
-        /// Defaults to <c>true</c>; wired to the View toggle config binding in Task 17.
+        /// Defaults to <c>true</c>; bound to <see cref="GarbusHitObjectComposer.AutoSeekOnPlacement"/>
+        /// via DI when the composer is in the hierarchy.
         /// </summary>
         protected readonly Bindable<bool> AutoSeekOnPlacement = new Bindable<bool>(true);
+
+        [Resolved(CanBeNull = true)]
+        private GarbusHitObjectComposer? composer { get; set; }
 
         [Resolved]
         protected EditorClock EditorClock { get; private set; } = null!;
@@ -65,6 +70,16 @@ namespace Garbus.Game.Edit.Compose
         protected HitObjectPlacementBlueprint(GarbusHitObject hitObject)
         {
             HitObject = hitObject;
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            // Bind to the composer's AutoSeekOnPlacement when available (DI-resolved above).
+            // This wires the View menu config toggle through to each placement blueprint instance.
+            if (composer != null)
+                AutoSeekOnPlacement.BindTo(composer.AutoSeekOnPlacement);
         }
 
         /// <summary>
