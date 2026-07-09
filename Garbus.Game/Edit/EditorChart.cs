@@ -39,8 +39,10 @@ namespace Garbus.Game.Edit
         public Charts.Timing.ControlPointInfo ControlPointInfo => Chart.ControlPointInfo;
         public ChartMetadata Metadata => Chart.Metadata;
 
-        // Internal mutable list kept time-ordered.
-        private readonly List<GarbusHitObject> hitObjects = new List<GarbusHitObject>();
+        // Direct alias to Chart.HitObjects — no shadow copy. All mutations go to the same list
+        // that serialization reads, so Save() sees every edit without any extra bookkeeping.
+        // (osu's EditorBeatmap uses the identical pattern: mutableHitObjects => PlayableBeatmap.HitObjects.)
+        private readonly List<GarbusHitObject> hitObjects;
 
         // Pending batch collections, flushed in UpdateState.
         private readonly List<GarbusHitObject> batchPendingInserts = new List<GarbusHitObject>();
@@ -51,8 +53,9 @@ namespace Garbus.Game.Edit
         {
             Chart = chart;
 
-            // Pre-populate from chart's existing hit objects (time-ordered).
-            hitObjects.AddRange(chart.HitObjects.OrderBy(h => h.StartTime));
+            // Alias the chart's own list. Ensure it starts time-ordered.
+            hitObjects = chart.HitObjects;
+            hitObjects.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
         }
 
         /// <summary>

@@ -45,50 +45,10 @@ namespace Garbus.Game.Edit
 
         protected override void WriteCurrentStateToStream(MemoryStream stream)
         {
-            // Build a snapshot GarbusChart from EditorChart's live state.
-            // We cannot serialize editorChart.Chart directly because EditorChart maintains its own
-            // hit-object list (editorChart.HitObjects) separate from the original Chart.HitObjects.
-            var snapshot = buildSnapshot();
-            byte[] bytes = Encoding.UTF8.GetBytes(GarbusChartSerializer.Encode(snapshot));
+            // EditorChart now aliases Chart.HitObjects directly, so Chart always reflects live state.
+            // Serialize it as-is — no shadow copy reconstruction needed.
+            byte[] bytes = Encoding.UTF8.GetBytes(GarbusChartSerializer.Encode(editorChart.Chart));
             stream.Write(bytes, 0, bytes.Length);
-        }
-
-        /// <summary>
-        /// Builds a transient <see cref="GarbusChart"/> that reflects the editor's current live state.
-        /// </summary>
-        private GarbusChart buildSnapshot()
-        {
-            var snapshot = new GarbusChart
-            {
-                Metadata = new ChartMetadata
-                {
-                    Title = editorChart.Metadata.Title,
-                    Artist = editorChart.Metadata.Artist,
-                    Charter = editorChart.Metadata.Charter,
-                    ChartName = editorChart.Metadata.ChartName,
-                    RomanisedTitle = editorChart.Metadata.RomanisedTitle,
-                    RomanisedArtist = editorChart.Metadata.RomanisedArtist,
-                    Source = editorChart.Metadata.Source,
-                    Tags = editorChart.Metadata.Tags,
-                    AudioFile = editorChart.Metadata.AudioFile,
-                    BackgroundFile = editorChart.Metadata.BackgroundFile,
-                },
-                PreviewTime = editorChart.Chart.PreviewTime,
-            };
-
-            snapshot.HitObjects.AddRange(editorChart.HitObjects);
-
-            foreach (var tp in editorChart.ControlPointInfo.TimingPoints)
-            {
-                snapshot.ControlPointInfo.Add(tp.Time, new TimingControlPoint
-                {
-                    BeatLength = tp.BeatLength,
-                    TimeSignature = tp.TimeSignature,
-                    OmitFirstBarLine = tp.OmitFirstBarLine,
-                });
-            }
-
-            return snapshot;
         }
 
         protected override void ApplyStateChange(byte[] previousState, byte[] newState)

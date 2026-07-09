@@ -78,5 +78,35 @@ namespace Garbus.Game.Tests.Editor
             chart.Add(new CardinalNote { StartTime = 0, AngleDeg = 0 });
             Assert.That(handler.CurrentStateHash, Is.Not.EqualTo(before));
         }
+
+        /// <summary>
+        /// Regression: after undo, Chart.HitObjects (the serialization source) must stay in sync
+        /// with editorChart.HitObjects (the live view). Prior to the write-through fix they diverged.
+        /// </summary>
+        [Test]
+        public void TestUndoKeepsChartHitObjectsInSync()
+        {
+            chart.Add(new CardinalNote { StartTime = 1000, AngleDeg = 90 });
+            handler.Undo();
+
+            // Both views must be empty after undo.
+            Assert.That(chart.HitObjects, Is.Empty);
+            Assert.That(chart.Chart.HitObjects, Is.Empty,
+                "Chart.HitObjects must stay in sync with editorChart.HitObjects after undo");
+        }
+
+        [Test]
+        public void TestRedoKeepsChartHitObjectsInSync()
+        {
+            var note = new CardinalNote { StartTime = 1000, AngleDeg = 90 };
+            chart.Add(note);
+            handler.Undo();
+            handler.Redo();
+
+            // Both views must have one item after redo.
+            Assert.That(chart.HitObjects, Has.Count.EqualTo(1));
+            Assert.That(chart.Chart.HitObjects, Is.EqualTo(chart.HitObjects),
+                "Chart.HitObjects must stay in sync with editorChart.HitObjects after redo");
+        }
     }
 }

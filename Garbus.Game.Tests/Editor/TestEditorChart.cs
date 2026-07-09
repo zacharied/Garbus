@@ -57,5 +57,40 @@ namespace Garbus.Game.Tests.Editor
             chart.Add(new CardinalNote { StartTime = 1000, AngleDeg = 0 });
             Assert.That(chart.HitObjects.Select(h => h.StartTime), Is.Ordered);
         }
+
+        /// <summary>
+        /// Regression: EditorChart.Add/Remove must write through to Chart.HitObjects so that
+        /// serialization (Save) sees every edit — not just the shadow list.
+        /// </summary>
+        [Test]
+        public void TestAddWritesThroughToChartHitObjects()
+        {
+            var note1 = new CardinalNote { StartTime = 0, AngleDeg = 0 };
+            var note2 = new CardinalNote { StartTime = 500, AngleDeg = 90 };
+
+            chart.Add(note1);
+            chart.Add(note2);
+
+            // The underlying chart's list must be identical in content and order.
+            Assert.That(chart.Chart.HitObjects, Is.EqualTo(chart.HitObjects));
+            Assert.That(chart.Chart.HitObjects, Has.Count.EqualTo(2));
+            Assert.That(chart.Chart.HitObjects[0], Is.SameAs(note1));
+            Assert.That(chart.Chart.HitObjects[1], Is.SameAs(note2));
+        }
+
+        [Test]
+        public void TestRemoveWritesThroughToChartHitObjects()
+        {
+            var note1 = new CardinalNote { StartTime = 0, AngleDeg = 0 };
+            var note2 = new CardinalNote { StartTime = 500, AngleDeg = 90 };
+
+            chart.Add(note1);
+            chart.Add(note2);
+            chart.Remove(note1);
+
+            Assert.That(chart.Chart.HitObjects, Is.EqualTo(chart.HitObjects));
+            Assert.That(chart.Chart.HitObjects, Has.Count.EqualTo(1));
+            Assert.That(chart.Chart.HitObjects[0], Is.SameAs(note2));
+        }
     }
 }
