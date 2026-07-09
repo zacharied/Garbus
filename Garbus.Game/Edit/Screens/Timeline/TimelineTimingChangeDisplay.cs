@@ -29,6 +29,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private readonly Cached groupCache = new Cached();
         private readonly List<Box> linePool = new List<Box>();
 
+        private void onControlPointsChanged() => groupCache.Invalidate();
+
         public TimelineTimingChangeDisplay()
         {
             RelativeSizeAxes = Axes.Both;
@@ -37,7 +39,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
         [BackgroundDependencyLoader]
         private void load()
         {
-            controlPointInfo.ControlPointsChanged += () => groupCache.Invalidate();
+            controlPointInfo.ControlPointsChanged += onControlPointsChanged;
         }
 
         protected override void Update()
@@ -83,6 +85,13 @@ namespace Garbus.Game.Edit.Screens.Timeline
             linePool.Add(box);
             AddInternal(box);
             return box;
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
         }
     }
 }

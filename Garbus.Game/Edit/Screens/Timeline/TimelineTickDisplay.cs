@@ -38,6 +38,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private readonly List<Box> tickPool = new List<Box>();
         private int usedTicks;
 
+        private void onControlPointsChanged() => tickCache.Invalidate();
+
         public TimelineTickDisplay()
         {
             RelativeSizeAxes = Axes.Both;
@@ -48,7 +50,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private void load()
         {
             beatDivisor.BindValueChanged(_ => tickCache.Invalidate());
-            controlPointInfo.ControlPointsChanged += () => tickCache.Invalidate();
+            controlPointInfo.ControlPointsChanged += onControlPointsChanged;
         }
 
         protected override void Update()
@@ -156,7 +158,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
         {
             base.Dispose(isDisposing);
             if (controlPointInfo != null)
-                controlPointInfo.ControlPointsChanged -= () => tickCache.Invalidate();
+                controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
         }
     }
 }

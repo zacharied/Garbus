@@ -190,7 +190,6 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private void scrollToTrackTime()
         {
             if (editorClock.TrackLength == 0) return;
-            if (handlingDragInput) editorClock.Stop();
             float position = PositionAtTime(editorClock.CurrentTime);
             ScrollTo(position, false);
         }

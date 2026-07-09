@@ -42,10 +42,12 @@ namespace Garbus.Game.Edit.Screens.Timeline
         [BackgroundDependencyLoader]
         private void load()
         {
-            editorChart.HitObjectAdded += _ => dirty = true;
-            editorChart.HitObjectRemoved += _ => dirty = true;
-            editorChart.HitObjectUpdated += _ => dirty = true;
+            editorChart.HitObjectAdded += onHitObjectChanged;
+            editorChart.HitObjectRemoved += onHitObjectChanged;
+            editorChart.HitObjectUpdated += onHitObjectChanged;
         }
+
+        private void onHitObjectChanged(GarbusHitObject _) => dirty = true;
 
         protected override void LoadComplete()
         {
@@ -141,9 +143,9 @@ namespace Garbus.Game.Edit.Screens.Timeline
 
             if (editorChart != null)
             {
-                editorChart.HitObjectAdded -= _ => dirty = true;
-                editorChart.HitObjectRemoved -= _ => dirty = true;
-                editorChart.HitObjectUpdated -= _ => dirty = true;
+                editorChart.HitObjectAdded -= onHitObjectChanged;
+                editorChart.HitObjectRemoved -= onHitObjectChanged;
+                editorChart.HitObjectUpdated -= onHitObjectChanged;
             }
         }
     }
