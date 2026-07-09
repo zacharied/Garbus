@@ -3,11 +3,14 @@
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: IPlacementHandler indirection replaced with direct EditorChart calls (osu's
 // handler ultimately routes to the same operations via ComposeBlueprintContainer — keeping the shape
-// without the extra interface is fine here); HitObject → GarbusHitObject; sample bank/combo
-// auto-assignment stripped (Garbus has no per-chart banks or combos); ApplyDefaults takes no
-// arguments (Garbus hit windows are fixed, no ControlPointInfo/Difficulty needed); auto-seek on
-// placement uses a plain Bindable<bool> defaulting true (wired to config in Task 17); namespace
-// Garbus.Game.Edit.Compose.
+// without the extra interface is fine here); HitObject field became a read-only property (osu:
+// `public readonly HitObject HitObject` → Garbus: `public GarbusHitObject HitObject { get; }`);
+// EndPlacement else-branch (osu's `placementHandler.HidePlacement()`) removed; disposal is now
+// entirely the blueprint container's responsibility (disposes on PlacementState.Finished regardless
+// of commit); sample bank/combo auto-assignment stripped (Garbus has no per-chart banks or combos);
+// ApplyDefaults takes no arguments (Garbus hit windows are fixed, no ControlPointInfo/Difficulty
+// needed); auto-seek on placement uses a plain Bindable<bool> defaulting true (wired to config in
+// Task 17); namespace Garbus.Game.Edit.Compose.
 
 using System.Linq;
 using osu.Framework.Allocation;
@@ -72,14 +75,6 @@ namespace Garbus.Game.Edit.Compose
         }
 
         /// <summary>
-        /// Signals that the placement has started.
-        /// </summary>
-        protected override void BeginPlacement(bool commitStart = false)
-        {
-            base.BeginPlacement(commitStart);
-        }
-
-        /// <summary>
         /// Signals that the placement has finished. Commits the hit object to the chart if valid.
         /// </summary>
         public override void EndPlacement(bool commit)
@@ -126,14 +121,5 @@ namespace Garbus.Game.Edit.Compose
         public virtual bool ReplacesExistingObject(GarbusHitObject existing)
             => Precision.AlmostEquals(existing.StartTime, HitObject.StartTime, placement_replace_start_time_leniency_ms);
 
-        protected override void PopIn()
-        {
-            base.PopIn();
-        }
-
-        protected override void PopOut()
-        {
-            base.PopOut();
-        }
     }
 }
