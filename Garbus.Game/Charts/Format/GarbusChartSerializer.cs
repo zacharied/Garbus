@@ -36,6 +36,20 @@ public static class GarbusChartSerializer
 
     public static string Encode(GarbusChart chart) => JsonSerializer.Serialize(toDto(chart), options);
 
+    /// <summary>
+    /// Encodes a single hit object to a compact JSON string used for per-object identity comparison
+    /// in the undo/redo diff (GarbusChartChangeHandler.ApplyStateChange).
+    /// </summary>
+    internal static string EncodeHitObject(GarbusHitObject hitObject)
+        => JsonSerializer.Serialize(toDto(hitObject), hitObjectOptions);
+
+    // Compact (no indentation) options for the per-object identity strings.
+    private static readonly JsonSerializerOptions hitObjectOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+    };
+
     public static GarbusChart Decode(string json)
     {
         var dto = JsonSerializer.Deserialize<ChartFileDto>(json, options)
