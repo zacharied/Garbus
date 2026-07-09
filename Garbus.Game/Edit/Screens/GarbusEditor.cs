@@ -38,6 +38,13 @@ namespace Garbus.Game.Edit.Screens
 
         private string hashAtLastSave = string.Empty;
 
+        /// <summary>
+        /// Set to true once the user has confirmed a discard-and-exit so that
+        /// <see cref="OnExiting"/> does not re-show the save dialog on the second
+        /// call that the framework issues after we call <see cref="IScreen.Exit"/>.
+        /// </summary>
+        private bool exitConfirmed;
+
         private DependencyContainer dependencies = null!;
 
         private ComposeTab composeTab = null!;
@@ -325,10 +332,14 @@ namespace Garbus.Game.Edit.Screens
 
         public override bool OnExiting(ScreenExitEvent e)
         {
-            if (HasUnsavedChanges)
+            if (HasUnsavedChanges && !exitConfirmed)
             {
                 // Show the save/discard/cancel dialog; block the exit (return true).
-                showConfirmThenRun(this.Exit);
+                showConfirmThenRun(() =>
+                {
+                    exitConfirmed = true;
+                    this.Exit();
+                });
                 return true;
             }
 
@@ -373,8 +384,28 @@ namespace Garbus.Game.Edit.Screens
             var dialog = ConfirmDialog.SaveDiscardCancel(
                 save: () =>
                 {
-                    Save();
-                    continuation?.Invoke();
+                    if (ChartFile.FilePath != null)
+                    {
+                        // Has a path — write directly, then continue.
+                        ChartFile.Save();
+                        hashAtLastSave = changeHandler.CurrentStateHash;
+                        continuation?.Invoke();
+                    }
+                    else
+                    {
+                        // No path — open SaveAs dialog; continuation only fires after the file
+                        // is actually written (inside the SaveAsDialog completion callback).
+                        // Cancelling SaveAs leaves the editor dirty and open.
+                        var saveAsDialog = new SaveAsDialog(path =>
+                        {
+                            ChartFile.Save(path);
+                            hashAtLastSave = changeHandler.CurrentStateHash;
+                            continuation?.Invoke();
+                        }, defaultFilename: string.IsNullOrEmpty(ChartFile.Chart.Metadata.Title) ? "new-chart" : ChartFile.Chart.Metadata.Title);
+
+                        dialogOverlay.Child = saveAsDialog;
+                        saveAsDialog.Show();
+                    }
                 },
                 discard: () => continuation?.Invoke()
             );
