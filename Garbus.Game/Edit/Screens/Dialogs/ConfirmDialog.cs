@@ -33,11 +33,13 @@ namespace Garbus.Game.Edit.Screens.Dialogs
             var buttonRow = new FillFlowContainer
             {
                 AutoSizeAxes = Axes.Both,
-                Anchor = Anchor.BottomCentre,
-                Origin = Anchor.BottomCentre,
+                // Must use the same anchor as the message text (TopCentre = Y:0) to satisfy
+                // FillFlowContainer's requirement that all children share the same
+                // RelativeAnchorPosition for the flow direction.
+                Anchor = Anchor.TopCentre,
+                Origin = Anchor.TopCentre,
                 Direction = FillDirection.Horizontal,
                 Spacing = new Vector2(8, 0),
-                Padding = new MarginPadding { Bottom = 12 },
             };
 
             foreach (var (label, action) in buttons)

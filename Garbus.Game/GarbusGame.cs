@@ -21,9 +21,9 @@ namespace Garbus.Game
         {
             base.LoadComplete();
 
-            // Phase 2: straight into the gameplay vertical slice. MainScreen (the Phase 1 clock-stack
-            // skeleton) remains reachable through the test browser.
-            screenStack.Push(new PlayScreen());
+            // Phase 4: boot into the main menu. PlayScreen and MainScreen remain reachable through
+            // the test browser.
+            screenStack.Push(new MainMenuScreen());
         }
     }
 }

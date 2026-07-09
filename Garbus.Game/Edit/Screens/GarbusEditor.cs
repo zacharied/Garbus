@@ -157,10 +157,14 @@ namespace Garbus.Game.Edit.Screens
 
         public void SaveAs()
         {
-            // TODO (Task 8): open a real directory-selector + filename dialog.
-            // Stub: no-op if FilePath is null; otherwise delegates to Save().
-            if (ChartFile.FilePath != null)
-                Save();
+            var dialog = new SaveAsDialog(path =>
+            {
+                ChartFile.Save(path);
+                hashAtLastSave = changeHandler.CurrentStateHash;
+            }, defaultFilename: string.IsNullOrEmpty(ChartFile.Chart.Metadata.Title) ? "new-chart" : ChartFile.Chart.Metadata.Title);
+
+            dialogOverlay.Child = dialog;
+            dialog.Show();
         }
 
         // --- Track loading ---
@@ -242,15 +246,43 @@ namespace Garbus.Game.Edit.Screens
         {
             new MenuItem("New", () =>
             {
+                void doNew()
+                {
+                    var chart = new Charts.GarbusChart();
+                    chart.ControlPointInfo.Add(0, new Charts.Timing.TimingControlPoint { BeatLength = 500 });
+                    this.Push(new GarbusEditor(new Charts.ChartFile(chart)));
+                }
+
                 if (HasUnsavedChanges)
-                    showConfirmThenRun(null);
-                // else: Task 8 wires the actual new-chart flow.
+                    showConfirmThenRun(doNew);
+                else
+                    doNew();
             }),
             new MenuItem("Open…", () =>
             {
+                void doOpen()
+                {
+                    var dialog = new OpenChartDialog(path =>
+                    {
+                        try
+                        {
+                            var chartFile = Charts.ChartFile.Load(path);
+                            this.Push(new GarbusEditor(chartFile));
+                        }
+                        catch (Exception ex)
+                        {
+                            dialogOverlay.Child = new ConfirmDialog($"Failed to open chart:\n{ex.Message}", ("OK", () => { }));
+                            ((ConfirmDialog)dialogOverlay.Child).Show();
+                        }
+                    });
+                    dialogOverlay.Child = dialog;
+                    dialog.Show();
+                }
+
                 if (HasUnsavedChanges)
-                    showConfirmThenRun(null);
-                // else: Task 8 wires the actual open flow.
+                    showConfirmThenRun(doOpen);
+                else
+                    doOpen();
             }),
             new MenuItem("Save", Save),
             new MenuItem("Save As…", SaveAs),
@@ -287,6 +319,20 @@ namespace Garbus.Game.Edit.Screens
                     Colour = new osuTK.Graphics.Color4(20, 20, 28, 255),
                 },
             };
+        }
+
+        // --- Screen exit ---
+
+        public override bool OnExiting(ScreenExitEvent e)
+        {
+            if (HasUnsavedChanges)
+            {
+                // Show the save/discard/cancel dialog; block the exit (return true).
+                showConfirmThenRun(this.Exit);
+                return true;
+            }
+
+            return base.OnExiting(e);
         }
 
         // --- Hotkeys ---
