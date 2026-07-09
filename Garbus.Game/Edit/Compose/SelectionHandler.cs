@@ -7,14 +7,13 @@
 // osu.Game-only; flip/reverse not used by BAC); SelectionRotationHandler/SelectionScaleHandler and
 // CreateChildDependencies override dropped entirely (BAC skips rotation/scale); OsuMenuItem
 // → GarbusMenuItem; CommonStrings.ButtonsDelete → plain "Delete" string; Hotkey property dropped from
-// delete menu item; IReadOnlyList<SelectionBlueprint<T>> parameter signature on
-// GetContextMenuItemsForSelection kept as IReadOnlyList per osu (Task 16 BacSelectionHandler uses
-// IEnumerable — BAC source is ground truth, so its override signature will widen to IEnumerable;
-// the base keeps IReadOnlyList to match osu's virtual).
+// delete menu item; GetContextMenuItemsForSelection uses IEnumerable<SelectionBlueprint<T>> matching
+// osu's real virtual signature (IReadOnlyList would be a narrowing that breaks overrides).
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -51,6 +50,9 @@ namespace Garbus.Game.Edit.Compose
         /// </summary>
         public readonly BindableList<T> SelectedItems = new BindableList<T>();
 
+        [Resolved(CanBeNull = true)]
+        protected IEditorChangeHandler? ChangeHandler { get; private set; }
+
         private readonly List<SelectionBlueprint<T>> selectedBlueprints;
 
         public SelectionBox SelectionBox { get; private set; } = null!;
@@ -83,17 +85,19 @@ namespace Garbus.Game.Edit.Compose
             };
 
         /// <summary>
-        /// Fired when a drag operation ends from the selection box.
+        /// Fired when a drag operation begins from the selection box.
         /// </summary>
         protected virtual void OnOperationBegan()
         {
+            ChangeHandler?.BeginChange();
         }
 
         /// <summary>
-        /// Fired when a drag operation begins from the selection box.
+        /// Fired when a drag operation ends from the selection box.
         /// </summary>
         protected virtual void OnOperationEnded()
         {
+            ChangeHandler?.EndChange();
         }
 
         #region User Input Handling
@@ -341,7 +345,7 @@ namespace Garbus.Game.Edit.Compose
         /// </summary>
         /// <param name="selection">The current selection.</param>
         /// <returns>The relevant menu items.</returns>
-        protected virtual IEnumerable<MenuItem> GetContextMenuItemsForSelection(IReadOnlyList<SelectionBlueprint<T>> selection)
+        protected virtual IEnumerable<MenuItem> GetContextMenuItemsForSelection(IEnumerable<SelectionBlueprint<T>> selection)
             => Enumerable.Empty<MenuItem>();
 
         #endregion

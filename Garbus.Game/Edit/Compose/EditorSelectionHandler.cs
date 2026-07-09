@@ -7,7 +7,8 @@
 // and all related bindables dropped; UpdateTernaryStates() kept as protected virtual no-op so
 // BacSelectionHandler (Task 16) can override it; GetContextMenuItemsForSelection override dropped
 // (no New Combo / Sample / Bank items relevant to Garbus); RightClickAlwaysQuickDeletes kept;
-// DeleteItems wraps EditorChart.RemoveRange in a ChangeHandler transaction.
+// DeleteItems wraps EditorChart.RemoveRange in a ChangeHandler transaction; ChangeHandler resolved
+// in base SelectionHandler (not here); HitObjectUpdated subscription added alongside CollectionChanged.
 
 using System.Collections.Generic;
 using osu.Framework.Allocation;
@@ -26,12 +27,10 @@ namespace Garbus.Game.Edit.Compose
         [Resolved]
         protected EditorChart EditorChart { get; private set; } = null!;
 
-        [Resolved]
-        protected IEditorChangeHandler? ChangeHandler { get; private set; }
-
         [BackgroundDependencyLoader]
         private void load()
         {
+            EditorChart.HitObjectUpdated += _ => Scheduler.AddOnce(UpdateTernaryStates);
             SelectedItems.CollectionChanged += (_, _) => Scheduler.AddOnce(UpdateTernaryStates);
         }
 
