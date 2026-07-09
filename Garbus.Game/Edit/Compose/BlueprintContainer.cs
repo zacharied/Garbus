@@ -348,6 +348,9 @@ namespace Garbus.Game.Edit.Compose
         /// <returns>The blueprint.</returns>
         protected SelectionBlueprint<T> GetBlueprintFor(T item) => blueprintMap[item];
 
+        /// <summary>Whether a blueprint currently exists for the given item (some item types have none).</summary>
+        protected bool HasBlueprintFor(T item) => blueprintMap.ContainsKey(item);
+
         #endregion
 
         #region Selection

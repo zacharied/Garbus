@@ -69,6 +69,11 @@ namespace Garbus.Game.Edit.Compose
             // so does the beat snap grid's DrawableGridLine — cache it before any child loads.
             dependencies.CacheAs<IScrollingInfo>(scrollingInfo);
 
+            // The selection blueprints (siblings of the playfield, not its children) resolve Playfield to
+            // reach its ScrollingHitObjectContainer for time↔screen mapping. osu supplies this through the
+            // DrawableRuleset's cached dependencies; Garbus has no DrawableRuleset, so cache it here.
+            dependencies.CacheAs<Playfield>(Playfield);
+
             return dependencies;
         }
 

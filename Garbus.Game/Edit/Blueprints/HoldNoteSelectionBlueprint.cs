@@ -1,0 +1,102 @@
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/HoldNoteSelectionBlueprint.cs).
+// EditorBeatmap → EditorChart; BigAssCircleHitObjectComposer → GarbusHitObjectComposer;
+// osu.Game.Screens.Edit IEditorChangeHandler → Garbus.Game.Edit.IEditorChangeHandler; EditorDrawableCardinalNote /
+// EditSquarePiece / HoldNoteEndDragPiece from the Garbus editor.
+
+using osu.Framework.Allocation;
+using osu.Framework.Graphics;
+using osu.Framework.Graphics.Primitives;
+using Garbus.Game.Edit.Blueprints.Components;
+using Garbus.Game.Edit.Drawables;
+using Garbus.Game.Objects;
+using osuTK;
+
+namespace Garbus.Game.Edit.Blueprints;
+
+/// <summary>
+/// Hold note selection: an outline over the whole duration with draggable head (bottom, retimes the
+/// start) and tail (top, retimes the end) handles, following mania's HoldNoteSelectionBlueprint.
+/// </summary>
+internal partial class HoldNoteSelectionBlueprint : GarbusSelectionBlueprint<HoldNote>
+{
+    [Resolved]
+    private IEditorChangeHandler? changeHandler { get; set; }
+
+    [Resolved]
+    private EditorChart? editorChart { get; set; }
+
+    [Resolved]
+    private GarbusHitObjectComposer? composer { get; set; }
+
+    private HoldNoteEndDragPiece head = null!;
+
+    public HoldNoteSelectionBlueprint(HoldNote hold)
+        : base(hold)
+    {
+        Width = EditorDrawableCardinalNote.NOTE_SIZE;
+        Origin = Anchor.BottomCentre;
+    }
+
+    [BackgroundDependencyLoader]
+    private void load()
+    {
+        InternalChildren = new Drawable[]
+        {
+            new EditSquarePiece { RelativeSizeAxes = Axes.Both },
+            head = new HoldNoteEndDragPiece
+            {
+                RelativeSizeAxes = Axes.X,
+                Height = EditorDrawableCardinalNote.NOTE_SIZE,
+                Anchor = Anchor.BottomCentre,
+                Origin = Anchor.Centre,
+                DragStarted = () => changeHandler?.BeginChange(),
+                Dragging = pos =>
+                {
+                    double endTime = HitObject.EndTime;
+                    double proposedStartTime = timeAt(pos);
+
+                    if (proposedStartTime >= endTime)
+                        return;
+
+                    HitObject.StartTime = proposedStartTime;
+                    HitObject.Duration = endTime - proposedStartTime;
+                    editorChart?.Update(HitObject);
+                },
+                DragEnded = () => changeHandler?.EndChange(),
+            },
+            new HoldNoteEndDragPiece
+            {
+                RelativeSizeAxes = Axes.X,
+                Height = 10,
+                Anchor = Anchor.TopCentre,
+                Origin = Anchor.Centre,
+                DragStarted = () => changeHandler?.BeginChange(),
+                Dragging = pos =>
+                {
+                    double proposedEndTime = timeAt(pos);
+
+                    if (HitObject.StartTime >= proposedEndTime)
+                        return;
+
+                    HitObject.Duration = proposedEndTime - HitObject.StartTime;
+                    editorChart?.Update(HitObject);
+                },
+                DragEnded = () => changeHandler?.EndChange(),
+            },
+        };
+    }
+
+    private double timeAt(Vector2 screenSpacePosition) =>
+        composer?.FindSnappedAngleTimeAndPosition(screenSpacePosition).Time ?? HitObjectContainer.TimeAtScreenSpacePosition(screenSpacePosition);
+
+    protected override void Update()
+    {
+        base.Update();
+
+        Height = HitObjectContainer.LengthAtTime(HitObject.StartTime, HitObject.EndTime);
+    }
+
+    public override Quad SelectionQuad => ScreenSpaceDrawQuad;
+
+    public override Vector2 ScreenSpaceSelectionPoint => head.ScreenSpaceDrawQuad.Centre;
+}

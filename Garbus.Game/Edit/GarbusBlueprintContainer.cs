@@ -1,15 +1,12 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacBlueprintContainer.cs).
 // BacBlueprintContainer → GarbusBlueprintContainer; BigAssCircleHitObjectComposer → GarbusHitObjectComposer;
-// ComposeBlueprintContainer / SelectionBlueprint / DragBox / ScrollingDragBox from Edit.Compose.
-//
-// Task 15 scope: the placement half. CreateHitObjectBlueprintFor (per-type SELECTION blueprints) and the
-// custom BacSelectionHandler are Task 16 — until then this returns the base's null (no per-object
-// selection blueprint) and inherits the base EditorSelectionHandler. TryMoveBlueprints / CreateDragBox
-// (both placement/selection movement) are ported now so drag-move snapping works.
+// ComposeBlueprintContainer / SelectionBlueprint / DragBox / ScrollingDragBox from Edit.Compose;
+// selection blueprints from Edit.Blueprints; BacSelectionHandler → GarbusSelectionHandler.
 
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Input.Events;
+using Garbus.Game.Edit.Blueprints;
 using Garbus.Game.Edit.Compose;
 using Garbus.Game.Objects;
 using osuTK;
@@ -25,8 +22,33 @@ public partial class GarbusBlueprintContainer : ComposeBlueprintContainer
     {
     }
 
-    // Per-type selection blueprints arrive in Task 16; until then no per-object selection blueprint.
-    public override HitObjectSelectionBlueprint? CreateHitObjectBlueprintFor(GarbusHitObject hitObject) => null;
+    public override HitObjectSelectionBlueprint? CreateHitObjectBlueprintFor(GarbusHitObject hitObject)
+    {
+        switch (hitObject)
+        {
+            case SliderBody slider:
+                return new SliderSelectionBlueprint(slider);
+
+            case HoldNote hold:
+                return new HoldNoteSelectionBlueprint(hold);
+
+            case CardinalNote note:
+                return new OutlineSelectionBlueprint<CardinalNote>(note);
+
+            case ShoulderNote shoulder:
+                return new ShoulderNoteSelectionBlueprint(shoulder);
+
+            case GarbusSlamCentered slam:
+                return new OutlineSelectionBlueprint<GarbusSlamCentered>(slam);
+
+            case GarbusSlamEdge slam:
+                return new OutlineSelectionBlueprint<GarbusSlamEdge>(slam);
+        }
+
+        return base.CreateHitObjectBlueprintFor(hitObject);
+    }
+
+    protected override SelectionHandler<GarbusHitObject> CreateSelectionHandler() => new GarbusSelectionHandler();
 
     protected sealed override DragBox CreateDragBox() => new ScrollingDragBox(Composer.Playfield);
 

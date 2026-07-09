@@ -7,6 +7,15 @@
 // not pool drawables at editor time — blueprints are added via HitObjectAdded/Removed events only);
 // TransferBlueprintFor kept as protected virtual stub (ComposeBlueprintContainer overrides);
 // IBarLine filter removed (no bar-line concept in Garbus); nullable enabled.
+//
+// Stale-DrawableObject fix (osu-faithful): osu keeps a blueprint's DrawableObject fresh via
+// HitObjectUsageEventBuffer.HitObjectUsageTransferred → TransferBlueprintFor when the pool re-uses a
+// different drawable for the same hit object. Garbus's editor is non-pooled and instead REMOVES and
+// RE-CREATES the drawable in ScrollingHitObjectComposer.updateHitObject on EditorChart.HitObjectUpdated,
+// which would leave the blueprint pointing at the disposed old drawable. We reproduce osu's transfer by
+// subscribing to HitObjectUpdated here and calling TransferBlueprintFor with the freshly-created drawable
+// (the composer subscribes first — its LoadComplete runs before this child's — so the new drawable
+// already exists in Composer.HitObjects when this fires).
 
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -51,6 +60,7 @@ namespace Garbus.Game.Edit.Compose
 
             EditorChart.HitObjectAdded += AddBlueprintFor;
             EditorChart.HitObjectRemoved += RemoveBlueprintFor;
+            EditorChart.HitObjectUpdated += transferBlueprintOnUpdate;
             EditorChart.SelectedHitObjects.CollectionChanged += updateSelectionLifetime;
 
             if (Composer != null)
@@ -85,6 +95,21 @@ namespace Garbus.Game.Edit.Compose
         /// <param name="drawableObject">The new drawable that is representing the hit object.</param>
         protected virtual void TransferBlueprintFor(GarbusHitObject hitObject, DrawableHitObject drawableObject)
         {
+        }
+
+        /// <summary>
+        /// Re-points a blueprint's <see cref="DrawableHitObject"/> after the composer swapped it out on
+        /// update. Mirrors osu's <c>HitObjectUsageTransferred → TransferBlueprintFor</c> path; here the
+        /// trigger is the explicit <see cref="EditorChart.HitObjectUpdated"/> rather than a pool usage buffer.
+        /// </summary>
+        private void transferBlueprintOnUpdate(GarbusHitObject hitObject)
+        {
+            if (Composer == null || !HasBlueprintFor(hitObject))
+                return;
+
+            var drawable = Composer.HitObjects.FirstOrDefault(d => d.HitObject == hitObject);
+            if (drawable != null)
+                TransferBlueprintFor(hitObject, drawable);
         }
 
         protected override void DragOperationCompleted()
@@ -159,6 +184,7 @@ namespace Garbus.Game.Edit.Compose
 
             EditorChart.HitObjectAdded -= AddBlueprintFor;
             EditorChart.HitObjectRemoved -= RemoveBlueprintFor;
+            EditorChart.HitObjectUpdated -= transferBlueprintOnUpdate;
             EditorChart.SelectedHitObjects.CollectionChanged -= updateSelectionLifetime;
         }
     }
