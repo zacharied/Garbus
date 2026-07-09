@@ -1,0 +1,346 @@
+// Editor shell: tabs, menu bar, hotkeys, dirty tracking, DI caching.
+
+using System;
+using System.Collections.Generic;
+using Garbus.Game.Charts;
+using Garbus.Game.Edit.Screens.Dialogs;
+using osu.Framework.Allocation;
+using osu.Framework.Audio;
+using osu.Framework.Audio.Track;
+using osu.Framework.Bindables;
+using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input.Events;
+using osu.Framework.Screens;
+using osuTK.Input;
+
+namespace Garbus.Game.Edit.Screens
+{
+    public partial class GarbusEditor : Screen
+    {
+        // --- Public contract ---
+
+        public readonly Bindable<EditorTab> Tab = new Bindable<EditorTab>(EditorTab.Compose);
+
+        public ChartFile ChartFile { get; }
+
+        public bool HasUnsavedChanges => changeHandler.CurrentStateHash != hashAtLastSave;
+
+        public EditorChart EditorChart { get; private set; } = null!;
+
+        // --- Private state ---
+
+        private EditorClock editorClock = null!;
+        private GarbusChartChangeHandler changeHandler = null!;
+        private BindableBeatDivisor beatDivisor = null!;
+
+        private string hashAtLastSave = string.Empty;
+
+        private DependencyContainer dependencies = null!;
+
+        private ComposeTab composeTab = null!;
+        private SetupTab setupTab = null!;
+        private TimingTab timingTab = null!;
+        private VerifyTab verifyTab = null!;
+
+        private Container tabContainer = null!;
+        private Container dialogOverlay = null!;
+
+        public GarbusEditor(ChartFile chartFile)
+        {
+            ChartFile = chartFile;
+        }
+
+        protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+        {
+            dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
+            // Build the editor object graph and cache into DI.
+            EditorChart = new EditorChart(ChartFile.Chart);
+            changeHandler = new GarbusChartChangeHandler(EditorChart);
+
+            beatDivisor = new BindableBeatDivisor(4);
+
+            // hashAtLastSave: captured after GarbusChartChangeHandler has saved its first snapshot.
+            hashAtLastSave = changeHandler.CurrentStateHash;
+
+            editorClock = new EditorClock(EditorChart.ControlPointInfo, 60000, beatDivisor);
+
+            dependencies.Cache(editorClock);
+            dependencies.Cache(EditorChart);
+            dependencies.Cache(changeHandler);
+            dependencies.CacheAs<IEditorChangeHandler>(changeHandler);
+            dependencies.Cache(beatDivisor);
+            dependencies.CacheAs(this);
+            dependencies.CacheAs(ChartFile);
+
+            return dependencies;
+        }
+
+        [BackgroundDependencyLoader]
+        private void load(AudioManager audioManager)
+        {
+            RelativeSizeAxes = Axes.Both;
+
+            // Load track.
+            ReloadTrack(audioManager);
+
+            // Build layout.
+            InternalChildren = new Drawable[]
+            {
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = new osuTK.Graphics.Color4(28, 28, 36, 255),
+                },
+                new FillFlowContainer
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Direction = FillDirection.Vertical,
+                    Children = new Drawable[]
+                    {
+                        createTopBar(),
+                        tabContainer = new Container
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            Height = 0, // filled by RelativeSizeAxes logic below
+                        },
+                        createBottomBar(),
+                    },
+                },
+                dialogOverlay = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                },
+            };
+
+            // Tab content — stacked, only one visible.
+            tabContainer.RelativeSizeAxes = Axes.Both;
+            tabContainer.Height = 1;
+
+            tabContainer.Children = new Drawable[]
+            {
+                setupTab = new SetupTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+                composeTab = new ComposeTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+                timingTab = new TimingTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+                verifyTab = new VerifyTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+            };
+
+            // EditorClock must be in the hierarchy to process.
+            AddInternal(editorClock);
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            Tab.BindValueChanged(e => updateTabVisibility(e.NewValue), true);
+        }
+
+        // --- Tab management ---
+
+        private void updateTabVisibility(EditorTab activeTab)
+        {
+            setupTab.State.Value = activeTab == EditorTab.Setup ? Visibility.Visible : Visibility.Hidden;
+            composeTab.State.Value = activeTab == EditorTab.Compose ? Visibility.Visible : Visibility.Hidden;
+            timingTab.State.Value = activeTab == EditorTab.Timing ? Visibility.Visible : Visibility.Hidden;
+            verifyTab.State.Value = activeTab == EditorTab.Verify ? Visibility.Visible : Visibility.Hidden;
+        }
+
+        // --- Save / SaveAs ---
+
+        public void Save()
+        {
+            if (ChartFile.FilePath == null)
+            {
+                SaveAs();
+                return;
+            }
+
+            ChartFile.Save();
+            hashAtLastSave = changeHandler.CurrentStateHash;
+        }
+
+        public void SaveAs()
+        {
+            // TODO (Task 8): open a real directory-selector + filename dialog.
+            // Stub: no-op if FilePath is null; otherwise delegates to Save().
+            if (ChartFile.FilePath != null)
+                Save();
+        }
+
+        // --- Track loading ---
+
+        public void ReloadTrack() => ReloadTrack(null);
+
+        private void ReloadTrack(AudioManager? audioManager)
+        {
+            Track track;
+            var store = ChartFile.GetTrackStore(audioManager ?? dependencies.Get<AudioManager>());
+
+            if (store != null && !string.IsNullOrEmpty(ChartFile.Chart.Metadata.AudioFile))
+            {
+                track = store.Get(ChartFile.Chart.Metadata.AudioFile) ?? new TrackVirtual(60000);
+            }
+            else
+            {
+                track = new TrackVirtual(60000);
+            }
+
+            editorClock.ChangeSource(track);
+        }
+
+        // --- Layout helpers ---
+
+        private Drawable createTopBar()
+        {
+            var bar = new Container
+            {
+                RelativeSizeAxes = Axes.X,
+                Height = 40,
+                Children = new Drawable[]
+                {
+                    new Box
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = new osuTK.Graphics.Color4(20, 20, 28, 255),
+                    },
+                    createMenuBar(),
+                    new BasicTabControl<EditorTab>
+                    {
+                        Anchor = Anchor.CentreRight,
+                        Origin = Anchor.CentreRight,
+                        RelativeSizeAxes = Axes.Y,
+                        Width = 320,
+                        Items = Enum.GetValues<EditorTab>(),
+                        Current = Tab,
+                    },
+                },
+            };
+
+            return bar;
+        }
+
+        private Drawable createMenuBar()
+        {
+            return new BasicMenu(Direction.Horizontal, true)
+            {
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                RelativeSizeAxes = Axes.Y,
+                Items = new[]
+                {
+                    new MenuItem("File")
+                    {
+                        Items = createFileMenuItems(),
+                    },
+                    new MenuItem("Edit")
+                    {
+                        Items = createEditMenuItems(),
+                    },
+                    new MenuItem("View"),
+                    new MenuItem("Timing"),
+                },
+            };
+        }
+
+        private IReadOnlyList<MenuItem> createFileMenuItems() => new[]
+        {
+            new MenuItem("New", () =>
+            {
+                if (HasUnsavedChanges)
+                    showConfirmThenRun(null);
+                // Actual new-chart flow is Task 8.
+            }),
+            new MenuItem("Open…", () =>
+            {
+                if (HasUnsavedChanges)
+                    showConfirmThenRun(null);
+                // Actual open flow is Task 8.
+            }),
+            new MenuItem("Save", Save),
+            new MenuItem("Save As…", SaveAs),
+            new MenuItem("Exit", this.Exit),
+        };
+
+        private IReadOnlyList<MenuItem> createEditMenuItems()
+        {
+            var undoItem = new MenuItem("Undo", () => changeHandler.Undo());
+            var redoItem = new MenuItem("Redo", () => changeHandler.Redo());
+
+            // Bind enabled state. MenuItem.Action being null disables the item in BasicMenu.
+            // We achieve enabled/disabled by swapping the action reference.
+            changeHandler.CanUndo.BindValueChanged(e =>
+                undoItem.Action.Value = e.NewValue ? (Action)changeHandler.Undo : null, true);
+            changeHandler.CanRedo.BindValueChanged(e =>
+                redoItem.Action.Value = e.NewValue ? (Action)changeHandler.Redo : null, true);
+
+            return new[] { undoItem, redoItem };
+        }
+
+        private Drawable createBottomBar()
+        {
+            // Placeholder; content arrives in Task 17/18.
+            return new Container
+            {
+                RelativeSizeAxes = Axes.X,
+                Height = 60,
+                Child = new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = new osuTK.Graphics.Color4(20, 20, 28, 255),
+                },
+            };
+        }
+
+        // --- Hotkeys ---
+
+        protected override bool OnKeyDown(KeyDownEvent e)
+        {
+            if (e.Repeat)
+                return base.OnKeyDown(e);
+
+            if (e.ControlPressed)
+            {
+                switch (e.Key)
+                {
+                    case Key.S:
+                        Save();
+                        return true;
+
+                    case Key.Z:
+                        if (e.ShiftPressed)
+                            changeHandler.Redo();
+                        else
+                            changeHandler.Undo();
+                        return true;
+
+                    case Key.Y:
+                        changeHandler.Redo();
+                        return true;
+                }
+            }
+
+            return base.OnKeyDown(e);
+        }
+
+        // --- Dialog helpers ---
+
+        private void showConfirmThenRun(Action? afterDiscard)
+        {
+            var dialog = ConfirmDialog.SaveDiscardCancel(
+                save: () =>
+                {
+                    Save();
+                    afterDiscard?.Invoke();
+                },
+                discard: () => afterDiscard?.Invoke()
+            );
+
+            dialogOverlay.Child = dialog;
+            dialog.Show();
+        }
+    }
+}

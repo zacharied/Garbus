@@ -1,0 +1,57 @@
+// Tests for the GarbusEditor shell: tab switching and dirty-state tracking.
+
+using System.IO;
+using System.Linq;
+using Garbus.Game.Charts;
+using Garbus.Game.Charts.Timing;
+using Garbus.Game.Edit;
+using Garbus.Game.Edit.Screens;
+using Garbus.Game.Objects;
+using Garbus.Game.Tests.Visual;
+using NUnit.Framework;
+using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
+using osu.Framework.Screens;
+using osu.Framework.Testing;
+
+namespace Garbus.Game.Tests.Editor
+{
+    [TestFixture]
+    public partial class TestSceneEditorShell : GarbusTestScene
+    {
+        private GarbusEditor editor = null!;
+
+        [SetUp]
+        public new void SetUp() => Schedule(() =>
+        {
+            var chart = new GarbusChart();
+            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+
+            // Pre-save to a temp path so Save() has a target for TestDirtyTracking.
+            var chartFile = new ChartFile(chart);
+            string tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".garbus");
+            chartFile.Save(tempPath);
+
+            Child = new ScreenStack(editor = new GarbusEditor(chartFile)) { RelativeSizeAxes = Axes.Both };
+        });
+
+        [Test]
+        public void TestTabSwitching()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+            AddStep("switch to setup", () => editor.Tab.Value = EditorTab.Setup);
+            AddUntilStep("setup visible", () => editor.ChildrenOfType<SetupTab>().Single().State.Value == Visibility.Visible);
+            AddUntilStep("compose hidden", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Hidden);
+        }
+
+        [Test]
+        public void TestDirtyTracking()
+        {
+            AddAssert("clean at start", () => !editor.HasUnsavedChanges);
+            AddStep("add object", () => editor.EditorChart.Add(new CardinalNote { StartTime = 1000, AngleDeg = 0 }));
+            AddAssert("dirty", () => editor.HasUnsavedChanges);
+            AddStep("save", () => editor.Save());
+            AddAssert("clean again", () => !editor.HasUnsavedChanges);
+        }
+    }
+}
