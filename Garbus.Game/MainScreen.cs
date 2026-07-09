@@ -36,7 +36,8 @@ namespace Garbus.Game
         {
             userAudioOffset = config.GetBindable<double>(GarbusSetting.AudioOffset);
 
-            track = tracks.Get(@"sample-track");
+            // Full filename: TrackStore only probes ".mp3" for extension-less lookups.
+            track = tracks.Get(@"test-track.ogg");
 
             InternalChildren = new Drawable[]
             {

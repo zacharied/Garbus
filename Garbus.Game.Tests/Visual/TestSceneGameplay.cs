@@ -26,6 +26,13 @@ namespace Garbus.Game.Tests.Visual
     [TestFixture]
     public partial class TestSceneGameplay : GarbusTestScene
     {
+        // This scene is driven entirely by a ManualClock, so there is nothing to watch in real time;
+        // pace automated steps per-frame. At the default 200ms-per-action pacing, playThrough's ~100
+        // until-polls need 20s of wall time in the interactive test browser, which can never fit
+        // UntilStepButton's fixed 10s wall-clock timeout (headless passes only because its fast clock
+        // decouples game time from wall time).
+        protected override double TimePerAction => 0;
+
         private ManualClock manualClock = null!;
         private ManualInputManager input = null!;
         private GarbusPlayfield playfield = null!;

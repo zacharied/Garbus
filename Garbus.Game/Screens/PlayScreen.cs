@@ -64,7 +64,8 @@ namespace Garbus.Game.Screens
         [BackgroundDependencyLoader]
         private void load(ITrackStore tracks)
         {
-            track = tracks.Get(@"sample-track");
+            // Full filename: TrackStore only probes ".mp3" for extension-less lookups.
+            track = tracks.Get(@"test-track.ogg");
 
             chart = GarbusTestChartGenerator.GenerateChart();
 
