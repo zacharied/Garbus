@@ -14,3 +14,4 @@ obj/
 # test/host output
 TestResults/
 *.log
+.superpowers/
