@@ -5,8 +5,14 @@
     "artist": "unknown",
     "charter": "garbus",
     "chartName": "test chart",
-    "audioFile": "test-track.ogg"
+    "romanisedTitle": "",
+    "romanisedArtist": "",
+    "source": "",
+    "tags": "",
+    "audioFile": "test-track.ogg",
+    "backgroundFile": ""
   },
+  "previewTime": null,
   "timingPoints": [
     {
       "time": 0,

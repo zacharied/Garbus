@@ -18,6 +18,8 @@ public class ChartFileDto
 
     public ChartMetadataDto Metadata { get; set; } = new ChartMetadataDto();
 
+    public double? PreviewTime { get; set; }
+
     public List<TimingPointDto> TimingPoints { get; set; } = new List<TimingPointDto>();
 
     public List<HitObjectDto> HitObjects { get; set; } = new List<HitObjectDto>();
@@ -29,7 +31,12 @@ public class ChartMetadataDto
     public string Artist { get; set; } = string.Empty;
     public string Charter { get; set; } = string.Empty;
     public string ChartName { get; set; } = string.Empty;
+    public string RomanisedTitle { get; set; } = string.Empty;
+    public string RomanisedArtist { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string Tags { get; set; } = string.Empty;
     public string AudioFile { get; set; } = string.Empty;
+    public string BackgroundFile { get; set; } = string.Empty;
 }
 
 public class TimingPointDto

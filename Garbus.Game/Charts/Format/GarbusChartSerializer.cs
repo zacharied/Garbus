@@ -62,8 +62,14 @@ public static class GarbusChartSerializer
             Artist = chart.Metadata.Artist,
             Charter = chart.Metadata.Charter,
             ChartName = chart.Metadata.ChartName,
+            RomanisedTitle = chart.Metadata.RomanisedTitle,
+            RomanisedArtist = chart.Metadata.RomanisedArtist,
+            Source = chart.Metadata.Source,
+            Tags = chart.Metadata.Tags,
             AudioFile = chart.Metadata.AudioFile,
+            BackgroundFile = chart.Metadata.BackgroundFile,
         },
+        PreviewTime = chart.PreviewTime,
         TimingPoints = chart.ControlPointInfo.TimingPoints.Select(t => new TimingPointDto
         {
             Time = t.Time,
@@ -112,8 +118,14 @@ public static class GarbusChartSerializer
                 Artist = dto.Metadata.Artist,
                 Charter = dto.Metadata.Charter,
                 ChartName = dto.Metadata.ChartName,
+                RomanisedTitle = dto.Metadata.RomanisedTitle,
+                RomanisedArtist = dto.Metadata.RomanisedArtist,
+                Source = dto.Metadata.Source,
+                Tags = dto.Metadata.Tags,
                 AudioFile = dto.Metadata.AudioFile,
+                BackgroundFile = dto.Metadata.BackgroundFile,
             },
+            PreviewTime = dto.PreviewTime,
             HitObjects = dto.HitObjects.Select(fromDto).ToList(),
         };
 

@@ -11,6 +11,9 @@ public class GarbusChart
 {
     public ChartMetadata Metadata { get; init; } = new ChartMetadata();
 
+    /// <summary>The song-select audio preview point in ms, or null when unset.</summary>
+    public double? PreviewTime { get; set; }
+
     public ControlPointInfo ControlPointInfo { get; init; } = new ControlPointInfo();
 
     public List<GarbusHitObject> HitObjects { get; init; } = new List<GarbusHitObject>();

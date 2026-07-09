@@ -72,6 +72,32 @@ namespace Garbus.Game.Tests
             TestContext.Out.WriteLine($"wrote {path}");
         }
 
+        [Test]
+        public void TestNewFieldsRoundtrip()
+        {
+            var chart = new GarbusChart
+            {
+                Metadata = new ChartMetadata
+                {
+                    Title = "T", RomanisedTitle = "T-rom",
+                    Artist = "A", RomanisedArtist = "A-rom",
+                    Charter = "C", ChartName = "N",
+                    Source = "some game", Tags = "tag1 tag2",
+                    AudioFile = "track.ogg", BackgroundFile = "bg.png",
+                },
+                PreviewTime = 12345.0,
+            };
+
+            var decoded = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(chart));
+
+            Assert.That(decoded.Metadata.RomanisedTitle, Is.EqualTo("T-rom"));
+            Assert.That(decoded.Metadata.RomanisedArtist, Is.EqualTo("A-rom"));
+            Assert.That(decoded.Metadata.Source, Is.EqualTo("some game"));
+            Assert.That(decoded.Metadata.Tags, Is.EqualTo("tag1 tag2"));
+            Assert.That(decoded.Metadata.BackgroundFile, Is.EqualTo("bg.png"));
+            Assert.That(decoded.PreviewTime, Is.EqualTo(12345.0));
+        }
+
         private static void assertChartsEqual(GarbusChart expected, GarbusChart actual)
         {
             Assert.Multiple(() =>
