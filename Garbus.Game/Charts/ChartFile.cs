@@ -13,7 +13,7 @@ using osu.Framework.Platform;
 namespace Garbus.Game.Charts;
 
 /// <summary>A .garbus chart on disk plus the directory its audio/background live in.</summary>
-public class ChartFile
+public class ChartFile : IDisposable
 {
     /// <summary>The decoded chart model.</summary>
     public GarbusChart Chart { get; }
@@ -61,6 +61,7 @@ public class ChartFile
         string? newDirectory = Path.GetDirectoryName(path);
         if (!string.Equals(newDirectory, trackStoreDirectory, StringComparison.OrdinalIgnoreCase))
         {
+            (trackStore as IDisposable)?.Dispose();
             trackStore = null;
             trackStoreDirectory = null;
         }
@@ -116,5 +117,17 @@ public class ChartFile
         trackStore = audio.GetTrackStore(new StorageBackedResourceStore(new NativeStorage(Directory)));
         trackStoreDirectory = Directory;
         return trackStore;
+    }
+
+    /// <summary>
+    /// Disposes the cached track store so the AudioManager can release it promptly.
+    /// The underlying <see cref="TrackStore"/> is an <see cref="AudioCollectionManager{T}"/> child;
+    /// disposing it sets <c>IsAlive = false</c> and the parent manager removes it on the next update.
+    /// </summary>
+    public void Dispose()
+    {
+        (trackStore as IDisposable)?.Dispose();
+        trackStore = null;
+        trackStoreDirectory = null;
     }
 }
