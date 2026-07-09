@@ -45,6 +45,20 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestTabContentHasHeight()
+        {
+            // Regression guard: tab content must not collapse to 0px.
+            // A vertical FillFlowContainer with a RelativeSizeAxes.Both child collapses it to zero;
+            // the layout now uses a padded plain Container to avoid this.
+            AddUntilStep("compose tab visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+            AddAssert("compose tab has positive height", () => editor.ChildrenOfType<ComposeTab>().Single().DrawHeight > 0);
+            // Top bar = 40, bottom bar = 60 → tab area = screen height − 100.
+            AddAssert("compose tab height ≈ screen − 100",
+                () => editor.ChildrenOfType<ComposeTab>().Single().DrawHeight,
+                () => Is.GreaterThan(editor.DrawHeight - 101));
+        }
+
+        [Test]
         public void TestDirtyTracking()
         {
             AddAssert("clean at start", () => !editor.HasUnsavedChanges);

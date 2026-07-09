@@ -88,6 +88,9 @@ namespace Garbus.Game.Edit.Screens
             ReloadTrack(audioManager);
 
             // Build layout.
+            // Use a plain Container with Padding rather than a FillFlowContainer:
+            // a child with RelativeSizeAxes.Both inside a vertical FillFlowContainer resolves to
+            // zero height — the tab area collapses.  Padding reserves the top/bottom bar heights.
             InternalChildren = new Drawable[]
             {
                 new Box
@@ -95,21 +98,13 @@ namespace Garbus.Game.Edit.Screens
                     RelativeSizeAxes = Axes.Both,
                     Colour = new osuTK.Graphics.Color4(28, 28, 36, 255),
                 },
-                new FillFlowContainer
+                createTopBar(),
+                tabContainer = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Direction = FillDirection.Vertical,
-                    Children = new Drawable[]
-                    {
-                        createTopBar(),
-                        tabContainer = new Container
-                        {
-                            RelativeSizeAxes = Axes.X,
-                            Height = 0, // filled by RelativeSizeAxes logic below
-                        },
-                        createBottomBar(),
-                    },
+                    Padding = new MarginPadding { Top = 40, Bottom = 60 },
                 },
+                createBottomBar(),
                 dialogOverlay = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -117,9 +112,6 @@ namespace Garbus.Game.Edit.Screens
             };
 
             // Tab content — stacked, only one visible.
-            tabContainer.RelativeSizeAxes = Axes.Both;
-            tabContainer.Height = 1;
-
             tabContainer.Children = new Drawable[]
             {
                 setupTab = new SetupTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
@@ -252,13 +244,13 @@ namespace Garbus.Game.Edit.Screens
             {
                 if (HasUnsavedChanges)
                     showConfirmThenRun(null);
-                // Actual new-chart flow is Task 8.
+                // else: Task 8 wires the actual new-chart flow.
             }),
             new MenuItem("Open…", () =>
             {
                 if (HasUnsavedChanges)
                     showConfirmThenRun(null);
-                // Actual open flow is Task 8.
+                // else: Task 8 wires the actual open flow.
             }),
             new MenuItem("Save", Save),
             new MenuItem("Save As…", SaveAs),
@@ -285,6 +277,8 @@ namespace Garbus.Game.Edit.Screens
             // Placeholder; content arrives in Task 17/18.
             return new Container
             {
+                Anchor = Anchor.BottomLeft,
+                Origin = Anchor.BottomLeft,
                 RelativeSizeAxes = Axes.X,
                 Height = 60,
                 Child = new Box
@@ -328,15 +322,15 @@ namespace Garbus.Game.Edit.Screens
 
         // --- Dialog helpers ---
 
-        private void showConfirmThenRun(Action? afterDiscard)
+        private void showConfirmThenRun(Action? continuation)
         {
             var dialog = ConfirmDialog.SaveDiscardCancel(
                 save: () =>
                 {
                     Save();
-                    afterDiscard?.Invoke();
+                    continuation?.Invoke();
                 },
-                discard: () => afterDiscard?.Invoke()
+                discard: () => continuation?.Invoke()
             );
 
             dialogOverlay.Child = dialog;
