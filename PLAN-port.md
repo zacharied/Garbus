@@ -110,14 +110,43 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
       offset flow-through, clock advancement and offset-aware seeking (`dotnet test --filter
       TestSceneClockStack`, 5/5 passing)
 
-### Phase 2 — gameplay vertical slice
+### Phase 2 — gameplay vertical slice ✅ (2026-07-09)
 
-- [ ] Vendor HitObject/DrawableHitObject/pooling + judgement primitives + scroll algorithm
-- [ ] Port `Objects/`, `UI/` (Ring/Lane/playfield — mostly framework-only already), `Input/`
-- [ ] Port the gameplay input manager (`KeyBindingContainer` on our action enum, bindings from config)
-- [ ] Minimal game loop screen replacing `Player` (~300 lines): clock → update → results → score
-- [ ] Hardcoded test chart via `BacTestBeatmapGenerator`; full playthrough with hitsounds
-- [ ] Visual test scenes for gameplay in `Garbus.Game.Tests` (replaces `PlayerTestScene`)
+- [x] Vendor HitObject/DrawableHitObject/pooling + judgement primitives + scroll algorithm — all under
+      `Garbus.Game/Gameplay/` (`Objects/`, `Objects/Pooling/`, `Objects/Drawables/`, `Judgements/`,
+      `Scoring/`, `UI/`, `UI/Scrolling/`, `Audio/`). Trims: skinning/combo-colour/mods/cursor stripped
+      from `DrawableHitObject`/`Playfield`; `HitObject.ApplyDefaults()` takes no ControlPointInfo (fixed
+      difficulty 5 until Phase 3 charts carry one); `HitResult` drops `LegacyComboIncrease`/`SliderTailHit`;
+      `HitSampleInfo` reduced to plain sample-store lookups (`Samples/Gameplay/{bank}-{name}`); the
+      skin-entangled `SkinnableSound` is replaced by `Gameplay/Audio/HitSoundContainer` (~90-line
+      `DrawableSample` wrapper, as planned); `GarbusScrollingInfo` replaces the borrowed
+      `ScrollingTestContainer.TestScrollingInfo` (TimeRange 700, constant algorithm)
+- [x] Port `Objects/` (+ `Core/`, `MathUtils` → `Utils/`, `Constants`), `UI/` (Ring/Lane/GarbusPlayfield/
+      Arc/keybeams/radial lines/stick indicator/`GarbusScrollingHitObjectContainer`/hit policy), `Input/`
+      (`AnalogInputManager`) — `Bac*` → `Garbus*` throughout. `JoystickDebugOverlay` deliberately not
+      ported (debug-only, unreferenced); `GarbusSlamCentered`/`GarbusSlamEdge` ported without drawables
+      (editor-only concepts, matching the source repo)
+- [x] Port the gameplay input manager — `Input/GarbusInputManager` is a plain framework
+      `KeyBindingContainer<GarbusAction>` (SimultaneousBindingMode.All) with BAC's gamepad defaults
+      verbatim plus new keyboard defaults (arrows = d-pad, IJKL = face, Q/E = shoulders).
+      **Deviation:** bindings are hardcoded defaults for now; config-backed rebinding lands with the
+      Phase 5 settings screen rather than here
+- [x] Minimal game loop screen replacing `Player` — `Screens/PlayScreen` (~330 lines):
+      `MasterGameplayClockContainer` → `GarbusInputManager` → `GarbusPlayfield`, non-pooled drawable
+      creation mirroring `DrawableBigAssCircleRuleset.CreateDrawableRepresentation`, score/combo/accuracy
+      tallying with rewind-revert support, inline results summary once the chart plays out (real results
+      screen is Phase 5). `GarbusGame` now boots into it
+- [x] Hardcoded test chart via `Charts/GarbusTestChartGenerator` (port of `BacTestBeatmapGenerator`,
+      returns the minimal `Charts/GarbusChart` — grows into the real model in Phase 3); textures
+      (`square`/`paddle`/`arrow`) copied into `Garbus.Resources/Textures`; hitsound is a synthesized
+      `Samples/Gameplay/soft-hitnormal.wav` (osu-resources assets aren't freely reusable); windowed
+      smoke run clean (no log errors, clock starts, controller input reaches `AnalogInputManager`)
+- [x] Visual test scenes — `TestSceneGameplay` (manual-clock playfield: lifetimes, auto-miss on
+      passthrough, short-hold-inherits-head, slider children judged, `ManualInputManager` key-press hit,
+      hitsound lookup) + `TestScenePlayScreen` (game loop smoke). 17/17 headless tests green.
+      Note for future clock-stepping tests: a single manual-clock jump larger than an object's alive
+      window skips entryBecameAlive/Dead entirely and the object is never judged — step in sub-window
+      increments (see `TestSceneGameplay.playThrough`)
 
 ### Phase 3 — chart format
 

@@ -28,17 +28,34 @@ attribution headers kept).
   `Garbus*` when ported.
 - No mods, difficulty calculation, replays, skinning, or realm — deliberately dropped (see plan).
 
-## Current state (Phase 1 complete)
+## Current state (Phase 2 complete)
 
 - `Garbus.Game/Timing/` — the vendored gameplay clock stack: `FramedChartClock` (née
   `FramedBeatmapClock`; realm per-beatmap offset → plain `ChartOffset` property),
   `OffsetCorrectionClock`, `GameplayClockContainer`, `MasterGameplayClockContainer` (takes a `Track`
   directly), `IGameplayClock`. Platform offset constants (Windows +15ms, experimental WASAPI −25ms)
   are osu's verbatim — all other latency-critical audio lives in osu-framework itself and is untouched.
+- `Garbus.Game/Gameplay/` — the vendored osu.Game gameplay infrastructure: `HitObject`,
+  `DrawableHitObject` (skinning stripped; hit sounds via `Gameplay/Audio/HitSoundContainer`, the thin
+  `DrawableSample` wrapper replacing `SkinnableSound`), lifetime entries + pooling, `Playfield`,
+  `HitObjectContainer`, judgements/`HitResult`/hit windows, constant scroll algorithm +
+  `GarbusScrollingInfo`.
+- Game domain (ported from BAC, `Bac*` → `Garbus*`): `Objects/` (+drawables), `UI/` (`GarbusPlayfield`
+  → `Ring` → `Lane`s, `GarbusScrollingHitObjectContainer` doing the polar time→radius mapping),
+  `Input/` (`GarbusAction` enum, `GarbusInputManager` KeyBindingContainer — gamepad + keyboard
+  defaults, config rebinding deferred to Phase 5 — and `AnalogInputManager` for stick catchers),
+  `Core/`, `Charts/` (`GarbusChart` + `GarbusTestChartGenerator`).
+- `Screens/PlayScreen` — the minimal game loop replacing osu's `Player`: clock stack → input →
+  playfield, score/combo/accuracy with rewind-revert, inline results overlay. `GarbusGame` boots into
+  it; space pauses, R restarts.
 - `Garbus.Game/Configuration/` — `GarbusConfigManager` (`IniConfigManager`, `garbus.ini`) with the
   global `AudioOffset` setting; cached in `GarbusGameBase`.
-- `MainScreen` — walking skeleton: auto-plays `Garbus.Resources/Tracks/sample-track.mp3` through the
-  stack with live time/offset readouts (space play/pause, R reset, ←/→ seek, ↑/↓ user offset).
-- `TestSceneClockStack` — headless verification of platform/user offsets, clock advance, seeking.
+- `MainScreen` — the Phase 1 clock-stack skeleton, still reachable via the test browser.
+- Tests (17 headless, all green): `TestSceneClockStack`, `TestSceneGameplay` (manual-clock lifetimes,
+  auto-miss, hold/slider judgement, key-press hit via `ManualInputManager`), `TestScenePlayScreen`.
+  Gotcha: manual-clock jumps larger than an object's alive window skip judgement entirely — step in
+  sub-window increments (`TestSceneGameplay.playThrough`).
+- Resources: `Textures/` (square, paddle, arrow from BAC), `Samples/Gameplay/soft-hitnormal.wav`
+  (synthesized — osu-resources assets aren't freely reusable), `Tracks/sample-track.mp3`.
 
-Next: Phase 2 (gameplay vertical slice) per `PLAN-port.md`.
+Next: Phase 3 (native chart format) per `PLAN-port.md`.

@@ -1,4 +1,5 @@
-﻿using osu.Framework.Allocation;
+﻿using Garbus.Game.Screens;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Screens;
 
@@ -20,7 +21,9 @@ namespace Garbus.Game
         {
             base.LoadComplete();
 
-            screenStack.Push(new MainScreen());
+            // Phase 2: straight into the gameplay vertical slice. MainScreen (the Phase 1 clock-stack
+            // skeleton) remains reachable through the test browser.
+            screenStack.Push(new PlayScreen());
         }
     }
 }
