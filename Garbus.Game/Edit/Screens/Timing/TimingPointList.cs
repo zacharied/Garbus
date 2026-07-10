@@ -4,7 +4,7 @@
 // Adapted for Garbus: stripped to timing-only (one control point type); rebuilt UI on Basic* widgets;
 // no OverlayColourProvider; plain flow instead of VirtualisedListContainer (chart sizes don't need
 // virtualisation) with osu's ControlPointTable layout (header row, fixed time column, attribute
-// chips); object-shifting on timing change does NOT apply.
+// chips); object-shifting on timing changes lives in TimingSectionAdjustments (applied by the settings panel, not the list).
 
 using System;
 using System.Linq;

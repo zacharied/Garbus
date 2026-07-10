@@ -8,8 +8,8 @@
 //   5. 4 simulated taps 500ms apart → BPM 120 (tap handler driven directly).
 //
 // TapButton.RecordTap(double timestamp) is the injectable test hook — no UI interaction required.
-// All timing edits are verified not to move hit objects (none exist in these tests, so the
-// ControlPointInfo mutation is the only observable effect).
+// Timing edits move the objects in the affected timing section when "Move objects with timing
+// changes" is enabled (the default) — see the section-adjustment tests below.
 
 using System;
 using System.Linq;
@@ -18,6 +18,7 @@ using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Timing;
+using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Graphics;
@@ -481,6 +482,104 @@ namespace Garbus.Game.Tests.Editor
         }
 
         private TimingPointList timingList() => editor.ChildrenOfType<TimingPointList>().First();
+
+        // ------------------------------------------------------------------
+        // 13. Timing edits move objects in the affected section
+        // ------------------------------------------------------------------
+
+        private void setupEditorWithObjects() => Schedule(() =>
+        {
+            var chart = new GarbusChart();
+            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo.Add(4000, new TimingControlPoint { BeatLength = 400 });
+            chart.HitObjects.Add(new CardinalNote { StartTime = 1000, AngleDeg = 0 });
+            chart.HitObjects.Add(new CardinalNote { StartTime = 5000, AngleDeg = 90 });
+
+            var chartFile = new ChartFile(chart);
+            editor = new GarbusEditor(chartFile);
+            Child = input = new osu.Framework.Testing.Input.ManualInputManager
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both },
+            };
+        });
+
+        private TimingPointSettings settings() => editor.ChildrenOfType<TimingPointSettings>().First();
+
+        [Test]
+        public void TestOffsetMoveShiftsObjectsInSection()
+        {
+            setupEditorWithObjects();
+            switchToTimingTab();
+
+            GarbusChartChangeHandler changeHandler = null!;
+            AddUntilStep("get change handler", () =>
+            {
+                if (!editor.IsLoaded) return false;
+                changeHandler = editor.ChangeHandlerForTests;
+                return true;
+            });
+
+            AddUntilStep("rows loaded", () =>
+                editor.ChildrenOfType<TimingPointRow>().Count() == 2);
+            AddStep("select second point", () =>
+                editor.ChildrenOfType<TimingPointRow>().ElementAt(1).TriggerClick());
+            AddUntilStep("second selected", () =>
+                timingList().SelectedGroup.Value?.Time == 4000);
+
+            AddStep("move group to 4100 via seam", () => settings().SetOffsetAndCommit(4100));
+
+            AddAssert("note in section shifted to 5100", () =>
+                editor.EditorChart.HitObjects.Any(h => Math.Abs(h.StartTime - 5100) < 0.01));
+            AddAssert("note in earlier section unmoved", () =>
+                editor.EditorChart.HitObjects.Any(h => Math.Abs(h.StartTime - 1000) < 0.01));
+
+            AddStep("undo", () => changeHandler.Undo());
+            AddUntilStep("single undo restores point and note", () =>
+                editor.EditorChart.ControlPointInfo.GroupAt(4000) != null &&
+                editor.EditorChart.HitObjects.Any(h => Math.Abs(h.StartTime - 5000) < 0.01));
+        }
+
+        [Test]
+        public void TestBpmChangeRescalesObjectsInSection()
+        {
+            setupEditorWithObjects();
+            switchToTimingTab();
+
+            AddUntilStep("rows loaded", () =>
+                editor.ChildrenOfType<TimingPointRow>().Count() == 2);
+            AddUntilStep("first point auto-selected", () =>
+                timingList().SelectedGroup.Value?.Time == 0);
+
+            // First point: BeatLength 500 → 250 (BPM 120 → 240). The note at 1000 sits on beat 2,
+            // so it must land on 2 * 250 = 500. The note at 5000 is in the next section: unmoved.
+            AddStep("set BPM to 240 via seam", () => settings().SetBpmAndCommit(240));
+
+            AddAssert("note rescaled to 500", () =>
+                editor.EditorChart.HitObjects.Any(h => Math.Abs(h.StartTime - 500) < 0.01));
+            AddAssert("note in next section unmoved", () =>
+                editor.EditorChart.HitObjects.Any(h => Math.Abs(h.StartTime - 5000) < 0.01));
+        }
+
+        [Test]
+        public void TestAdjustmentToggleOffLeavesObjectsAlone()
+        {
+            setupEditorWithObjects();
+            switchToTimingTab();
+
+            AddUntilStep("first point auto-selected", () =>
+                timingList().SelectedGroup.Value?.Time == 0);
+
+            AddStep("disable move-objects toggle", () =>
+                settings().AdjustObjectsOnTimingChange.Value = false);
+
+            AddStep("set BPM to 240 via seam", () => settings().SetBpmAndCommit(240));
+
+            AddAssert("BeatLength changed", () =>
+                Math.Abs(editor.EditorChart.ControlPointInfo.TimingPoints.First().BeatLength - 250) < 0.01);
+            AddAssert("objects unmoved", () =>
+                editor.EditorChart.HitObjects.Any(h => Math.Abs(h.StartTime - 1000) < 0.01));
+        }
 
         // ------------------------------------------------------------------
         // 11. Offset / BPM nudge steppers

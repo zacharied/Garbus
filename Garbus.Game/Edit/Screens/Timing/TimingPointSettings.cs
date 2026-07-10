@@ -1,9 +1,9 @@
 // Modeled on osu.Game (https://github.com/ppy/osu) — osu.Game/Screens/Edit/Timing/TimingSection.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: rebuilt UI on Basic* widgets; no osu.Game.Overlays; no object-shifting on
-// timing change; offset and BPM text boxes + nudge buttons + time-signature numerator textbox
-// (LabelledTimeSignature equivalent).
+// Adapted for Garbus: rebuilt UI on Basic* widgets; no osu.Game.Overlays; object-shifting on timing
+// changes via TimingSectionAdjustments behind a session toggle; offset and BPM text boxes + repeat
+// nudge buttons + time-signature numerator textbox + omit-first-barline + use-current-time.
 
 using System;
 using System.Globalization;
@@ -37,6 +37,13 @@ namespace Garbus.Game.Edit.Screens.Timing
         /// <summary>Bind this to TimingPointList.SelectedGroup.</summary>
         public readonly Bindable<ControlPointGroup?> SelectedGroup = new Bindable<ControlPointGroup?>();
 
+        /// <summary>
+        /// Whether timing edits shift/rescale the objects in the affected timing section
+        /// (osu's "adjust existing objects on timing changes"). Session-scoped, default on.
+        /// </summary>
+        public readonly BindableBool AdjustObjectsOnTimingChange = new BindableBool(true);
+
+        private BasicCheckbox moveObjectsCheckbox = null!;
         private BasicTextBox offsetTextBox = null!;
         private BasicTextBox bpmTextBox = null!;
         private BasicTextBox signatureNumeratorBox = null!;
@@ -59,6 +66,12 @@ namespace Garbus.Game.Edit.Screens.Timing
                 Spacing = new Vector2(0, 8),
                 Children = new Drawable[]
                 {
+                    moveObjectsCheckbox = new BasicCheckbox
+                    {
+                        LabelText = "Move objects with timing changes",
+                        Current = { BindTarget = AdjustObjectsOnTimingChange },
+                    },
+
                     // --- Offset ---
                     new SpriteText { Text = "Offset (ms)" },
                     new GridContainer
@@ -217,24 +230,11 @@ namespace Garbus.Game.Edit.Screens.Timing
                 return;
             }
 
-            var currentItems = SelectedGroup.Value.ControlPoints.ToArray();
             double oldTime = SelectedGroup.Value.Time;
-
             if (Math.Abs(newOffset - oldTime) < 0.01) return;
 
-            changeHandler.BeginChange();
-
-            editorChart.ControlPointInfo.RemoveGroup(SelectedGroup.Value);
-
-            foreach (var cp in currentItems)
-                editorChart.ControlPointInfo.Add(newOffset, cp);
-
-            editorChart.SaveState();
-            changeHandler.EndChange();
-
-            // Re-select the moved group.
-            var movedGroup = editorChart.ControlPointInfo.GroupAt(newOffset);
-            SelectedGroup.Value = movedGroup;
+            SelectedGroup.Value = TimingPointChanges.MoveGroup(
+                editorChart, changeHandler, SelectedGroup.Value, newOffset, AdjustObjectsOnTimingChange.Value);
 
             if (!editorClock.IsRunning)
                 editorClock.Seek(newOffset);
@@ -254,12 +254,7 @@ namespace Garbus.Game.Edit.Screens.Timing
                 return;
             }
 
-            double newBeatLength = 60000.0 / bpm;
-
-            changeHandler.BeginChange();
-            tp.BeatLength = newBeatLength;
-            editorChart.SaveState();
-            changeHandler.EndChange();
+            TimingPointChanges.ChangeBpm(editorChart, changeHandler, tp, bpm, AdjustObjectsOnTimingChange.Value);
         }
 
         private void commitSignature()
@@ -307,6 +302,16 @@ namespace Garbus.Game.Edit.Screens.Timing
             if (SelectedGroup.Value == null) return;
 
             offsetTextBox.Text = editorClock.CurrentTime.ToString("0", CultureInfo.InvariantCulture);
+            commitOffset();
+        }
+
+        /// <summary>
+        /// Test seam: sets the offset textbox text and immediately commits it.
+        /// Equivalent to the user typing in the offset box and pressing Enter.
+        /// </summary>
+        public void SetOffsetAndCommit(double offset)
+        {
+            offsetTextBox.Text = offset.ToString("0.##", CultureInfo.InvariantCulture);
             commitOffset();
         }
 
