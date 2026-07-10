@@ -104,8 +104,10 @@ namespace Garbus.Game.Screens
         /// <param name="chart">A deep-cloned chart (no shared references with the editor).</param>
         /// <param name="track">A fresh track instance (never the editor's own track).</param>
         /// <param name="startTime">
-        /// Gameplay start time in milliseconds.
-        /// Typically <c>EditorClock.CurrentTime − 1500</c>, clamped to ≥ 0.
+        /// The intended gameplay start time in milliseconds — the editor playhead clamped to ≥ 0.
+        /// The silent lead-in count-in is applied inside <see cref="MasterGameplayClockContainer"/>
+        /// (the clock actually starts <c>LEAD_IN_TIME</c> before this), so no pre-roll offset is
+        /// baked in here.
         /// </param>
         public PlayScreen(GarbusChart chart, Track track, double startTime = 0)
         {

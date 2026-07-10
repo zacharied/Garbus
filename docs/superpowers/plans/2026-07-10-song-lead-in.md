@@ -262,8 +262,14 @@ Expected: on entering the playfield the screen is empty and silent for ~3 second
 
 - [ ] **Step 3: Manual smoke of the editor Test path**
 
-In the editor, seek the playhead to a non-zero position with objects nearby, then press F5.
-Expected: a ~3-second silent count-in before the playhead position, then playback from the playhead; pressing Escape returns to the editor at (approximately) where playback reached.
+Test two playhead positions, which exercise the two branches of the clock's seek path:
+- **Playhead < `LEAD_IN_TIME` (e.g. near 0):** the clock start is negative, so a truly silent ~3 s
+  count-in precedes playback (decoupled negative-time path, `lastSeekFailed` true).
+- **Playhead ≥ `LEAD_IN_TIME` (e.g. 5000 ms):** the clock start is a positive mid-song point
+  (`playhead − LEAD_IN_TIME`), so audio plays *immediately* from ~3 s before the playhead — the
+  pre-roll exists but is NOT silent (coupled path, `lastSeekFailed` false).
+
+In both cases pressing Escape returns to the editor at (approximately) where playback reached.
 
 - [ ] **Step 4: Confirmation note**
 
