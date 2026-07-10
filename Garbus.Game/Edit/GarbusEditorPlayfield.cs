@@ -60,6 +60,7 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
             new AngleGrid { RelativeSizeAxes = Axes.Both },
             shoulderStrip(LEFT_SHOULDER_ANGLE_DEG),
             shoulderStrip(RIGHT_SHOULDER_ANGLE_DEG),
+            new EditorBarLineDisplay(),
             // masked to the timeline bounds so slider wrap copies (and anything else) don't paint outside
             // it; the ghost bands lie within the bounds, so their clones still show.
             new Container { RelativeSizeAxes = Axes.Both, Masking = true, Child = HitObjectContainer },
