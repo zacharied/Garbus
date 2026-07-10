@@ -125,6 +125,19 @@ public class ChartFile : IDisposable
     }
 
     /// <summary>
+    /// Opens the raw encoded-audio file for the chart's <see cref="ChartMetadata.AudioFile"/>, or
+    /// null when the chart is unsaved, has no audio file set, or the file is absent from disk.
+    /// The caller owns the returned stream and must dispose it (a <c>Waveform</c> takes ownership).
+    /// </summary>
+    public Stream? GetAudioStream()
+    {
+        if (Directory == null || string.IsNullOrEmpty(Chart.Metadata.AudioFile))
+            return null;
+
+        return new StorageBackedResourceStore(new NativeStorage(Directory)).GetStream(Chart.Metadata.AudioFile);
+    }
+
+    /// <summary>
     /// Disposes the cached track store so the AudioManager can release it promptly.
     /// The underlying <see cref="TrackStore"/> is an <see cref="AudioCollectionManager{T}"/> child;
     /// disposing it sets <c>IsAlive = false</c> and the parent manager removes it on the next update.
