@@ -15,6 +15,7 @@ using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
@@ -154,23 +155,31 @@ namespace Garbus.Game.Edit.Screens
             // (ReceivePositionalInputAt => true), so the top/bottom bars must come later in the child
             // list to outrank it in the input queue — and so menu dropdowns (children of the top bar
             // subtree) draw in front of the tab content.
-            InternalChildren = new Drawable[]
+            //
+            // Everything lives inside a BasicContextMenuContainer (osu's Editor wraps its whole screen in
+            // OsuContextMenuContainer the same way): the compose blueprint stack's IHasContextMenu targets
+            // only produce a right-click menu when a ContextMenuContainer exists above them in the tree.
+            InternalChild = new BasicContextMenuContainer
             {
-                new Box
+                RelativeSizeAxes = Axes.Both,
+                Children = new Drawable[]
                 {
-                    RelativeSizeAxes = Axes.Both,
-                    Colour = new osuTK.Graphics.Color4(28, 28, 36, 255),
-                },
-                tabContainer = new Container
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Top = 40, Bottom = 60 },
-                },
-                createTopBar(),
-                createBottomBar(),
-                dialogOverlay = new Container
-                {
-                    RelativeSizeAxes = Axes.Both,
+                    new Box
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = new osuTK.Graphics.Color4(28, 28, 36, 255),
+                    },
+                    tabContainer = new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Padding = new MarginPadding { Top = 40, Bottom = 60 },
+                    },
+                    createTopBar(),
+                    createBottomBar(),
+                    dialogOverlay = new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                    },
                 },
             };
 

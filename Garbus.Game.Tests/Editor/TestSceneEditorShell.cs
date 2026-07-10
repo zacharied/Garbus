@@ -5,6 +5,7 @@ using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Compose;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Verify;
 using Garbus.Game.Objects;
@@ -40,6 +41,7 @@ namespace Garbus.Game.Tests.Editor
             Child = input = new ManualInputManager
             {
                 RelativeSizeAxes = Axes.Both,
+                UseParentInput = false,
                 Child = new ScreenStack(editor = new GarbusEditor(chartFile)) { RelativeSizeAxes = Axes.Both },
             };
         });
@@ -211,6 +213,61 @@ namespace Garbus.Game.Tests.Editor
             // IssueTable inside should also be drawn.
             AddAssert("issue table visible", () => editor.ChildrenOfType<IssueTable>().Single().DrawHeight > 0);
         }
+
+        /// <summary>
+        /// Regression guard: right-clicking a selected, hovered hit-object blueprint in the compose
+        /// view must open its context menu (Delete, plus per-object items). This only works if the
+        /// editor hosts a <see cref="osu.Framework.Graphics.Cursor.ContextMenuContainer"/> — osu's
+        /// Editor wraps its whole screen in one; Garbus was missing it, so right-click did nothing.
+        /// </summary>
+        [Test]
+        public void TestRightClickSelectedNoteOpensContextMenu()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+
+            AddStep("add note + park clock ahead of it", () =>
+            {
+                editor.EditorChart.Add(new CardinalNote { StartTime = 4000, AngleDeg = 270 });
+                var clock = editor.ChildrenOfType<EditorClock>().First();
+                clock.Stop();
+                clock.Seek(2000);
+            });
+
+            AddUntilStep("drawable exists", () => composer().HitObjects.Any());
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            // The note sits at the judgement line (composer bottom) when the playhead is on it; nudge the
+            // clock until it sits in a safe inner band so the mouse can land squarely on the blueprint.
+            AddUntilStep("note in hoverable zone", () =>
+            {
+                var clock = editor.ChildrenOfType<EditorClock>().First();
+                var q = composer().ScreenSpaceDrawQuad;
+                float y = composer().HitObjects.Single().ScreenSpaceDrawQuad.Centre.Y;
+                if (y > q.BottomLeft.Y - 80) { clock.Seek(clock.CurrentTime - 100); return false; }
+                if (y < q.TopLeft.Y + 80) { clock.Seek(clock.CurrentTime + 100); return false; }
+                return true;
+            });
+
+            AddUntilStep("hover blueprint", () =>
+            {
+                input.MoveMouseTo(composer().HitObjects.Single().ScreenSpaceDrawQuad.Centre);
+                return composer().ChildrenOfType<HitObjectSelectionBlueprint>().Any(b => b.IsHovered);
+            });
+            AddStep("click to select", () => input.Click(MouseButton.Left));
+            AddAssert("note selected", () => editor.EditorChart.SelectedHitObjects.Count == 1);
+
+            AddStep("right click the selected note", () =>
+            {
+                input.MoveMouseTo(composer().HitObjects.Single().ScreenSpaceDrawQuad.Centre);
+                input.Click(MouseButton.Right);
+            });
+
+            AddAssert("context menu shows Delete", () =>
+                editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                      .Any(i => i.Item.Text.Value.ToString() == "Delete" && i.IsPresent));
+        }
+
+        private GarbusHitObjectComposer composer() => editor.ChildrenOfType<GarbusHitObjectComposer>().Single();
 
         [Test]
         public void TestDirtyTracking()
