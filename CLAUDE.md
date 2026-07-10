@@ -7,6 +7,8 @@ judgement at the edge timed to the music.
 
 This is an experimental project and backwards compatibility will NEVER matter until this line is removed. Do not add historical context to documentation, do not add compatibility layers if a schema changes, and do not increment version numbers on anything. There are no garbus charts in existence yet so compatibility does not matter.
 
+This repo's integration branch is master.
+
 **Read `PLAN-port.md` first** — it is the canonical port plan and progress tracker: locked-in decisions,
 the osu.Game→osu-framework dependency-split findings, the vendoring manifest, and per-phase checklists.
 Update it as work lands. The BAC repo holds the gameplay/editor source being ported and the reference

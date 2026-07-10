@@ -1,4 +1,4 @@
-*The contents of this document differ from the present implementation.*
+*The contents of this document differ from the current implementation.*
 
 # Judgement specification
 

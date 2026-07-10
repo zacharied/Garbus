@@ -9,11 +9,7 @@ WavGen/bin/
 WavGen/obj/
 
 # Rider caches (keep committed run configurations)
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/usage.statistics.xml
-.idea/**/shelf/
-.idea/**/contentModel.xml
+/.idea/*
 
 # test/host output
 TestResults/
