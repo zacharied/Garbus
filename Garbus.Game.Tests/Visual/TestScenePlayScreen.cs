@@ -4,6 +4,7 @@
 
 using System.Linq;
 using Garbus.Game.Screens;
+using Garbus.Game.Timing;
 using Garbus.Game.UI;
 using NUnit.Framework;
 using osu.Framework.Graphics;
@@ -37,6 +38,19 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("playfield created", () => this.ChildrenOfType<GarbusPlayfield>().Any());
             AddUntilStep("objects become alive", () =>
                 this.ChildrenOfType<GarbusPlayfield>().Single().AllHitObjects.Any(d => d.IsAlive));
+        }
+
+        [Test]
+        public void TestLeadInBeginsBeforeGameplayStart()
+        {
+            AddUntilStep("clock created", () => this.ChildrenOfType<MasterGameplayClockContainer>().Any());
+
+            AddAssert("gameplay start time is zero (normal play)", () =>
+                this.ChildrenOfType<MasterGameplayClockContainer>().Single().GameplayStartTime == 0);
+
+            AddAssert("clock starts one lead-in before gameplay", () =>
+                this.ChildrenOfType<MasterGameplayClockContainer>().Single().StartTime
+                    == -MasterGameplayClockContainer.LEAD_IN_TIME);
         }
     }
 }

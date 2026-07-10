@@ -1,8 +1,9 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Screens/Play/MasterGameplayClockContainer.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: takes a Track directly instead of a WorkingBeatmap (no storyboard/lead-in
-// start-time inference yet); MusicController, mod adjustments and IBeatSyncProvider removed.
+// Adapted for Garbus: takes a Track directly instead of a WorkingBeatmap; a fixed LEAD_IN_TIME
+// count-in replaces osu's storyboard/AudioLeadIn start-time inference (Garbus has neither);
+// MusicController, mod adjustments and IBeatSyncProvider removed.
 
 using System;
 using osu.Framework.Audio;
@@ -25,6 +26,14 @@ namespace Garbus.Game.Timing
         /// Duration before gameplay start time required before skip button displays.
         /// </summary>
         public const double MINIMUM_SKIP_TIME = 1000;
+
+        /// <summary>
+        /// Silent count-in before gameplay begins. The clock starts this far before
+        /// <see cref="GameplayClockContainer.GameplayStartTime"/> and runs through the
+        /// negative time on the decoupled clock's realtime reference, coupling to the
+        /// audio track exactly at the gameplay start.
+        /// </summary>
+        public const double LEAD_IN_TIME = 3000;
 
         public readonly BindableNumber<double> UserPlaybackRate = new BindableDouble(1)
         {
@@ -61,8 +70,11 @@ namespace Garbus.Game.Timing
 
             GameplayStartTime = gameplayStartTime;
 
-            // Unlike osu, no storyboard / audio lead-in inference (yet) — just start at or before zero.
-            StartTime = Math.Min(0, gameplayStartTime);
+            // Begin a fixed lead-in before the intended gameplay start. The decoupled clock runs
+            // through the negative time (screen empty, audio silent) and couples to the track exactly
+            // at GameplayStartTime. Deliberately unconditional (no Math.Min(0, …)) so a positive
+            // mid-song start — the editor Test path — is honoured rather than clamped to 0.
+            StartTime = gameplayStartTime - LEAD_IN_TIME;
         }
 
         public override void Seek(double time)
