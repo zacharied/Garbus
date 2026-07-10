@@ -64,6 +64,7 @@ namespace Garbus.Game.Edit.Screens.Timing
         private void load()
         {
             RelativeSizeAxes = Axes.X;
+            AutoSizeAxes = Axes.Y;
             Padding = new MarginPadding(12);
 
             InternalChild = new FillFlowContainer

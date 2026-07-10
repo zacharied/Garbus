@@ -50,10 +50,10 @@ namespace Garbus.Game.Edit.Screens
                             Direction = FillDirection.Vertical,
                             Children = new Drawable[]
                             {
+                                // Auto-sizes vertically to its content; the tap control flows below it.
                                 timingPointSettings = new TimingPointSettings
                                 {
                                     RelativeSizeAxes = Axes.X,
-                                    Height = 240,
                                 },
                                 tapTimingControl = new TapTimingControl
                                 {

@@ -806,5 +806,30 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("BPM textbox refreshed to 121", () =>
                 settings().BpmTextForTests == "121");
         }
+
+        // ------------------------------------------------------------------
+        // 16. Settings panel controls are not overlapped by the tap control
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestSettingsControlsNotOverlappedByTapControl()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            AddUntilStep("settings and tap control loaded", () =>
+                editor.ChildrenOfType<TimingPointSettings>().Any() &&
+                editor.ChildrenOfType<TapTimingControl>().Any());
+
+            // The settings panel must be tall enough for ALL its controls — the tap control
+            // (drawn after it in the flow) must start below the last of them.
+            AddUntilStep("omit checkbox sits above the tap control", () =>
+            {
+                var checkbox = editor.ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicCheckbox>()
+                    .First(c => c.LabelText.ToString() == "Omit first barline");
+                var tap = editor.ChildrenOfType<TapTimingControl>().First();
+                return checkbox.ScreenSpaceDrawQuad.AABBFloat.Bottom <= tap.ScreenSpaceDrawQuad.AABBFloat.Top + 1;
+            });
+        }
     }
 }
