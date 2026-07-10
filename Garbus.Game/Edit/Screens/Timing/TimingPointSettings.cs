@@ -2,7 +2,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: rebuilt UI on Basic* widgets; no osu.Game.Overlays; no object-shifting on
-// timing change; offset and BPM text boxes + nudge buttons + time-signature dropdown.
+// timing change; offset and BPM text boxes + nudge buttons + time-signature numerator textbox
+// (LabelledTimeSignature equivalent).
 
 using System;
 using System.Globalization;
@@ -38,7 +39,7 @@ namespace Garbus.Game.Edit.Screens.Timing
 
         private BasicTextBox offsetTextBox = null!;
         private BasicTextBox bpmTextBox = null!;
-        private BasicDropdown<int> signatureDropdown = null!;
+        private BasicTextBox signatureNumeratorBox = null!;
 
         private bool updatingFromModel;
 
@@ -127,11 +128,29 @@ namespace Garbus.Game.Edit.Screens.Timing
                     },
 
                     // --- Time Signature ---
-                    new SpriteText { Text = "Time Signature (x/4)" },
-                    signatureDropdown = new BasicDropdown<int>
+                    new SpriteText { Text = "Time Signature" },
+                    new FillFlowContainer
                     {
                         RelativeSizeAxes = Axes.X,
-                        Items = new[] { 1, 2, 3, 4, 5, 6, 7 },
+                        Height = 30,
+                        Direction = FillDirection.Horizontal,
+                        Spacing = new Vector2(5, 0),
+                        Children = new Drawable[]
+                        {
+                            signatureNumeratorBox = new BasicTextBox
+                            {
+                                Width = 60,
+                                RelativeSizeAxes = Axes.Y,
+                                PlaceholderText = "4",
+                                CommitOnFocusLost = true,
+                            },
+                            new SpriteText
+                            {
+                                Text = "/ 4",
+                                Anchor = Anchor.CentreLeft,
+                                Origin = Anchor.CentreLeft,
+                            },
+                        },
                     },
                 },
             };
@@ -145,11 +164,7 @@ namespace Garbus.Game.Edit.Screens.Timing
 
             offsetTextBox.OnCommit += (_, _) => commitOffset();
             bpmTextBox.OnCommit += (_, _) => commitBpm();
-            signatureDropdown.Current.BindValueChanged(e =>
-            {
-                if (!updatingFromModel)
-                    commitSignature(e.NewValue);
-            });
+            signatureNumeratorBox.OnCommit += (_, _) => commitSignature();
         }
 
         private void updateFromModel()
@@ -159,7 +174,7 @@ namespace Garbus.Game.Edit.Screens.Timing
 
             offsetTextBox.ReadOnly = !hasPoint;
             bpmTextBox.ReadOnly = !hasPoint;
-            signatureDropdown.Current.Disabled = !hasPoint;
+            signatureNumeratorBox.ReadOnly = !hasPoint;
 
             if (!hasPoint) return;
 
@@ -167,7 +182,7 @@ namespace Garbus.Game.Edit.Screens.Timing
 
             offsetTextBox.Text = SelectedGroup!.Value!.Time.ToString("0", CultureInfo.InvariantCulture);
             bpmTextBox.Text = (60000.0 / tp!.BeatLength).ToString("0.##", CultureInfo.InvariantCulture);
-            signatureDropdown.Current.Value = tp.TimeSignature.Numerator;
+            signatureNumeratorBox.Text = tp.TimeSignature.Numerator.ToString(CultureInfo.InvariantCulture);
 
             updatingFromModel = false;
         }
@@ -227,10 +242,21 @@ namespace Garbus.Game.Edit.Screens.Timing
             changeHandler.EndChange();
         }
 
-        private void commitSignature(int numerator)
+        private void commitSignature()
         {
+            if (updatingFromModel) return;
+
             var tp = currentTimingPoint;
             if (tp == null) return;
+
+            if (!int.TryParse(signatureNumeratorBox.Text, out int numerator) || numerator <= 0)
+            {
+                // Restore the textbox to the current valid value.
+                updateFromModel();
+                return;
+            }
+
+            if (numerator == tp.TimeSignature.Numerator) return;
 
             changeHandler.BeginChange();
             tp.TimeSignature = new TimeSignature(numerator);
@@ -264,6 +290,16 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             bpmTextBox.Text = bpm.ToString("0.##", CultureInfo.InvariantCulture);
             commitBpm();
+        }
+
+        /// <summary>
+        /// Test seam: sets the time-signature numerator textbox text and immediately commits it.
+        /// Equivalent to the user typing in the numerator box and pressing Enter.
+        /// </summary>
+        public void SetSignatureAndCommit(string text)
+        {
+            signatureNumeratorBox.Text = text;
+            commitSignature();
         }
 
         private TimingControlPoint? currentTimingPoint =>

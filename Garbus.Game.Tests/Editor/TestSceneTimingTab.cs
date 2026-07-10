@@ -511,5 +511,37 @@ namespace Garbus.Game.Tests.Editor
                 editor.ChildrenOfType<TimingPointRow.AttributeChip>()
                       .Any(c => c.Text.ToString() == "180 BPM"));
         }
+
+        // ------------------------------------------------------------------
+        // 9. Time signature numerator textbox
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestTimeSignatureTextboxCommits()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            AddUntilStep("settings panel loaded", () =>
+                editor.ChildrenOfType<TimingPointSettings>().Any());
+
+            AddStep("set signature to 7", () =>
+                editor.ChildrenOfType<TimingPointSettings>().First().SetSignatureAndCommit("7"));
+
+            AddAssert("numerator is 7", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.First().TimeSignature.Numerator == 7);
+
+            AddStep("try invalid signature 0", () =>
+                editor.ChildrenOfType<TimingPointSettings>().First().SetSignatureAndCommit("0"));
+
+            AddAssert("numerator still 7", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.First().TimeSignature.Numerator == 7);
+
+            AddStep("try non-numeric signature", () =>
+                editor.ChildrenOfType<TimingPointSettings>().First().SetSignatureAndCommit("abc"));
+
+            AddAssert("numerator still 7 after garbage", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.First().TimeSignature.Numerator == 7);
+        }
     }
 }
