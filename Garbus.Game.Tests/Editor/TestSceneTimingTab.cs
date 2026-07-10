@@ -17,6 +17,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Screens;
+using Garbus.Game.Edit.Screens.Timeline;
 using Garbus.Game.Edit.Screens.Timing;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
@@ -829,6 +830,28 @@ namespace Garbus.Game.Tests.Editor
                     .First(c => c.LabelText.ToString() == "Omit first barline");
                 var tap = editor.ChildrenOfType<TapTimingControl>().First();
                 return checkbox.ScreenSpaceDrawQuad.AABBFloat.Bottom <= tap.ScreenSpaceDrawQuad.AABBFloat.Top + 1;
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // 17. Timeline strip shown at the top of the Timing tab
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestTimingTabShowsTimelineStrip()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            AddUntilStep("timeline strip present in timing tab", () =>
+                editor.ChildrenOfType<TimingTab>().First().ChildrenOfType<TimelineStrip>().Any());
+
+            // The tab content must start below the strip — the strip must not draw over the point list.
+            AddUntilStep("point list sits below the strip", () =>
+            {
+                var strip = editor.ChildrenOfType<TimingTab>().First().ChildrenOfType<TimelineStrip>().First();
+                var list = editor.ChildrenOfType<TimingPointList>().First();
+                return list.ScreenSpaceDrawQuad.AABBFloat.Top >= strip.ScreenSpaceDrawQuad.AABBFloat.Bottom - 1;
             });
         }
     }
