@@ -131,8 +131,18 @@ public class ChartFile : IDisposable
     /// </summary>
     public void Dispose()
     {
+        if (IsDisposed)
+            return;
+
         (trackStore as IDisposable)?.Dispose();
         trackStore = null;
         trackStoreDirectory = null;
+        IsDisposed = true;
     }
+
+    /// <summary>
+    /// Whether <see cref="Dispose"/> has been called. Exposed as a test seam so that editor
+    /// teardown tests can assert that the ChartFile is cleaned up when the editor exits.
+    /// </summary>
+    public bool IsDisposed { get; private set; }
 }

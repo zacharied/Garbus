@@ -368,14 +368,14 @@ namespace Garbus.Game.Edit.Screens
             var showTicks = config.GetBindable<bool>(GarbusSetting.EditorShowTicks);
             var showTimingChanges = config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges);
             var autoSeek = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
-            var contractSidebars = config.GetBindable<bool>(GarbusSetting.EditorContractSidebars);
+
+            // EditorContractSidebars config exists; menu item returns when ExpandingToolboxContainer wires it (Phase 5).
 
             return new[]
             {
                 new MenuItem("Show Beat Ticks", () => showTicks.Value = !showTicks.Value),
                 new MenuItem("Show Timing Changes", () => showTimingChanges.Value = !showTimingChanges.Value),
                 new MenuItem("Auto-Seek on Placement", () => autoSeek.Value = !autoSeek.Value),
-                new MenuItem("Contract Sidebars", () => contractSidebars.Value = !contractSidebars.Value),
             };
         }
 
@@ -672,6 +672,17 @@ namespace Garbus.Game.Edit.Screens
             var focusManager = GetContainingFocusManager();
             var inputManager = focusManager as osu.Framework.Input.InputManager;
             return inputManager?.FocusedDrawable is osu.Framework.Graphics.UserInterface.TextBox;
+        }
+
+        // --- Disposal ---
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            // ChartFile owns a cached ITrackStore; the framework won't auto-dispose it since it's
+            // a plain DI-cached object (not an AddInternal child).  Dispose here so every editor
+            // pushed onto the ScreenStack releases its track store when popped and disposed.
+            ChartFile.Dispose();
         }
 
         // --- Dialog helpers ---

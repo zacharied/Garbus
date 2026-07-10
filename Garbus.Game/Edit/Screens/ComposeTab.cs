@@ -79,14 +79,6 @@ namespace Garbus.Game.Edit.Screens
                 },
             };
 
-            // Zoom sync: TimelineTimeRange = TrackLength / CurrentZoom / 2 (BAC's formula).
-            timelineStrip.CurrentZoom.BindValueChanged(e =>
-            {
-                double trackLength = editorClock.TrackLength;
-                if (trackLength > 0 && e.NewValue > 0)
-                    composer.TimelineTimeRange.Value = trackLength / e.NewValue / 2;
-            });
-
             // AutoSeekOnPlacement config → composer.
             var autoSeek = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
             autoSeek.BindValueChanged(e => composer.AutoSeekOnPlacement.Value = e.NewValue, true);
@@ -96,7 +88,9 @@ namespace Garbus.Game.Edit.Screens
         {
             base.Update();
 
-            // Re-apply zoom formula each frame so TrackLength changes (track load/switch) are picked up.
+            // Update() is the single source of truth for the zoom formula (BAC: TrackLength / zoom / 2).
+            // Using Update() rather than a BindValueChanged on CurrentZoom means TrackLength changes
+            // (e.g. track reload via File → Open) are also picked up without a separate callback.
             float zoom = timelineStrip.CurrentZoom.Value;
             double trackLength = editorClock.TrackLength;
             if (zoom > 0 && trackLength > 0)

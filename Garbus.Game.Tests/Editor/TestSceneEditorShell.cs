@@ -79,5 +79,40 @@ namespace Garbus.Game.Tests.Editor
             AddStep("save", () => editor.Save());
             AddAssert("clean again", () => !editor.HasUnsavedChanges);
         }
+
+        /// <summary>
+        /// Verifies that exiting the editor disposes the ChartFile (and its cached track store).
+        /// The ScreenStack disposes screens when they are exited; this test confirms the Dispose
+        /// override on GarbusEditor wires through to ChartFile.Dispose().
+        /// </summary>
+        [Test]
+        public void TestEditorDisposesChartFileOnExit()
+        {
+            ChartFile capturedChartFile = null!;
+
+            AddStep("capture ChartFile reference", () => capturedChartFile = editor.ChartFile);
+            AddAssert("not disposed yet", () => !capturedChartFile.IsDisposed);
+
+            // Exit the editor; the ScreenStack removes and disposes the screen.
+            AddStep("exit editor", () => editor.Exit());
+
+            // After the framework pumps a frame the screen is disposed.
+            AddUntilStep("ChartFile is disposed", () => capturedChartFile.IsDisposed);
+        }
+
+        /// <summary>
+        /// Verifies that ChartFile.Dispose() is idempotent — calling it twice does not throw.
+        /// </summary>
+        [Test]
+        public void TestChartFileDisposeIsIdempotent()
+        {
+            AddStep("dispose ChartFile twice", () =>
+            {
+                var cf = editor.ChartFile;
+                cf.Dispose();
+                cf.Dispose(); // must not throw
+            });
+            AddAssert("IsDisposed is true", () => editor.ChartFile.IsDisposed);
+        }
     }
 }

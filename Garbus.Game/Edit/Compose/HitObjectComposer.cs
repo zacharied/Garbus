@@ -17,6 +17,7 @@
 // convenience getter (= ActiveTool.Value) for callers. Tool selection writes ActiveTool AND pushes into
 // BlueprintContainer.CurrentTool, which is what actually drives placement.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
@@ -180,12 +181,20 @@ namespace Garbus.Game.Edit.Compose
 
             InputManager = GetContainingInputManager()!;
 
-            EditorChart.SelectedHitObjects.CollectionChanged += (_, _) =>
-            {
-                // ensure in selection mode if a selection is made.
-                if (EditorChart.SelectedHitObjects.Any())
-                    setSelectTool();
-            };
+            EditorChart.SelectedHitObjects.CollectionChanged += onSelectedHitObjectsChanged;
+        }
+
+        private void onSelectedHitObjectsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            // Ensure in selection mode whenever a selection is made.
+            if (EditorChart.SelectedHitObjects.Any())
+                setSelectTool();
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            EditorChart.SelectedHitObjects.CollectionChanged -= onSelectedHitObjectsChanged;
         }
 
         #region Tool selection
