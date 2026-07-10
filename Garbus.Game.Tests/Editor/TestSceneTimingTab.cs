@@ -38,10 +38,12 @@ namespace Garbus.Game.Tests.Editor
 
         private osu.Framework.Testing.Input.ManualInputManager input = null!;
 
-        private void setupEditor(double initialBpm = 120.0) => Schedule(() =>
+        private void setupEditor(double initialBpm = 120.0, double? secondPointTime = null) => Schedule(() =>
         {
             var chart = new GarbusChart();
             chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 60000.0 / initialBpm });
+            if (secondPointTime != null)
+                chart.ControlPointInfo.Add(secondPointTime.Value, new TimingControlPoint { BeatLength = 500 });
 
             var chartFile = new ChartFile(chart);
             editor = new GarbusEditor(chartFile);
@@ -422,6 +424,49 @@ namespace Garbus.Game.Tests.Editor
                 return tp != null && Math.Abs(tp.BeatLength - priorBeatLength) < 1.0;
             });
         }
+
+        // ------------------------------------------------------------------
+        // 8. Arrow keys move the selection
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestArrowKeysMoveSelection()
+        {
+            setupEditor(secondPointTime: 2000);
+            switchToTimingTab();
+
+            AddUntilStep("first group auto-selected", () =>
+                timingList().SelectedGroup.Value?.Time == 0);
+
+            AddStep("press Down", () =>
+            {
+                input.PressKey(osuTK.Input.Key.Down);
+                input.ReleaseKey(osuTK.Input.Key.Down);
+            });
+
+            AddUntilStep("second group selected", () =>
+                timingList().SelectedGroup.Value?.Time == 2000);
+            AddUntilStep("clock seeked to selection", () =>
+                Math.Abs(editor.ChildrenOfType<EditorClock>().First().CurrentTime - 2000) < 50);
+
+            AddStep("press Down at last row", () =>
+            {
+                input.PressKey(osuTK.Input.Key.Down);
+                input.ReleaseKey(osuTK.Input.Key.Down);
+            });
+            AddAssert("selection stays on last", () =>
+                timingList().SelectedGroup.Value?.Time == 2000);
+
+            AddStep("press Up", () =>
+            {
+                input.PressKey(osuTK.Input.Key.Up);
+                input.ReleaseKey(osuTK.Input.Key.Up);
+            });
+            AddUntilStep("first group selected again", () =>
+                timingList().SelectedGroup.Value?.Time == 0);
+        }
+
+        private TimingPointList timingList() => editor.ChildrenOfType<TimingPointList>().First();
 
         // ------------------------------------------------------------------
         // 7. Table rows render attribute chips that live-update

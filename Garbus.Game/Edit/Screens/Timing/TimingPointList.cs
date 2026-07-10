@@ -16,8 +16,10 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input.Events;
 using osu.Framework.Localisation;
 using osuTK;
+using osuTK.Input;
 
 namespace Garbus.Game.Edit.Screens.Timing
 {
@@ -141,6 +143,57 @@ namespace Garbus.Game.Edit.Screens.Timing
 
             editorChart.ControlPointInfo.ControlPointsChanged += scheduleRefresh;
             refreshRows();
+        }
+
+        protected override bool OnKeyDown(KeyDownEvent e)
+        {
+            // Arrow selection deliberately shadows the editor's divisor binding while this tab is
+            // visible — the table owns Up/Down here, matching osu's timing-screen feel.
+            if (e.Repeat || e.ControlPressed || e.AltPressed || e.ShiftPressed || e.SuperPressed)
+                return base.OnKeyDown(e);
+
+            switch (e.Key)
+            {
+                case Key.Up:
+                    return moveSelection(-1);
+
+                case Key.Down:
+                    return moveSelection(1);
+            }
+
+            return base.OnKeyDown(e);
+        }
+
+        private bool moveSelection(int direction)
+        {
+            var groups = editorChart.ControlPointInfo.Groups;
+            if (groups.Count == 0)
+                return false;
+
+            int currentIndex = -1;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (groups[i] == SelectedGroup.Value)
+                {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            int targetIndex = currentIndex == -1
+                ? (direction > 0 ? 0 : groups.Count - 1)
+                : Math.Clamp(currentIndex + direction, 0, groups.Count - 1);
+
+            var target = groups[targetIndex];
+
+            if (target != SelectedGroup.Value)
+            {
+                SelectedGroup.Value = target;
+                editorClock.Seek(target.Time);
+            }
+
+            return true;
         }
 
         private void scheduleRefresh() => Scheduler.AddOnce(refreshRows);
