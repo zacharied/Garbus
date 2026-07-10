@@ -135,4 +135,4 @@ Phase 3 additions — the native chart format:
   (synthesized — osu-resources assets aren't freely reusable), `Tracks/test-track.ogg` (track lookups
   need the full filename — `TrackStore` only probes `.mp3`), `Charts/test-chart.garbus`.
 
-Next: Phase 4 (editor rebuild) per `PLAN-port.md`.
+Next: Phase 5 per `PLAN-port.md`.
