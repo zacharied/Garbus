@@ -548,6 +548,55 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
+        // 12. "Use current time" moves the selected group to the playhead
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestUseCurrentTimeMovesGroup()
+        {
+            setupEditor(secondPointTime: 2000);
+            switchToTimingTab();
+
+            GarbusChartChangeHandler changeHandler = null!;
+            AddUntilStep("get change handler", () =>
+            {
+                if (!editor.IsLoaded) return false;
+                changeHandler = editor.ChangeHandlerForTests;
+                return true;
+            });
+
+            AddUntilStep("rows loaded", () =>
+                editor.ChildrenOfType<TimingPointRow>().Count() == 2);
+
+            AddStep("select second point", () =>
+                editor.ChildrenOfType<TimingPointRow>().ElementAt(1).TriggerClick());
+            AddUntilStep("second selected", () =>
+                timingList().SelectedGroup.Value?.Time == 2000);
+
+            AddStep("seek to 3000", () =>
+                editor.ChildrenOfType<EditorClock>().First().Seek(3000));
+            AddUntilStep("clock at 3000", () =>
+                Math.Abs(editor.ChildrenOfType<EditorClock>().First().CurrentTime - 3000) < 50);
+
+            AddStep("really click Use current time", () =>
+            {
+                var button = editor.ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
+                    .First(b => b.Text.ToString() == "Use current time");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddUntilStep("group moved to 3000", () =>
+                editor.EditorChart.ControlPointInfo.GroupAt(3000) != null &&
+                editor.EditorChart.ControlPointInfo.TimingPoints.Count == 2);
+
+            AddStep("undo", () => changeHandler.Undo());
+            AddUntilStep("group back at 2000", () =>
+                editor.EditorChart.ControlPointInfo.GroupAt(2000) != null &&
+                editor.EditorChart.ControlPointInfo.GroupAt(3000) == null);
+        }
+
+        // ------------------------------------------------------------------
         // 7. Table rows render attribute chips that live-update
         // ------------------------------------------------------------------
 

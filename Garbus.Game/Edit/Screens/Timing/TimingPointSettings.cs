@@ -41,6 +41,7 @@ namespace Garbus.Game.Edit.Screens.Timing
         private BasicTextBox bpmTextBox = null!;
         private BasicTextBox signatureNumeratorBox = null!;
         private BasicCheckbox omitBarLineCheckbox = null!;
+        private BasicButton useCurrentTimeButton = null!;
 
         private bool updatingFromModel;
 
@@ -87,6 +88,14 @@ namespace Garbus.Game.Edit.Screens.Timing
                                 new RepeatNudgeButton("+10") { Name = "offset-plus10", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(+10) },
                             }
                         },
+                    },
+
+                    useCurrentTimeButton = new BasicButton
+                    {
+                        Text = "Use current time",
+                        RelativeSizeAxes = Axes.X,
+                        Height = 30,
+                        Action = useCurrentTime,
                     },
 
                     // --- BPM ---
@@ -180,6 +189,7 @@ namespace Garbus.Game.Edit.Screens.Timing
             bpmTextBox.ReadOnly = !hasPoint;
             signatureNumeratorBox.ReadOnly = !hasPoint;
             omitBarLineCheckbox.Current.Disabled = false;
+            useCurrentTimeButton.Enabled.Value = hasPoint;
 
             if (!hasPoint)
             {
@@ -290,6 +300,14 @@ namespace Garbus.Game.Edit.Screens.Timing
             double currentBpm = 60000.0 / tp.BeatLength;
             bpmTextBox.Text = (currentBpm + amount).ToString("0.##", CultureInfo.InvariantCulture);
             commitBpm();
+        }
+
+        private void useCurrentTime()
+        {
+            if (SelectedGroup.Value == null) return;
+
+            offsetTextBox.Text = editorClock.CurrentTime.ToString("0", CultureInfo.InvariantCulture);
+            commitOffset();
         }
 
         /// <summary>
