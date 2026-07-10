@@ -55,7 +55,7 @@ namespace Garbus.Game.Edit.Screens.Timing
         [BackgroundDependencyLoader]
         private void load()
         {
-            RelativeSizeAxes = Axes.Both;
+            RelativeSizeAxes = Axes.X;
             Padding = new MarginPadding(12);
 
             InternalChild = new FillFlowContainer

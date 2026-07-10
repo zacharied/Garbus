@@ -57,7 +57,7 @@ namespace Garbus.Game.Edit.Screens
                                 },
                                 tapTimingControl = new TapTimingControl
                                 {
-                                    RelativeSizeAxes = Axes.Both,
+                                    RelativeSizeAxes = Axes.X,
                                 },
                             },
                         },
@@ -69,6 +69,9 @@ namespace Garbus.Game.Edit.Screens
             selectedGroup.BindTo(timingPointList.SelectedGroup);
             timingPointSettings.SelectedGroup.BindTo(selectedGroup);
             tapTimingControl.SelectedGroup.BindTo(selectedGroup);
+
+            // Both panels honour the same "Move objects with timing changes" toggle.
+            tapTimingControl.AdjustObjectsOnTimingChange.BindTo(timingPointSettings.AdjustObjectsOnTimingChange);
         }
     }
 }

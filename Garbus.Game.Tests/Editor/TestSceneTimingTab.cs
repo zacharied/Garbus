@@ -696,6 +696,46 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
+        // 14. Tap-timing adjust buttons
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestTapTimingAdjustButtons()
+        {
+            setupEditor(secondPointTime: 2000);
+            switchToTimingTab();
+
+            AddUntilStep("rows loaded", () =>
+                editor.ChildrenOfType<TimingPointRow>().Count() == 2);
+            AddStep("select second point", () =>
+                editor.ChildrenOfType<TimingPointRow>().ElementAt(1).TriggerClick());
+            AddUntilStep("second selected", () =>
+                timingList().SelectedGroup.Value?.Time == 2000);
+
+            AddStep("really click tap offset -10", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "tap-offset-minus10");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddUntilStep("group moved to 1990", () =>
+                timingList().SelectedGroup.Value?.Time == 1990);
+
+            AddStep("really click tap BPM +1", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "tap-bpm-plus1");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddAssert("selected point BPM is 121", () =>
+            {
+                var tp = timingList().SelectedGroup.Value?.ControlPoints
+                    .OfType<TimingControlPoint>().First();
+                return tp != null && Math.Abs(tp.BPM - 121) < 0.01;
+            });
+        }
+
+        // ------------------------------------------------------------------
         // 7. Table rows render attribute chips that live-update
         // ------------------------------------------------------------------
 

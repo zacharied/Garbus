@@ -200,6 +200,9 @@ zero height).
 - [x] Save/load through the native chart format via `ChartFile` (persistence)
 - [x] Editor tests on framework `TestScene`; `TestSceneEditorIntegration` walks the full authoring loop
       end-to-end (new → place → edit → time → save+decode → undo/redo → clone → verify → tab-switch)
+- [x] Timing tab has the full osu timing-screen feature set: chip table + keyboard selection,
+      time signature / omit barline editing, repeat nudge steppers, use-current-time group move,
+      section-wide object adjustment (toggleable), and tap-timing offset/BPM adjust rows (repeat-on-hold)
 
 ### Phase 5 — game chrome
 
