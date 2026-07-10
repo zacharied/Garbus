@@ -20,8 +20,9 @@ using osuTK;
 namespace Garbus.Game.Edit.Screens.Timing
 {
     /// <summary>
-    /// Right-panel settings area for the selected timing control point: offset textbox + nudge,
-    /// BPM textbox + nudge, time-signature dropdown.
+    /// Right-panel settings area for the selected timing control point: offset textbox + repeat
+    /// nudge buttons + use-current-time, BPM textbox + repeat nudge buttons, time-signature
+    /// numerator textbox, omit-first-barline toggle, and the move-objects-with-timing-changes toggle.
     /// </summary>
     public partial class TimingPointSettings : CompositeDrawable
     {
@@ -264,7 +265,7 @@ namespace Garbus.Game.Edit.Screens.Timing
             var tp = currentTimingPoint;
             if (tp == null) return;
 
-            if (!int.TryParse(signatureNumeratorBox.Text, out int numerator) || numerator <= 0)
+            if (!int.TryParse(signatureNumeratorBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numerator) || numerator <= 0)
             {
                 // Restore the textbox to the current valid value.
                 updateFromModel();
