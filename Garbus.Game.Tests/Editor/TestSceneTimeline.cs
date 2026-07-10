@@ -128,6 +128,43 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
+        // 5. Centre marker is a fixed viewport overlay indicating EditorTime
+        //    (regression: it used to live in the scrolling ScrollContent and
+        //     drift off toward the track midpoint instead of marking the clock)
+        // ------------------------------------------------------------------
+
+        private CentreMarker? findMarker() => strip.ChildrenOfType<CentreMarker>().FirstOrDefault();
+
+        [Test]
+        public void TestCentreMarkerPinnedToViewportCentre()
+        {
+            waitForStrip();
+            AddUntilStep("zoom set up", () => strip.CurrentZoom.Value > 1);
+            AddAssert("centre marker exists", () => findMarker() != null);
+
+            float xAtFirstSeek = 0;
+            AddStep("stop clock and seek to 10000ms", () =>
+            {
+                editorClock.Stop();
+                editorClock.Seek(10000);
+            });
+            AddUntilStep("marker sits at strip's horizontal centre", () =>
+            {
+                xAtFirstSeek = findMarker()!.ScreenSpaceDrawQuad.Centre.X;
+                return System.Math.Abs(xAtFirstSeek - strip.ScreenSpaceDrawQuad.Centre.X) < 2f;
+            });
+
+            // Seeking scrolls the content; a correctly-parented (internal) marker must not move.
+            AddStep("seek to 40000ms", () => editorClock.Seek(40000));
+            AddUntilStep("marker still centred and did not scroll with content", () =>
+            {
+                float x = findMarker()!.ScreenSpaceDrawQuad.Centre.X;
+                return System.Math.Abs(x - strip.ScreenSpaceDrawQuad.Centre.X) < 2f
+                       && System.Math.Abs(x - xAtFirstSeek) < 2f;
+            });
+        }
+
+        // ------------------------------------------------------------------
         // 4. Playfield frozen while EditorClock is stopped (clock-wiring guard)
         // ------------------------------------------------------------------
 

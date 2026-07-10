@@ -106,6 +106,12 @@ classes:
   `TestSceneEditorShell.TestTabSwitchingViaClick` / `TestFileMenuSaveViaClick`.
 - **Wheel-seek convention:** wheel-down (negative `ScrollDelta.Y`) = forward in time, wheel-up =
   backward (matches osu's `Editor.cs`). Pinned by tests.
+- **Fixed overlays on the `TimelineStrip` must use `AddInternal`, not `base.Content.Add`.** A
+  `ScrollContainer`'s `base.Content` (`ScrollContent`) scrolls horizontally AND auto-sizes its width
+  to the full track, so `Anchor.TopCentre` there pins to the track *midpoint* and drifts off — not the
+  viewport centre. The `CentreMarker` playhead lives in `AddInternal` (matches osu's `Timeline.cs`), so
+  it stays at the viewport centre where the timeline scrolls the current time to. Pinned by
+  `TestSceneTimeline.TestCentreMarkerPinnedToViewportCentre`.
 - `TransferBlueprintFor` runs on `HitObjectUpdated` so a re-defaulted object keeps its selection
   blueprint — updating an object regenerates nested objects, so the blueprint must be re-pointed.
 - Placement auto-seek: `HitObjectPlacementBlueprint.EndPlacement` seeks the clock to the placed object;

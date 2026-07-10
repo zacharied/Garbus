@@ -104,9 +104,11 @@ namespace Garbus.Game.Edit.Screens.Timeline
                 objectMarkers = new TimelineObjectMarkers(),
             });
 
-            // Non-scrolling CentreMarker: add to the scroll container's base Content (not zoomed content)
-            // so it stays fixed at the centre of the visible strip.
-            base.Content.Add(new CentreMarker
+            // Non-scrolling CentreMarker: AddInternal makes it a fixed viewport overlay rather than a
+            // child of the scrolling (and full-track-width auto-sized) ScrollContent, so it stays pinned
+            // to the horizontal centre of the visible strip. The timeline scrolls to keep the current
+            // time at that centre, so the marker indicates EditorTime. (Matches osu's Timeline.cs.)
+            AddInternal(new CentreMarker
             {
                 Anchor = Anchor.TopCentre,
                 Origin = Anchor.TopCentre,
