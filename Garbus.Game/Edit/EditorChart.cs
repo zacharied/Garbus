@@ -13,6 +13,7 @@ using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Objects;
 using osu.Framework.Bindables;
+using osu.Framework.Utils;
 
 namespace Garbus.Game.Edit
 {
@@ -127,6 +128,29 @@ namespace Garbus.Game.Edit
                 action(h);
                 Update(h);
             }
+            EndChange();
+        }
+
+        /// <summary>
+        /// Performs an action on every hit object whose start time falls in [start, end) as a single
+        /// transaction, updating each. Boundary semantics match osu's timing sections: inclusive
+        /// start, exclusive end, with floating-point tolerance.
+        /// </summary>
+        public void PerformOnRange(double start, double end, Action<GarbusHitObject> action)
+        {
+            var affected = hitObjects.Where(h => Precision.AlmostBigger(h.StartTime, start)
+                                                 && Precision.DefinitelyBigger(end, h.StartTime)).ToArray();
+            if (affected.Length == 0)
+                return;
+
+            BeginChange();
+
+            foreach (var h in affected)
+            {
+                action(h);
+                Update(h);
+            }
+
             EndChange();
         }
 
