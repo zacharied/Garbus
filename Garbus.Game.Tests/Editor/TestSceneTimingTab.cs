@@ -543,5 +543,49 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("numerator still 7 after garbage", () =>
                 editor.EditorChart.ControlPointInfo.TimingPoints.First().TimeSignature.Numerator == 7);
         }
+
+        // ------------------------------------------------------------------
+        // 10. Omit first barline toggle
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestOmitFirstBarLineToggle()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            GarbusChartChangeHandler changeHandler = null!;
+            AddUntilStep("get change handler", () =>
+            {
+                if (!editor.IsLoaded) return false;
+                changeHandler = editor.ChangeHandlerForTests;
+                return true;
+            });
+
+            AddUntilStep("checkbox loaded", () =>
+                editor.ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicCheckbox>()
+                      .Any(c => c.LabelText.ToString() == "Omit first barline"));
+
+            AddStep("really click the checkbox", () =>
+            {
+                var checkbox = editor.ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicCheckbox>()
+                    .First(c => c.LabelText.ToString() == "Omit first barline");
+                input.MoveMouseTo(checkbox);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddAssert("point has OmitFirstBarLine set", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.First().OmitFirstBarLine);
+
+            AddUntilStep("no-barline chip visible", () =>
+                editor.ChildrenOfType<TimingPointRow.AttributeChip>()
+                      .Single(c => c.Text.ToString() == "no barline").Alpha == 1);
+
+            AddAssert("undo available", () => changeHandler.CanUndo.Value);
+            AddStep("undo", () => changeHandler.Undo());
+
+            AddUntilStep("OmitFirstBarLine cleared", () =>
+                !editor.EditorChart.ControlPointInfo.TimingPoints.First().OmitFirstBarLine);
+        }
     }
 }

@@ -40,6 +40,7 @@ namespace Garbus.Game.Edit.Screens.Timing
         private BasicTextBox offsetTextBox = null!;
         private BasicTextBox bpmTextBox = null!;
         private BasicTextBox signatureNumeratorBox = null!;
+        private BasicCheckbox omitBarLineCheckbox = null!;
 
         private bool updatingFromModel;
 
@@ -152,6 +153,12 @@ namespace Garbus.Game.Edit.Screens.Timing
                             },
                         },
                     },
+
+                    // --- Omit first barline ---
+                    omitBarLineCheckbox = new BasicCheckbox
+                    {
+                        LabelText = "Omit first barline",
+                    },
                 },
             };
         }
@@ -165,6 +172,11 @@ namespace Garbus.Game.Edit.Screens.Timing
             offsetTextBox.OnCommit += (_, _) => commitOffset();
             bpmTextBox.OnCommit += (_, _) => commitBpm();
             signatureNumeratorBox.OnCommit += (_, _) => commitSignature();
+            omitBarLineCheckbox.Current.BindValueChanged(e =>
+            {
+                if (!updatingFromModel)
+                    commitOmitBarLine(e.NewValue);
+            });
         }
 
         private void updateFromModel()
@@ -175,14 +187,20 @@ namespace Garbus.Game.Edit.Screens.Timing
             offsetTextBox.ReadOnly = !hasPoint;
             bpmTextBox.ReadOnly = !hasPoint;
             signatureNumeratorBox.ReadOnly = !hasPoint;
+            omitBarLineCheckbox.Current.Disabled = false;
 
-            if (!hasPoint) return;
+            if (!hasPoint)
+            {
+                omitBarLineCheckbox.Current.Disabled = true;
+                return;
+            }
 
             updatingFromModel = true;
 
             offsetTextBox.Text = SelectedGroup!.Value!.Time.ToString("0", CultureInfo.InvariantCulture);
             bpmTextBox.Text = (60000.0 / tp!.BeatLength).ToString("0.##", CultureInfo.InvariantCulture);
             signatureNumeratorBox.Text = tp.TimeSignature.Numerator.ToString(CultureInfo.InvariantCulture);
+            omitBarLineCheckbox.Current.Value = tp.OmitFirstBarLine;
 
             updatingFromModel = false;
         }
@@ -300,6 +318,17 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             signatureNumeratorBox.Text = text;
             commitSignature();
+        }
+
+        private void commitOmitBarLine(bool omit)
+        {
+            var tp = currentTimingPoint;
+            if (tp == null || tp.OmitFirstBarLine == omit) return;
+
+            changeHandler.BeginChange();
+            tp.OmitFirstBarLine = omit;
+            editorChart.SaveState();
+            changeHandler.EndChange();
         }
 
         private TimingControlPoint? currentTimingPoint =>
