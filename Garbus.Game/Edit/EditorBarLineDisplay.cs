@@ -34,6 +34,9 @@ namespace Garbus.Game.Edit
         /// <summary>The last generated set of bar lines (independent of on-screen culling).</summary>
         public IReadOnlyList<BarLine> BarLines => barLines;
 
+        /// <summary>The track length used for the most recent <see cref="regenerate"/> call.</summary>
+        private double lastGeneratedTrackLength;
+
         public EditorBarLineDisplay()
         {
             RelativeSizeAxes = Axes.Both;
@@ -44,13 +47,23 @@ namespace Garbus.Game.Edit
         private void load()
         {
             editorChart.ControlPointInfo.ControlPointsChanged += regenerate;
+            editorClock.TrackChanged += regenerate;
             regenerate();
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            if (editorClock.TrackLength != lastGeneratedTrackLength)
+                regenerate();
         }
 
         private void regenerate()
         {
             lines.Clear();
             barLines.Clear();
+            lastGeneratedTrackLength = editorClock.TrackLength;
             barLines.AddRange(BarLineGenerator.Generate(editorChart.ControlPointInfo, editorClock.TrackLength));
 
             foreach (var barLine in barLines)
@@ -62,6 +75,8 @@ namespace Garbus.Game.Edit
             base.Dispose(isDisposing);
             if (editorChart.IsNotNull())
                 editorChart.ControlPointInfo.ControlPointsChanged -= regenerate;
+            if (editorClock.IsNotNull())
+                editorClock.TrackChanged -= regenerate;
         }
 
         private partial class DrawableBarLine : DrawableHitObject
@@ -89,7 +104,7 @@ namespace Garbus.Game.Edit
                     Text = HitObject.MeasureIndex.ToString(),
                     Colour = Color4.White,
                     Font = FontUsage.Default.With(size: 12),
-                    Padding = new MarginPadding { Left = 4, Bottom = 2 },
+                    Margin = new MarginPadding { Left = 4, Bottom = 2 },
                     Anchor = Anchor.BottomLeft,
                     Origin = Anchor.BottomLeft,
                 });

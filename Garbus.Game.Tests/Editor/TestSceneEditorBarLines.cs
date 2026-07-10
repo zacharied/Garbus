@@ -68,11 +68,39 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        [Test]
+        public void TestRegeneratesWhenTrackLengthChanges()
+        {
+            AddUntilStep("composer loaded", () => harness.Composer.IsLoaded);
+
+            int originalCount = 0;
+
+            AddStep("record original barline count", () =>
+            {
+                var display = harness.Composer.Playfield.ChildrenOfType<EditorBarLineDisplay>().Single();
+                originalCount = display.BarLines.Count;
+            });
+
+            AddAssert("original count is 30", () => originalCount == 30);
+
+            AddStep("swap to a 120 s track", () =>
+                harness.EditorClock.ChangeSource(new TrackVirtual(120000)));
+
+            AddUntilStep("barlines regenerated to cover 120 s", () =>
+            {
+                var display = harness.Composer.Playfield.ChildrenOfType<EditorBarLineDisplay>().Single();
+                int expected = BarLineGenerator.Generate(editorChart.ControlPointInfo, harness.EditorClock.TrackLength).Count;
+                return display.BarLines.Count == expected
+                       && display.BarLines.Count > originalCount;
+            });
+        }
+
         private partial class Harness : Container
         {
             private readonly EditorChart editorChart;
             private DependencyContainer dependencies = null!;
             public EditorBarLineComposer Composer { get; private set; } = null!;
+            public EditorClock EditorClock => dependencies.Get<EditorClock>();
 
             public Harness(EditorChart editorChart) => this.editorChart = editorChart;
 
