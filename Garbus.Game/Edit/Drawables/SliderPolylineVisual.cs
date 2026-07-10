@@ -50,13 +50,17 @@ public partial class SliderPolylineVisual : CompositeDrawable
     {
         this.slider = slider;
         RelativeSizeAxes = Axes.Both;
-
-        Colour = slider.Side == Core.HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
     }
 
     protected override void Update()
     {
         base.Update();
+
+        // Read Side live (not once in the ctor): the editor mutates it in place via EditorChart.Update,
+        // which re-Apply()s the drawable rather than recreating it, so a Side change must recolour here.
+        var sideColour = slider.Side == Core.HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
+        if (!Colour.Equals(sideColour))
+            Colour = sideColour;
 
         float pxPerDeg = playfield.DrawWidth / EditorAngleMapping.TOTAL_DEGREES;
 

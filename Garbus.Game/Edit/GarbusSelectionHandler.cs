@@ -31,6 +31,8 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
 
     private readonly Bindable<TernaryState> selectionAnticlockwiseState = new Bindable<TernaryState>();
 
+    private readonly Bindable<TernaryState> selectionRightSideState = new Bindable<TernaryState>();
+
     // Replaces the framework SelectionBox for slider selections (see Update) — the AABB box spans a huge,
     // useless area since a slider can sweep well past 360°.
     private SliderCountChip countChip = null!;
@@ -54,6 +56,20 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
                     break;
             }
         };
+
+        selectionRightSideState.ValueChanged += state =>
+        {
+            switch (state.NewValue)
+            {
+                case TernaryState.False:
+                    setSliderSide(HorizontalDirection.Left);
+                    break;
+
+                case TernaryState.True:
+                    setSliderSide(HorizontalDirection.Right);
+                    break;
+            }
+        };
     }
 
     private void setEdgeSlamDirection(RotationalDirection direction)
@@ -68,6 +84,18 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         });
     }
 
+    private void setSliderSide(HorizontalDirection side)
+    {
+        if (SelectedItems.OfType<SliderBody>().All(s => s.Side == side))
+            return;
+
+        EditorChart.PerformOnSelection(h =>
+        {
+            if (h is SliderBody slider)
+                slider.Side = side;
+        });
+    }
+
     protected override IEnumerable<MenuItem> GetContextMenuItemsForSelection(IEnumerable<SelectionBlueprint<GarbusHitObject>> selection)
     {
         if (selection.All(s => s.Item is GarbusSlamEdge))
@@ -75,6 +103,14 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             yield return new TernaryStateToggleMenuItem("Anticlockwise")
             {
                 State = { BindTarget = selectionAnticlockwiseState },
+            };
+        }
+
+        if (selection.All(s => s.Item is SliderBody))
+        {
+            yield return new TernaryStateToggleMenuItem("Right side")
+            {
+                State = { BindTarget = selectionRightSideState },
             };
         }
 
@@ -89,6 +125,10 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         selectionAnticlockwiseState.Value = GetStateFromSelection(
             EditorChart.SelectedHitObjects.OfType<GarbusSlamEdge>(),
             s => s.Direction == RotationalDirection.Anticlockwise);
+
+        selectionRightSideState.Value = GetStateFromSelection(
+            EditorChart.SelectedHitObjects.OfType<SliderBody>(),
+            s => s.Side == HorizontalDirection.Right);
     }
 
     public override bool HandleMovement(MoveSelectionEvent<GarbusHitObject> moveEvent)

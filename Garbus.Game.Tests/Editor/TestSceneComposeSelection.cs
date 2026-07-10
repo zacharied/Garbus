@@ -18,6 +18,7 @@ using Garbus.Game.Edit;
 using Garbus.Game.Edit.Blueprints;
 using Garbus.Game.Edit.Blueprints.Components;
 using Garbus.Game.Edit.Compose;
+using Garbus.Game.Edit.Drawables;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
@@ -567,6 +568,73 @@ namespace Garbus.Game.Tests.Editor
                 var cps = placedObject<SliderBody>()!.Path.ControlPoints;
                 return cps[0].TimeOffset < cps[1].TimeOffset;
             });
+        }
+
+        [Test]
+        public void TestSliderSideContextMenuTogglesAndUndoes()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+
+            AddStep("select slider on its line", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("slider starts Left", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
+
+            TernaryStateToggleMenuItem sideItem = null!;
+            AddUntilStep("Side menu item available while hovered", () =>
+            {
+                // keep the cursor on the line so the blueprint stays hovered (ContextMenuItems gates on hover).
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                sideItem = sliderSideMenuItem();
+                return sideItem != null;
+            });
+            AddAssert("item reflects Left (unchecked)", () => sideItem.State.Value, () => Is.EqualTo(TernaryState.False));
+
+            AddStep("invoke Side toggle", () => sideItem.Action.Value?.Invoke());
+            AddAssert("slider now Right", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+            AddUntilStep("polyline recoloured to Right", () =>
+            {
+                var visual = composer.ChildrenOfType<SliderPolylineVisual>().FirstOrDefault();
+                return visual != null && visual.Colour.Equals(Constants.RightColour);
+            });
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("slider back to Left", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
+
+            AddStep("redo", () => changeHandler.RestoreState(1));
+            AddAssert("slider Right again", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+        }
+
+        [Test]
+        public void TestSideContextMenuAbsentForNote()
+        {
+            waitForComposer();
+            placeNoteAt(270);
+
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+            AddAssert("note selected", () => editorChart.SelectedHitObjects.Count == 1);
+
+            AddAssert("no Side item for a note", () =>
+            {
+                var (headScreen, _) = (screenPositionOf(placedObject<CardinalNote>()!), Vector2.Zero);
+                input.MoveMouseTo(headScreen);
+                return sliderSideMenuItem() == null;
+            });
+        }
+
+        private TernaryStateToggleMenuItem? sliderSideMenuItem()
+        {
+            var handler = composer.ChildrenOfType<GarbusSelectionHandler>().Single();
+            return handler.ContextMenuItems
+                          .OfType<TernaryStateToggleMenuItem>()
+                          .FirstOrDefault(i => i.Text.Value.ToString() == "Right side");
         }
 
         [Test]
