@@ -291,8 +291,10 @@ namespace Garbus.Game.Edit.Screens
             var clonedChart = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(EditorChart.Chart));
             clonedChart.ApplyDefaults();
 
-            // Start 1500 ms before the editor's current position, clamped to ≥ 0.
-            double startTime = Math.Max(0, editorClock.CurrentTime - 1500);
+            // Start at the editor's current position, clamped to ≥ 0. The lead-in count-in is applied
+            // inside MasterGameplayClockContainer (StartTime = GameplayStartTime − LEAD_IN_TIME), so the
+            // editor no longer needs its own ad-hoc pre-roll offset.
+            double startTime = Math.Max(0, editorClock.CurrentTime);
 
             this.Push(new PlayScreen(clonedChart, freshTrack, startTime));
         }

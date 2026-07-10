@@ -9,7 +9,7 @@
 // Contract under test:
 //   1. F5 pushes PlayScreen; its chart has the same object count but zero shared
 //      references (ReferenceEquals false on first object).
-//   2. Start time ≈ editorClock.CurrentTime − 1500 (clamped ≥ 0).
+//   2. Start time ≈ editorClock.CurrentTime (clamped ≥ 0); the lead-in count-in is inside the clock.
 //   3. Exiting PlayScreen seeks the editor clock to PlayScreen.ExitTime.
 //   4. Test button disabled when the chart has no real track (TrackVirtual).
 
@@ -199,7 +199,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
-        // 2. Start time ≈ editorClock.CurrentTime − 1500 (clamped ≥ 0)
+        // 2. Start time ≈ editorClock.CurrentTime (clamped ≥ 0)
         // ------------------------------------------------------------------
 
         [Test]
@@ -220,10 +220,10 @@ namespace Garbus.Game.Tests.Editor
             AddStep("press F5", () => input.Key(osuTK.Input.Key.F5));
             AddUntilStep("PlayScreen pushed", () => stack.CurrentScreen is PlayScreen);
 
-            AddAssert("gameplay start time ≈ editorTime − 1500 (within 50ms)", () =>
+            AddAssert("gameplay start time ≈ editor playhead (within 50ms)", () =>
             {
                 var ps = (PlayScreen)stack.CurrentScreen;
-                double expected = System.Math.Max(0, capturedEditorTime - 1500);
+                double expected = System.Math.Max(0, capturedEditorTime);
                 return System.Math.Abs(ps.StartTime - expected) < 50;
             });
         }
