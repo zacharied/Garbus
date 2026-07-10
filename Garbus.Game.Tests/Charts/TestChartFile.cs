@@ -58,6 +58,46 @@ namespace Garbus.Game.Tests.Charts
         }
 
         [Test]
+        public void TestGetAudioStreamReturnsNullWhenUnsaved()
+        {
+            var file = new ChartFile(new GarbusChart { Metadata = { AudioFile = "song.ogg" } });
+            Assert.That(file.GetAudioStream(), Is.Null);
+        }
+
+        [Test]
+        public void TestGetAudioStreamReturnsNullWhenNoAudioFile()
+        {
+            var file = new ChartFile(new GarbusChart());
+            file.Save(Path.Combine(tempDir, "chart.garbus"));
+            Assert.That(file.GetAudioStream(), Is.Null);
+        }
+
+        [Test]
+        public void TestGetAudioStreamReturnsNullWhenFileMissing()
+        {
+            var file = new ChartFile(new GarbusChart { Metadata = { AudioFile = "missing.ogg" } });
+            file.Save(Path.Combine(tempDir, "chart.garbus"));
+            Assert.That(file.GetAudioStream(), Is.Null);
+        }
+
+        [Test]
+        public void TestGetAudioStreamReturnsFileContents()
+        {
+            var file = new ChartFile(new GarbusChart { Metadata = { AudioFile = "song.ogg" } });
+            file.Save(Path.Combine(tempDir, "chart.garbus"));
+
+            byte[] audioBytes = { 10, 20, 30, 40 };
+            File.WriteAllBytes(Path.Combine(tempDir, "song.ogg"), audioBytes);
+
+            using var stream = file.GetAudioStream();
+            Assert.That(stream, Is.Not.Null);
+
+            using var ms = new MemoryStream();
+            stream!.CopyTo(ms);
+            Assert.That(ms.ToArray(), Is.EqualTo(audioBytes));
+        }
+
+        [Test]
         public void TestImportResourceFromSameDirectoryDoesNotThrow()
         {
             var chart = new GarbusChart();

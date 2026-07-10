@@ -10,11 +10,13 @@
 
 using System;
 using osu.Framework.Allocation;
+using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
+using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
 
 namespace Garbus.Game.Edit.Screens.Timeline
@@ -33,6 +35,9 @@ namespace Garbus.Game.Edit.Screens.Timeline
 
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
+
+        [Resolved]
+        private ChartFile chartFile { get; set; } = null!;
 
         // ---- Bindable<double> written to the composer's TimelineTimeRange ----
         // Owned externally (ComposeTab) and passed in so the composer can subscribe.
@@ -54,6 +59,10 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private bool trackWasPlaying;
 
         private double trackLengthForZoom;
+
+        // The WaveformGraph does not dispose the Waveform it is handed, so we own it here and
+        // dispose it when replaced or on teardown. The Waveform in turn disposes its own stream.
+        private Waveform? currentWaveform;
 
         public TimelineStrip()
         {
@@ -245,9 +254,14 @@ namespace Garbus.Game.Edit.Screens.Timeline
 
         private void updateWaveform()
         {
-            // Waveform comes from the track stream. For a TrackVirtual there is no stream,
-            // so set null and let WaveformGraph render nothing gracefully.
+            // Read the raw encoded-audio file from the chart directory. Null for an unsaved chart,
+            // no audio file, a missing file, or a TrackVirtual — WaveformGraph renders nothing then.
+            var stream = chartFile.GetAudioStream();
+
             waveform.Waveform = null;
+            currentWaveform?.Dispose();
+            currentWaveform = stream == null ? null : new Waveform(stream);
+            waveform.Waveform = currentWaveform;
         }
 
         protected override void Dispose(bool isDisposing)
@@ -255,6 +269,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
             base.Dispose(isDisposing);
             if (editorClock != null)
                 editorClock.TrackChanged -= updateWaveform;
+            currentWaveform?.Dispose();
         }
     }
 }
