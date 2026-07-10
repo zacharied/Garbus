@@ -4,6 +4,10 @@ obj/
 *.user
 *.userprefs
 
+# WavGen tool — source kept as documentation; build artifacts excluded
+WavGen/bin/
+WavGen/obj/
+
 # Rider caches (keep committed run configurations)
 .idea/**/workspace.xml
 .idea/**/tasks.xml

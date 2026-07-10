@@ -64,7 +64,10 @@ namespace Garbus.Game.Edit.Screens.Timing
                 Alpha = 0,
             });
 
-            Action = () => RecordTap(Clock.CurrentTime);
+            // BasicButton requires a non-null Action to show the pressed state correctly.
+            // The actual tap is recorded in OnMouseDown (on press, not release) so timing is accurate.
+            // This no-op ensures button visuals work without double-firing RecordTap.
+            Action = () => { };
         }
 
         /// <summary>
@@ -106,6 +109,7 @@ namespace Garbus.Game.Edit.Screens.Timing
                 changeHandler.BeginChange();
                 tp.BeatLength = 60000.0 / bpm;
                 tp.BeatLengthBindable.TriggerChange(); // ensure ControlPointsChanged fires
+                changeHandler.SaveState();
                 changeHandler.EndChange();
 
                 BpmWritten?.Invoke(bpm);

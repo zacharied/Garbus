@@ -52,6 +52,9 @@ namespace Garbus.Game.Edit.Screens.Timing
 
         private TimingControlPoint? currentTimingPoint;
 
+        // Stored so we can unsubscribe before re-binding on group change (prevents accumulation).
+        private TimingControlPoint? boundTimingPoint;
+
         [BackgroundDependencyLoader]
         private void load(AudioManager audio)
         {
@@ -115,6 +118,13 @@ namespace Garbus.Game.Edit.Screens.Timing
 
         private void onGroupChanged()
         {
+            // Unbind from the previously-bound timing point to prevent subscription accumulation.
+            if (boundTimingPoint != null)
+            {
+                boundTimingPoint.BeatLengthBindable.ValueChanged -= onBeatLengthChanged;
+                boundTimingPoint = null;
+            }
+
             var tp = SelectedGroup.Value?.ControlPoints is { } cps
                 ? getTimingPoint(cps)
                 : null;
@@ -225,7 +235,25 @@ namespace Garbus.Game.Edit.Screens.Timing
             double bpm = 60000.0 / currentTimingPoint.BeatLength;
             bpmLabel.Text = $"{bpm:0.#}";
 
-            currentTimingPoint.BeatLengthBindable.BindValueChanged(_ => updateBpmLabel());
+            // Subscribe with a named method so we can unsubscribe precisely in onGroupChanged/Dispose.
+            if (boundTimingPoint != currentTimingPoint)
+            {
+                currentTimingPoint.BeatLengthBindable.ValueChanged += onBeatLengthChanged;
+                boundTimingPoint = currentTimingPoint;
+            }
+        }
+
+        private void onBeatLengthChanged(ValueChangedEvent<double> _) => updateBpmLabel();
+
+        protected override void Dispose(bool isDisposing)
+        {
+            if (boundTimingPoint != null)
+            {
+                boundTimingPoint.BeatLengthBindable.ValueChanged -= onBeatLengthChanged;
+                boundTimingPoint = null;
+            }
+
+            base.Dispose(isDisposing);
         }
     }
 }

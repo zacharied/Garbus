@@ -243,5 +243,59 @@ namespace Garbus.Game.Tests.Editor
                 return tp != null && Math.Abs(tp.BeatLength - 500.0) < 2.0;
             });
         }
+
+        // ------------------------------------------------------------------
+        // 6. Tap-written BPM is undoable
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestTapBpmIsUndoable()
+        {
+            setupEditor(60.0); // Start at 60 BPM (BeatLength 1000ms).
+            switchToTimingTab();
+
+            GarbusChartChangeHandler changeHandler = null!;
+            AddUntilStep("get change handler", () =>
+            {
+                if (!editor.IsLoaded) return false;
+                changeHandler = editor.ChangeHandlerForTests;
+                return true;
+            });
+
+            AddUntilStep("tap button loaded", () =>
+                editor.ChildrenOfType<TapButton>().Any());
+
+            // Capture BeatLength before tapping.
+            double priorBeatLength = 0;
+            AddStep("capture prior BeatLength", () =>
+            {
+                var tp = editor.EditorChart.ControlPointInfo.TimingPoints.FirstOrDefault();
+                priorBeatLength = tp?.BeatLength ?? 0;
+            });
+
+            // 8 taps at 500ms intervals → BPM 120, BeatLength 500ms.
+            AddStep("record 8 taps at 500ms intervals", () =>
+            {
+                var tapBtn = editor.ChildrenOfType<TapButton>().First();
+                for (int i = 0; i < 8; i++)
+                    tapBtn.RecordTap(i * 500.0);
+            });
+
+            AddAssert("BeatLength changed to ≈500ms", () =>
+            {
+                var tp = editor.EditorChart.ControlPointInfo.TimingPoints.FirstOrDefault();
+                return tp != null && Math.Abs(tp.BeatLength - 500.0) < 2.0;
+            });
+
+            AddAssert("undo available after tap", () => changeHandler.CanUndo.Value);
+
+            AddStep("undo tap", () => changeHandler.Undo());
+
+            AddAssert("BeatLength restored to prior value", () =>
+            {
+                var tp = editor.EditorChart.ControlPointInfo.TimingPoints.FirstOrDefault();
+                return tp != null && Math.Abs(tp.BeatLength - priorBeatLength) < 1.0;
+            });
+        }
     }
 }
