@@ -840,5 +840,36 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("OmitFirstBarLine cleared", () =>
                 !editor.EditorChart.ControlPointInfo.TimingPoints.First().OmitFirstBarLine);
         }
+
+        // ------------------------------------------------------------------
+        // 15. BPM textbox stays live when the point changes outside the panel
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestBpmTextboxRefreshesOnExternalBpmChange()
+        {
+            setupEditor(); // 120 BPM
+            switchToTimingTab();
+
+            AddUntilStep("settings panel loaded", () =>
+                editor.ChildrenOfType<TimingPointSettings>().Any());
+
+            AddUntilStep("BPM textbox shows 120", () =>
+                settings().BpmTextForTests == "120");
+
+            // Change the point's BPM from OUTSIDE the settings panel (tap-timing adjust button).
+            AddStep("really click tap BPM +1", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "tap-bpm-plus1");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddAssert("point BPM is 121", () =>
+                Math.Abs(editor.EditorChart.ControlPointInfo.TimingPoints.First().BPM - 121) < 0.01);
+
+            AddUntilStep("BPM textbox refreshed to 121", () =>
+                settings().BpmTextForTests == "121");
+        }
     }
 }

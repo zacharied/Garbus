@@ -53,6 +53,11 @@ namespace Garbus.Game.Edit.Screens.Timing
 
         private bool updatingFromModel;
 
+        // Bound copy of the SELECTED point's beat length, re-pointed on selection change. Kept as a
+        // field so disposal auto-unbinds it. Keeps the BPM textbox live when the point is changed
+        // from outside this panel (tap button, tap-timing adjust buttons).
+        private IBindable<double>? selectedBeatLength;
+
         [BackgroundDependencyLoader]
         private void load()
         {
@@ -182,7 +187,11 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             base.LoadComplete();
 
-            SelectedGroup.BindValueChanged(_ => updateFromModel(), true);
+            SelectedGroup.BindValueChanged(_ =>
+            {
+                rebindBeatLength();
+                updateFromModel();
+            }, true);
 
             offsetTextBox.OnCommit += (_, _) => commitOffset();
             bpmTextBox.OnCommit += (_, _) => commitBpm();
@@ -191,6 +200,28 @@ namespace Garbus.Game.Edit.Screens.Timing
             {
                 if (!updatingFromModel)
                     commitOmitBarLine(e.NewValue);
+            });
+        }
+
+        private void rebindBeatLength()
+        {
+            selectedBeatLength?.UnbindAll();
+            selectedBeatLength = null;
+
+            var tp = currentTimingPoint;
+            if (tp == null) return;
+
+            var boundCopy = tp.BeatLengthBindable.GetBoundCopy();
+            selectedBeatLength = boundCopy;
+
+            boundCopy.BindValueChanged(e =>
+            {
+                // Never clobber text the user is editing.
+                if (updatingFromModel || bpmTextBox.HasFocus) return;
+
+                updatingFromModel = true;
+                bpmTextBox.Text = (60000.0 / e.NewValue).ToString("0.##", CultureInfo.InvariantCulture);
+                updatingFromModel = false;
             });
         }
 
@@ -315,6 +346,9 @@ namespace Garbus.Game.Edit.Screens.Timing
             offsetTextBox.Text = offset.ToString("0.##", CultureInfo.InvariantCulture);
             commitOffset();
         }
+
+        /// <summary>Test seam: the BPM textbox's current text.</summary>
+        public string BpmTextForTests => bpmTextBox.Text;
 
         /// <summary>
         /// Test seam: sets the BPM textbox text and immediately commits it.
