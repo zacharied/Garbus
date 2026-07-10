@@ -483,6 +483,71 @@ namespace Garbus.Game.Tests.Editor
         private TimingPointList timingList() => editor.ChildrenOfType<TimingPointList>().First();
 
         // ------------------------------------------------------------------
+        // 11. Offset / BPM nudge steppers
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestOffsetNudgeButtons()
+        {
+            setupEditor(secondPointTime: 2000);
+            switchToTimingTab();
+
+            AddUntilStep("rows loaded", () =>
+                editor.ChildrenOfType<TimingPointRow>().Count() == 2);
+
+            AddStep("select second point", () =>
+                editor.ChildrenOfType<TimingPointRow>().ElementAt(1).TriggerClick());
+            AddUntilStep("second selected", () =>
+                timingList().SelectedGroup.Value?.Time == 2000);
+
+            AddStep("really click +10", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "offset-plus10");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddUntilStep("group moved to 2010", () =>
+                timingList().SelectedGroup.Value?.Time == 2010);
+
+            AddStep("really click -1", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "offset-minus1");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddUntilStep("group moved to 2009", () =>
+                timingList().SelectedGroup.Value?.Time == 2009);
+        }
+
+        [Test]
+        public void TestBpmNudgeButtons()
+        {
+            setupEditor(); // 120 BPM
+            switchToTimingTab();
+
+            AddUntilStep("settings loaded", () =>
+                editor.ChildrenOfType<TimingPointSettings>().Any());
+
+            AddStep("really click BPM +1", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "bpm-plus1");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddAssert("BPM is 121", () =>
+                Math.Abs(editor.EditorChart.ControlPointInfo.TimingPoints.First().BPM - 121) < 0.01);
+
+            AddStep("really click BPM +0.1", () =>
+            {
+                var button = editor.ChildrenOfType<RepeatNudgeButton>().First(b => b.Name == "bpm-plus01");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddAssert("BPM is 121.1", () =>
+                Math.Abs(editor.EditorChart.ControlPointInfo.TimingPoints.First().BPM - 121.1) < 0.01);
+        }
+
+        // ------------------------------------------------------------------
         // 7. Table rows render attribute chips that live-update
         // ------------------------------------------------------------------
 

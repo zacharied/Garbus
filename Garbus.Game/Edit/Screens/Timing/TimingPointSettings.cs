@@ -67,8 +67,10 @@ namespace Garbus.Game.Edit.Screens.Timing
                         ColumnDimensions = new[]
                         {
                             new Dimension(),
-                            new Dimension(GridSizeMode.Absolute, 34),
-                            new Dimension(GridSizeMode.Absolute, 34),
+                            new Dimension(GridSizeMode.Absolute, 40),
+                            new Dimension(GridSizeMode.Absolute, 40),
+                            new Dimension(GridSizeMode.Absolute, 40),
+                            new Dimension(GridSizeMode.Absolute, 40),
                         },
                         Content = new[]
                         {
@@ -79,16 +81,10 @@ namespace Garbus.Game.Edit.Screens.Timing
                                     RelativeSizeAxes = Axes.Both,
                                     PlaceholderText = "0",
                                 },
-                                new NudgeButton("-1")
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Action = () => nudgeOffset(-1),
-                                },
-                                new NudgeButton("+1")
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Action = () => nudgeOffset(+1),
-                                },
+                                new RepeatNudgeButton("-10") { Name = "offset-minus10", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(-10) },
+                                new RepeatNudgeButton("-1") { Name = "offset-minus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(-1) },
+                                new RepeatNudgeButton("+1") { Name = "offset-plus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(+1) },
+                                new RepeatNudgeButton("+10") { Name = "offset-plus10", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(+10) },
                             }
                         },
                     },
@@ -102,8 +98,10 @@ namespace Garbus.Game.Edit.Screens.Timing
                         ColumnDimensions = new[]
                         {
                             new Dimension(),
-                            new Dimension(GridSizeMode.Absolute, 34),
-                            new Dimension(GridSizeMode.Absolute, 34),
+                            new Dimension(GridSizeMode.Absolute, 40),
+                            new Dimension(GridSizeMode.Absolute, 40),
+                            new Dimension(GridSizeMode.Absolute, 40),
+                            new Dimension(GridSizeMode.Absolute, 40),
                         },
                         Content = new[]
                         {
@@ -114,16 +112,10 @@ namespace Garbus.Game.Edit.Screens.Timing
                                     RelativeSizeAxes = Axes.Both,
                                     PlaceholderText = "120",
                                 },
-                                new NudgeButton("-1")
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Action = () => nudgeBpm(-1),
-                                },
-                                new NudgeButton("+1")
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    Action = () => nudgeBpm(+1),
-                                },
+                                new RepeatNudgeButton("-1") { Name = "bpm-minus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(-1) },
+                                new RepeatNudgeButton("-.1") { Name = "bpm-minus01", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(-0.1) },
+                                new RepeatNudgeButton("+.1") { Name = "bpm-plus01", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(+0.1) },
+                                new RepeatNudgeButton("+1") { Name = "bpm-plus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(+1) },
                             }
                         },
                     },
@@ -282,21 +274,21 @@ namespace Garbus.Game.Edit.Screens.Timing
             changeHandler.EndChange();
         }
 
-        private void nudgeOffset(int direction)
+        private void nudgeOffset(double amount)
         {
             if (SelectedGroup.Value == null) return;
 
-            offsetTextBox.Text = (SelectedGroup.Value.Time + direction).ToString("0", CultureInfo.InvariantCulture);
+            offsetTextBox.Text = (SelectedGroup.Value.Time + amount).ToString("0.##", CultureInfo.InvariantCulture);
             commitOffset();
         }
 
-        private void nudgeBpm(int direction)
+        private void nudgeBpm(double amount)
         {
             var tp = currentTimingPoint;
             if (tp == null) return;
 
             double currentBpm = 60000.0 / tp.BeatLength;
-            bpmTextBox.Text = (currentBpm + direction).ToString("0.##", CultureInfo.InvariantCulture);
+            bpmTextBox.Text = (currentBpm + amount).ToString("0.##", CultureInfo.InvariantCulture);
             commitBpm();
         }
 
@@ -334,12 +326,5 @@ namespace Garbus.Game.Edit.Screens.Timing
         private TimingControlPoint? currentTimingPoint =>
             SelectedGroup.Value?.ControlPoints.OfType<TimingControlPoint>().FirstOrDefault();
 
-        private partial class NudgeButton : BasicButton
-        {
-            public NudgeButton(string text)
-            {
-                Text = text;
-            }
-        }
     }
 }
