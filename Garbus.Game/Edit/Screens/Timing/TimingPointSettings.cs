@@ -2,8 +2,9 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: rebuilt UI on Basic* widgets; no osu.Game.Overlays; object-shifting on timing
-// changes via TimingSectionAdjustments behind a session toggle; offset and BPM text boxes + repeat
-// nudge buttons + time-signature numerator textbox + omit-first-barline + use-current-time.
+// changes via TimingSectionAdjustments behind a session toggle; offset and BPM text boxes +
+// time-signature numerator textbox + omit-first-barline + use-current-time (the repeat nudge
+// steppers live under the tap-timing metronome instead).
 
 using System;
 using System.Globalization;
@@ -20,9 +21,10 @@ using osuTK;
 namespace Garbus.Game.Edit.Screens.Timing
 {
     /// <summary>
-    /// Right-panel settings area for the selected timing control point: offset textbox + repeat
-    /// nudge buttons + use-current-time, BPM textbox + repeat nudge buttons, time-signature
-    /// numerator textbox, omit-first-barline toggle, and the move-objects-with-timing-changes toggle.
+    /// Right-panel settings area for the selected timing control point: offset textbox +
+    /// use-current-time, BPM textbox, time-signature numerator textbox, omit-first-barline toggle,
+    /// and the move-objects-with-timing-changes toggle. The repeat nudge steppers live under the
+    /// tap-timing metronome (<see cref="TapTimingControl"/>).
     /// </summary>
     public partial class TimingPointSettings : CompositeDrawable
     {
@@ -80,33 +82,11 @@ namespace Garbus.Game.Edit.Screens.Timing
 
                     // --- Offset ---
                     new SpriteText { Text = "Offset (ms)" },
-                    new GridContainer
+                    offsetTextBox = new BasicTextBox
                     {
                         RelativeSizeAxes = Axes.X,
                         Height = 30,
-                        ColumnDimensions = new[]
-                        {
-                            new Dimension(),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                        },
-                        Content = new[]
-                        {
-                            new Drawable[]
-                            {
-                                offsetTextBox = new BasicTextBox
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    PlaceholderText = "0",
-                                },
-                                new RepeatNudgeButton("-10") { Name = "offset-minus10", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(-10) },
-                                new RepeatNudgeButton("-1") { Name = "offset-minus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(-1) },
-                                new RepeatNudgeButton("+1") { Name = "offset-plus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(+1) },
-                                new RepeatNudgeButton("+10") { Name = "offset-plus10", RelativeSizeAxes = Axes.Both, Action = () => nudgeOffset(+10) },
-                            }
-                        },
+                        PlaceholderText = "0",
                     },
 
                     useCurrentTimeButton = new BasicButton
@@ -119,33 +99,11 @@ namespace Garbus.Game.Edit.Screens.Timing
 
                     // --- BPM ---
                     new SpriteText { Text = "BPM" },
-                    new GridContainer
+                    bpmTextBox = new BasicTextBox
                     {
                         RelativeSizeAxes = Axes.X,
                         Height = 30,
-                        ColumnDimensions = new[]
-                        {
-                            new Dimension(),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                            new Dimension(GridSizeMode.Absolute, 40),
-                        },
-                        Content = new[]
-                        {
-                            new Drawable[]
-                            {
-                                bpmTextBox = new BasicTextBox
-                                {
-                                    RelativeSizeAxes = Axes.Both,
-                                    PlaceholderText = "120",
-                                },
-                                new RepeatNudgeButton("-1") { Name = "bpm-minus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(-1) },
-                                new RepeatNudgeButton("-.1") { Name = "bpm-minus01", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(-0.1) },
-                                new RepeatNudgeButton("+.1") { Name = "bpm-plus01", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(+0.1) },
-                                new RepeatNudgeButton("+1") { Name = "bpm-plus1", RelativeSizeAxes = Axes.Both, Action = () => nudgeBpm(+1) },
-                            }
-                        },
+                        PlaceholderText = "120",
                     },
 
                     // --- Time Signature ---
@@ -309,24 +267,6 @@ namespace Garbus.Game.Edit.Screens.Timing
             tp.TimeSignature = new TimeSignature(numerator);
             editorChart.SaveState();
             changeHandler.EndChange();
-        }
-
-        private void nudgeOffset(double amount)
-        {
-            if (SelectedGroup.Value == null) return;
-
-            offsetTextBox.Text = (SelectedGroup.Value.Time + amount).ToString("0.##", CultureInfo.InvariantCulture);
-            commitOffset();
-        }
-
-        private void nudgeBpm(double amount)
-        {
-            var tp = currentTimingPoint;
-            if (tp == null) return;
-
-            double currentBpm = 60000.0 / tp.BeatLength;
-            bpmTextBox.Text = (currentBpm + amount).ToString("0.##", CultureInfo.InvariantCulture);
-            commitBpm();
         }
 
         private void useCurrentTime()
