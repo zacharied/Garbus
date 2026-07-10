@@ -30,6 +30,66 @@ attribution headers kept).
   `Garbus*` when ported.
 - No mods, difficulty calculation, replays, skinning, or realm — deliberately dropped (see plan).
 
+## Current state (Phase 4 complete)
+
+The editor lives under `Garbus.Game/Edit/` and is reached from `MainMenuScreen`. Layout and key
+classes:
+
+- **Disk I/O:** `Charts/ChartFile` is the editor's handle on a `.garbus` at an arbitrary path (replaces
+  osu's `WorkingBeatmap` — no realm). Load/`Save(path)`/`Save()`, `ImportResource` (copies audio/bg
+  into the chart dir, self-copy guarded), and a lazily-cached directory `ITrackStore` (invalidated on
+  save-to-new-dir). Chart format gained editor fields: extra `ChartMetadata` fields, `backgroundFile`,
+  `previewTime`.
+- **Core:** `Edit/EditorClock` + `Edit/BindableBeatDivisor` (both vendored). `Edit/EditorChart` is the
+  EditorBeatmap counterpart — it **aliases `Chart.HitObjects` directly** (no shadow copy; every
+  mutation is what serialization reads). Undo/redo: `Edit/EditorChangeHandler` +
+  `Edit/GarbusChartChangeHandler` (snapshots the chart as JSON, applies changes by a per-object
+  JSON-identity diff — not osu's `.osu` line diff). `EditorChart.ApplyDefaults` takes no arguments
+  (fixed hit windows).
+- **Shell:** `Edit/Screens/GarbusEditor` — four tabs (`EditorTab` Setup/Compose/Timing/Verify), menu
+  bar (File/Edit/View/Timing), dialog overlay, hotkeys (Ctrl+S/Z/Y/X/C/V/D, F5, Space, transport
+  keys), dirty tracking (`HasUnsavedChanges` = state hash vs hash-at-last-save). DI-caches
+  `EditorClock`, `EditorChart`, change handler (also as `IEditorChangeHandler`), `BindableBeatDivisor`,
+  `EditorClipboard`, `ChartFile`, and `ControlPointInfo`.
+- **Compose:** vendored blueprint/composer stack (`Edit/Compose/`, `Edit/Blueprints/`) + ported BAC
+  editing — `Edit/EditorAngleMapping` (the sole angle↔timeline-x authority; grid left edge = 135°, seam
+  on the 315° diagonal, ghost wrap bands), `Edit/GarbusEditorPlayfield`, `Edit/Drawables/` (simplified
+  editor sprites, separate from gameplay polar drawables; x driven from angle every frame + a ±360°
+  ghost twin near grid edges), tools, placement/selection blueprints, `Edit/GarbusSelectionHandler`.
+- **Timeline / transport:** `Edit/Screens/Timeline/` strip (waveform, ticks, timing-change markers,
+  zoom-synced scroll speed, View toggles) and `Edit/Screens/BottomBar/` (transport, summary timeline,
+  Test button). F5/Test launches a `PlayScreen` with a serializer deep-clone of the WIP chart, starting
+  1500 ms before the playhead; returning seeks the editor clock to the gameplay exit time.
+- **Setup / Timing / Verify:** metadata/resources/difficulty-stub form (`Edit/Screens/Setup/`); timing
+  point list + settings + tap-timing + metronome (`Edit/Screens/Timing/`); `Edit/Screens/Verify/`
+  runs four `ICheck`s (audio/background present, objects before time zero / beyond track end) and lists
+  clickable issues that seek. `Edit/EditorClipboard` does cut/copy/paste/clone (clone deliberately does
+  NOT touch clipboard content, matching osu).
+- **Tests:** headless (`Garbus.Game.Tests/Editor/`), all green. `TestSceneEditorIntegration` walks the
+  full authoring loop end-to-end (new → place cardinal/hold/seam-slider → edit title via the real Setup
+  FormRow → add timing point → Save + decode-from-disk assert → undo×3/redo×3 → clipboard clone →
+  Verify reports missing-audio → switch all four tabs).
+
+**Gotchas that cost debugging cycles (avoid rediscovering):**
+
+- **Vertical `FillFlowContainer` collapses a `RelativeSizeAxes.Both` child to zero height.** The editor
+  tab area is a padded plain `Container` (top/bottom bar heights reserved via `Padding`), never a fill
+  flow, for exactly this reason. `TestSceneEditorShell.TestTabContentHasHeight` guards it.
+- `EditorChart` aliases `Chart.HitObjects` — do not build a second list; mutating the alias is what
+  Save serializes.
+- The composer's editor drawables are **non-pooled**; the composer tracks them in a per-hit-object
+  `drawableMap` and adds/removes on `HitObjectAdded`/`Removed`. Lifecycle is manual — don't assume
+  framework pooling.
+- **Lambda event subscriptions leak** if not unsubscribed (timeline/metronome components subscribe to
+  `ControlPointInfo.ControlPointsChanged`, clock, selection, `HitObjectUpdated`). Keep a field
+  reference to the handler and unsubscribe in `Dispose`.
+- **Wheel-seek convention:** wheel-down (negative `ScrollDelta.Y`) = forward in time, wheel-up =
+  backward (matches osu's `Editor.cs`). Pinned by tests.
+- `TransferBlueprintFor` runs on `HitObjectUpdated` so a re-defaulted object keeps its selection
+  blueprint — updating an object regenerates nested objects, so the blueprint must be re-pointed.
+- Placement auto-seek: `HitObjectPlacementBlueprint.EndPlacement` seeks the clock to the placed object;
+  wait for the seek before asserting screen positions in tests.
+
 ## Current state (Phase 3 complete)
 
 Phase 3 additions — the native chart format:

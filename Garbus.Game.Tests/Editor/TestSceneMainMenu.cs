@@ -24,7 +24,7 @@ namespace Garbus.Game.Tests.Editor
         private ScreenStack stack = null!;
 
         [SetUp]
-        public new void SetUp() => Schedule(() => Child = stack = new ScreenStack(new MainMenuScreen()) { RelativeSizeAxes = Axes.Both });
+        public void SetUp() => Schedule(() => Child = stack = new ScreenStack(new MainMenuScreen()) { RelativeSizeAxes = Axes.Both });
 
         [Test]
         public void TestNewChartOpensEditor()

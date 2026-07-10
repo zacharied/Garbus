@@ -27,7 +27,7 @@ public partial class DrawableHoldNoteHead : DrawableGarbusHitObject<HoldNoteHead
     /// Triggers a user-driven result check. Called by the parent hold's <c>OnPressed</c> so the head is
     /// judged on the same press, without independently participating in input. Returns whether it judged.
     /// </summary>
-    public new bool UpdateResult() => base.UpdateResult(true);
+    public bool UpdateResult() => base.UpdateResult(true);
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {

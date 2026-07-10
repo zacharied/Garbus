@@ -13,7 +13,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
 {
     /// <summary>
     /// Modal overlay that shows a BasicFileSelector filtered to .garbus files.
-    /// Calls <paramref name="onFileSelected"/> with the chosen absolute path and hides itself.
+    /// Calls the <c>onFileSelected</c> callback with the chosen absolute path and hides itself.
     /// </summary>
     public partial class OpenChartDialog : VisibilityContainer
     {

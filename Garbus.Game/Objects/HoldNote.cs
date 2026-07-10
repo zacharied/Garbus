@@ -37,7 +37,7 @@ public class HoldNote : Note, IHasCardinalDirection, IHasMutableAngle, IHasDurat
     };
 
     /// <summary>
-    /// The head note, judged like a <see cref="CardinalNote"/> at the hold's <see cref="StartTime"/>. Its
+    /// The head note, judged like a <see cref="CardinalNote"/> at the hold's <see cref="Gameplay.Objects.HitObject.StartTime"/>. Its
     /// result is folded into the hold's final (tail) judgement, which is deferred until the head is judged.
     /// </summary>
     public HoldNoteHead Head { get; private set; } = null!;

@@ -37,7 +37,7 @@ namespace Garbus.Game.Tests.Editor
         private EditorChart editorChart => harness.EditorChart;
 
         [SetUp]
-        public new void SetUp() => Schedule(() =>
+        public void SetUp() => Schedule(() =>
         {
             var chart = new GarbusChart();
             chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });

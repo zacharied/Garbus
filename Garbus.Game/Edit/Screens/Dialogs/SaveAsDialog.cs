@@ -14,7 +14,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
 {
     /// <summary>
     /// Modal overlay: directory selector + filename text box + Save/Cancel buttons.
-    /// Calls <paramref name="onSave"/> with the resolved absolute path (guaranteed to end with .garbus).
+    /// Calls the <c>onSave</c> callback with the resolved absolute path (guaranteed to end with .garbus).
     /// </summary>
     public partial class SaveAsDialog : VisibilityContainer
     {

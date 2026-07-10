@@ -45,7 +45,7 @@ namespace Garbus.Game.Tests.Editor
         private BindableBeatDivisor? beatDivisor;
 
         [SetUp]
-        public new void SetUp() => Schedule(() =>
+        public void SetUp() => Schedule(() =>
         {
             editorClock = null;
             beatDivisor = null;

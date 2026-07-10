@@ -34,7 +34,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
     /// <summary>
     /// Whether placing a hit object should automatically seek the editor clock to its start time.
-    /// Wired from <see cref="GarbusSetting.EditorAutoSeekOnPlacement"/> via ComposeTab (Task 17).
+    /// Wired from <see cref="Configuration.GarbusSetting.EditorAutoSeekOnPlacement"/> via ComposeTab (Task 17).
     /// Placement blueprints bind their own <c>AutoSeekOnPlacement</c> to this when the composer is
     /// in their DI hierarchy.
     /// </summary>

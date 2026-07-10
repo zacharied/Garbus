@@ -85,7 +85,7 @@ namespace Garbus.Game.Edit.Compose
         /// <summary>
         /// Re-applies the hit object's defaults, regenerating nested objects and derived geometry.
         /// Osu's overload takes the beatmap's ControlPointInfo + Difficulty; Garbus hit windows are fixed,
-        /// so <see cref="GarbusHitObject.ApplyDefaults"/> takes no such arguments.
+        /// so <see cref="Gameplay.Objects.HitObject.ApplyDefaults"/> takes no such arguments.
         /// </summary>
         protected void ApplyDefaultsToHitObject() => HitObject.ApplyDefaults();
 

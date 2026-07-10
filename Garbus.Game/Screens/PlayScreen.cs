@@ -91,7 +91,7 @@ namespace Garbus.Game.Screens
 
         /// <summary>
         /// Creates a <see cref="PlayScreen"/> that loads the bundled test chart.
-        /// Used by the main menu "Play" button and <see cref="TestScenePlayScreen"/>.
+        /// Used by the main menu "Play" button and <c>TestScenePlayScreen</c>.
         /// </summary>
         public PlayScreen()
         {

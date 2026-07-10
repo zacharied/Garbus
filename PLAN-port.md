@@ -171,13 +171,35 @@ fixed (no per-chart difficulty — `DefaultHitWindows` carries constant values).
       `GarbusTestChartGenerator` remains the file's source of truth — regenerate via the `[Explicit]`
       test `TestChartFormat.RegenerateBundledTestChart` after changing either side
 
-### Phase 4 — editor rebuild (the big one)
+### Phase 4 — editor rebuild ✅ (2026-07-09)
 
-- [ ] Bespoke scaffolding: editor clock/transport, timeline strip, beat-snap grid, blueprint container,
-      drag-box selection, undo/redo (single-game scope — far smaller than osu's generic framework)
-- [ ] Port `EditorAngleMapping` + all `Edit/Drawables/` and `Edit/Blueprints/` logic onto it
-- [ ] Save/load through the native chart format (finally: persistence)
-- [ ] Editor tests on framework `TestScene` (replaces `EditorTestScene`)
+Full editor lives under `Garbus.Game/Edit/`. Chart format gained editor fields (extra `ChartMetadata`
+fields, `backgroundFile`, `previewTime`); `Charts/ChartFile` is the editor's disk handle (load/save a
+`.garbus` at an arbitrary path + per-chart resource import + directory track store — replaces osu's
+`WorkingBeatmap`, no realm). Core: vendored `EditorClock` + `BindableBeatDivisor`, `EditorChart`
+(EditorBeatmap counterpart — aliases `Chart.HitObjects`, no shadow copy), undo/redo via
+`EditorChangeHandler` + `GarbusChartChangeHandler` (JSON-identity diff, not osu's line diff). Shell:
+`GarbusEditor` (four tabs, menu bar, dialog overlay, hotkeys, dirty tracking) reached from
+`MainMenuScreen`. Compose: the vendored blueprint/composer stack (`Edit/Compose/`,
+`Edit/Blueprints/`) plus the ported BAC compose editing (`EditorAngleMapping`, editor playfield,
+`Edit/Drawables/`, tools, placement/selection blueprints, `GarbusSelectionHandler`). Timeline strip
+with zoom-synced scroll speed + View toggles; bottom bar/transport + F5 test mode (plays an in-memory
+clone of the WIP chart). Setup/Timing/Verify tabs + `EditorClipboard` (cut/copy/paste/clone) and
+Timing menu items.
+
+**Plan deviations (corrected in-tree):** `HitObjectSelectionBlueprint<T>` and `BindableBeatDivisor`
+were transcribed to osu's real API shapes rather than the plan's initial sketch (commits tagged
+`Plan:`). `EditorChart.ApplyDefaults` takes no arguments (Garbus hit windows are fixed — no
+ControlPointInfo/Difficulty). Editor layout uses a padded plain `Container` for tab content, not a
+vertical `FillFlowContainer` (a `RelativeSizeAxes.Both` child inside a vertical fill flow collapses to
+zero height).
+
+- [x] Bespoke scaffolding: `EditorClock`/transport, timeline strip, beat-snap grid, blueprint
+      container, drag-box selection, undo/redo
+- [x] Ported `EditorAngleMapping` + all `Edit/Drawables/` and `Edit/Blueprints/` logic onto it
+- [x] Save/load through the native chart format via `ChartFile` (persistence)
+- [x] Editor tests on framework `TestScene`; `TestSceneEditorIntegration` walks the full authoring loop
+      end-to-end (new → place → edit → time → save+decode → undo/redo → clone → verify → tab-switch)
 
 ### Phase 5 — game chrome
 

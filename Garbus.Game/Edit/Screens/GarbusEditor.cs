@@ -72,6 +72,9 @@ namespace Garbus.Game.Edit.Screens
 
         /// <summary>Exposed for tests that need to assert undo/redo state directly.</summary>
         internal GarbusChartChangeHandler ChangeHandlerForTests => changeHandler;
+
+        /// <summary>Exposed for tests that drive clipboard operations directly.</summary>
+        internal EditorClipboard ClipboardForTests => clipboard;
         private BindableBeatDivisor beatDivisor = null!;
         private AudioManager audioManager = null!;
         private EditorClipboard clipboard = null!;
@@ -81,7 +84,7 @@ namespace Garbus.Game.Edit.Screens
         /// <summary>
         /// Set to true once the user has confirmed a discard-and-exit so that
         /// <see cref="OnExiting"/> does not re-show the save dialog on the second
-        /// call that the framework issues after we call <see cref="IScreen.Exit"/>.
+        /// call that the framework issues after we call <c>this.Exit()</c>.
         /// </summary>
         private bool exitConfirmed;
 

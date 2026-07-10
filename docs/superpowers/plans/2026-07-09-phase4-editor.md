@@ -1,6 +1,6 @@
 # Phase 4 — Editor Rebuild Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Port the BAC editor onto Garbus with functionality parity, rebuilding the osu.Game editor scaffolding it stands on (spec: `docs/superpowers/specs/2026-07-09-phase4-editor-design.md`).
 
@@ -86,7 +86,7 @@ Dependency order: A (format/IO) → B (core) → C (shell) → D (compose editin
 - Consumes: existing `GarbusChartSerializer.Encode/Decode`, `ChartFileDto` DTO layer.
 - Produces: `ChartMetadata` gains `string RomanisedTitle`, `string RomanisedArtist`, `string Source`, `string Tags`, `string BackgroundFile` (all `= string.Empty`; empty string = unset, consistent with existing fields — no nullables in metadata). `GarbusChart` gains `double? PreviewTime` (ms). DTOs mirror 1:1. Later tasks (Setup tab, Verify checks, Timing menu) read/write exactly these names.
 
-- [ ] **Step 1: Write the failing test** — in `TestChartFormat`, extend the existing roundtrip test's chart fixture (or add `TestNewFieldsRoundtrip`) so a chart carrying all new fields survives Encode→Decode:
+- [x] **Step 1: Write the failing test** — in `TestChartFormat`, extend the existing roundtrip test's chart fixture (or add `TestNewFieldsRoundtrip`) so a chart carrying all new fields survives Encode→Decode:
 
 ```csharp
 [Test]
@@ -116,12 +116,12 @@ public void TestNewFieldsRoundtrip()
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter TestNewFieldsRoundtrip`
 Expected: FAIL — compile error (`RomanisedTitle` does not exist), which counts as the failing state.
 
-- [ ] **Step 3: Implement** — add to `ChartMetadata` (after `ChartName`, before `AudioFile`):
+- [x] **Step 3: Implement** — add to `ChartMetadata` (after `ChartName`, before `AudioFile`):
 
 ```csharp
     /// <summary>UTF-8 latin-readable variants for players who can't read the native script.</summary>
@@ -155,17 +155,17 @@ Add to `GarbusChart` (after `Metadata`):
 
 (`PreviewTime` is `{ get; set; }`, not `init` — the editor's Timing menu mutates it.) Mirror all six fields onto `ChartMetadataDto` / `ChartFileDto` (`PreviewTime` as `double?`) and map them in `GarbusChartSerializer.toDto`/`fromDto` — both directions, all fields. `CURRENT_VERSION` stays 1 (global constraint).
 
-- [ ] **Step 4: Run the format test group**
+- [x] **Step 4: Run the format test group**
 
 Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter TestChartFormat`
 Expected: PASS, including the pre-existing bundled-file-agreement test — if that one fails, re-run the regeneration in Step 5 first (order the steps so regeneration precedes the assertion if needed).
 
-- [ ] **Step 5: Regenerate the bundled chart** — run the `[Explicit]` test `TestChartFormat.RegenerateBundledTestChart` (see its header comment for the exact invocation used in Phase 3), confirm `Garbus.Resources/Charts/test-chart.garbus` now carries the new (empty/null) fields, then run the full suite.
+- [x] **Step 5: Regenerate the bundled chart** — run the `[Explicit]` test `TestChartFormat.RegenerateBundledTestChart` (see its header comment for the exact invocation used in Phase 3), confirm `Garbus.Resources/Charts/test-chart.garbus` now carries the new (empty/null) fields, then run the full suite.
 
 Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj`
 Expected: all green (20 pre-existing + new).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A && git commit -m "Chart format: romanised metadata, source/tags, backgroundFile, previewTime"
@@ -204,7 +204,7 @@ public class ChartFile
 }
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 // Garbus.Game.Tests/Charts/TestChartFile.cs
@@ -259,19 +259,19 @@ public class TestChartFile
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter TestChartFile`
 Expected: FAIL — `ChartFile` does not exist.
 
-- [ ] **Step 3: Implement `ChartFile`** exactly per the Produces block. Implementation notes: `Load` = `File.ReadAllText` → `GarbusChartSerializer.Decode` → `chart.ApplyDefaults()`. `Save` = `GarbusChartSerializer.Encode` → `File.WriteAllText`, then `FilePath = path` and drop any cached track store. `GetTrackStore` = `audio.GetTrackStore(new StorageBackedResourceStore(new NativeStorage(Directory)))` cached per directory (note: framework `ITrackStore` lookups need the full filename incl. extension — same gotcha as CLAUDE.md's `Tracks/test-track.ogg` note). `ImportResource` = `File.Copy(sourcePath, Path.Combine(Directory, Path.GetFileName(sourcePath)), overwrite: true)`.
+- [x] **Step 3: Implement `ChartFile`** exactly per the Produces block. Implementation notes: `Load` = `File.ReadAllText` → `GarbusChartSerializer.Decode` → `chart.ApplyDefaults()`. `Save` = `GarbusChartSerializer.Encode` → `File.WriteAllText`, then `FilePath = path` and drop any cached track store. `GetTrackStore` = `audio.GetTrackStore(new StorageBackedResourceStore(new NativeStorage(Directory)))` cached per directory (note: framework `ITrackStore` lookups need the full filename incl. extension — same gotcha as CLAUDE.md's `Tracks/test-track.ogg` note). `ImportResource` = `File.Copy(sourcePath, Path.Combine(Directory, Path.GetFileName(sourcePath)), overwrite: true)`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter TestChartFile`
 Expected: PASS. Then full suite: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj` — all green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A && git commit -m "ChartFile: disk load/save and per-chart resource resolution"
@@ -292,7 +292,7 @@ git add -A && git commit -m "ChartFile: disk load/save and per-chart resource re
 - Produces: `Garbus.Game.Edit.BindableBeatDivisor : BindableInt` — `static readonly int[] PREDEFINED_DIVISORS = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 16 }` (osu's real list), `SetArbitraryDivisor(int)`, `ValidDivisors` bindable, `SelectNext()`/`SelectPrevious()` snap cycling (osu's real names), static `GetDivisorForBeatIndex(int index, int beatDivisor)`. Keep osu's API surface — the beat snap grid, timeline ticks, and divisor control (later tasks) call these.
 - Trims: any `OsuColour`/display helpers (e.g. `GetColourFor`) — replace call sites later with hardcoded colours; keep the numeric logic verbatim.
 
-- [ ] **Step 1: Write the failing test** — divisor presets, arbitrary divisor, next/previous cycling:
+- [x] **Step 1: Write the failing test** — divisor presets, arbitrary divisor, next/previous cycling:
 
 ```csharp
 [TestFixture]
@@ -318,10 +318,10 @@ public class TestBindableBeatDivisor
 }
 ```
 
-- [ ] **Step 2: Run to verify failure** — `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter TestBindableBeatDivisor` → FAIL (type missing).
-- [ ] **Step 3: Vendor the file.** Copy, keep ppy header + add `// Adapted for Garbus:` line, namespace `Garbus.Game.Edit`, strip colour/display helpers and any `osu.Game` using that remains. Point `Charts/Timing`'s Phase 3 inlined divisor list at `BindableBeatDivisor.PREDEFINED_DIVISORS` and delete the inline copy.
-- [ ] **Step 4: Run** — filtered test PASS, then full suite green (Charts tests prove the divisor-list move broke nothing).
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "Vendor BindableBeatDivisor"`
+- [x] **Step 2: Run to verify failure** — `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter TestBindableBeatDivisor` → FAIL (type missing).
+- [x] **Step 3: Vendor the file.** Copy, keep ppy header + add `// Adapted for Garbus:` line, namespace `Garbus.Game.Edit`, strip colour/display helpers and any `osu.Game` using that remains. Point `Charts/Timing`'s Phase 3 inlined divisor list at `BindableBeatDivisor.PREDEFINED_DIVISORS` and delete the inline copy.
+- [x] **Step 4: Run** — filtered test PASS, then full suite green (Charts tests prove the divisor-list move broke nothing).
+- [x] **Step 5: Commit** — `git add -A && git commit -m "Vendor BindableBeatDivisor"`
 
 ### Task 4: Vendor EditorClock
 
@@ -334,7 +334,7 @@ public class TestBindableBeatDivisor
 - Produces: `Garbus.Game.Edit.EditorClock : CompositeComponent, IFrameBasedClock, IAdjustableClock, ISourceChangeableClock` with osu's API: `CurrentTime`, `TrackLength`, `ControlPointInfo` (settable reference), `Seek(double)`, `SeekSmoothlyTo(double)`, `SeekSnapped(double)`, `SeekBackward/SeekForward(bool snapped, double amount)`, `Start()/Stop()`, `SeekingOrStopped`, `IsRunning`, `ChangeSource(Track)`, `AudioAdjustments` (for playback speed). Constructor: `EditorClock(ControlPointInfo controlPointInfo, double trackLength, BindableBeatDivisor beatDivisor)`.
 - Trims: `IBeatSyncProvider`/kiai plumbing if it drags osu.Game types; `EditorBeatmap` references become the injected `ControlPointInfo` (the clock only uses timing points for snapping). **Trackless charts:** callers pass `TrackVirtual` (framework) with length 60000 ms until Setup assigns real audio — no special casing inside the clock.
 
-- [ ] **Step 1: Write the failing test** (headless `GarbusTestScene`; the existing `TestSceneClockStack` shows the pattern for stepping clocks in tests — mirror it):
+- [x] **Step 1: Write the failing test** (headless `GarbusTestScene`; the existing `TestSceneClockStack` shows the pattern for stepping clocks in tests — mirror it):
 
 ```csharp
 [TestFixture]
@@ -358,10 +358,10 @@ public partial class TestSceneEditorClock : GarbusTestScene
 }
 ```
 
-- [ ] **Step 2: Run to verify failure** — `--filter TestSceneEditorClock` → FAIL.
-- [ ] **Step 3: Vendor.** Copy EditorClock, keep header + adaptation line, swap `FramedBeatmapClock` → `FramedChartClock`, `beatmap.ControlPointInfo` → constructor-injected settable `ControlPointInfo` property (the editor swaps it when a chart loads). `SeekSmoothlyTo` is framework transforms — keep it.
-- [ ] **Step 4: Run** — filtered PASS, full suite green.
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "Vendor EditorClock"`
+- [x] **Step 2: Run to verify failure** — `--filter TestSceneEditorClock` → FAIL.
+- [x] **Step 3: Vendor.** Copy EditorClock, keep header + adaptation line, swap `FramedBeatmapClock` → `FramedChartClock`, `beatmap.ControlPointInfo` → constructor-injected settable `ControlPointInfo` property (the editor swaps it when a chart loads). `SeekSmoothlyTo` is framework transforms — keep it.
+- [x] **Step 4: Run** — filtered PASS, full suite green.
+- [x] **Step 5: Commit** — `git add -A && git commit -m "Vendor EditorClock"`
 
 ### Task 5: EditorChart (EditorBeatmap counterpart)
 
@@ -400,7 +400,7 @@ public partial class EditorChart : TransactionalCommitComponent
 }
 ```
 
-- [ ] **Step 1: Write the failing tests** — add fires event + applies defaults; `Update` regenerates nested objects; removal deselects; list stays time-ordered:
+- [x] **Step 1: Write the failing tests** — add fires event + applies defaults; `Update` regenerates nested objects; removal deselects; list stays time-ordered:
 
 ```csharp
 [TestFixture]
@@ -456,10 +456,10 @@ public class TestEditorChart
 
 Note: if `GarbusHitObject.ApplyDefaults()` doesn't regenerate nesteds on re-call (check the actual implementation — BAC's `CreateNestedHitObjects` pattern), `Update` must clear nesteds first, the way osu's `EditorBeatmap.Update` → `ApplyDefaultsToHitObject` does. Verify against `Gameplay/Objects/HitObject.cs` and adapt.
 
-- [ ] **Step 2: Run to verify failure** — `--filter TestEditorChart` → FAIL.
-- [ ] **Step 3: Implement** `TransactionalCommitComponent` (vendor) + `EditorChart` per the contract. Keep the osu behavioural detail: mutations between `BeginChange`/`EndChange` produce ONE state save at the outermost `EndChange`; mutations outside a transaction save immediately.
-- [ ] **Step 4: Run** — filtered PASS, full suite green.
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "EditorChart: transactional chart editing model"`
+- [x] **Step 2: Run to verify failure** — `--filter TestEditorChart` → FAIL.
+- [x] **Step 3: Implement** `TransactionalCommitComponent` (vendor) + `EditorChart` per the contract. Keep the osu behavioural detail: mutations between `BeginChange`/`EndChange` produce ONE state save at the outermost `EndChange`; mutations outside a transaction save immediately.
+- [x] **Step 4: Run** — filtered PASS, full suite green.
+- [x] **Step 5: Commit** — `git add -A && git commit -m "EditorChart: transactional chart editing model"`
 
 ### Task 6: Undo/redo — EditorChangeHandler + GarbusChartChangeHandler
 
@@ -501,7 +501,7 @@ public partial class GarbusChartChangeHandler : EditorChangeHandler
 }
 ```
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
 
 ```csharp
 [TestFixture]
@@ -575,10 +575,10 @@ public class TestChangeHandler
 }
 ```
 
-- [ ] **Step 2: Run to verify failure** — `--filter TestChangeHandler` → FAIL.
-- [ ] **Step 3: Implement.** Vendor the base faithfully (50-state cap, hash, bindables). For `ApplyStateChange`'s diff: encode each current hit object via `EncodeHitObject` and match against the target list's encodings; unmatched-current → `Remove`, unmatched-target → `Add`. This mirrors osu's `LegacyEditorBeatmapPatcher` object-diff idea without the legacy encoder.
-- [ ] **Step 4: Run** — filtered PASS, full suite green.
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "Undo/redo: serializer-snapshot change handler"`
+- [x] **Step 2: Run to verify failure** — `--filter TestChangeHandler` → FAIL.
+- [x] **Step 3: Implement.** Vendor the base faithfully (50-state cap, hash, bindables). For `ApplyStateChange`'s diff: encode each current hit object via `EncodeHitObject` and match against the target list's encodings; unmatched-current → `Remove`, unmatched-target → `Add`. This mirrors osu's `LegacyEditorBeatmapPatcher` object-diff idea without the legacy encoder.
+- [x] **Step 4: Run** — filtered PASS, full suite green.
+- [x] **Step 5: Commit** — `git add -A && git commit -m "Undo/redo: serializer-snapshot change handler"`
 
 ---
 
@@ -630,7 +630,7 @@ public partial class ConfirmDialog : VisibilityContainer   // modal overlay
 
 Layout (all `Basic*`/plain containers): top bar 40px — `BasicMenu` (File/Edit/View/Timing, horizontal) left, `BasicTabControl<EditorTab>` right; content area = the four `EditorTabScreen`s in a container, visibility driven by `Tab`; bottom bar 60px placeholder container (filled in Task 17). Menu items this task: File = New/Open…/Save/Save As…/Exit (New/Open push confirmation via `ConfirmDialog` when `HasUnsavedChanges`; actual open flow is Task 8's); Edit = Undo/Redo wired to the change handler with enabled-state bound to `CanUndo`/`CanRedo`; View/Timing menus = created empty here (items land in Tasks 17 and 23). Hotkeys: Ctrl+S = Save, Ctrl+Z = Undo, Ctrl+Shift+Z / Ctrl+Y = Redo. Track: `ChartFile.GetTrackStore(audioManager)?.Get(metadata.AudioFile)` else `new TrackVirtual(60000)` (`audioManager` = the BDL-resolved `AudioManager`).
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
 
 ```csharp
 [TestFixture]
@@ -669,10 +669,10 @@ public partial class TestSceneEditorShell : GarbusTestScene
 
 For `TestDirtyTracking`: expose `public EditorChart EditorChart { get; }` on `GarbusEditor` (it owns it anyway), and construct the `ChartFile` pre-saved to a temp path in this test's `SetUp` so `Save()` has a target.
 
-- [ ] **Step 2: Run to verify failure** — `--filter TestSceneEditorShell` → FAIL.
-- [ ] **Step 3: Implement** per the Produces block. Keep `GarbusEditor` under ~300 lines by delegating: menu construction in a `createMenuBar()` method, DI caching via `CreateChildDependencies`.
-- [ ] **Step 4: Run** — filtered PASS, full suite green.
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "Editor shell: tabs, menu bar, dirty tracking, dialogs"`
+- [x] **Step 2: Run to verify failure** — `--filter TestSceneEditorShell` → FAIL.
+- [x] **Step 3: Implement** per the Produces block. Keep `GarbusEditor` under ~300 lines by delegating: menu construction in a `createMenuBar()` method, DI caching via `CreateChildDependencies`.
+- [x] **Step 4: Run** — filtered PASS, full suite green.
+- [x] **Step 5: Commit** — `git add -A && git commit -m "Editor shell: tabs, menu bar, dirty tracking, dialogs"`
 
 ### Task 8: MainMenuScreen + open/new/save-as flows
 
@@ -687,7 +687,7 @@ For `TestDirtyTracking`: expose `public EditorChart EditorChart { get; }` on `Ga
 - Consumes: `ChartFile.Load/Save` (2), `GarbusEditor` (7), existing `PlayScreen`, `ChartStore` (bundled test chart).
 - Produces: `MainMenuScreen : Screen` with three `BasicButton`s — **Play** (push `new PlayScreen()`), **New Chart** (push `GarbusEditor` with `new ChartFile(emptyChart())` — empty chart gets one default `TimingControlPoint { BeatLength = 500 }` at 0 so beat snap works pre-timing), **Open Chart** (show `OpenChartDialog`; on pick, `ChartFile.Load(path)` → push editor; decode failure shows a `ConfirmDialog` with the error, no crash). `GarbusEditor.SaveAs()` uses `SaveAsDialog`; `Save()` delegates to it when `FilePath == null`. Editor exit with unsaved changes intercepts `OnExiting` → `ConfirmDialog.SaveDiscardCancel`.
 
-- [ ] **Step 1: Write the failing tests** — menu buttons exist and push the right screens; editor exit-dirty shows the dialog; save-as writes the file:
+- [x] **Step 1: Write the failing tests** — menu buttons exist and push the right screens; editor exit-dirty shows the dialog; save-as writes the file:
 
 ```csharp
 [TestFixture]
@@ -721,11 +721,11 @@ public partial class TestSceneMainMenu : GarbusTestScene
 
 (`dirtyEditor()` = helper resolving the editor's `EditorChart` and adding a `CardinalNote`; write it concretely.)
 
-- [ ] **Step 2: Run to verify failure** — `--filter TestSceneMainMenu` → FAIL.
-- [ ] **Step 3: Implement** per Produces. `GarbusGame` boot change is one line (`ScreenStack.Push(new MainMenuScreen())` where `PlayScreen` was pushed).
-- [ ] **Step 4: Run** — filtered PASS; also `--filter TestScenePlayScreen` still green (boot change must not break it — it constructs `PlayScreen` directly). Full suite green.
-- [ ] **Step 5: Manual smoke:** `dotnet run --project Garbus.Desktop` — menu appears; Play works as before; New Chart opens the editor shell with tabs; exit prompts when dirtied (place nothing yet — edit metadata once Task 20 lands; for now dirty via undo-able tab default, or just verify clean exit). Note observations in the commit message if anything is off.
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "Main menu and chart open/new/save-as flows"`
+- [x] **Step 2: Run to verify failure** — `--filter TestSceneMainMenu` → FAIL.
+- [x] **Step 3: Implement** per Produces. `GarbusGame` boot change is one line (`ScreenStack.Push(new MainMenuScreen())` where `PlayScreen` was pushed).
+- [x] **Step 4: Run** — filtered PASS; also `--filter TestScenePlayScreen` still green (boot change must not break it — it constructs `PlayScreen` directly). Full suite green.
+- [x] **Step 5: Manual smoke:** `dotnet run --project Garbus.Desktop` — menu appears; Play works as before; New Chart opens the editor shell with tabs; exit prompts when dirtied (place nothing yet — edit metadata once Task 20 lands; for now dirty via undo-able tab default, or just verify clean exit). Note observations in the commit message if anything is off.
+- [x] **Step 6: Commit** — `git add -A && git commit -m "Main menu and chart open/new/save-as flows"`
 
 ---
 
@@ -746,10 +746,10 @@ Vendor tasks 9–13 have no meaningful behaviour to test in isolation (abstract 
 - Trims: mods/`IApplicableToScrollingInfo`, per-hit-object initial-state cache complexity may be kept as-is (it's framework-only code). Direction support can be trimmed to `Down` if branches on Up/Left/Right pull anything osu-specific (they don't — keep all four, it's pure math).
 - If BAC's `GarbusScrollingHitObjectContainer` (gameplay) duplicates helpers these provide, do NOT refactor gameplay — the editor container is separate.
 
-- [ ] **Step 1: Vendor both files** with headers + adaptation lines, namespace `Garbus.Game.Gameplay.UI.Scrolling`.
-- [ ] **Step 2: Build** — `dotnet build Garbus.Desktop.slnf` → 0 errors/warnings introduced.
-- [ ] **Step 3: Full suite** — green.
-- [ ] **Step 4: Commit** — `git add -A && git commit -m "Vendor ScrollingHitObjectContainer/ScrollingPlayfield for the editor"`
+- [x] **Step 1: Vendor both files** with headers + adaptation lines, namespace `Garbus.Game.Gameplay.UI.Scrolling`.
+- [x] **Step 2: Build** — `dotnet build Garbus.Desktop.slnf` → 0 errors/warnings introduced.
+- [x] **Step 3: Full suite** — green.
+- [x] **Step 4: Commit** — `git add -A && git commit -m "Vendor ScrollingHitObjectContainer/ScrollingPlayfield for the editor"`
 
 ### Task 10: Vendor SnapResult + placement/selection blueprint bases
 
@@ -807,8 +807,8 @@ public abstract partial class HitObjectSelectionBlueprint<T> : HitObjectSelectio
 
 - Trims: `IPlacementHandler` indirection may be simplified to direct `EditorChart` calls IF osu's version routes through the composer — check the source first and keep osu's shape where it doesn't cost extra types. Sample banks / combo handling in placement: strip. `SelectionBlueprint`'s `IStateful` is framework — keep.
 
-- [ ] **Step 1: Vendor the files** per above; namespace `Garbus.Game.Edit.Compose`.
-- [ ] **Step 2: Build** → clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor blueprint bases and SnapResult"`
+- [x] **Step 1: Vendor the files** per above; namespace `Garbus.Game.Edit.Compose`.
+- [x] **Step 2: Build** → clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor blueprint bases and SnapResult"`
 
 ### Task 11: Vendor SelectionHandler + SelectionBox + EditorSelectionHandler
 
@@ -847,7 +847,7 @@ public partial class EditorSelectionHandler : SelectionHandler<GarbusHitObject>
 
 - Trims: sample/bank/new-combo ternary states in `EditorSelectionHandler` (osu's is mostly that — what remains is thin), rotation/scale support, `OsuContextMenu` → `BasicContextMenuContainer`-compatible plain `MenuItem`s.
 
-- [ ] **Step 1: Vendor** per above. **Step 2:** build clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor SelectionHandler/SelectionBox stack"`
+- [x] **Step 1: Vendor** per above. **Step 2:** build clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor SelectionHandler/SelectionBox stack"`
 
 ### Task 12: Vendor BlueprintContainer + ComposeBlueprintContainer + DragBox
 
@@ -886,7 +886,7 @@ public partial class ComposeBlueprintContainer : BlueprintContainer<GarbusHitObj
 - Trims: paste/duplicate placement (comes with clipboard in Task 23 — leave osu's hooks compiled but inert if cheap, else strip and re-add), `OsuConfigManager` "limit distance snap" etc., sample point pieces.
 - **Note:** `ApplySnapResultTime` and the `TryMoveBlueprints` tuple signature must match `BacBlueprintContainer`'s expectations verbatim (see Interfaces above and the BAC source) — that file ports with near-zero edits in Task 16.
 
-- [ ] **Step 1: Vendor** per above. **Step 2:** build clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor BlueprintContainer stack and drag box"`
+- [x] **Step 1: Vendor** per above. **Step 2:** build clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor BlueprintContainer stack and drag box"`
 
 ### Task 13: Vendor composer bases + toolbox components
 
@@ -932,8 +932,8 @@ public abstract partial class ScrollingHitObjectComposer<T> : HitObjectComposer 
 }
 ```
 
-- [ ] **Step 1: Vendor/rework** per above. Where osu's file is too entangled to copy (the DrawableRulesetWrapper parts), write the replacement fresh but keep osu's member names so ported BAC code compiles against it.
-- [ ] **Step 2:** build clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor composer bases, toolboxes, beat snap grid"`
+- [x] **Step 1: Vendor/rework** per above. Where osu's file is too entangled to copy (the DrawableRulesetWrapper parts), write the replacement fresh but keep osu's member names so ported BAC code compiles against it.
+- [x] **Step 2:** build clean. **Step 3:** full suite green. **Step 4: Commit** — `git add -A && git commit -m "Vendor composer bases, toolboxes, beat snap grid"`
 
 ### Task 14: Port EditorAngleMapping + editor playfield + editor drawables
 
@@ -948,8 +948,8 @@ public abstract partial class ScrollingHitObjectComposer<T> : HitObjectComposer 
 - Produces: `EditorAngleMapping` (identical public surface: `ANGLE_ORIGIN`, `GHOST_DEGREES`, `TOTAL_DEGREES`, `ToX`, `SnapX`, `GhostTwinX`, `MinimalDiff`, `NormalizeDeg`, `VisibleWrapCopies`), `GarbusEditorPlayfield : ScrollingPlayfield` (`HitObjectContainer` typed `ScrollingHitObjectContainer`, `UnderlayElements` container for the beat snap grid), all editor drawables.
 - Port notes: BAC gotchas apply — nested drawables need `AddNestedHitObject` → nested container (or NRE in `OnKilled`); `SliderPolylineVisual` pools its `SmoothPath`s (never new-per-frame — framebuffer leak); keep the `GlobalStatistic` rebuild counter.
 
-- [ ] **Step 1: Write failing tests** — `TestEditorAngleMapping`: port the angle-mapping assertions from BAC (`SnapX` wrap normalisation, `GhostTwinX` band membership, `MinimalDiff` shortest rotation — if BAC has no standalone test for these, write: `ToX(135) == 0` domain checks, `SnapX` on a ghost-band x stays in band, `MinimalDiff(350, 10) == 20`). `TestSceneEditorPlayfield`: construct playfield inside a minimal composer harness, add one `CardinalNote` at angle 90 / t=1000 via `EditorChart`, assert an `EditorDrawableCardinalNote` appears and its x-fraction ≈ `EditorAngleMapping.ToX(90)`; add a seam-crossing slider and assert `SliderPolylineVisual` renders 2 wrap copies (`ChildrenOfType<SmoothPath>` count, BAC's test pattern).
-- [ ] **Step 2:** run filtered → FAIL. **Step 3:** port the files. **Step 4:** run filtered → PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Port editor playfield, angle mapping, editor drawables"`
+- [x] **Step 1: Write failing tests** — `TestEditorAngleMapping`: port the angle-mapping assertions from BAC (`SnapX` wrap normalisation, `GhostTwinX` band membership, `MinimalDiff` shortest rotation — if BAC has no standalone test for these, write: `ToX(135) == 0` domain checks, `SnapX` on a ghost-band x stays in band, `MinimalDiff(350, 10) == 20`). `TestSceneEditorPlayfield`: construct playfield inside a minimal composer harness, add one `CardinalNote` at angle 90 / t=1000 via `EditorChart`, assert an `EditorDrawableCardinalNote` appears and its x-fraction ≈ `EditorAngleMapping.ToX(90)`; add a seam-crossing slider and assert `SliderPolylineVisual` renders 2 wrap copies (`ChildrenOfType<SmoothPath>` count, BAC's test pattern).
+- [x] **Step 2:** run filtered → FAIL. **Step 3:** port the files. **Step 4:** run filtered → PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Port editor playfield, angle mapping, editor drawables"`
 
 ### Task 15: Port composer, tools, placement blueprints
 
@@ -965,7 +965,7 @@ public abstract partial class ScrollingHitObjectComposer<T> : HitObjectComposer 
 - Produces: clicking with a tool places objects into `EditorChart` — the full BAC placement semantics.
 - Port note: BAC's composer resolved `EditorScreenWithTimeline` for zoom sync — replace with the `TimelineTimeRange` bindable (Task 13); the timeline writes it in Task 17. Until then time range holds a constant default (700 × timeline-zoom-equivalent; use 5000 ms).
 
-- [ ] **Step 1: Write failing tests** — headless, `ManualInputManager`, BAC's `TestSceneBacEditor` placement patterns (auto-seek gotcha: placement seeks the clock to the placed object; wait for the seek before asserting screen positions):
+- [x] **Step 1: Write failing tests** — headless, `ManualInputManager`, BAC's `TestSceneBacEditor` placement patterns (auto-seek gotcha: placement seeks the clock to the placed object; wait for the seek before asserting screen positions):
 
 ```csharp
 [Test]
@@ -979,7 +979,7 @@ public void TestPlaceCardinalNote()
 
 Cover: cardinal (angle snapped to 45°), hold (click-drag-release sets duration > 0), shoulder (click in left strip → `Side == Left`), both slams, slider (click body → click node at later time → right-click commits, ≥1 control point; node click at earlier time rejected). Port BAC's `positionAtAngle`/`screenPositionOf` helpers.
 
-- [ ] **Step 2:** run filtered → FAIL. **Step 3:** port the files (minimal edits: namespaces, `EditorBeatmap`→`EditorChart`, `OsuColour.YellowDark`→`new Colour4(255, 196, 40, 255)`, tool icons→text). **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Port composer, tools, placement blueprints"`
+- [x] **Step 2:** run filtered → FAIL. **Step 3:** port the files (minimal edits: namespaces, `EditorBeatmap`→`EditorChart`, `OsuColour.YellowDark`→`new Colour4(255, 196, 40, 255)`, tool icons→text). **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Port composer, tools, placement blueprints"`
 
 ### Task 16: Port selection blueprints + selection handler
 
@@ -992,8 +992,8 @@ Cover: cardinal (angle snapped to 45°), hold (click-drag-release sets duration 
 - Consumes: Tasks 11/12/15. `GarbusSelectionHandler` keeps: movement = x-delta → whole-degree rotation of every selected `IHasMutableAngle` (mod 360), slam anticlockwise `TernaryStateToggleMenuItem`, `SliderCountChip` overlay, hidden `SelectionBox` for slider-only selections.
 - Produces: full BAC selection semantics — click/drag-box select, drag-rotate with snap, ghost-twin hit-testing, path-precise slider selection (outline + node handles only), T-key node insertion on selected slider, hold head/tail drag handles calling `EditorChart.Update`.
 
-- [ ] **Step 1: Write failing tests** — port BAC's coverage: select note by click; drag rotates by snapped increments; select via ghost twin; slider selectable only on polyline/nodes (click inside AABB-but-off-path falls through); T inserts a time-ordered node; delete key removes selection; undo restores it (change-handler integration proof).
-- [ ] **Step 2:** run filtered → FAIL. **Step 3:** port. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Port selection blueprints and selection handler"`
+- [x] **Step 1: Write failing tests** — port BAC's coverage: select note by click; drag rotates by snapped increments; select via ghost twin; slider selectable only on polyline/nodes (click inside AABB-but-off-path falls through); T inserts a time-ordered node; delete key removes selection; undo restores it (change-handler integration proof).
+- [x] **Step 2:** run filtered → FAIL. **Step 3:** port. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Port selection blueprints and selection handler"`
 
 ---
 
@@ -1026,8 +1026,8 @@ public partial class TimelineStrip : ZoomableScrollContainer
 
 Layers inside, back to front: `WaveformGraph` (alpha = `EditorWaveformOpacity`), `TimelineTickDisplay` (beat lines coloured by divisor via `BindableBeatDivisor.GetDivisorForBeatIndex`, hidden when `EditorShowTicks` off), `TimelineTimingChangeDisplay` (red line per `TimingControlPoint`, hidden when toggle off), `TimelineObjectMarkers` (non-interactive: 4px dot at each object's time, widened bar for `IHasDuration`; rebuilds on chart events), `CentreMarker`.
 
-- [ ] **Step 1: Write failing tests** — zoom writes composer time range (`TimelineTimeRange == TrackLength / zoom / 2`); click at fraction f seeks near `f × TrackLength` snapped; toggling `EditorShowTicks` hides the tick display; object markers appear when a note is added.
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Compose top timeline: waveform, ticks, markers, zoom-synced scroll speed"`
+- [x] **Step 1: Write failing tests** — zoom writes composer time range (`TimelineTimeRange == TrackLength / zoom / 2`); click at fraction f seeks near `f × TrackLength` snapped; toggling `EditorShowTicks` hides the tick display; object markers appear when a note is added.
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Compose top timeline: waveform, ticks, markers, zoom-synced scroll speed"`
 
 ### Task 18: Bottom bar + transport keys
 
@@ -1041,8 +1041,8 @@ Layers inside, back to front: `WaveformGraph` (alpha = `EditorWaveformOpacity`),
 - Produces: `BottomBar` (fixed 60px, four columns 150 | flex | 220 | 90 — osu's proportions): `TimeInfoDisplay` (mm:ss.fff + BPM at playhead, updates per frame), `SummaryTimeline` (full-track strip: timing point ticks + preview point marker + progress; click/drag seeks, unsnapped), `PlaybackControl` (play/pause `BasicButton` + speed `BasicTabControl` 0.25/0.5/0.75/1.0 driving `EditorClock.AudioAdjustments` tempo), Test button (wired in Task 19).
 - Key handling on `GarbusEditor` (only when no textbox focused): **Space** play/pause, **Z** seek 0, **X** play from start, **C** pause/resume, **V** seek end, **←/→** seek one divisor step (`SeekBackward/SeekForward(snapped: true)`), **↑/↓** change divisor (`BindableBeatDivisor.Next/Previous`), mouse wheel over the compose area seeks one divisor step (wheel-down = forward, osu convention).
 
-- [ ] **Step 1: Write failing tests** — space toggles `clock.IsRunning`; speed 0.5 halves `AudioAdjustments` aggregate tempo; summary-timeline click seeks; arrow keys move by `beatLength / divisor`.
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Editor bottom bar and transport controls"`
+- [x] **Step 1: Write failing tests** — space toggles `clock.IsRunning`; speed 0.5 halves `AudioAdjustments` aggregate tempo; summary-timeline click seeks; arrow keys move by `beatLength / divisor`.
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Editor bottom bar and transport controls"`
 
 ### Task 19: Test mode
 
@@ -1055,8 +1055,8 @@ Layers inside, back to front: `WaveformGraph` (alpha = `EditorWaveformOpacity`),
 - Consumes: `GarbusChartSerializer` Encode→Decode as deep-clone, `ChartFile.GetTrackStore`, existing `PlayScreen` internals (`MasterGameplayClockContainer` takes a `Track` — CLAUDE.md Phase 2 notes).
 - Produces: Test button/F5 → `this.Push(new PlayScreen(clonedChart, freshTrack, startTime))` where `clonedChart = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(editorChart.Chart))` (+ `ApplyDefaults`), `freshTrack` = new track instance from the chart directory store (never share the editor's track instance), `startTime` = `EditorClock.CurrentTime - 1500` clamped ≥ 0. On resume (`OnResuming`), the editor seeks to where gameplay ended (`PlayScreen` exposes `public double? ExitTime { get; }` set on exit). Trackless chart (still `TrackVirtual`): Test button disabled with tooltip-less greyed state.
 
-- [ ] **Step 1: Write failing tests** — F5 pushes a `PlayScreen` whose chart has the same object count but zero shared references (`ReferenceEquals` false for first object); start time ≈ editor time − 1500; exiting play seeks editor clock to `ExitTime`; Test disabled when track is virtual.
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Editor test mode: play the in-memory chart"`
+- [x] **Step 1: Write failing tests** — F5 pushes a `PlayScreen` whose chart has the same object count but zero shared references (`ReferenceEquals` false for first object); start time ≈ editor time − 1500; exiting play seeks editor clock to `ExitTime`; Test disabled when track is virtual.
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Editor test mode: play the in-memory chart"`
 
 ---
 
@@ -1076,8 +1076,8 @@ Layers inside, back to front: `WaveformGraph` (alpha = `EditorWaveformOpacity`),
   - **DifficultySection:** heading + `SpriteText("No per-chart difficulty settings yet.")`.
   - **ResourcesSection:** two `FileChooserRow`s — Audio Track (extensions `.mp3/.ogg/.wav`), Background Image (`.jpg/.jpeg/.png`). When `ChartFile.Directory == null`: rows disabled + `SpriteText("Save the chart first to add resources.")`. On pick: `ImportResource(path)` → set `metadata.AudioFile`/`metadata.BackgroundFile` (transaction, as above) → for audio also `editor.ReloadTrack()`.
 
-- [ ] **Step 1: Write failing tests** — typing a title + commit updates `Metadata.Title` and is one undo step; resources rows disabled for unsaved chart; after `Save` to temp dir + picking a file (drive the selector's `CurrentFile` programmatically), the file exists in the chart dir and `AudioFile` is set; `ReloadTrack` called (track no longer virtual — use a real short wav copied from test resources, or assert `metadata.AudioFile` set and track length changed).
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Setup tab: metadata, difficulty stub, resources"`
+- [x] **Step 1: Write failing tests** — typing a title + commit updates `Metadata.Title` and is one undo step; resources rows disabled for unsaved chart; after `Save` to temp dir + picking a file (drive the selector's `CurrentFile` programmatically), the file exists in the chart dir and `AudioFile` is set; `ReloadTrack` called (track no longer virtual — use a real short wav copied from test resources, or assert `metadata.AudioFile` set and track length changed).
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Setup tab: metadata, difficulty stub, resources"`
 
 ### Task 21: Timing tab
 
@@ -1094,8 +1094,8 @@ Layers inside, back to front: `WaveformGraph` (alpha = `EditorWaveformOpacity`),
 - Consumes: `ControlPointInfo` (`TimingPoints`, `Add(time, point)`, `RemoveGroup`/removal API — check the vendored Phase 3 surface and use what exists), `EditorClock` (playhead, seek, `IsRunning` for metronome sync), `IEditorChangeHandler`.
 - Produces: selecting a row seeks to it; Add inserts a `TimingControlPoint` at the playhead (BeatLength copied from the previous point, else 500); all edits transactional (undoable — `EditorChart.SaveState` after mutation); tap button averages the last 8 tap intervals into BPM and writes it to the selected point; metronome plays tick/downbeat on beats of the selected point's signature while the clock runs.
 
-- [ ] **Step 1: Write failing tests** — add-at-playhead creates a point at (snapped) current time; editing BPM textbox to 180 sets `BeatLength ≈ 333.33`; deletion removes; undo restores the deleted point; 4 simulated taps 500ms apart → BPM 120 (drive `TapButton` handler directly with fake times — inject a clock or take timestamps as parameters for testability).
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Timing tab: point list, settings, tap timing, metronome"`
+- [x] **Step 1: Write failing tests** — add-at-playhead creates a point at (snapped) current time; editing BPM textbox to 180 sets `BeatLength ≈ 333.33`; deletion removes; undo restores the deleted point; 4 simulated taps 500ms apart → BPM 120 (drive `TapButton` handler directly with fake times — inject a clock or take timestamps as parameters for testability).
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Timing tab: point list, settings, tap timing, metronome"`
 
 ### Task 22: Verify tab
 
@@ -1123,8 +1123,8 @@ public record CheckContext(GarbusChart Chart, ChartFile ChartFile, double TrackL
 - Checks: **CheckAudioPresent** — `Metadata.AudioFile` empty, or file missing from `ChartFile.Directory` → issue (no time). **CheckBackgroundPresent** — same for `BackgroundFile`. **CheckObjectsBeyondTrackEnd** — any object whose end time (`GetEndTime()` pattern — `IHasDuration` aware) > `TrackLength` → one issue per object at its time. **CheckObjectsBeforeTimeZero** — `StartTime < 0` (possible via timeline edge placement/drag) → issue per object.
 - VerifyTab: Refresh `BasicButton` runs all checks over a fresh `CheckContext`; `IssueTable` = simple `FillFlowContainer` of clickable rows (time `mm:ss.fff` or "—", message, check name); row click → `EditorClock.SeekSmoothlyTo(issue.Time)` when it has one.
 
-- [ ] **Step 1: Write failing tests** (pure, no scene needed) — each check: one violating fixture → exactly the expected issues; one clean fixture → empty. E.g. `CheckObjectsBeyondTrackEnd` with a note at 70000 and TrackLength 60000 → 1 issue at 70000.
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Verify tab: check framework and first four checks"`
+- [x] **Step 1: Write failing tests** (pure, no scene needed) — each check: one violating fixture → exactly the expected issues; one clean fixture → empty. E.g. `CheckObjectsBeyondTrackEnd` with a note at 70000 and TrackLength 60000 → 1 issue at 70000.
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Verify tab: check framework and first four checks"`
 
 ### Task 23: Clipboard + Timing menu items
 
@@ -1138,8 +1138,8 @@ public record CheckContext(GarbusChart Chart, ChartFile ChartFile, double TrackL
 - Produces: `EditorClipboard` (`Bindable<string> Content`; `CanCut/CanCopy/CanPaste`): **Copy** = encode selection; **Cut** = copy + `RemoveRange` (transaction); **Paste** = decode, shift every object by `(snappedPlayheadTime − min(StartTime))`, `AddRange` + select the pasted set (one transaction); **Clone** (Ctrl+D) = copy+paste in one step at the playhead. Timing menu: **Set preview point to current time** → `Chart.PreviewTime = clock.CurrentTime` (transaction); **Snap all notes to current snap divisor** → `ConfirmDialog` → for every object `StartTime = ControlPointInfo.GetClosestSnappedTime(StartTime, divisor)` + `Update(h)` (one transaction; destructive-labelled).
 - Hotkeys: Ctrl+X/C/V/D, guarded on selection non-empty (paste on clipboard non-empty).
 
-- [ ] **Step 1: Write failing tests** — copy 2 notes → paste at playhead 4000 → 2 new objects, earliest at snapped 4000, relative offset preserved, originals intact, pasted set selected; cut removes originals; paste is one undo step; snap-all moves an off-grid note to the grid and is undoable; preview point set + undoable.
-- [ ] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Clipboard and Timing menu actions"`
+- [x] **Step 1: Write failing tests** — copy 2 notes → paste at playhead 4000 → 2 new objects, earliest at snapped 4000, relative offset preserved, originals intact, pasted set selected; cut removes originals; paste is one undo step; snap-all moves an off-grid note to the grid and is undoable; preview point set + undoable.
+- [x] **Step 2:** filtered → FAIL. **Step 3:** implement. **Step 4:** filtered PASS; full suite green. **Step 5: Commit** — `git add -A && git commit -m "Clipboard and Timing menu actions"`
 
 ### Task 24: Final integration — full editor test pass, plan tracker, smoke run
 
@@ -1150,12 +1150,12 @@ public record CheckContext(GarbusChart Chart, ChartFile ChartFile, double TrackL
 
 **Interfaces:** consumes everything.
 
-- [ ] **Step 1: Write the integration test** — the full loop in one scene: new chart → place a cardinal + hold + seam-crossing slider → edit metadata title → add timing point at 10000/BPM 180 → Save to temp dir → assert file on disk decodes to 3 objects + 2 timing points + title → Undo ×3 / Redo ×3 → object counts track → clipboard clone a note → verify checks report the missing-audio issue → switch through all four tabs without error.
-- [ ] **Step 2:** run it → fix whatever integration seams it exposes (this is the step that finds cross-task wiring bugs; budget real time).
-- [ ] **Step 3:** Full suite — everything green.
-- [ ] **Step 4: Manual smoke run** — `dotnet run --project Garbus.Desktop`: New Chart → Save As → Setup: pick a real mp3/ogg + background → Compose: place notes/holds/sliders across the seam, space playback scrolls the grid synced to audio, timeline zoom changes scroll speed → Timing: tap-set BPM, metronome audible → Verify: refresh, click an issue seeks → Test (F5): gameplay of the WIP chart, Esc back → Ctrl+S → reopen from main menu, everything intact. Fix anything that fails; add a regression test if it was logic, note it in CLAUDE.md if it was a gotcha.
-- [ ] **Step 5: Update `PLAN-port.md` + `CLAUDE.md`** per Files above.
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "Phase 4: editor rebuild complete"`
+- [x] **Step 1: Write the integration test** — the full loop in one scene: new chart → place a cardinal + hold + seam-crossing slider → edit metadata title → add timing point at 10000/BPM 180 → Save to temp dir → assert file on disk decodes to 3 objects + 2 timing points + title → Undo ×3 / Redo ×3 → object counts track → clipboard clone a note → verify checks report the missing-audio issue → switch through all four tabs without error.
+- [x] **Step 2:** run it → fix whatever integration seams it exposes (this is the step that finds cross-task wiring bugs; budget real time).
+- [x] **Step 3:** Full suite — everything green.
+- [x] **Step 4: Manual smoke run** — `dotnet run --project Garbus.Desktop`: New Chart → Save As → Setup: pick a real mp3/ogg + background → Compose: place notes/holds/sliders across the seam, space playback scrolls the grid synced to audio, timeline zoom changes scroll speed → Timing: tap-set BPM, metronome audible → Verify: refresh, click an issue seeks → Test (F5): gameplay of the WIP chart, Esc back → Ctrl+S → reopen from main menu, everything intact. Fix anything that fails; add a regression test if it was logic, note it in CLAUDE.md if it was a gotcha.
+- [x] **Step 5: Update `PLAN-port.md` + `CLAUDE.md`** per Files above.
+- [x] **Step 6: Commit** — `git add -A && git commit -m "Phase 4: editor rebuild complete"`
 
 ---
 
