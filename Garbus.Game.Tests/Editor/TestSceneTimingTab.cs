@@ -36,6 +36,8 @@ namespace Garbus.Game.Tests.Editor
         // Setup helpers
         // ------------------------------------------------------------------
 
+        private osu.Framework.Testing.Input.ManualInputManager input = null!;
+
         private void setupEditor(double initialBpm = 120.0) => Schedule(() =>
         {
             var chart = new GarbusChart();
@@ -43,7 +45,11 @@ namespace Garbus.Game.Tests.Editor
 
             var chartFile = new ChartFile(chart);
             editor = new GarbusEditor(chartFile);
-            Child = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both };
+            Child = input = new osu.Framework.Testing.Input.ManualInputManager
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both },
+            };
         });
 
         private void switchToTimingTab()
@@ -91,6 +97,125 @@ namespace Garbus.Game.Tests.Editor
                 editor.EditorChart.ControlPointInfo.TimingPoints
                     .Any(tp => Math.Abs(tp.Time - seekTime) < 100));
         }
+
+        /// <summary>
+        /// Regression guard (ISSUES.md): the Add/Delete buttons must respond to REAL mouse clicks
+        /// through the positional input pipeline, not just TriggerClick().
+        /// </summary>
+        [Test]
+        public void TestAddButtonRespondsToRealClick()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            int initialCount = 0;
+            AddStep("capture initial count", () =>
+                initialCount = editor.EditorChart.ControlPointInfo.TimingPoints.Count);
+
+            AddStep("seek clock to 1000ms", () =>
+                editor.ChildrenOfType<EditorClock>().First().Seek(1000));
+
+            AddStep("really click Add button", () =>
+            {
+                var addButton = editor.ChildrenOfType<TimingPointList>().First()
+                    .ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
+                    .First(b => b.Text.ToString() == "Add");
+                input.MoveMouseTo(addButton);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddAssert("timing point count increased", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.Count == initialCount + 1);
+        }
+
+        /// <summary>
+        /// ISSUES.md "Add and Delete buttons don't respond to click": on a fresh chart the playhead
+        /// sits at 0 where a timing point already exists, so Add silently replaced the point in the
+        /// same group and Delete silently refused to remove the only point. The buttons must instead
+        /// be visibly disabled when their action can't do anything.
+        /// </summary>
+        [Test]
+        public void TestButtonsDisableWhenActionImpossible()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            // Fresh chart: playhead at 0 on the existing point, only one timing point.
+            AddUntilStep("Add disabled at existing point", () => !addButton().Enabled.Value);
+            AddUntilStep("Delete disabled for only point", () => !deleteButton().Enabled.Value);
+
+            AddStep("seek clock to 1000ms", () =>
+                editor.ChildrenOfType<EditorClock>().First().Seek(1000));
+            AddUntilStep("Add enabled away from points", () => addButton().Enabled.Value);
+
+            AddStep("really click Add", () =>
+            {
+                input.MoveMouseTo(addButton());
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddAssert("second point added", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.Count == 2);
+
+            AddUntilStep("Add now disabled on new point", () => !addButton().Enabled.Value);
+            AddUntilStep("Delete now enabled", () => deleteButton().Enabled.Value);
+
+            AddStep("really click Delete", () =>
+            {
+                input.MoveMouseTo(deleteButton());
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+            AddAssert("back to one point", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.Count == 1);
+        }
+
+        /// <summary>
+        /// ISSUES.md: selecting a row seeks onto the point, which used to grey Add out with no way
+        /// back. Re-clicking the selected row must deselect it, and Add must re-enable (its meaning
+        /// is now "add or focus the group at the playhead", following osu).
+        /// </summary>
+        [Test]
+        public void TestReclickDeselectsAndReenablesAdd()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            // Fresh chart auto-selects the first group with the playhead parked on it.
+            AddUntilStep("point selected", () =>
+                editor.ChildrenOfType<TimingPointList>().First().SelectedGroup.Value != null);
+            AddUntilStep("Add disabled while selected at playhead", () => !addButton().Enabled.Value);
+
+            AddStep("re-click the selected row", () =>
+            {
+                var row = editor.ChildrenOfType<TimingPointRow>().First();
+                input.MoveMouseTo(row);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddUntilStep("deselected", () =>
+                editor.ChildrenOfType<TimingPointList>().First().SelectedGroup.Value == null);
+            AddUntilStep("Add re-enabled", () => addButton().Enabled.Value);
+
+            AddStep("click Add (focuses existing group)", () =>
+            {
+                input.MoveMouseTo(addButton());
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddAssert("no duplicate point added", () =>
+                editor.EditorChart.ControlPointInfo.TimingPoints.Count == 1);
+            AddUntilStep("group focused again", () =>
+                editor.ChildrenOfType<TimingPointList>().First().SelectedGroup.Value != null);
+        }
+
+        private osu.Framework.Graphics.UserInterface.BasicButton addButton() =>
+            editor.ChildrenOfType<TimingPointList>().First()
+                  .ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
+                  .First(b => b.Text.ToString() == "Add");
+
+        private osu.Framework.Graphics.UserInterface.BasicButton deleteButton() =>
+            editor.ChildrenOfType<TimingPointList>().First()
+                  .ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
+                  .First(b => b.Text.ToString() == "Delete");
 
         // ------------------------------------------------------------------
         // 2. BPM textbox 180 → BeatLength ≈ 333.33

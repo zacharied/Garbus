@@ -79,7 +79,23 @@ classes:
   Save serializes.
 - The composer's editor drawables are **non-pooled**; the composer tracks them in a per-hit-object
   `drawableMap` and adds/removes on `HitObjectAdded`/`Removed`. Lifecycle is manual — don't assume
-  framework pooling.
+  framework pooling. **Removed drawables must be explicitly `Dispose()`d** — `HitObjectContainer`
+  detaches with `RemoveInternal(…, false)` (correct for osu's pooled path), and an undisposed
+  drawable stays subscribed to `HitObject.DefaultsApplied`, re-running `Apply()` on every later
+  update of that object (zombies pile up quadratically → GC storm). Pinned by
+  `TestRemovedObjectDrawableIsDisposed`.
+- **`EditorChart.Update` refreshes drawables IN PLACE** (`HitObject.DefaultsApplied` → drawable
+  re-`Apply()` + scrolling-container relayout) — never remove+recreate on update; recreating tore
+  down framebuffer-backed slider visuals per drag event (the slider node-drag GC storm). Two traps
+  this depends on: editor drawables must swallow drawable-side `LifetimeEnd` writes (judged objects
+  with no hit-state transforms otherwise expire AT their own start time on re-apply and never come
+  back — the scrolling container only re-lays-out ALIVE entries), and node/handle drags must skip
+  `EditorChart.Update` when nothing changed. Pinned by `TestSceneComposerLifecycle` +
+  `TestSliderNodeDragDoesNotRecreateDrawable` / `TestUpdateRefreshesDrawableInPlace`.
+- **Drag deltas can be a full wrap (±360°) off** when the cursor sits over an object's ghost twin —
+  `GarbusSelectionHandler.HandleMovement` must reduce the degree delta via `MinimalDiff` so
+  "already there" is 0 (no update fired), not a spurious ±360 that rebuilds every selected object
+  per mouse-move event. Pinned by the incremental-drag tests in `TestSceneComposeSelection`.
 - **Lambda event subscriptions leak** if not unsubscribed (timeline/metronome components subscribe to
   `ControlPointInfo.ControlPointsChanged`, clock, selection, `HitObjectUpdated`). Keep a field
   reference to the handler and unsubscribe in `Dispose`.
@@ -116,6 +132,11 @@ Phase 3 additions — the native chart format:
   `OffsetCorrectionClock`, `GameplayClockContainer`, `MasterGameplayClockContainer` (takes a `Track`
   directly), `IGameplayClock`. Platform offset constants (Windows +15ms, experimental WASAPI −25ms)
   are osu's verbatim — all other latency-critical audio lives in osu-framework itself and is untouched.
+  **`GameplayClockContainer` sets `Content.Clock = GameplayClock` — a deliberate deviation from osu.**
+  In osu the DrawableRuleset's FrameStabilityContainer applies the gameplay clock to the playfield
+  subtree; Garbus dropped DrawableRuleset, so without this line the playfield silently runs on the
+  ambient wall-time clock (object lifetimes compare against app-session time → hit objects never
+  appear once the app has been open longer than the chart; clock resets don't affect gameplay).
 - `Garbus.Game/Gameplay/` — the vendored osu.Game gameplay infrastructure: `HitObject`,
   `DrawableHitObject` (skinning stripped; hit sounds via `Gameplay/Audio/HitSoundContainer`, the thin
   `DrawableSample` wrapper replacing `SkinnableSound`), lifetime entries + pooling, `Playfield`,

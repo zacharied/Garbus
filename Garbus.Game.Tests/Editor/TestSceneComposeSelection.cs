@@ -15,6 +15,8 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Core;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Blueprints;
+using Garbus.Game.Edit.Blueprints.Components;
 using Garbus.Game.Edit.Compose;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
@@ -228,6 +230,244 @@ namespace Garbus.Game.Tests.Editor
             AddStep("undo", () => changeHandler.RestoreState(-1));
             AddAssert("note restored", () => placedObject<CardinalNote>() != null);
             AddAssert("restored at 270", () => placedObject<CardinalNote>()!.AngleDeg, () => Is.EqualTo(270));
+        }
+
+        // ------------------------------------------------------------------
+        // Incremental drags (Phase4-Issues.md: drag positioning bug-out + GC churn).
+        // A real drag is many small mouse moves, each of which may update the object and
+        // (currently) recreate its drawable — unlike TestDragRotatesBySnappedIncrement's single jump.
+        // ------------------------------------------------------------------
+
+        /// <summary>One small mouse step to the right, in degrees of playfield width.</summary>
+        private void dragStepRight(float degrees) => input.MoveMouseTo(
+            input.CurrentState.Mouse.Position + new Vector2(playfield.ScreenSpaceDrawQuad.Width * degrees / EditorAngleMapping.TOTAL_DEGREES, 0));
+
+        [Test]
+        public void TestLongIncrementalDragTracksCursor()
+        {
+            waitForComposer();
+            placeNoteAt(270);
+
+            int updateCount = 0;
+            AddStep("count updates", () => editorChart.HitObjectUpdated += _ => updateCount++);
+
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+            AddAssert("note selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<CardinalNote>());
+
+            AddStep("press mouse on note", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
+                input.PressButton(MouseButton.Left);
+            });
+            // +90° total in 30 small steps, like a real mouse drag.
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 30);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("note followed cursor to 0", () => placedObject<CardinalNote>()?.AngleDeg, () => Is.EqualTo(0));
+            AddAssert("single drawable remains", () => composer.HitObjects.Count(), () => Is.EqualTo(1));
+            AddAssert("update churn bounded", () => updateCount, () => Is.LessThanOrEqualTo(8));
+        }
+
+        [Test]
+        public void TestIncrementalDragAcrossSeamTracksCursor()
+        {
+            waitForComposer();
+            // 90° is grid-degrees 315; dragging +90° crosses the wrap seam (grid 360/0 at absolute
+            // 135°) and continues through the right ghost band. The note must land on 180 (the
+            // cursor's snapped angle) — and the drag must not fire an update per mouse-move event
+            // while the cursor sits a full wrap (360°) from the primary copy: that raw delta must
+            // reduce to "no change", not to a fresh update+drawable-recreate every event (the
+            // Phase4 GC-storm feeder).
+            placeNoteAt(90);
+
+            int updateCount = 0;
+            AddStep("count updates", () => editorChart.HitObjectUpdated += _ => updateCount++);
+
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+            AddAssert("note selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<CardinalNote>());
+
+            AddStep("press mouse on note", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 30);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("note followed cursor across seam to 180", () => placedObject<CardinalNote>()?.AngleDeg, () => Is.EqualTo(180));
+            AddAssert("single drawable remains", () => composer.HitObjects.Count(), () => Is.EqualTo(1));
+            AddAssert("update churn bounded", () => updateCount, () => Is.LessThanOrEqualTo(8));
+        }
+
+        [Test]
+        public void TestUpdateRefreshesDrawableInPlace()
+        {
+            // EditorChart.Update must NOT recreate the drawable: DrawableHitObject already re-applies
+            // itself in place via HitObject.DefaultsApplied (rebuilding nested drawables), the scrolling
+            // container re-layouts through the same event, and the editor visuals read the hit object
+            // live every frame. Recreation churned framebuffer-backed visuals per update — at drag rates
+            // that was the slider node-drag GC storm (ISSUES.md).
+            waitForComposer();
+            placeNoteAt(270);
+
+            Gameplay.Objects.Drawables.DrawableHitObject drawable = null!;
+            AddStep("capture drawable", () => drawable = composer.HitObjects.Single());
+            AddStep("update note", () => editorChart.Update(placedObject<CardinalNote>()!));
+            AddAssert("same drawable instance", () => composer.HitObjects.Single(), () => Is.SameAs(drawable));
+        }
+
+        [Test]
+        public void TestRemovedObjectDrawableIsDisposed()
+        {
+            // Pins the zombie-drawable fix on the delete path: non-pooled drawables are detached with
+            // RemoveInternal(…, false), so the composer must Dispose() them explicitly — an undisposed
+            // drawable stays subscribed to HitObject.DefaultsApplied forever.
+            waitForComposer();
+            placeNoteAt(270);
+
+            Gameplay.Objects.Drawables.DrawableHitObject oldDrawable = null!;
+            AddStep("capture drawable", () => oldDrawable = composer.HitObjects.Single());
+            AddStep("remove note", () => editorChart.Remove(placedObject<CardinalNote>()!));
+            AddAssert("old drawable disposed", () =>
+                (bool)typeof(Drawable).GetProperty("IsDisposed",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!
+                    .GetValue(oldDrawable)!);
+        }
+
+        [Test]
+        public void TestSliderNodeDragDoesNotRecreateDrawable()
+        {
+            // The ISSUES.md repro: a slider wrapping past 360°, its child node dragged back and forth on
+            // the x-axis. Every drag event updates the slider; the drawable (whose polyline wrap copies
+            // are framebuffer-backed) must survive the whole drag as the same instance instead of being
+            // torn down and rebuilt per mouse-move event.
+            waitForComposer();
+            placeDiagonalSlider();
+
+            AddStep("wrap slider past 360°", () =>
+            {
+                placedObject<SliderBody>()!.Path.ControlPoints[0].RotationOffset = 400;
+                editorChart.Update(placedObject<SliderBody>()!);
+            });
+
+            Gameplay.Objects.Drawables.DrawableHitObject drawable = null!;
+            AddStep("capture drawable", () => drawable = composer.HitObjects.Single());
+
+            AddStep("select slider via head", () =>
+            {
+                var blueprint = composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
+                input.MoveMouseTo(blueprint.ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddStep("press mouse on node handle", () =>
+            {
+                var handle = composer.ChildrenOfType<NodeDragPiece>().Single();
+                input.MoveMouseTo(handle);
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("wiggle right", () => dragStepRight(4), 8);
+            AddRepeatStep("wiggle left", () => dragStepRight(-4), 8);
+            AddRepeatStep("wiggle right again", () => dragStepRight(4), 8);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("drawable never recreated", () => composer.HitObjects.Single(), () => Is.SameAs(drawable));
+            AddAssert("slider intact", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestHoldNoteSelectableByHead()
+        {
+            // ISSUES.md: the hold head sprite is centred on the start line, so its bottom half hangs
+            // below the drawable's duration rectangle — clicking there must still select the note.
+            waitForComposer();
+
+            AddStep("add hold + park clock", () =>
+            {
+                editorChart.Add(new HoldNote { StartTime = 2000, Duration = 1000, AngleDeg = 270 });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            AddStep("click lower half of head (below start line)", () =>
+            {
+                var quad = composer.HitObjects.Single().ScreenSpaceDrawQuad;
+                // bottom edge = start time; the head sprite extends half a note below it.
+                var target = new Vector2(quad.Centre.X, quad.BottomLeft.Y + 8);
+                input.MoveMouseTo(target);
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("hold selected via head", () =>
+                editorChart.SelectedHitObjects.SingleOrDefault() is HoldNote);
+        }
+
+        [Test]
+        public void TestNoHitsoundWhileScrubbing()
+        {
+            // ISSUES.md: objects must not play hitsounds while the compose view is scrubbed (clock
+            // stopped, playhead seeking across objects) — only when the playhead crosses them with
+            // the clock actually running.
+            waitForComposer();
+
+            AddStep("add note ahead + park clock", () =>
+            {
+                editorClock.Stop();
+                editorClock.Seek(0);
+                editorChart.Add(new CardinalNote { StartTime = 8000, AngleDeg = 270 });
+            });
+
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+
+            AddStep("scrub past the note", () => editorClock.Seek(9000));
+            AddUntilStep("note judged", () => composer.HitObjects.Single().Judged);
+            AddAssert("no hitsound while scrubbing", () =>
+                composer.HitObjects.Single().ChildrenOfType<Gameplay.Audio.HitSoundContainer>().Single().PlayCount, () => Is.Zero);
+
+            AddStep("add second note + play through it", () =>
+            {
+                editorChart.Add(new CardinalNote { StartTime = 9500, AngleDeg = 0 });
+                editorClock.Seek(9400);
+                editorClock.Start();
+            });
+
+            AddUntilStep("clock passed second note", () => editorClock.CurrentTime > 9600);
+            AddStep("stop clock", () => editorClock.Stop());
+
+            AddAssert("hitsound played during playback", () =>
+                composer.HitObjects.Single(d => d.HitObject.StartTime == 9500)
+                        .ChildrenOfType<Gameplay.Audio.HitSoundContainer>().Single().PlayCount, () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestNoHitsoundForSliderNodesWhileScrubbing()
+        {
+            // ISSUES.md follow-up: slider nodes are nested-stub drawables that bypassed the editor
+            // base's scrub gate and still sounded on wheel-seeks.
+            waitForComposer();
+
+            AddStep("add slider ahead + park clock", () =>
+            {
+                var path = new GarbusPath { ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>() };
+                path.ControlPoints.Add(new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 });
+                editorChart.Add(new SliderBody { StartTime = 8000, AngleDeg = 270, Side = HorizontalDirection.Left, Path = path });
+                editorClock.Stop();
+                editorClock.Seek(0);
+            });
+
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+
+            AddStep("scrub past the whole slider", () => editorClock.Seek(9000));
+            AddUntilStep("slider judged", () => composer.HitObjects.Single().Judged);
+            AddAssert("no hitsound from slider or its nodes", () =>
+                composer.HitObjects.Single().ChildrenOfType<Gameplay.Audio.HitSoundContainer>()
+                        .Sum(s => s.PlayCount), () => Is.Zero);
         }
 
         // ------------------------------------------------------------------

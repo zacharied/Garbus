@@ -1,7 +1,12 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Screens/Play/GameplayClockContainer.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: AdjustmentsFromMods removed (no mod system); FramedBeatmapClock → FramedChartClock.
+// Adapted for Garbus: AdjustmentsFromMods removed (no mod system); FramedBeatmapClock → FramedChartClock;
+// Content.Clock is set to the gameplay clock — in osu the DrawableRuleset's FrameStabilityContainer
+// applies the gameplay clock to the playfield subtree, but Garbus deliberately has no DrawableRuleset,
+// so without this the playfield would silently run on the ambient (real-time) clock: object lifetimes
+// would be compared against wall-clock session time, making hit objects never appear once the app had
+// been open longer than the chart (the editor test-mode "0 objects" bug).
 
 using System;
 using osu.Framework.Allocation;
@@ -76,6 +81,11 @@ namespace Garbus.Game.Timing
                 GameplayClock = new FramedChartClock(applyOffsets, requireDecoupling, sourceClock),
                 Content
             };
+
+            // Run the content subtree on the gameplay clock (see header — Garbus has no
+            // FrameStabilityContainer to do this). GameplayClock is updated before Content each frame
+            // (child order above), so children always see fresh times.
+            Content.Clock = GameplayClock;
         }
 
         /// <summary>

@@ -88,6 +88,32 @@ namespace Garbus.Game.Tests.Editor
                 editor.ChildrenOfType<MetadataSection>().Any());
         }
 
+        /// <summary>
+        /// ISSUES.md: the resource choose buttons stayed greyed out after the chart was saved — the
+        /// enabled state was computed once at load. They must enable as soon as the chart has a
+        /// directory, without reopening the editor.
+        /// </summary>
+        [Test]
+        public void TestResourceButtonsEnableAfterSave()
+        {
+            setupEditorUnsaved();
+            waitForSetupTab();
+
+            AddUntilStep("choose buttons disabled while unsaved", () =>
+                editor.ChildrenOfType<FileChooserRow>().Any() &&
+                editor.ChildrenOfType<FileChooserRow>().All(r => !r.ChooseButton.Enabled.Value));
+
+            AddStep("save chart", () =>
+            {
+                string chartSubDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                System.IO.Directory.CreateDirectory(chartSubDir);
+                editor.ChartFile.Save(Path.Combine(chartSubDir, "test-chart.garbus"));
+            });
+
+            AddUntilStep("choose buttons enabled after save", () =>
+                editor.ChildrenOfType<FileChooserRow>().All(r => r.ChooseButton.Enabled.Value));
+        }
+
         // ------------------------------------------------------------------
         // 1. Title commit updates Metadata.Title
         // ------------------------------------------------------------------

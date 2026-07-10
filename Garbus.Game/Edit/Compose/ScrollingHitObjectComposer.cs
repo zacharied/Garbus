@@ -7,7 +7,7 @@
 // caches the IScrollingInfo (EditorScrollingInfo) that the playfield resolves, and does the drawable
 // lifecycle the DrawableRuleset used to do: non-pooled create-on-add from EditorChart.HitObjectAdded /
 // remove-on-HitObjectRemoved (PlayScreen's non-pooled pattern), initial population from
-// EditorChart.HitObjects, and refresh-on-HitObjectUpdated (remove + re-create). The osu speed-change
+// EditorChart.HitObjects; updates refresh the live drawable in place via HitObject.DefaultsApplied. The osu speed-change
 // toggle / ISupportConstantAlgorithmToggle / OsuConfig plumbing is dropped. TimelineTimeRange (written by
 // Task 17's zoom sync) flows into IScrollingInfo.TimeRange. The beat-snap-grid update loop is preserved.
 
@@ -87,11 +87,14 @@ namespace Garbus.Game.Edit.Compose
         {
             base.LoadComplete();
 
-            // Non-pooled: create a drawable per hit object as they are added, remove on removal, and
-            // remove + re-create on update (defaults changed / nested objects regenerated).
+            // Non-pooled: create a drawable per hit object as they are added, remove on removal.
+            // Updates need NO composer action: EditorChart.UpdateState → HitObject.ApplyDefaults fires
+            // DefaultsApplied, which makes the drawable re-Apply() itself in place (rebuilding nested
+            // drawables) and the scrolling container invalidate its layout; the editor visuals read the
+            // hit object live every frame. Recreating the drawable here instead used to tear down
+            // framebuffer-backed visuals on every drag event (the slider node-drag GC storm).
             EditorChart.HitObjectAdded += addHitObject;
             EditorChart.HitObjectRemoved += removeHitObject;
-            EditorChart.HitObjectUpdated += updateHitObject;
 
             foreach (var hitObject in EditorChart.HitObjects)
                 addHitObject(hitObject);
@@ -119,13 +122,13 @@ namespace Garbus.Game.Edit.Compose
             // Note: Playfield.Remove(DrawableHitObject) has a pre-existing vendored quirk of returning
             // false even on success — we deliberately ignore the return value here.
             Playfield.Remove(drawable);
-        }
 
-        private void updateHitObject(GarbusHitObject hitObject)
-        {
-            // Remove the existing drawable and re-create it so nested objects / geometry are rebuilt.
-            removeHitObject(hitObject);
-            addHitObject(hitObject);
+            // The container detaches without disposing (RemoveInternal(…, false) — correct for osu's
+            // pooled path, but these drawables are non-pooled and nothing else disposes them). An
+            // undisposed drawable stays subscribed to HitObject.DefaultsApplied and re-runs Apply()
+            // on every later update of the same object, so each drag/edit would pile up zombies doing
+            // quadratic work (the Phase4 GC storm). Dispose is what unhooks that subscription.
+            drawable.Dispose();
         }
 
         protected override void UpdateAfterChildren()
@@ -167,7 +170,6 @@ namespace Garbus.Game.Edit.Compose
             {
                 EditorChart.HitObjectAdded -= addHitObject;
                 EditorChart.HitObjectRemoved -= removeHitObject;
-                EditorChart.HitObjectUpdated -= updateHitObject;
             }
 
             drawableMap.Clear();

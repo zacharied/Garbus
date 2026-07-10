@@ -339,7 +339,8 @@ namespace Garbus.Game.Edit.Screens
 
         private Drawable createMenuBar()
         {
-            return new BasicMenu(Direction.Horizontal, true)
+            // GarbusMenu (not BasicMenu) so ToggleMenuItems render with checkboxes.
+            return new GarbusMenu(Direction.Horizontal, true)
             {
                 Anchor = Anchor.CentreLeft,
                 Origin = Anchor.CentreLeft,
@@ -371,17 +372,13 @@ namespace Garbus.Game.Edit.Screens
             // Resolve config from DI. The editor shell is loaded under GarbusGameBase which caches it.
             var config = dependencies.Get<GarbusConfigManager>();
 
-            var showTicks = config.GetBindable<bool>(GarbusSetting.EditorShowTicks);
-            var showTimingChanges = config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges);
-            var autoSeek = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
-
             // EditorContractSidebars config exists; menu item returns when ExpandingToolboxContainer wires it (Phase 5).
 
-            return new[]
+            return new MenuItem[]
             {
-                new MenuItem("Show Beat Ticks", () => showTicks.Value = !showTicks.Value),
-                new MenuItem("Show Timing Changes", () => showTimingChanges.Value = !showTimingChanges.Value),
-                new MenuItem("Auto-Seek on Placement", () => autoSeek.Value = !autoSeek.Value),
+                new ToggleMenuItem("Show Beat Ticks", config.GetBindable<bool>(GarbusSetting.EditorShowTicks)),
+                new ToggleMenuItem("Show Timing Changes", config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges)),
+                new ToggleMenuItem("Auto-Seek on Placement", config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement)),
             };
         }
 

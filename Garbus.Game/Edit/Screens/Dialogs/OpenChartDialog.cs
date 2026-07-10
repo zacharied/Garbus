@@ -2,6 +2,8 @@
 
 using System;
 using System.IO;
+using Garbus.Game.Configuration;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -20,12 +22,19 @@ namespace Garbus.Game.Edit.Screens.Dialogs
         private readonly Action<string> onFileSelected;
         private BasicFileSelector fileSelector = null!;
 
+        [Resolved]
+        private GarbusConfigManager config { get; set; } = null!;
+
         public OpenChartDialog(Action<string> onFileSelected)
         {
             this.onFileSelected = onFileSelected;
 
             RelativeSizeAxes = Axes.Both;
+        }
 
+        [BackgroundDependencyLoader]
+        private void load()
+        {
             // dim background
             AddInternal(new Box
             {
@@ -34,7 +43,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
                 Alpha = 0.6f,
             });
 
-            fileSelector = new BasicFileSelector(validFileExtensions: new[] { ".garbus" })
+            fileSelector = new BasicFileSelector(LastFileDirectory.Get(config), validFileExtensions: new[] { ".garbus" })
             {
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
@@ -83,6 +92,8 @@ namespace Garbus.Game.Edit.Screens.Dialogs
             var file = fileSelector.CurrentFile.Value;
             if (file == null)
                 return;
+
+            LastFileDirectory.Set(config, file.DirectoryName);
 
             Hide();
             onFileSelected(file.FullName);

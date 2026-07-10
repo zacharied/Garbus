@@ -348,6 +348,11 @@ namespace Garbus.Game.Screens
                 case Key.R:
                     restart();
                     return true;
+
+                case Key.Escape:
+                    // Exit back to whatever pushed us (editor test mode / main menu).
+                    this.Exit();
+                    return true;
             }
 
             return base.OnKeyDown(e);
@@ -357,6 +362,11 @@ namespace Garbus.Game.Screens
         {
             // Record where gameplay was when the player exited so the editor can seek back there.
             ExitTime = gameplayClock?.CurrentTime;
+
+            // The track is this screen's own instance (a fresh one per play) — stop it so audio
+            // doesn't keep playing under the editor after exiting (ISSUES.md).
+            track?.Stop();
+
             return base.OnExiting(e);
         }
 
@@ -369,6 +379,10 @@ namespace Garbus.Game.Screens
             }
 
             base.Dispose(isDisposing);
+
+            // Track instances are per-Get (never shared with the store cache or the editor), so the
+            // screen owns and disposes its own.
+            track?.Dispose();
         }
     }
 }

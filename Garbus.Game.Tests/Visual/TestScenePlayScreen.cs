@@ -30,5 +30,13 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("playfield created", () => this.ChildrenOfType<GarbusPlayfield>().Any());
             AddUntilStep("gameplay time advances", () => this.ChildrenOfType<GarbusPlayfield>().Single().Time.Current > 0);
         }
+
+        [Test]
+        public void TestObjectsBecomeVisible()
+        {
+            AddUntilStep("playfield created", () => this.ChildrenOfType<GarbusPlayfield>().Any());
+            AddUntilStep("objects become alive", () =>
+                this.ChildrenOfType<GarbusPlayfield>().Single().AllHitObjects.Any(d => d.IsAlive));
+        }
     }
 }

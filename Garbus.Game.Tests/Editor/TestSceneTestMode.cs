@@ -136,6 +136,68 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        /// <summary>
+        /// ISSUES.md: "charts don't make it to the test play scene; 0 objects show up". The chart
+        /// DATA reaches the PlayScreen (tests above), so pin the display path: with gameplay running
+        /// from t=0 and objects at 1000/1500/2000, alive drawables must appear in the playfield.
+        /// </summary>
+        [Test]
+        public void TestPushedPlayScreenShowsObjects()
+        {
+            setupEditorWithVirtualTrack(hitObjectCount: 3);
+            waitForEditor();
+
+            AddStep("press F5", () => input.Key(osuTK.Input.Key.F5));
+            AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
+
+            AddUntilStep("objects become visible", () =>
+                ((PlayScreen)stack.CurrentScreen).ChildrenOfType<Game.UI.GarbusPlayfield>().SingleOrDefault()
+                    ?.AllHitObjects.Any(d => d.IsAlive) == true);
+
+            // The playfield must run on the gameplay clock, not the ambient (wall-time) clock —
+            // otherwise object lifetimes compare against app-session time and nothing ever shows
+            // once the app has been open longer than the chart.
+            AddAssert("playfield runs on gameplay clock", () =>
+            {
+                var ps = (PlayScreen)stack.CurrentScreen;
+                var pf = ps.ChildrenOfType<Game.UI.GarbusPlayfield>().Single();
+                var clock = ps.ChildrenOfType<Timing.MasterGameplayClockContainer>().Single();
+                return System.Math.Abs(pf.Time.Current - clock.CurrentTime) < 100;
+            });
+        }
+
+        /// <summary>
+        /// ISSUES.md: "no way to exit test play" — Escape must return to the editor — and the
+        /// playtest's track must stop on exit rather than keep playing under the editor.
+        /// </summary>
+        [Test]
+        public void TestEscapeExitsToEditorAndStopsAudio()
+        {
+            Track? pushedTrack = null;
+
+            Schedule(() =>
+            {
+                var chart = buildChart(3);
+                editor = buildEditorWithVirtualTrack(chart);
+                editor.TrackFactoryOverride = () => pushedTrack = new TrackVirtual(60_000);
+
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Child = stack = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both },
+                };
+            });
+            waitForEditor();
+
+            AddStep("press F5", () => input.Key(osuTK.Input.Key.F5));
+            AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
+            AddUntilStep("track playing", () => pushedTrack?.IsRunning == true);
+
+            AddStep("press Escape", () => input.Key(osuTK.Input.Key.Escape));
+            AddUntilStep("back at editor", () => stack.CurrentScreen is GarbusEditor);
+            AddUntilStep("track stopped", () => pushedTrack?.IsRunning == false);
+        }
+
         // ------------------------------------------------------------------
         // 2. Start time ≈ editorClock.CurrentTime − 1500 (clamped ≥ 0)
         // ------------------------------------------------------------------

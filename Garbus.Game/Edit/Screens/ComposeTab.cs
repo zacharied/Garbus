@@ -75,7 +75,14 @@ namespace Garbus.Game.Edit.Screens
                     // The playfield's scrolling hitobject container reads Clock.CurrentTime for layout,
                     // so this freezes it when the clock is stopped (matching the selection harness pattern).
                     Clock = editorClock,
-                    Child = composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                    // The scrolling container positions grid/bar lines outside the visible window with
+                    // no masking of its own — clip here so they can't draw over the timeline strip above.
+                    Child = new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Masking = true,
+                        Child = composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                    },
                 },
             };
 

@@ -238,23 +238,37 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         var cp = controlPoints[index];
         var result = composer.FindSnappedAngleTimeAndPosition(screenSpacePosition);
 
+        bool changed = false;
+
         if (result.Time is double proposedTime)
         {
             double proposedOffset = proposedTime - HitObject.StartTime;
             double minOffset = index > 0 ? controlPoints[index - 1].TimeOffset : 0;
             double? maxOffset = index < controlPoints.Count - 1 ? controlPoints[index + 1].TimeOffset : null;
 
-            if (proposedOffset > minOffset && (maxOffset == null || proposedOffset < maxOffset))
+            if (proposedOffset != cp.TimeOffset && proposedOffset > minOffset && (maxOffset == null || proposedOffset < maxOffset))
+            {
                 cp.TimeOffset = proposedOffset;
+                changed = true;
+            }
         }
 
         if (result is GarbusSnapResult snap)
         {
             int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + cp.RotationOffset);
-            cp.RotationOffset += EditorAngleMapping.MinimalDiff(currentAbsolute, snap.AngleDeg);
+            int diff = EditorAngleMapping.MinimalDiff(currentAbsolute, snap.AngleDeg);
+
+            if (diff != 0)
+            {
+                cp.RotationOffset += diff;
+                changed = true;
+            }
         }
 
-        editorChart.Update(HitObject);
+        // Only run the (ApplyDefaults + state-save) update when the node actually moved — mouse-move
+        // events inside the same snap cell would otherwise re-apply the whole slider per event.
+        if (changed)
+            editorChart.Update(HitObject);
     }
 
     protected override bool OnKeyDown(KeyDownEvent e)

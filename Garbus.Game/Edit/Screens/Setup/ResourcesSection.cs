@@ -46,7 +46,6 @@ namespace Garbus.Game.Edit.Screens.Setup
             Spacing = new Vector2(0, 4);
             Padding = new MarginPadding { Vertical = 8, Horizontal = 16 };
 
-            bool hasSavedDir = chartFile.Directory != null;
             var meta = editorChart.Metadata;
 
             audioRow = new FileChooserRow(
@@ -56,7 +55,6 @@ namespace Garbus.Game.Edit.Screens.Setup
             {
                 OnFilePicked = onAudioPicked,
             };
-            audioRow.ChooseButton.Enabled.Value = hasSavedDir;
 
             bgRow = new FileChooserRow(
                 "Background Image",
@@ -65,7 +63,6 @@ namespace Garbus.Game.Edit.Screens.Setup
             {
                 OnFilePicked = onBackgroundPicked,
             };
-            bgRow.ChooseButton.Enabled.Value = hasSavedDir;
 
             if (OverlayContainer != null)
             {
@@ -83,18 +80,29 @@ namespace Garbus.Game.Edit.Screens.Setup
                 },
                 audioRow,
                 bgRow,
-            };
-
-            if (!hasSavedDir)
-            {
-                Add(new SpriteText
+                saveFirstHint = new SpriteText
                 {
                     Text = "Save the chart first to add resources.",
                     Font = FontUsage.Default.With(size: 14),
                     Colour = new osuTK.Graphics.Color4(200, 140, 80, 255),
                     Margin = new MarginPadding { Top = 4 },
-                });
-            }
+                },
+            };
+        }
+
+        private SpriteText saveFirstHint = null!;
+
+        protected override void Update()
+        {
+            base.Update();
+
+            // The chart can gain a directory at any time (File → Save As); keep the rows' enabled
+            // state and the hint live rather than snapshotting at load (ISSUES.md: buttons stayed
+            // greyed out until the chart was reopened).
+            bool hasSavedDir = chartFile.Directory != null;
+            audioRow.ChooseButton.Enabled.Value = hasSavedDir;
+            bgRow.ChooseButton.Enabled.Value = hasSavedDir;
+            saveFirstHint.Alpha = hasSavedDir ? 0 : 1;
         }
 
         private void onAudioPicked(string fullPath)

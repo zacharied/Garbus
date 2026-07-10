@@ -110,6 +110,56 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("clean after menu save", () => !editor.HasUnsavedChanges);
         }
 
+        /// <summary>
+        /// ISSUES.md: toggle menu options must render a checkbox reflecting their state. Clicking a
+        /// toggle flips its bound state and keeps the menu open for further toggling.
+        /// </summary>
+        [Test]
+        public void TestViewMenuToggleViaClick()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+
+            AddStep("click View", () =>
+            {
+                var viewItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                     .First(i => i.Item.Text.Value.ToString() == "View");
+                input.MoveMouseTo(viewItem);
+                input.Click(MouseButton.Left);
+            });
+
+            AddUntilStep("view dropdown open", () =>
+                editor.ChildrenOfType<BasicMenu>().Count(m => m.State == MenuState.Open) >= 2);
+
+            bool initialState = false;
+            AddStep("capture state", () => initialState = toggleItem("Show Beat Ticks").State.Value);
+
+            AddStep("click Show Beat Ticks", () =>
+            {
+                var drawableItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                         .First(i => i.Item.Text.Value.ToString() == "Show Beat Ticks");
+                input.MoveMouseTo(drawableItem);
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("state flipped", () => toggleItem("Show Beat Ticks").State.Value == !initialState);
+            AddAssert("menu stayed open", () =>
+                editor.ChildrenOfType<BasicMenu>().Count(m => m.State == MenuState.Open) >= 2);
+
+            AddStep("click Show Beat Ticks again", () =>
+            {
+                var drawableItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                         .First(i => i.Item.Text.Value.ToString() == "Show Beat Ticks");
+                input.MoveMouseTo(drawableItem);
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("state restored", () => toggleItem("Show Beat Ticks").State.Value == initialState);
+        }
+
+        private Edit.ToggleMenuItem toggleItem(string text) =>
+            (Edit.ToggleMenuItem)editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                       .First(i => i.Item.Text.Value.ToString() == text).Item;
+
         private void clickTabButton(EditorTab tab)
         {
             AddStep($"click {tab} tab button", () =>
@@ -118,6 +168,22 @@ namespace Garbus.Game.Tests.Editor
                                     .First(t => t.Value == tab);
                 input.MoveMouseTo(tabItem);
                 input.Click(MouseButton.Left);
+            });
+        }
+
+        /// <summary>
+        /// The composer subtree must be clipped: the scrolling container positions grid/bar lines
+        /// outside the visible window with no masking of its own, so without a masking wrapper they
+        /// draw over the timeline strip above the playfield (ISSUES.md).
+        /// </summary>
+        [Test]
+        public void TestComposerIsMasked()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+            AddAssert("composer parent masks", () =>
+            {
+                var composer = editor.ChildrenOfType<Edit.GarbusHitObjectComposer>().Single();
+                return composer.Parent is Container { Masking: true };
             });
         }
 

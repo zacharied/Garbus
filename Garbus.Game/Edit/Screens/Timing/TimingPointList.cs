@@ -35,6 +35,8 @@ namespace Garbus.Game.Edit.Screens.Timing
         public readonly Bindable<ControlPointGroup?> SelectedGroup = new Bindable<ControlPointGroup?>();
 
         private FillFlowContainer<TimingPointRow> rowContainer = null!;
+        private BasicButton addButton = null!;
+        private BasicButton deleteButton = null!;
 
         [BackgroundDependencyLoader]
         private void load()
@@ -62,14 +64,14 @@ namespace Garbus.Game.Edit.Screens.Timing
                     Origin = Anchor.BottomLeft,
                     Children = new Drawable[]
                     {
-                        new BasicButton
+                        addButton = new BasicButton
                         {
                             Text = "Add",
                             RelativeSizeAxes = Axes.Both,
                             Width = 0.5f,
                             Action = addAtPlayhead,
                         },
-                        new BasicButton
+                        deleteButton = new BasicButton
                         {
                             Text = "Delete",
                             RelativeSizeAxes = Axes.Both,
@@ -81,6 +83,23 @@ namespace Garbus.Game.Edit.Screens.Timing
                     }
                 },
             };
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            // Keep the buttons' enabled state honest so an impossible action reads as a greyed-out
+            // button instead of a silent no-op (fresh chart: playhead parked at 0 on the initial
+            // point made both buttons look dead — ISSUES.md).
+            //
+            // osu semantics: Add is "add or focus the group at the playhead" — it only greys out when
+            // that group is already the selected one (selecting a row seeks onto the point, so a
+            // plain "no group here" check would grey Add after every selection — ISSUES.md).
+            double snapped = editorChart.ControlPointInfo.GetClosestSnappedTime(editorClock.CurrentTime);
+            var groupAtPlayhead = editorChart.ControlPointInfo.GroupAt(snapped);
+            addButton.Enabled.Value = groupAtPlayhead == null || SelectedGroup.Value != groupAtPlayhead;
+            deleteButton.Enabled.Value = SelectedGroup.Value != null && editorChart.ControlPointInfo.TimingPoints.Count > 1;
         }
 
         protected override void LoadComplete()
@@ -107,6 +126,14 @@ namespace Garbus.Game.Edit.Screens.Timing
                     IsSelected = { BindTarget = SelectedGroup },
                     Action = g =>
                     {
+                        // Re-clicking the selected row deselects it (ISSUES.md: there was no way to
+                        // clear the selection at all).
+                        if (SelectedGroup.Value == g)
+                        {
+                            SelectedGroup.Value = null;
+                            return;
+                        }
+
                         SelectedGroup.Value = g;
                         editorClock.Seek(g.Time);
                     },
@@ -133,6 +160,15 @@ namespace Garbus.Game.Edit.Screens.Timing
         private void addAtPlayhead()
         {
             double time = editorChart.ControlPointInfo.GetClosestSnappedTime(editorClock.CurrentTime);
+
+            // A group already at the playhead: focus it instead of silently replacing its point
+            // in place (osu's "+" semantics).
+            var existing = editorChart.ControlPointInfo.GroupAt(time);
+            if (existing != null)
+            {
+                SelectedGroup.Value = existing;
+                return;
+            }
 
             // Copy BeatLength from the active point at that time (or use default 500ms = 120 BPM).
             var prevPoint = editorChart.ControlPointInfo.TimingPointAt(time);

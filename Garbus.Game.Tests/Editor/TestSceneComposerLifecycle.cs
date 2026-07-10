@@ -68,10 +68,11 @@ namespace Garbus.Game.Tests.Editor
 
             // Still exactly 1 drawable — no duplication.
             AddAssert("exactly 1 drawable after update", () => harness.Composer.Playfield.AllHitObjects.Count(), () => Is.EqualTo(1));
-            // A new drawable instance was created (old one was removed).
-            AddAssert("drawable is a new instance", () =>
+            // The SAME drawable instance refreshes in place (via HitObject.DefaultsApplied) — updates
+            // must not tear down and rebuild drawables (see the slider node-drag GC storm, ISSUES.md).
+            AddAssert("drawable is the same instance", () =>
                 drawableBeforeUpdate != null &&
-                !ReferenceEquals(harness.Composer.Playfield.AllHitObjects.Single(), drawableBeforeUpdate));
+                ReferenceEquals(harness.Composer.Playfield.AllHitObjects.Single(), drawableBeforeUpdate));
         }
 
         [Test]

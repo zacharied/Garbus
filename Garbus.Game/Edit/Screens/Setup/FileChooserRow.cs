@@ -4,6 +4,8 @@
 
 using System;
 using System.IO;
+using Garbus.Game.Configuration;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
@@ -31,6 +33,9 @@ namespace Garbus.Game.Edit.Screens.Setup
         /// <summary>Overlay container injected by <see cref="ResourcesSection"/> so the selector
         /// can be presented as a child of the tab rather than bloating this row.</summary>
         private Container? overlayContainer;
+
+        [Resolved]
+        private GarbusConfigManager config { get; set; } = null!;
 
         public FileChooserRow(string label, string[] validExtensions, string currentValue)
         {
@@ -98,7 +103,7 @@ namespace Garbus.Game.Edit.Screens.Setup
             if (overlayContainer == null)
                 return;
 
-            var selector = new BasicFileSelector(validFileExtensions: validExtensions)
+            var selector = new BasicFileSelector(LastFileDirectory.Get(config), validExtensions)
             {
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
@@ -152,6 +157,8 @@ namespace Garbus.Game.Edit.Screens.Setup
 
         private void commitPick(string fullPath)
         {
+            LastFileDirectory.Set(config, Path.GetDirectoryName(fullPath));
+
             fileNameText.Text = Path.GetFileName(fullPath);
             OnFilePicked?.Invoke(fullPath);
         }

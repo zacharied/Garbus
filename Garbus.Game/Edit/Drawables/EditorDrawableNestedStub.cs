@@ -27,4 +27,12 @@ public partial class EditorDrawableNestedStub : DrawableHitObject<GarbusHitObjec
     protected override void UpdateHitStateTransforms(ArmedState state)
     {
     }
+
+    public override void PlaySamples()
+    {
+        // Same scrub gate as EditorDrawableGarbusHitObject (this stub doesn't derive from it):
+        // slider nodes / hold heads must stay silent while seeking with the clock stopped.
+        if (Clock.IsRunning)
+            base.PlaySamples();
+    }
 }

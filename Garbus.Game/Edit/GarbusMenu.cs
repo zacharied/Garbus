@@ -1,0 +1,123 @@
+// Bespoke for Garbus (modeled on osu.Game's OsuMenu / ToggleMenuItem / DrawableStatefulMenuItem,
+// rebuilt on the framework's Basic* widgets).
+
+using osu.Framework.Bindables;
+using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Localisation;
+using osuTK;
+
+namespace Garbus.Game.Edit;
+
+/// <summary>A <see cref="MenuItem"/> carrying an on/off state, rendered with a checkbox by <see cref="GarbusMenu"/>.</summary>
+public class ToggleMenuItem : MenuItem
+{
+    public readonly BindableBool State = new BindableBool();
+
+    /// <param name="text">The displayed text.</param>
+    /// <param name="state">The bindable this item's state follows and toggles (e.g. a config bindable).</param>
+    public ToggleMenuItem(LocalisableString text, Bindable<bool> state)
+        : base(text)
+    {
+        State.BindTo(state);
+        Action.Value = () => State.Value = !State.Value;
+    }
+}
+
+/// <summary>
+/// <see cref="BasicMenu"/> that renders <see cref="ToggleMenuItem"/>s with a checkbox. Clicking a
+/// toggle flips it and keeps the menu open (matching osu), so several settings can be changed in one
+/// visit.
+/// </summary>
+public partial class GarbusMenu : BasicMenu
+{
+    public GarbusMenu(Direction direction, bool topLevelMenu = false)
+        : base(direction, topLevelMenu)
+    {
+    }
+
+    protected override Menu CreateSubMenu() => new GarbusMenu(Direction.Vertical)
+    {
+        Anchor = Direction == Direction.Horizontal ? Anchor.BottomLeft : Anchor.TopRight,
+    };
+
+    protected override DrawableMenuItem CreateDrawableMenuItem(MenuItem item)
+        => item is ToggleMenuItem toggle ? new DrawableToggleMenuItem(toggle) : base.CreateDrawableMenuItem(item);
+
+    internal partial class DrawableToggleMenuItem : BasicDrawableMenuItem
+    {
+        // Keep the menu open so several settings can be flipped in one visit (matches osu).
+        public override bool CloseMenuOnClick => false;
+
+        public DrawableToggleMenuItem(ToggleMenuItem item)
+            : base(item)
+        {
+            ((ToggleContent)Content).State.BindTo(item.State);
+        }
+
+        protected override Drawable CreateContent() => new ToggleContent();
+
+        private partial class ToggleContent : FillFlowContainer, IHasText
+        {
+            public readonly BindableBool State = new BindableBool();
+
+            private readonly SpriteText text;
+            private readonly Box check;
+
+            public LocalisableString Text
+            {
+                get => text.Text;
+                set => text.Text = value;
+            }
+
+            public ToggleContent()
+            {
+                AutoSizeAxes = Axes.Both;
+                Direction = FillDirection.Horizontal;
+                Spacing = new Vector2(4, 0);
+                Padding = new MarginPadding(2);
+
+                Children = new Drawable[]
+                {
+                    new Container
+                    {
+                        Size = new Vector2(12),
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Children = new Drawable[]
+                        {
+                            // the "empty checkbox" backdrop, always visible.
+                            new Box
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                                Colour = Colour4.White,
+                                Alpha = 0.25f,
+                            },
+                            check = new Box
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                                Colour = Colour4.White,
+                                Alpha = 0,
+                            },
+                        },
+                    },
+                    text = new SpriteText
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Font = FrameworkFont.Condensed,
+                    },
+                };
+            }
+
+            protected override void LoadComplete()
+            {
+                base.LoadComplete();
+                State.BindValueChanged(e => check.FadeTo(e.NewValue ? 1 : 0, 100), true);
+            }
+        }
+    }
+}

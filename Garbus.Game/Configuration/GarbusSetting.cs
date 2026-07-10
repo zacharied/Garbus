@@ -26,5 +26,11 @@ namespace Garbus.Game.Configuration
 
         /// <summary>Contract the side toolboxes to give more room to the compose area.</summary>
         EditorContractSidebars,
+
+        /// <summary>
+        /// The directory last used in any editor file dialog (Open / Save As / resource pickers).
+        /// Dialogs start here on next open; persisted across sessions.
+        /// </summary>
+        EditorLastFileDirectory,
     }
 }

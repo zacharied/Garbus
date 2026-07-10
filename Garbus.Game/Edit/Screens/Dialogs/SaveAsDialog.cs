@@ -2,6 +2,8 @@
 
 using System;
 using System.IO;
+using Garbus.Game.Configuration;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -19,15 +21,24 @@ namespace Garbus.Game.Edit.Screens.Dialogs
     public partial class SaveAsDialog : VisibilityContainer
     {
         private readonly Action<string> onSave;
+        private readonly string defaultFilename;
         private BasicDirectorySelector directorySelector = null!;
         private BasicTextBox filenameBox = null!;
+
+        [Resolved]
+        private GarbusConfigManager config { get; set; } = null!;
 
         public SaveAsDialog(Action<string> onSave, string defaultFilename = "new-chart")
         {
             this.onSave = onSave;
+            this.defaultFilename = defaultFilename;
 
             RelativeSizeAxes = Axes.Both;
+        }
 
+        [BackgroundDependencyLoader]
+        private void load()
+        {
             // dim background
             AddInternal(new Box
             {
@@ -146,8 +157,20 @@ namespace Garbus.Game.Edit.Screens.Dialogs
 
             string fullPath = Path.Combine(dir.FullName, filename);
 
+            LastFileDirectory.Set(config, dir.FullName);
+
             Hide();
             onSave(fullPath);
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            // Applied after load: the selector's own load resolves its default path, which would
+            // overwrite anything set earlier.
+            if (LastFileDirectory.Get(config) is string last)
+                directorySelector.CurrentPath.Value = new DirectoryInfo(last);
         }
 
         protected override void PopIn() => this.FadeIn(150);

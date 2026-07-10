@@ -101,6 +101,12 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
                             - playfield.ToLocalSpace(moveEvent.Blueprint.ScreenSpaceSelectionPoint).X;
         int deltaDeg = (int)Math.Round(localDeltaX / playfield.DrawWidth * EditorAngleMapping.TOTAL_DEGREES);
 
+        // The snapped target can sit a full wrap (±360°) from the object's primary copy — the cursor
+        // hovering the ghost twin of an object on the far side of the seam. Reduce to the minimal
+        // equivalent rotation so "already there" is 0 (no update fired at all) rather than a spurious
+        // ±360 that mutates + rebuilds every selected object on every mouse-move event.
+        deltaDeg = EditorAngleMapping.MinimalDiff(0, deltaDeg);
+
         if (deltaDeg != 0)
         {
             EditorChart.PerformOnSelection(h =>

@@ -1,6 +1,7 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableHoldNote.cs).
 // BacHitObject → GarbusHitObject; DrawableHitObject import updated.
 
+using System.Collections.Generic;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -22,6 +23,10 @@ public partial class EditorDrawableHoldNote : EditorDrawableGarbusHitObject<Hold
 {
     private readonly Container nestedContainer;
 
+    // The head sprites (primary visual + ghost twin) are centred on the start line, so their bottom
+    // halves hang below this drawable's duration rectangle — track them so hit-testing covers them.
+    private readonly List<Drawable> headPieces = new List<Drawable>();
+
     public EditorDrawableHoldNote(HoldNote hitObject)
         : base(hitObject)
     {
@@ -30,29 +35,53 @@ public partial class EditorDrawableHoldNote : EditorDrawableGarbusHitObject<Hold
         AddInternal(nestedContainer = new Container { RelativeSizeAxes = Axes.Both });
     }
 
-    protected override Drawable CreateVisual() => new Container
+    protected override Drawable CreateVisual()
     {
-        RelativeSizeAxes = Axes.Both,
-        Children = new Drawable[]
+        EditorSpritePiece head;
+
+        var visual = new Container
         {
-            new Box
+            RelativeSizeAxes = Axes.Both,
+            Children = new Drawable[]
             {
-                RelativeSizeAxes = Axes.Y,
-                Width = 12,
-                Anchor = Anchor.BottomCentre,
-                Origin = Anchor.BottomCentre,
-                Colour = Color4.White,
-                Alpha = 0.35f,
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Y,
+                    Width = 12,
+                    Anchor = Anchor.BottomCentre,
+                    Origin = Anchor.BottomCentre,
+                    Colour = Color4.White,
+                    Alpha = 0.35f,
+                },
+                head = new EditorSpritePiece("square")
+                {
+                    RelativeSizeAxes = Axes.None,
+                    Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
+                    Anchor = Anchor.BottomCentre,
+                    Origin = Anchor.Centre,
+                },
             },
-            new EditorSpritePiece("square")
-            {
-                RelativeSizeAxes = Axes.None,
-                Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
-                Anchor = Anchor.BottomCentre,
-                Origin = Anchor.Centre,
-            },
-        },
-    };
+        };
+
+        headPieces.Add(head);
+        return visual;
+    }
+
+    public override bool ReceivePositionalInputAt(Vector2 screenSpacePos)
+    {
+        if (base.ReceivePositionalInputAt(screenSpacePos))
+            return true;
+
+        // The head square straddles the start line; accept its full extent (ISSUES.md: hold notes
+        // must be selectable by the head, not just the body).
+        foreach (var head in headPieces)
+        {
+            if (head.ScreenSpaceDrawQuad.Contains(screenSpacePos))
+                return true;
+        }
+
+        return false;
+    }
 
     protected override DrawableHitObject CreateNestedHitObject(HitObject hitObject) =>
         new EditorDrawableNestedStub((GarbusHitObject)hitObject);

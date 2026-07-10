@@ -3,12 +3,12 @@
 // HitObjectSelectionBlueprint<T> / EditSquarePiece from the Garbus Edit.Compose / Edit.Blueprints.Components;
 // ScrollingHitObjectContainer from Garbus.Game.Gameplay.UI.Scrolling; Playfield from Gameplay.UI.
 //
-// NOTE on the stale-DrawableObject gap: unlike osu's HitObjectSelectionBlueprint, this base positions
-// itself directly off the HitObjectContainer (angle → x, time → y) every frame and overrides all three
-// positional accessors (ReceivePositionalInputAt / ScreenSpaceSelectionPoint / SelectionQuad) so
-// selection never routes through the swapped-out DrawableObject. DrawableObject is used ONLY by the base
-// ShouldBeAlive check — the composer's HitObjectUpdated → TransferBlueprintFor refresh keeps that pointer
-// fresh (see EditorBlueprintContainer).
+// NOTE on the stale-DrawableObject gap: this base positions itself directly off the HitObjectContainer
+// (angle → x, time → y) every frame. Positional input still routes through DrawableObject (the base
+// accessors: ReceivePositionalInputAt / ScreenSpaceSelectionPoint / SelectionQuad all read it) — that
+// stays correct because the composer's HitObjectUpdated → TransferBlueprintFor refresh re-points
+// DrawableObject at the freshly-created drawable within the same event dispatch, and the new drawable
+// is laid out in the same frame's update pass (see EditorBlueprintContainer).
 
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;

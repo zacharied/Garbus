@@ -89,4 +89,27 @@ public abstract partial class EditorDrawableGarbusHitObject<T> : DrawableHitObje
     {
         // Editor objects never animate away on hit/miss; they scroll out via lifetime instead.
     }
+
+    public override void PlaySamples()
+    {
+        // Hitsound feedback is only wanted when the playhead crosses the object with the clock
+        // actually running — never while scrubbing/seeking with the clock stopped (a wheel-seek
+        // judges every object it skips over). This drawable's Clock IS the EditorClock (ComposeTab
+        // wires the composer subtree to it).
+        if (Clock.IsRunning)
+            base.PlaySamples();
+    }
+
+    /// <summary>
+    /// The scrolling container owns editor lifetimes (it writes scroll-in → scroll-out times to the
+    /// lifetime entry directly). Drawable-side writes come from DrawableHitObject.UpdateState's
+    /// judgement-driven expiry: editor objects auto-judge and have no hit-state transforms, so that
+    /// clamp would set LifetimeEnd to the judgement time — killing the drawable at its own start time
+    /// whenever defaults are re-applied in place. Swallow them.
+    /// </summary>
+    public override double LifetimeEnd
+    {
+        get => base.LifetimeEnd;
+        set { }
+    }
 }

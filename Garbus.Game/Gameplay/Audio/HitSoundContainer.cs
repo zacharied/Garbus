@@ -68,8 +68,13 @@ namespace Garbus.Game.Gameplay.Audio
             drawableSamples.Clear();
         }
 
+        /// <summary>How many times <see cref="Play"/> has been invoked. Test observability seam.</summary>
+        public int PlayCount { get; private set; }
+
         public void Play()
         {
+            PlayCount++;
+
             playingChannels.RemoveAll(c => !c.Playing);
 
             foreach (var sample in drawableSamples)
