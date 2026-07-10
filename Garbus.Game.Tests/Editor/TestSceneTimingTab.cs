@@ -464,6 +464,20 @@ namespace Garbus.Game.Tests.Editor
             });
             AddUntilStep("first group selected again", () =>
                 timingList().SelectedGroup.Value?.Time == 0);
+
+            // Deselect (re-clicking the selected row clears the selection), then Up selects the LAST group.
+            AddStep("re-click selected row to deselect", () =>
+                editor.ChildrenOfType<TimingPointRow>().First().TriggerClick());
+            AddUntilStep("nothing selected", () =>
+                timingList().SelectedGroup.Value == null);
+
+            AddStep("press Up with no selection", () =>
+            {
+                input.PressKey(osuTK.Input.Key.Up);
+                input.ReleaseKey(osuTK.Input.Key.Up);
+            });
+            AddUntilStep("last group selected", () =>
+                timingList().SelectedGroup.Value?.Time == 2000);
         }
 
         private TimingPointList timingList() => editor.ChildrenOfType<TimingPointList>().First();
