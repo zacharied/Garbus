@@ -12,8 +12,11 @@ using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
+using osuTK.Input;
 
 namespace Garbus.Game.Tests.Editor
 {
@@ -21,6 +24,7 @@ namespace Garbus.Game.Tests.Editor
     public partial class TestSceneEditorShell : GarbusTestScene
     {
         private GarbusEditor editor = null!;
+        private ManualInputManager input = null!;
 
         [SetUp]
         public void SetUp() => Schedule(() =>
@@ -33,7 +37,11 @@ namespace Garbus.Game.Tests.Editor
             string tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".garbus");
             chartFile.Save(tempPath);
 
-            Child = new ScreenStack(editor = new GarbusEditor(chartFile)) { RelativeSizeAxes = Axes.Both };
+            Child = input = new ManualInputManager
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = new ScreenStack(editor = new GarbusEditor(chartFile)) { RelativeSizeAxes = Axes.Both },
+            };
         });
 
         [Test]
@@ -43,6 +51,74 @@ namespace Garbus.Game.Tests.Editor
             AddStep("switch to setup", () => editor.Tab.Value = EditorTab.Setup);
             AddUntilStep("setup visible", () => editor.ChildrenOfType<SetupTab>().Single().State.Value == Visibility.Visible);
             AddUntilStep("compose hidden", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Hidden);
+        }
+
+        /// <summary>
+        /// Regression guard for Phase4-Issues.md: the top bar must receive positional input in front
+        /// of the compose blueprint stack (whose ReceivePositionalInputAt covers the whole screen).
+        /// Clicking a tab button with the real input pipeline must switch tabs.
+        /// </summary>
+        [Test]
+        public void TestTabSwitchingViaClick()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+
+            clickTabButton(EditorTab.Setup);
+            AddAssert("tab is Setup", () => editor.Tab.Value == EditorTab.Setup);
+            AddUntilStep("setup visible", () => editor.ChildrenOfType<SetupTab>().Single().State.Value == Visibility.Visible);
+
+            clickTabButton(EditorTab.Verify);
+            AddAssert("tab is Verify", () => editor.Tab.Value == EditorTab.Verify);
+
+            clickTabButton(EditorTab.Compose);
+            AddAssert("tab is Compose", () => editor.Tab.Value == EditorTab.Compose);
+        }
+
+        /// <summary>
+        /// Regression guard for Phase4-Issues.md: clicking a menu-bar item must open its dropdown
+        /// (in front of the tab content), and clicking a dropdown item must run its action.
+        /// Drives File → Save end-to-end and asserts the dirty flag clears.
+        /// </summary>
+        [Test]
+        public void TestFileMenuSaveViaClick()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+
+            AddStep("add object", () => editor.EditorChart.Add(new CardinalNote { StartTime = 1000, AngleDeg = 0 }));
+            AddAssert("dirty", () => editor.HasUnsavedChanges);
+
+            AddStep("click File", () =>
+            {
+                var fileItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                     .First(i => i.Item.Text.Value.ToString() == "File");
+                input.MoveMouseTo(fileItem);
+                input.Click(MouseButton.Left);
+            });
+
+            // The submenu is a second open menu (the top-level bar is always open).
+            AddUntilStep("file dropdown open", () =>
+                editor.ChildrenOfType<BasicMenu>().Count(m => m.State == MenuState.Open) >= 2);
+
+            AddStep("click Save", () =>
+            {
+                var saveItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                     .First(i => i.Item.Text.Value.ToString() == "Save");
+                input.MoveMouseTo(saveItem);
+                input.Click(MouseButton.Left);
+            });
+
+            AddUntilStep("clean after menu save", () => !editor.HasUnsavedChanges);
+        }
+
+        private void clickTabButton(EditorTab tab)
+        {
+            AddStep($"click {tab} tab button", () =>
+            {
+                var tabItem = editor.ChildrenOfType<BasicTabControl<EditorTab>.BasicTabItem>()
+                                    .First(t => t.Value == tab);
+                input.MoveMouseTo(tabItem);
+                input.Click(MouseButton.Left);
+            });
         }
 
         [Test]

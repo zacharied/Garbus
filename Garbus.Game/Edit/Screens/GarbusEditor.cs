@@ -148,6 +148,12 @@ namespace Garbus.Game.Edit.Screens
             // Use a plain Container with Padding rather than a FillFlowContainer:
             // a child with RelativeSizeAxes.Both inside a vertical FillFlowContainer resolves to
             // zero height — the tab area collapses.  Padding reserves the top/bottom bar heights.
+            //
+            // Ordering matters (matches osu's Editor: screen content FIRST, bars AFTER): the compose
+            // blueprint stack claims positional input over the whole screen
+            // (ReceivePositionalInputAt => true), so the top/bottom bars must come later in the child
+            // list to outrank it in the input queue — and so menu dropdowns (children of the top bar
+            // subtree) draw in front of the tab content.
             InternalChildren = new Drawable[]
             {
                 new Box
@@ -155,12 +161,12 @@ namespace Garbus.Game.Edit.Screens
                     RelativeSizeAxes = Axes.Both,
                     Colour = new osuTK.Graphics.Color4(28, 28, 36, 255),
                 },
-                createTopBar(),
                 tabContainer = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
                     Padding = new MarginPadding { Top = 40, Bottom = 60 },
                 },
+                createTopBar(),
                 createBottomBar(),
                 dialogOverlay = new Container
                 {

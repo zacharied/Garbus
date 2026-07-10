@@ -5,7 +5,7 @@ target for the BigAssCircle osu!lazer ruleset at `C:\Users\zachd\Code\BAC` — a
 where hit objects spawn at the centre of a circular playfield and travel outward toward the ring, with
 judgement at the edge timed to the music.
 
-This is an experimental project and backwards compatibility will NEVER matter until this line is removed. Do not add historical context to documentation, do not add compatibility layers if a schema changes.
+This is an experimental project and backwards compatibility will NEVER matter until this line is removed. Do not add historical context to documentation, do not add compatibility layers if a schema changes, and do not increment version numbers on anything. There are no garbus charts in existence yet so compatibility does not matter.
 
 **Read `PLAN-port.md` first** — it is the canonical port plan and progress tracker: locked-in decisions,
 the osu.Game→osu-framework dependency-split findings, the vendoring manifest, and per-phase checklists.
@@ -83,6 +83,11 @@ classes:
 - **Lambda event subscriptions leak** if not unsubscribed (timeline/metronome components subscribe to
   `ControlPointInfo.ControlPointsChanged`, clock, selection, `HitObjectUpdated`). Keep a field
   reference to the handler and unsubscribe in `Dispose`.
+- **The top/bottom bars must come AFTER the tab container in `GarbusEditor`'s child list** (osu's
+  Editor order: content first, bars after). The compose blueprint stack claims positional input over
+  the whole screen (`ReceivePositionalInputAt => true`), so bars listed earlier never receive clicks,
+  and menu dropdowns (children of the top-bar subtree) draw behind the tab content. Guarded by
+  `TestSceneEditorShell.TestTabSwitchingViaClick` / `TestFileMenuSaveViaClick`.
 - **Wheel-seek convention:** wheel-down (negative `ScrollDelta.Y`) = forward in time, wheel-up =
   backward (matches osu's `Editor.cs`). Pinned by tests.
 - `TransferBlueprintFor` runs on `HitObjectUpdated` so a re-defaulted object keeps its selection
