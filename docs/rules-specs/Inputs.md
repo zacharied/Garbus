@@ -1,6 +1,4 @@
-*This document is a human-written work in progress.*
-
-*The contents of this document are expected to differ from implementation.*
+*The contents of this document differ from the current implementation.*
 
 # Inputs specification
 
