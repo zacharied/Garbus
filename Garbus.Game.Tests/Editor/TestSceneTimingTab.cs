@@ -507,6 +507,16 @@ namespace Garbus.Game.Tests.Editor
 
         private TimingPointSettings settings() => editor.ChildrenOfType<TimingPointSettings>().First();
 
+        /// <summary>
+        /// The right panel scrolls; content near its bottom (the tap-timing adjust rows) must be
+        /// scrolled into view before it can be really-clicked.
+        /// </summary>
+        private void scrollRightPanelToEnd() => AddStep("scroll right panel to end", () =>
+            editor.ChildrenOfType<TimingTab>().First()
+                  .ChildrenOfType<osu.Framework.Graphics.Containers.BasicScrollContainer>()
+                  .First(s => s.ChildrenOfType<TapTimingControl>().Any())
+                  .ScrollToEnd(false));
+
         [Test]
         public void TestOffsetMoveShiftsObjectsInSection()
         {
@@ -647,6 +657,8 @@ namespace Garbus.Game.Tests.Editor
                 editor.ChildrenOfType<TimingPointRow>().ElementAt(1).TriggerClick());
             AddUntilStep("second selected", () =>
                 timingList().SelectedGroup.Value?.Time == 2000);
+
+            scrollRightPanelToEnd();
 
             AddStep("really click tap offset -10", () =>
             {
@@ -793,6 +805,8 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("BPM textbox shows 120", () =>
                 settings().BpmTextForTests == "120");
 
+            scrollRightPanelToEnd();
+
             // Change the point's BPM from OUTSIDE the settings panel (tap-timing adjust button).
             AddStep("really click tap BPM +1", () =>
             {
@@ -853,6 +867,23 @@ namespace Garbus.Game.Tests.Editor
                 var list = editor.ChildrenOfType<TimingPointList>().First();
                 return list.ScreenSpaceDrawQuad.AABBFloat.Top >= strip.ScreenSpaceDrawQuad.AABBFloat.Bottom - 1;
             });
+        }
+
+        // ------------------------------------------------------------------
+        // 18. Right panel (settings + tap timing) is vertically scrollable
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestRightPanelIsScrollable()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            AddUntilStep("settings and tap control share one scroll container", () =>
+                editor.ChildrenOfType<TimingTab>().First()
+                      .ChildrenOfType<osu.Framework.Graphics.Containers.BasicScrollContainer>()
+                      .Any(s => s.ChildrenOfType<TimingPointSettings>().Any()
+                                && s.ChildrenOfType<TapTimingControl>().Any()));
         }
     }
 }

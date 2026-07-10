@@ -79,21 +79,29 @@ namespace Garbus.Game.Edit.Screens
                                     RelativeSizeAxes = Axes.Both,
                                 },
 
-                                // Right: settings + tap timing stacked.
-                                new FillFlowContainer
+                                // Right: settings + tap timing stacked, scrollable when taller than
+                                // the window.
+                                new BasicScrollContainer
                                 {
                                     RelativeSizeAxes = Axes.Both,
-                                    Direction = FillDirection.Vertical,
-                                    Children = new Drawable[]
+                                    ScrollbarOverlapsContent = false,
+                                    Child = new FillFlowContainer
                                     {
-                                        // Auto-sizes vertically to its content; the tap control flows below it.
-                                        timingPointSettings = new TimingPointSettings
+                                        RelativeSizeAxes = Axes.X,
+                                        AutoSizeAxes = Axes.Y,
+                                        Direction = FillDirection.Vertical,
+                                        Children = new Drawable[]
                                         {
-                                            RelativeSizeAxes = Axes.X,
-                                        },
-                                        tapTimingControl = new TapTimingControl
-                                        {
-                                            RelativeSizeAxes = Axes.X,
+                                            // Auto-sizes vertically to its content; the tap control
+                                            // flows below it.
+                                            timingPointSettings = new TimingPointSettings
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                            },
+                                            tapTimingControl = new TapTimingControl
+                                            {
+                                                RelativeSizeAxes = Axes.X,
+                                            },
                                         },
                                     },
                                 },
