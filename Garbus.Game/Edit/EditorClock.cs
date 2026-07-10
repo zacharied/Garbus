@@ -274,7 +274,11 @@ namespace Garbus.Game.Edit
             UnbindAdjustments();
 
             track.Value = source as Track;
-            underlyingClock.ChangeSource(source);
+
+            // Route the audio track through a coalescing, non-blocking seek wrapper so interactive scrubbing
+            // doesn't stall the update thread on per-frame track seeks (see BackgroundSeekingClock).
+            IClock clockSource = source is IAdjustableClock adjustable ? new BackgroundSeekingClock(adjustable) : source;
+            underlyingClock.ChangeSource(clockSource);
 
             BindAdjustments();
         }
