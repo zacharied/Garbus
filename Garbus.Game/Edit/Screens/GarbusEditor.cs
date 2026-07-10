@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
@@ -73,6 +74,7 @@ namespace Garbus.Game.Edit.Screens
         internal GarbusChartChangeHandler ChangeHandlerForTests => changeHandler;
         private BindableBeatDivisor beatDivisor = null!;
         private AudioManager audioManager = null!;
+        private EditorClipboard clipboard = null!;
 
         private string hashAtLastSave = string.Empty;
 
@@ -113,11 +115,14 @@ namespace Garbus.Game.Edit.Screens
 
             editorClock = new EditorClock(EditorChart.ControlPointInfo, 60000, beatDivisor);
 
+            clipboard = new EditorClipboard(EditorChart, editorClock, EditorChart.ControlPointInfo, beatDivisor);
+
             dependencies.Cache(editorClock);
             dependencies.Cache(EditorChart);
             dependencies.Cache(changeHandler);
             dependencies.CacheAs<IEditorChangeHandler>(changeHandler);
             dependencies.Cache(beatDivisor);
+            dependencies.Cache(clipboard);
             dependencies.CacheAs(this);
             dependencies.CacheAs(ChartFile);
             // Cache ControlPointInfo directly so timeline components (TimelineTickDisplay,
@@ -344,7 +349,10 @@ namespace Garbus.Game.Edit.Screens
                     {
                         Items = createViewMenuItems(),
                     },
-                    new MenuItem("Timing"),
+                    new MenuItem("Timing")
+                    {
+                        Items = createTimingMenuItems(),
+                    },
                 },
             };
         }
@@ -427,7 +435,59 @@ namespace Garbus.Game.Edit.Screens
             changeHandler.CanRedo.BindValueChanged(e =>
                 redoItem.Action.Value = e.NewValue ? (Action)changeHandler.Redo : null, true);
 
-            return new[] { undoItem, redoItem };
+            var cutItem = new MenuItem("Cut", () => clipboard.Cut());
+            var copyItem = new MenuItem("Copy", () => clipboard.Copy());
+            var pasteItem = new MenuItem("Paste", () => clipboard.Paste());
+            var cloneItem = new MenuItem("Clone", () => clipboard.Clone());
+
+            // Update clipboard menu item enabled states when selection or clipboard content changes.
+            void updateClipboardEnabled()
+            {
+                bool hasSelection = EditorChart.SelectedHitObjects.Count > 0;
+                bool hasContent = !string.IsNullOrEmpty(clipboard.Content.Value);
+                cutItem.Action.Value = hasSelection ? (Action)clipboard.Cut : null;
+                copyItem.Action.Value = hasSelection ? (Action)clipboard.Copy : null;
+                pasteItem.Action.Value = hasContent ? (Action)clipboard.Paste : null;
+                cloneItem.Action.Value = hasSelection ? (Action)clipboard.Clone : null;
+            }
+
+            EditorChart.SelectedHitObjects.BindCollectionChanged((_, _) => updateClipboardEnabled(), true);
+            clipboard.Content.BindValueChanged(_ => updateClipboardEnabled());
+
+            return new[] { undoItem, redoItem, cutItem, copyItem, pasteItem, cloneItem };
+        }
+
+        private IReadOnlyList<MenuItem> createTimingMenuItems()
+        {
+            return new[]
+            {
+                new MenuItem("Set preview point to current time", () =>
+                {
+                    EditorChart.BeginChange();
+                    EditorChart.Chart.PreviewTime = editorClock.CurrentTime;
+                    EditorChart.SaveState();
+                    EditorChart.EndChange();
+                }),
+                new MenuItem("Snap all notes to current snap divisor", () =>
+                {
+                    var dialog = new ConfirmDialog(
+                        "This will move all notes to the nearest beat grid position.\nThis action is undoable.",
+                        ("Snap All", () =>
+                        {
+                            EditorChart.BeginChange();
+                            foreach (var h in EditorChart.HitObjects.ToList())
+                            {
+                                h.StartTime = EditorChart.ControlPointInfo.GetClosestSnappedTime(h.StartTime, beatDivisor.Value);
+                                EditorChart.Update(h);
+                            }
+                            EditorChart.EndChange();
+                        }),
+                        ("Cancel", () => { })
+                    );
+                    dialogOverlay.Child = dialog;
+                    dialog.Show();
+                }),
+            };
         }
 
         private Drawable createBottomBar() => new BottomBar.BottomBar();
@@ -483,6 +543,39 @@ namespace Garbus.Game.Edit.Screens
                     case Key.Y:
                         changeHandler.Redo();
                         return true;
+
+                    // Clipboard hotkeys — only when no textbox is focused (textbox handles Ctrl+C/V itself).
+                    case Key.X:
+                        if (!isTextBoxFocused() && clipboard.CanCut)
+                        {
+                            clipboard.Cut();
+                            return true;
+                        }
+                        break;
+
+                    case Key.C:
+                        if (!isTextBoxFocused() && clipboard.CanCopy)
+                        {
+                            clipboard.Copy();
+                            return true;
+                        }
+                        break;
+
+                    case Key.V:
+                        if (!isTextBoxFocused() && clipboard.CanPaste)
+                        {
+                            clipboard.Paste();
+                            return true;
+                        }
+                        break;
+
+                    case Key.D:
+                        if (!isTextBoxFocused() && clipboard.CanCopy)
+                        {
+                            clipboard.Clone();
+                            return true;
+                        }
+                        break;
                 }
             }
 

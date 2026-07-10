@@ -43,6 +43,31 @@ public static class GarbusChartSerializer
     internal static string EncodeHitObject(GarbusHitObject hitObject)
         => JsonSerializer.Serialize(toDto(hitObject), hitObjectOptions);
 
+    /// <summary>
+    /// Encodes a collection of hit objects to a JSON array string, reusing the same DTO mapping
+    /// used by the full chart encoder. Suitable for clipboard content.
+    /// </summary>
+    public static string EncodeHitObjects(IEnumerable<GarbusHitObject> hitObjects)
+        => JsonSerializer.Serialize(hitObjects.Select(toDto).ToList(), hitObjectsOptions);
+
+    /// <summary>
+    /// Decodes a JSON array of hit objects previously produced by <see cref="EncodeHitObjects"/>.
+    /// Returns fresh object instances (deep-cloned through the DTO mapping).
+    /// </summary>
+    public static IReadOnlyList<GarbusHitObject> DecodeHitObjects(string json)
+    {
+        var dtos = JsonSerializer.Deserialize<List<HitObjectDto>>(json, hitObjectsOptions)
+                   ?? throw new InvalidDataException("Clipboard data contained no hit objects.");
+        return dtos.Select(fromDto).ToList();
+    }
+
+    // Options for the hit-object array codec (clipboard / copy-paste).
+    private static readonly JsonSerializerOptions hitObjectsOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+    };
+
     // Compact (no indentation) options for the per-object identity strings.
     private static readonly JsonSerializerOptions hitObjectOptions = new JsonSerializerOptions
     {
