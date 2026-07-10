@@ -60,8 +60,18 @@ this.Push(new PlayScreen(clonedChart, freshTrack, startTime));
 ```
 
 Test mode now gives a uniform 3 s count-in before the playhead. The `ExitTime` / seek-back-on-
-resume path is unaffected (it records `CurrentTime`, which may now be slightly negative if you
-exit during the count-in — a harmless editor seek that clamps to 0).
+resume path is unaffected (it records `CurrentTime`, which may now be slightly negative — for a
+normal-play start — or, for an editor start, land up to `LEAD_IN_TIME` before the playhead if you
+exit during the count-in; a harmless editor seek that clamps to 0).
+
+### Two distinct "StartTime"s (precision)
+
+- `PlayScreen.StartTime` (ctor arg) = the **intended** gameplay start, i.e. `GameplayStartTime`
+  (0 for normal play, the playhead for editor). This is what tests assert on.
+- `GameplayClockContainer.StartTime` (internal seek target) = `GameplayStartTime - LEAD_IN_TIME`,
+  the negative-for-normal-play value the clock resets/seeks to.
+
+Do not conflate them; only the second one goes negative.
 
 ## osu comparison
 
@@ -113,9 +123,23 @@ is exactly what the decoupling clock expects for negative seeks.
 - **Running-clock assertion** (`AddUntilStep`): from load, `CurrentTime` begins negative, no hit
   object has been judged / is alive while `CurrentTime < 0` (given current `timeRange`), and once
   `CurrentTime` crosses 0 the track is running and objects judge normally.
-- **Editor Test launch:** confirm the removed `-1500` doesn't break `TestSceneEditorIntegration` /
-  the Test-launch coverage; adjust any assertion that hard-codes the 1500 offset.
-- Full `dotnet test` green.
+- **Editor Test launch (known breakage to update):**
+  - `TestSceneTestMode.TestStartTimeOffsetFromEditorClock` asserts
+    `PlayScreen.StartTime ≈ Max(0, editorTime − 1500)`. Update it to
+    `Max(0, editorTime)` and fix the file's docstring (item 2: "Start time ≈ … − 1500").
+  - `TestSceneTestMode.TestStartTimeClampsToZero` still passes as-is (`Max(0, 0) == 0`).
+  - `TestExitingPlayScreenSeeksEditorClock` still passes (it checks editor clock ≈ `ExitTime`
+    for internal consistency, not an absolute value), but the landing point during lead-in
+    shifts earlier — re-run to confirm.
+- Full `dotnet test` green (baseline is 197/197 as of commit 90f7326).
+
+## Working-tree / recent-commit note
+
+Commit `90f7326` ("Fix eleven editor/gameplay issues") landed the `Content.Clock = GameplayClock`
+wiring — the playfield now runs on the gameplay clock. **This is a prerequisite the lead-in
+relies on** (negative lead-in time must reach the playfield to gate object lifetimes); it does not
+conflict with this plan. The same commit added `TestSceneTestMode`, which is the source of the
+test breakage noted above.
 
 ## Out of scope (YAGNI)
 
