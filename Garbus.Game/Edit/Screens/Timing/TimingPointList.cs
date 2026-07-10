@@ -2,7 +2,9 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: stripped to timing-only (one control point type); rebuilt UI on Basic* widgets;
-// no OverlayColourProvider; object-shifting on timing change does NOT apply.
+// no OverlayColourProvider; plain flow instead of VirtualisedListContainer (chart sizes don't need
+// virtualisation) with osu's ControlPointTable layout (header row, fixed time column, attribute
+// chips); object-shifting on timing change does NOT apply.
 
 using System;
 using System.Linq;
@@ -11,13 +13,17 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Localisation;
 using osuTK;
 
 namespace Garbus.Game.Edit.Screens.Timing
 {
     /// <summary>
-    /// Left panel of the Timing tab: lists all timing control points with offset/BPM/signature columns.
+    /// Left panel of the Timing tab: header row + one row per timing control point, each showing the
+    /// point's time and attribute chips (BPM, time signature, no-barline).
     /// Selecting a row seeks the editor clock to the point's time.
     /// </summary>
     public partial class TimingPointList : CompositeDrawable
@@ -34,6 +40,8 @@ namespace Garbus.Game.Edit.Screens.Timing
         /// <summary>The currently selected timing control point group (shared with settings panel).</summary>
         public readonly Bindable<ControlPointGroup?> SelectedGroup = new Bindable<ControlPointGroup?>();
 
+        private const float header_height = 24;
+
         private FillFlowContainer<TimingPointRow> rowContainer = null!;
         private BasicButton addButton = null!;
         private BasicButton deleteButton = null!;
@@ -45,15 +53,40 @@ namespace Garbus.Game.Edit.Screens.Timing
 
             InternalChildren = new Drawable[]
             {
+                new Container
+                {
+                    RelativeSizeAxes = Axes.X,
+                    Height = header_height,
+                    Children = new Drawable[]
+                    {
+                        new SpriteText
+                        {
+                            Text = "Time",
+                            X = 8,
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                            Font = FontUsage.Default.With(size: 14),
+                        },
+                        new SpriteText
+                        {
+                            Text = "Attributes",
+                            X = TimingPointRow.TIME_COLUMN_WIDTH,
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                            Font = FontUsage.Default.With(size: 14),
+                        },
+                    },
+                },
                 new BasicScrollContainer
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Bottom = 40 },
+                    Padding = new MarginPadding { Top = header_height, Bottom = 40 },
                     Child = rowContainer = new FillFlowContainer<TimingPointRow>
                     {
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,
                         Direction = FillDirection.Vertical,
+                        Spacing = new Vector2(0, 1),
                     },
                 },
                 new Container
@@ -220,28 +253,82 @@ namespace Garbus.Game.Edit.Screens.Timing
     }
 
     /// <summary>
-    /// A single row in the timing point list.
+    /// A single row in the timing point list: time column + attribute chips (BPM, time signature,
+    /// and a "no barline" chip shown only while <see cref="TimingControlPoint.OmitFirstBarLine"/> is set).
     /// </summary>
-    public partial class TimingPointRow : BasicButton
+    public partial class TimingPointRow : ClickableContainer
     {
+        public const float TIME_COLUMN_WIDTH = 110;
+
+        private static readonly Colour4 row_background = new Colour4(42, 42, 48, 255);
+        private static readonly Colour4 selected_background = new Colour4(70, 90, 140, 255);
+
         private readonly ControlPointGroup group;
-        private readonly TimingControlPoint timingPoint;
 
         /// <summary>Bindable to the parent list's SelectedGroup — drives visual selection state.</summary>
         public readonly Bindable<ControlPointGroup?> IsSelected = new Bindable<ControlPointGroup?>();
 
         public new Action<ControlPointGroup>? Action;
 
+        // Bound copies stored as fields so drawable disposal auto-unbinds them. (Subscribing lambdas
+        // directly to the point's bindables would keep every discarded row alive after each list
+        // refresh — the lambda-leak gotcha.)
+        private readonly IBindable<double> beatLength;
+        private readonly IBindable<TimeSignature> timeSignature;
+        private readonly IBindable<bool> omitFirstBarLine;
+
+        private Box background = null!;
+        private AttributeChip bpmChip = null!;
+        private AttributeChip signatureChip = null!;
+        private AttributeChip omitBarLineChip = null!;
+
         public TimingPointRow(ControlPointGroup group, TimingControlPoint timingPoint)
         {
             this.group = group;
-            this.timingPoint = timingPoint;
+
+            beatLength = timingPoint.BeatLengthBindable.GetBoundCopy();
+            timeSignature = timingPoint.TimeSignatureBindable.GetBoundCopy();
+            omitFirstBarLine = timingPoint.OmitFirstBarLineBindable.GetBoundCopy();
 
             RelativeSizeAxes = Axes.X;
             Height = 32;
-            Text = formatRow();
 
             base.Action = () => Action?.Invoke(group);
+        }
+
+        [BackgroundDependencyLoader]
+        private void load()
+        {
+            Children = new Drawable[]
+            {
+                background = new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = row_background,
+                },
+                new SpriteText
+                {
+                    Text = $"{group.Time:0}ms",
+                    X = 8,
+                    Anchor = Anchor.CentreLeft,
+                    Origin = Anchor.CentreLeft,
+                },
+                new FillFlowContainer
+                {
+                    AutoSizeAxes = Axes.Both,
+                    Direction = FillDirection.Horizontal,
+                    Spacing = new Vector2(4, 0),
+                    X = TIME_COLUMN_WIDTH,
+                    Anchor = Anchor.CentreLeft,
+                    Origin = Anchor.CentreLeft,
+                    Children = new Drawable[]
+                    {
+                        bpmChip = new AttributeChip(),
+                        signatureChip = new AttributeChip(),
+                        omitBarLineChip = new AttributeChip { Text = "no barline", Alpha = 0 },
+                    },
+                },
+            };
         }
 
         protected override void LoadComplete()
@@ -251,17 +338,54 @@ namespace Garbus.Game.Edit.Screens.Timing
             IsSelected.BindValueChanged(e =>
             {
                 bool selected = e.NewValue != null && Math.Abs(e.NewValue.Time - group.Time) < 1;
-                Alpha = selected ? 1f : 0.7f;
+                background.Colour = selected ? selected_background : row_background;
+                Alpha = selected ? 1f : 0.85f;
             }, true);
 
-            timingPoint.BeatLengthBindable.BindValueChanged(_ => Text = formatRow());
-            timingPoint.TimeSignatureBindable.BindValueChanged(_ => Text = formatRow());
+            beatLength.BindValueChanged(_ => bpmChip.Text = $"{60000 / beatLength.Value:0.##} BPM", true);
+            timeSignature.BindValueChanged(_ => signatureChip.Text = $"{timeSignature.Value.Numerator}/4", true);
+            omitFirstBarLine.BindValueChanged(e => omitBarLineChip.Alpha = e.NewValue ? 1 : 0, true);
         }
 
-        private string formatRow()
+        /// <summary>
+        /// A small rounded pill showing one attribute of the timing point (osu's RowAttribute,
+        /// simplified: no representing-colour circle, plain SpriteText).
+        /// </summary>
+        public partial class AttributeChip : CompositeDrawable
         {
-            double bpm = Math.Round(60000 / timingPoint.BeatLength, 2);
-            return $"{group.Time:0}ms  {bpm:0.##} BPM  {timingPoint.TimeSignature.Numerator}/4";
+            private readonly SpriteText text;
+
+            public LocalisableString Text
+            {
+                get => text.Text;
+                set => text.Text = value;
+            }
+
+            public AttributeChip()
+            {
+                AutoSizeAxes = Axes.X;
+                Height = 20;
+                Anchor = Anchor.CentreLeft;
+                Origin = Anchor.CentreLeft;
+                Masking = true;
+                CornerRadius = 3;
+
+                InternalChildren = new Drawable[]
+                {
+                    new Box
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = new Colour4(25, 25, 30, 255),
+                    },
+                    text = new SpriteText
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Margin = new MarginPadding { Horizontal = 6 },
+                        Font = FontUsage.Default.With(size: 14),
+                    },
+                };
+            }
         }
     }
 }

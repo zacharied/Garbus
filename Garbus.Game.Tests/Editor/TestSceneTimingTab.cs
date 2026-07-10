@@ -422,5 +422,35 @@ namespace Garbus.Game.Tests.Editor
                 return tp != null && Math.Abs(tp.BeatLength - priorBeatLength) < 1.0;
             });
         }
+
+        // ------------------------------------------------------------------
+        // 7. Table rows render attribute chips that live-update
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestRowShowsAttributeChips()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            AddUntilStep("row has 120 BPM chip", () =>
+                editor.ChildrenOfType<TimingPointRow.AttributeChip>()
+                      .Any(c => c.Text.ToString() == "120 BPM"));
+
+            AddAssert("row has signature chip", () =>
+                editor.ChildrenOfType<TimingPointRow.AttributeChip>()
+                      .Any(c => c.Text.ToString() == "4/4"));
+
+            AddAssert("no-barline chip hidden by default", () =>
+                editor.ChildrenOfType<TimingPointRow.AttributeChip>()
+                      .Single(c => c.Text.ToString() == "no barline").Alpha == 0);
+
+            AddStep("set BPM to 180 via settings seam", () =>
+                editor.ChildrenOfType<TimingPointSettings>().First().SetBpmAndCommit(180));
+
+            AddUntilStep("BPM chip updated in place", () =>
+                editor.ChildrenOfType<TimingPointRow.AttributeChip>()
+                      .Any(c => c.Text.ToString() == "180 BPM"));
+        }
     }
 }
