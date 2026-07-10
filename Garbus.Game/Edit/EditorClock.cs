@@ -5,8 +5,10 @@
 // constructor-injected settable ControlPointInfo property (no osu.Game.Beatmaps dependency);
 // constructor takes (ControlPointInfo, double trackLength, BindableBeatDivisor); TrackLength
 // uses injected fallback when track is not yet loaded; IBeatSyncProvider/kiai plumbing removed
-// (no osu.Game.Rulesets.Edit types in Garbus); applyOffsets: false on the inner clock (editor
-// needs no gameplay latency corrections); namespace Garbus.Game.Edit.
+// (no osu.Game.Rulesets.Edit types in Garbus); applyOffsets: true on the inner clock (matches
+// osu — the metronome/sample playback must be triggered early enough to be heard on the beat, so
+// the editor clock applies platform + user audio offsets just like gameplay); namespace
+// Garbus.Game.Edit.
 
 #nullable disable
 
@@ -68,7 +70,7 @@ namespace Garbus.Game.Edit
 
             this.beatDivisor = beatDivisor ?? new BindableBeatDivisor();
 
-            underlyingClock = new FramedChartClock(applyOffsets: false, requireDecoupling: true);
+            underlyingClock = new FramedChartClock(applyOffsets: true, requireDecoupling: true);
             AddInternal(underlyingClock);
 
             track.BindValueChanged(_ => TrackChanged?.Invoke());
@@ -183,6 +185,13 @@ namespace Garbus.Game.Edit
             Transforms.OfType<TransformSeek>().LastOrDefault()?.EndValue ?? CurrentTime;
 
         public double CurrentTime => underlyingClock.CurrentTime;
+
+        /// <summary>
+        /// The total offset (platform + user) applied to convert raw track time into the reported
+        /// clock time. Non-zero so metronome/sample playback is triggered early enough to be heard
+        /// on the beat (see <see cref="FramedChartClock"/>).
+        /// </summary>
+        public double TotalAppliedOffset => underlyingClock.TotalAppliedOffset;
 
         public void Reset()
         {

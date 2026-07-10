@@ -1,7 +1,11 @@
 using Garbus.Game.Charts.Timing;
+using Garbus.Game.Configuration;
 using Garbus.Game.Edit;
 using Garbus.Game.Tests.Visual;
+using Garbus.Game.Timing;
 using NUnit.Framework;
+using osu.Framework;
+using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Utils;
 
@@ -10,6 +14,39 @@ namespace Garbus.Game.Tests.Editor
     [TestFixture]
     public partial class TestSceneEditorClock : GarbusTestScene
     {
+        [Resolved]
+        private GarbusConfigManager config { get; set; } = null!;
+
+        private static double expectedPlatformOffset =>
+            RuntimeInfo.OS == RuntimeInfo.Platform.Windows ? FramedChartClock.WINDOWS_BASE_AUDIO_OFFSET : 0;
+
+        [Test]
+        public void TestPlatformOffsetApplied()
+        {
+            var cpi = new ControlPointInfo();
+            EditorClock clock = null!;
+
+            AddStep("reset user offset", () => config.GetBindable<double>(GarbusSetting.AudioOffset).Value = 0);
+            AddStep("create clock", () => Child = clock = new EditorClock(cpi, 60000));
+            AddStep("change source", () => clock.ChangeSource(new TrackVirtual(60000)));
+            AddUntilStep("clock loaded", () => clock.IsLoaded);
+            AddAssert("platform offset applied to editor clock", () => clock.TotalAppliedOffset, () => Is.EqualTo(expectedPlatformOffset));
+        }
+
+        [Test]
+        public void TestUserOffsetApplied()
+        {
+            var cpi = new ControlPointInfo();
+            EditorClock clock = null!;
+
+            AddStep("reset user offset", () => config.GetBindable<double>(GarbusSetting.AudioOffset).Value = 0);
+            AddStep("create clock", () => Child = clock = new EditorClock(cpi, 60000));
+            AddStep("change source", () => clock.ChangeSource(new TrackVirtual(60000)));
+            AddUntilStep("clock loaded", () => clock.IsLoaded);
+            AddStep("set user offset to 30", () => config.GetBindable<double>(GarbusSetting.AudioOffset).Value = 30);
+            AddAssert("editor clock includes user offset", () => clock.TotalAppliedOffset, () => Is.EqualTo(expectedPlatformOffset + 30));
+        }
+
         [Test]
         public void TestSeekSnappedToDivisor()
         {
