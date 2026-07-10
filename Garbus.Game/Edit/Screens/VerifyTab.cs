@@ -46,42 +46,41 @@ namespace Garbus.Game.Edit.Screens
         {
             issueTable = new IssueTable(time => editorClock.SeekSmoothlyTo(time));
 
+            // Header: title + refresh button. AutoSize to fit content.
+            var header = new FillFlowContainer
+            {
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Direction = FillDirection.Horizontal,
+                Spacing = new Vector2(12, 0),
+                Padding = new MarginPadding { Horizontal = 12, Vertical = 12 },
+                Children = new Drawable[]
+                {
+                    new SpriteText
+                    {
+                        Text = "Verify",
+                        Font = FontUsage.Default.With(size: 22),
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                    },
+                    new BasicButton
+                    {
+                        Text = "Refresh",
+                        Width = 90,
+                        Height = 28,
+                        Action = refresh,
+                    },
+                },
+            };
+
             InternalChildren = new Drawable[]
             {
-                new FillFlowContainer
+                header,
+                new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Direction = FillDirection.Vertical,
-                    Spacing = new Vector2(0, 8),
-                    Padding = new MarginPadding { Horizontal = 12, Vertical = 12 },
-                    Children = new Drawable[]
-                    {
-                        new FillFlowContainer
-                        {
-                            RelativeSizeAxes = Axes.X,
-                            AutoSizeAxes = Axes.Y,
-                            Direction = FillDirection.Horizontal,
-                            Spacing = new Vector2(12, 0),
-                            Children = new Drawable[]
-                            {
-                                new SpriteText
-                                {
-                                    Text = "Verify",
-                                    Font = FontUsage.Default.With(size: 22),
-                                    Anchor = Anchor.CentreLeft,
-                                    Origin = Anchor.CentreLeft,
-                                },
-                                new BasicButton
-                                {
-                                    Text = "Refresh",
-                                    Width = 90,
-                                    Height = 28,
-                                    Action = refresh,
-                                },
-                            },
-                        },
-                        issueTable,
-                    },
+                    Padding = new MarginPadding { Top = header.Height, Horizontal = 12, Bottom = 12 },
+                    Child = issueTable,
                 },
             };
         }

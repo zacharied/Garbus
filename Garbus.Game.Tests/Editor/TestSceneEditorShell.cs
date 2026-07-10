@@ -6,6 +6,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Screens;
+using Garbus.Game.Edit.Screens.Verify;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
@@ -56,6 +57,17 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("compose tab height ≈ screen − 100",
                 () => editor.ChildrenOfType<ComposeTab>().Single().DrawHeight,
                 () => Is.GreaterThan(editor.DrawHeight - 101));
+        }
+
+        [Test]
+        public void TestVerifyTabHasHeight()
+        {
+            // Regression guard: VerifyTab content must not collapse to 0px.
+            AddStep("switch to verify", () => editor.Tab.Value = EditorTab.Verify);
+            AddUntilStep("verify visible", () => editor.ChildrenOfType<VerifyTab>().Single().State.Value == Visibility.Visible);
+            AddAssert("verify tab has positive height", () => editor.ChildrenOfType<VerifyTab>().Single().DrawHeight > 0);
+            // IssueTable inside should also be drawn.
+            AddAssert("issue table visible", () => editor.ChildrenOfType<IssueTable>().Single().DrawHeight > 0);
         }
 
         [Test]

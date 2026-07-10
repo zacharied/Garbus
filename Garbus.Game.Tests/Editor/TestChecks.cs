@@ -297,6 +297,8 @@ namespace Garbus.Game.Tests.Editor
             var issues = new CheckObjectsBeforeTimeZero().Run(ctx).ToList();
 
             Assert.That(issues, Has.Count.EqualTo(2));
+            Assert.That(issues[0].Time, Is.EqualTo(-500));
+            Assert.That(issues[1].Time, Is.EqualTo(-200));
         }
 
         [Test]
