@@ -1,4 +1,5 @@
 using Garbus.Game.Core;
+using Garbus.Game.Input;
 using Garbus.Game.Objects;
 using Garbus.Game.UI;
 using NUnit.Framework;
@@ -7,6 +8,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing;
 using osu.Framework.Timing;
+using osuTK;
 
 namespace Garbus.Game.Tests.Visual
 {
@@ -66,6 +68,48 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("seek past start", () => manualClock.CurrentTime = 5200);
             AddUntilStep("hidden again", () => display.RevealedAngleDeg(HorizontalDirection.Left) == null);
+        }
+
+        [Test]
+        public void TestPlayfieldForwardsWarnings()
+        {
+            GarbusPlayfield playfield = null!;
+
+            AddStep("create playfield", () =>
+            {
+                manualClock = new ManualClock { Rate = 1 };
+                Child = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Clock = new FramedClock(manualClock),
+                    Child = new GarbusInputManager
+                    {
+                        Child = playfield = new GarbusPlayfield { Size = Vector2.One },
+                    },
+                };
+            });
+
+            AddUntilStep("playfield loaded", () => playfield.IsLoaded);
+
+            AddStep("hand over a left slider at 5000", () => playfield.SetHitObjects(new GarbusHitObject[]
+            {
+                new SliderBody
+                {
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Left,
+                    StartTime = 5000,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                },
+            }));
+
+            AddStep("seek into window", () => manualClock.CurrentTime = 4700);
+            AddUntilStep("warning revealed", () => playfield.WarningIndicators.RevealedAngleDeg(HorizontalDirection.Left) == 90);
         }
     }
 }

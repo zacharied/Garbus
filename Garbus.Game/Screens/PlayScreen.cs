@@ -208,6 +208,8 @@ namespace Garbus.Game.Screens
             foreach (var hitObject in chart.HitObjects)
                 playfield.Add(CreateDrawableRepresentation(hitObject));
 
+            playfield.SetHitObjects(chart.HitObjects);
+
             playfield.NewResult += onNewResult;
             playfield.RevertResult += onRevertResult;
         }

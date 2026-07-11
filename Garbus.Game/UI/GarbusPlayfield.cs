@@ -2,6 +2,7 @@
 // BigAssCirclePlayfield → GarbusPlayfield. Original carries the ppy template MIT header:
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 
+using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using Garbus.Game.Core;
@@ -9,6 +10,7 @@ using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Input;
+using Garbus.Game.Objects;
 
 namespace Garbus.Game.UI;
 
@@ -24,6 +26,8 @@ public partial class GarbusPlayfield : Playfield
 
     private readonly Drawable stickIndicatorL = new StickIndicator() { Side = HorizontalDirection.Left };
     private readonly Drawable stickIndicatorR = new StickIndicator() { Side = HorizontalDirection.Right };
+
+    private readonly WarningIndicatorDisplay warningIndicators = new WarningIndicatorDisplay();
 
     [Cached]
     private AnalogInputManager analogInputManager { get; set; } = new AnalogInputManager();
@@ -42,6 +46,7 @@ public partial class GarbusPlayfield : Playfield
             ring,
             stickIndicatorL,
             stickIndicatorR,
+            warningIndicators,
         ]);
     }
 
@@ -52,4 +57,13 @@ public partial class GarbusPlayfield : Playfield
     public override void Add(DrawableHitObject h) => ring.Add(h);
 
     public override bool Remove(DrawableHitObject h) => ring.Remove(h);
+
+    /// <summary>
+    /// Hand the full set of chart hit objects to the warning-indicator display so it can telegraph
+    /// approaching slider heads and SlamCentered objects. Call once after adding drawables.
+    /// </summary>
+    public void SetHitObjects(IEnumerable<GarbusHitObject> hitObjects) => warningIndicators.SetHitObjects(hitObjects);
+
+    /// <summary>The warning-indicator display (GAR-3). Exposed for wiring and tests.</summary>
+    public WarningIndicatorDisplay WarningIndicators => warningIndicators;
 }
