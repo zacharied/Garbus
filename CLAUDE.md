@@ -118,6 +118,18 @@ classes:
   blueprint — updating an object regenerates nested objects, so the blueprint must be re-pointed.
 - Placement auto-seek: `HitObjectPlacementBlueprint.EndPlacement` seeks the clock to the placed object;
   wait for the seek before asserting screen positions in tests.
+- **The compose judgement line is raised `GarbusEditorPlayfield.JUDGEMENT_LINE_OFFSET` (40px) above the
+  playfield bottom**, leaving a "hit zone" the objects scroll into after passing it (`StartTime` <
+  `EditorTime`). Every time-scrolling layer keys its trailing edge (= the judgement line) off its own
+  `DrawHeight`, so ALL of them must share that same bottom inset or they desync: currently the
+  `HitObjectContainer` (inner padded container inside its full-height mask), `EditorBarLineDisplay`, and
+  the beat-snap grid's `UnderlayElements`. The static grid backdrop (angle lines, shoulder strips, ghost
+  bands) stays full height. The exposed negative-time region is why `HitObjectPlacementBlueprint`
+  rejects `StartTime < 0`. Pinned by `TestSceneComposePlacement.TestPlacementInHitZoneRejectsNegativeTime`.
+- **The compose placement/selection harnesses must wire the composer subtree's `Clock` to the
+  `EditorClock`** (as `ComposeTab` does), or the playfield maps time↔position against the ambient wall
+  clock — so editor-time-relative behaviour (e.g. the hit zone at time 0 mapping to negative times)
+  can't be reproduced in tests.
 
 ## Current state (Phase 3 complete)
 

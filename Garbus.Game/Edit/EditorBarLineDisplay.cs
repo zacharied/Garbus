@@ -40,6 +40,10 @@ namespace Garbus.Game.Edit
         public EditorBarLineDisplay()
         {
             RelativeSizeAxes = Axes.Both;
+            // Inset the scrolling line container's trailing edge by the hit-zone height so the bar
+            // lines share the raised judgement line with the hit objects; lines that have scrolled
+            // past it remain visible in the hit zone below.
+            Padding = new MarginPadding { Bottom = GarbusEditorPlayfield.JUDGEMENT_LINE_OFFSET };
             InternalChild = lines;
         }
 

@@ -33,8 +33,24 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
     /// <summary>Visual width of a shoulder lane strip, in degrees.</summary>
     public const float SHOULDER_STRIP_DEGREES = 16;
 
-    /// <summary>Target container for the beat snap grid's scrolling line containers.</summary>
-    public Container UnderlayElements { get; } = new Container { RelativeSizeAxes = Axes.Both };
+    /// <summary>
+    /// Height, in pixels, of the "hit zone" between the judgement line and the bottom of the compose
+    /// area (the top of the bottom bar). The time-scrolling layers (hit objects, bar lines, beat-snap
+    /// grid) have their trailing edge — the judgement line, where an object rests when
+    /// EditorTime == StartTime — raised by this amount; objects continue scrolling past it into the
+    /// zone below (already-past times). The static grid backdrop still fills the zone. Marked by the
+    /// yellow "Judgement line" box.
+    /// </summary>
+    public const float JUDGEMENT_LINE_OFFSET = 40;
+
+    /// <summary>Bottom inset applied to every time-scrolling layer so their judgement lines align.</summary>
+    private static MarginPadding HitZonePadding => new MarginPadding { Bottom = JUDGEMENT_LINE_OFFSET };
+
+    /// <summary>
+    /// Target container for the beat snap grid's scrolling line containers. Inset at the bottom by the
+    /// hit-zone height so the snap lines share the raised judgement line with hit objects/bar lines.
+    /// </summary>
+    public Container UnderlayElements { get; } = new Container { RelativeSizeAxes = Axes.Both, Padding = HitZonePadding };
 
     /// <summary>The absolute angle of a side's shoulder lane strip.</summary>
     public static int ShoulderAngle(HorizontalDirection side) =>
@@ -62,8 +78,21 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
             shoulderStrip(RIGHT_SHOULDER_ANGLE_DEG),
             new EditorBarLineDisplay(),
             // masked to the timeline bounds so slider wrap copies (and anything else) don't paint outside
-            // it; the ghost bands lie within the bounds, so their clones still show.
-            new Container { RelativeSizeAxes = Axes.Both, Masking = true, Child = HitObjectContainer },
+            // it; the ghost bands lie within the bounds, so their clones still show. The mask stays
+            // full height (objects that have scrolled past the judgement line remain visible in the hit
+            // zone below it); the inner container insets the scroll surface so its trailing edge — the
+            // judgement line — floats HitZonePadding above the bottom.
+            new Container
+            {
+                RelativeSizeAxes = Axes.Both,
+                Masking = true,
+                Child = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Padding = HitZonePadding,
+                    Child = HitObjectContainer,
+                },
+            },
             // ghost band dimming, above the hit objects so their clones read as "faded copies".
             new Box
             {
@@ -80,6 +109,20 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
                 Origin = Anchor.TopRight,
                 Colour = Color4.Black,
                 Alpha = 0.5f,
+            },
+            // The judgement line: an object rests here when EditorTime == StartTime. It floats
+            // JUDGEMENT_LINE_OFFSET above the playfield bottom (the top of the hit zone), matching the
+            // raised trailing edge of the scroll layers. Drawn last so it reads above the grid, the hit
+            // zone's objects, and the ghost dimming.
+            new Box
+            {
+                Name = "Judgement line",
+                RelativeSizeAxes = Axes.X,
+                Height = 3,
+                Anchor = Anchor.BottomLeft,
+                Origin = Anchor.CentreLeft,
+                Y = -JUDGEMENT_LINE_OFFSET,
+                Colour = Color4.Yellow,
             },
         };
     }
