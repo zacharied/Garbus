@@ -7,8 +7,10 @@
 using System;
 using System.Linq;
 using osu.Framework.Allocation;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
@@ -47,7 +49,7 @@ namespace Garbus.Game.Edit.Compose
             };
         }
 
-        private SpriteText divisorText = null!;
+        private DivisorDisplayButton divisorDisplay = null!;
         private SpriteText typeText = null!;
         private int? lastCustomDivisor;
 
@@ -65,7 +67,7 @@ namespace Garbus.Game.Edit.Compose
                 new Drawable[]
                 {
                     chevron("divisor-prev", "<", beatDivisor.SelectPrevious),
-                    divisorText = centredLabel(20),
+                    divisorDisplay = new DivisorDisplayButton(),
                     chevron("divisor-next", ">", beatDivisor.SelectNext),
                 },
             },
@@ -140,7 +142,7 @@ namespace Garbus.Game.Edit.Compose
         {
             base.LoadComplete();
 
-            beatDivisor.BindValueChanged(v => divisorText.Text = $"1/{v.NewValue}", true);
+            beatDivisor.BindValueChanged(v => divisorDisplay.Text = $"1/{v.NewValue}", true);
             beatDivisor.ValidDivisors.BindValueChanged(valid =>
             {
                 typeText.Text = valid.NewValue.Type.ToString().ToLowerInvariant();
@@ -158,6 +160,72 @@ namespace Garbus.Game.Edit.Compose
             }
 
             return base.OnKeyDown(e);
+        }
+
+        internal partial class DivisorDisplayButton : BasicButton, IHasPopover
+        {
+            public DivisorDisplayButton()
+            {
+                Name = "divisor-display";
+                RelativeSizeAxes = Axes.Both;
+                BackgroundColour = new Color4(45, 45, 55, 255);
+                Action = () => this.ShowPopover();
+            }
+
+            public Popover GetPopover() => new CustomDivisorPopover();
+        }
+
+        internal partial class CustomDivisorPopover : BasicPopover
+        {
+            [Resolved]
+            private BindableBeatDivisor beatDivisor { get; set; } = null!;
+
+            private NumberBox box = null!;
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                Child = new FillFlowContainer
+                {
+                    Width = 150,
+                    AutoSizeAxes = Axes.Y,
+                    Direction = FillDirection.Vertical,
+                    Spacing = new Vector2(10),
+                    Children = new Drawable[]
+                    {
+                        box = new NumberBox
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            Height = 30,
+                            PlaceholderText = "Beat divisor",
+                        },
+                        new SpriteText { Text = "Related divisors are added to the presets." },
+                    },
+                };
+            }
+
+            protected override void LoadComplete()
+            {
+                base.LoadComplete();
+                box.Text = beatDivisor.Value.ToString();
+                box.OnCommit += (_, _) =>
+                {
+                    if (Commit(box.Text))
+                        this.HidePopover();
+                    else
+                        box.Text = beatDivisor.Value.ToString();
+                };
+            }
+
+            /// <summary>Applies a typed divisor. Returns false (leaving state unchanged) on a
+            /// non-numeric or out-of-range value.</summary>
+            internal bool Commit(string text)
+                => int.TryParse(text, out int divisor) && beatDivisor.SetArbitraryDivisor(divisor);
+
+            private partial class NumberBox : BasicTextBox
+            {
+                protected override bool CanAddCharacter(char character) => char.IsAsciiDigit(character);
+            }
         }
 
         /// <summary>

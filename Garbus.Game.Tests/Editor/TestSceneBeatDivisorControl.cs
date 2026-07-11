@@ -9,6 +9,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osuTK;
@@ -108,6 +109,37 @@ namespace Garbus.Game.Tests.Editor
                 InputManager.ReleaseKey(osuTK.Input.Key.ShiftLeft);
             });
             AddAssert("divisor is 3", () => beatDivisor.Value == 3);
+        }
+
+        private void openPopover()
+        {
+            AddStep("open divisor popover", () =>
+                control.ChildrenOfType<GarbusBeatDivisorControl.DivisorDisplayButton>().Single().Action?.Invoke());
+            AddUntilStep("popover shown", () => harness.ChildrenOfType<GarbusBeatDivisorControl.CustomDivisorPopover>().Any());
+        }
+
+        [Test]
+        public void TestCustomDivisorEntry()
+        {
+            waitForControl();
+            GarbusBeatDivisorControl.CustomDivisorPopover popover = null!;
+            openPopover();
+            AddStep("grab popover", () => popover = harness.ChildrenOfType<GarbusBeatDivisorControl.CustomDivisorPopover>().Single());
+            AddStep("commit 5", () => popover.Commit("5"));
+            AddAssert("collection is custom, value 5",
+                () => beatDivisor.ValidDivisors.Value.Type == BeatDivisorType.Custom && beatDivisor.Value == 5);
+            AddAssert("type label shows custom", () => hasLabel("custom"));
+        }
+
+        [Test]
+        public void TestInvalidCustomEntryIgnored()
+        {
+            waitForControl();
+            GarbusBeatDivisorControl.CustomDivisorPopover popover = null!;
+            openPopover();
+            AddStep("grab popover", () => popover = harness.ChildrenOfType<GarbusBeatDivisorControl.CustomDivisorPopover>().Single());
+            AddAssert("out-of-range rejected", () => popover.Commit("999") == false);
+            AddAssert("divisor unchanged", () => beatDivisor.Value == 4);
         }
 
         private partial class Harness : Container
