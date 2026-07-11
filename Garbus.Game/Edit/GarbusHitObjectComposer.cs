@@ -117,4 +117,8 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
         return new GarbusSnapResult(playfield.ToScreenSpace(local), timeSnapped.Time, angleDeg, playfield);
     }
+
+    // TODO(Task 3): replace with the interactive "flip around angle" overlay; this stub only keeps
+    // GarbusSelectionHandler's "Flip around angle..." menu item compiling until then.
+    public void BeginFlipAroundAngle(System.Action<int> onCommit) { }
 }

@@ -565,6 +565,29 @@ namespace Garbus.Game.Tests.Editor
 
         private SliderSelectionBlueprint sliderBlueprint() => composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
 
+        /// <summary>A flip context-menu item by its exact label, or null (requires a selected blueprint hovered).</summary>
+        private GarbusMenuItem? flipMenuItem(string text)
+        {
+            var handler = composer.ChildrenOfType<GarbusSelectionHandler>().Single();
+            return handler.ContextMenuItems
+                          .OfType<GarbusMenuItem>()
+                          .FirstOrDefault(i => i.Text.Value.ToString() == text);
+        }
+
+        /// <summary>Places a slam-edge (instant placement) at an angle and returns to the select tool.</summary>
+        private void placeSlamEdgeAt(float angleDeg)
+        {
+            AddStep("select slam-edge tool", () => input.Key(Key.Number6));
+            AddStep("place slam edge", () =>
+            {
+                input.MoveMouseTo(positionAtAngle(angleDeg, 0.5f));
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slam edge placed", () => placedObject<GarbusSlamEdge>() != null);
+            settleWith(() => placedObject<GarbusSlamEdge>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+        }
+
         /// <summary>Selects the slider by clicking the midpoint of its head→node line.</summary>
         private void selectSliderOnLine()
         {
@@ -989,6 +1012,154 @@ namespace Garbus.Game.Tests.Editor
                 input.ReleaseKey(Key.LShift);
             });
             AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
+        }
+
+        // ------------------------------------------------------------------
+        // Flip: node-aware reflection primitive + "Flip selection" menu item.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestFlipSelectionMirrorsWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider(); // head South (270), one node East (0) → RotationOffset 90.
+            selectSliderOnLine();
+
+            AddAssert("head 270 before", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(270));
+            AddAssert("offset 90 before", () => firstControlPoint().RotationOffset, () => Is.EqualTo(90));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip selection available", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2); // keep a selected blueprint hovered
+                flip = flipMenuItem("Flip selection")!;
+                return flip != null;
+            });
+
+            AddStep("invoke Flip selection", () => flip.Action.Value?.Invoke());
+            // Rigid mirror about the swept-extent centre: head and node swap absolute angles, offset negates.
+            AddAssert("head now 0", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(0));
+            AddAssert("offset now -90", () => firstControlPoint().RotationOffset, () => Is.EqualTo(-90));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("head restored", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(270));
+            AddAssert("offset restored", () => firstControlPoint().RotationOffset, () => Is.EqualTo(90));
+
+            AddStep("redo", () => changeHandler.RestoreState(1));
+            AddAssert("head re-flipped", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestFlipSelectionSingleNodeIsNoOp()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("one node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip selection available", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0)); // node handle keeps the slider blueprint hovered
+                flip = flipMenuItem("Flip selection")!;
+                return flip != null;
+            });
+
+            // Mirroring a single node about itself changes nothing: head fixed, offset unchanged.
+            AddStep("invoke Flip selection", () => flip.Action.Value?.Invoke());
+            AddAssert("head unchanged", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(270));
+            AddAssert("offset unchanged", () => firstControlPoint().RotationOffset, () => Is.EqualTo(90));
+        }
+
+        [Test]
+        public void TestFlipSelectionFlipsSlamEdgeDirection()
+        {
+            waitForComposer();
+            placeSlamEdgeAt(45);
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam edge selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(1));
+
+            int angleBefore = 0;
+            AddStep("snapshot angle", () => angleBefore = placedObject<GarbusSlamEdge>()!.AngleDeg);
+            AddAssert("starts clockwise", () => placedObject<GarbusSlamEdge>()!.Direction, () => Is.EqualTo(RotationalDirection.Clockwise));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip selection available", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<GarbusSlamEdge>()!));
+                flip = flipMenuItem("Flip selection")!;
+                return flip != null;
+            });
+
+            AddStep("invoke Flip selection", () => flip.Action.Value?.Invoke());
+            // Single object: angle unchanged (mirror about itself), handedness reverses.
+            AddAssert("angle unchanged", () => placedObject<GarbusSlamEdge>()!.AngleDeg, () => Is.EqualTo(angleBefore));
+            AddAssert("now anticlockwise", () => placedObject<GarbusSlamEdge>()!.Direction, () => Is.EqualTo(RotationalDirection.Anticlockwise));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("clockwise again", () => placedObject<GarbusSlamEdge>()!.Direction, () => Is.EqualTo(RotationalDirection.Clockwise));
+        }
+
+        [Test]
+        public void TestFlipSelectionSwapsTwoNotes()
+        {
+            waitForComposer();
+            // Default AngleSnap (45°) would round 60/120 to 45/135; use a finer snap so placement lands
+            // exactly on the angles the identity-swap assertions below depend on.
+            AddStep("use 15° angle snap", () => composer.AngleSnap.Value = 15);
+            placeNoteAt(60);
+            placeNoteAt(120);
+
+            // Capture the two note instances by their starting angle so identity (not list order) proves the swap.
+            CardinalNote note60 = null!, note120 = null!;
+            AddStep("capture notes", () =>
+            {
+                var notes = editorChart.HitObjects.OfType<CardinalNote>().ToList();
+                note60 = notes.Single(n => n.AngleDeg == 60);
+                note120 = notes.Single(n => n.AngleDeg == 120);
+            });
+
+            AddStep("select all", () =>
+            {
+                input.PressKey(Key.LControl);
+                input.Key(Key.A);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("two selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(2));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip selection available", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(note120));
+                flip = flipMenuItem("Flip selection")!;
+                return flip != null;
+            });
+
+            // Handle set {60,120}, centre 90, sum 180: the two notes exchange angles. A pure swap preserves the
+            // angle *set*, so identity (these specific instances) is what proves the flip — not a set comparison.
+            AddStep("invoke Flip selection", () => flip.Action.Value?.Invoke());
+            AddAssert("the 60 note is now 120", () => note60.AngleDeg, () => Is.EqualTo(120));
+            AddAssert("the 120 note is now 60", () => note120.AngleDeg, () => Is.EqualTo(60));
+        }
+
+        [Test]
+        public void TestFlipMenuItemsPresentForNote()
+        {
+            waitForComposer();
+            placeNoteAt(270);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+            AddAssert("note selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(1));
+
+            AddAssert("both flip items present", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
+                return flipMenuItem("Flip selection") != null && flipMenuItem("Flip around angle...") != null;
+            });
         }
 
         // ------------------------------------------------------------------
