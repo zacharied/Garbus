@@ -60,6 +60,25 @@ namespace Garbus.Game.Tests.Editor
 
         [Test]
         [Timeout(15000)]
+        public void TestSeekDoesNotRunOnThreadPoolThread()
+        {
+            // A real audio-track seek (TrackBass.Seek) blocks on GetResultSafely, which throws
+            // "Can't use GetResultSafely from inside an async operation" when invoked on a TPL
+            // thread-pool thread. The worker must therefore run on a dedicated (non-pool) thread.
+            var source = new BlockingAdjustableClock();
+            var clock = new BackgroundSeekingClock(source);
+
+            clock.Seek(50);
+            waitUntil(() => source.SeekTargets.Count == 1);
+            source.ReleaseSeeks();
+            waitUntil(() => source.CompletedSeeks == 1);
+
+            Assert.That(source.SeekRanOnThreadPoolThread, Is.False,
+                "The source seek must not run on a TPL thread-pool thread (would trip GetResultSafely).");
+        }
+
+        [Test]
+        [Timeout(15000)]
         public void TestStartFlushesPendingSeekBeforeStartingSource()
         {
             var source = new BlockingAdjustableClock();
@@ -100,6 +119,9 @@ namespace Garbus.Game.Tests.Editor
             private readonly List<double> seekTargets = new List<double>();
             private int completedSeeks;
             private double currentTime;
+            private volatile bool seekRanOnThreadPoolThread;
+
+            public bool SeekRanOnThreadPoolThread => seekRanOnThreadPoolThread;
 
             public IReadOnlyList<double> SeekTargets
             {
@@ -136,6 +158,9 @@ namespace Garbus.Game.Tests.Editor
 
             public bool Seek(double position)
             {
+                if (Thread.CurrentThread.IsThreadPoolThread)
+                    seekRanOnThreadPoolThread = true;
+
                 lock (sync)
                     seekTargets.Add(position);
 

@@ -38,7 +38,12 @@ namespace Garbus.Game.Timing
                 if (!workerRunning)
                 {
                     workerRunning = true;
-                    Task.Run(pump);
+
+                    // Must run on a dedicated (non-thread-pool) thread: the source seek is typically
+                    // TrackBass.Seek, which blocks on GetResultSafely and throws if called from a TPL
+                    // thread-pool thread. LongRunning gives us an off-pool thread and is the exact case
+                    // GetResultSafely's guard allows.
+                    Task.Factory.StartNew(pump, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                 }
             }
 
