@@ -19,8 +19,10 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.UserInterface;
 using Garbus.Game.Configuration;
+using Garbus.Game.Edit.Compose;
 using Garbus.Game.Edit.Screens.Timeline;
 
 namespace Garbus.Game.Edit.Screens
@@ -38,50 +40,65 @@ namespace Garbus.Game.Edit.Screens
         {
             RelativeSizeAxes = Axes.Both;
 
-            // Timeline strip above, composer fills the rest.
-            // Use a plain Container with Padding (same pattern as GarbusEditor's tab container) to
-            // avoid the FillFlowContainer + RelativeSizeAxes.Both collapse issue.
-            const float ZOOM_BUTTON_WIDTH = 26;
+            // Top region: timeline strip (flex) + a reserved 35px zoom column + a 120px beat-divisor
+            // control, laid out in a horizontal grid so the strip is no longer full-width.
+            // Composer fills the rest below, via a plain Container with Padding (same pattern as
+            // GarbusEditor's tab container) to avoid the FillFlowContainer + RelativeSizeAxes.Both
+            // collapse issue.
+            // Wrapped in a PopoverContainer so GarbusBeatDivisorControl's custom-divisor popover
+            // (Task 4) has an ancestor to attach to.
+            const float zoom_column_width = 35;
+            const float divisor_column_width = 120;
 
-            InternalChildren = new Drawable[]
+            InternalChild = new PopoverContainer
             {
-                timelineStrip = new TimelineStrip(),
-                // Zoom-out button (–) at the right edge of the timeline strip.
-                new BasicButton
-                {
-                    Anchor = Anchor.TopRight,
-                    Origin = Anchor.TopRight,
-                    Width = ZOOM_BUTTON_WIDTH,
-                    Height = TimelineStrip.HEIGHT / 2,
-                    Text = "–",
-                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value - 1f,
-                },
-                // Zoom-in button (+) just to the left of the zoom-out button.
-                new BasicButton
-                {
-                    Anchor = Anchor.TopRight,
-                    Origin = Anchor.TopRight,
-                    Width = ZOOM_BUTTON_WIDTH,
-                    Height = TimelineStrip.HEIGHT / 2,
-                    Position = new osuTK.Vector2(-ZOOM_BUTTON_WIDTH, 0),
-                    Text = "+",
-                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value + 1f,
-                },
-                new Container
+                RelativeSizeAxes = Axes.Both,
+                Child = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Top = TimelineStrip.HEIGHT },
-                    // Setting Clock = editorClock wires the entire composer subtree to the EditorClock.
-                    // The playfield's scrolling hitobject container reads Clock.CurrentTime for layout,
-                    // so this freezes it when the clock is stopped (matching the selection harness pattern).
-                    Clock = editorClock,
-                    // The scrolling container positions grid/bar lines outside the visible window with
-                    // no masking of its own — clip here so they can't draw over the timeline strip above.
-                    Child = new Container
+                    Children = new Drawable[]
                     {
-                        RelativeSizeAxes = Axes.Both,
-                        Masking = true,
-                        Child = composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                        // Top region: [ timeline (flex) | zoom column | beat-divisor control ].
+                        new GridContainer
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            Height = TimelineStrip.HEIGHT,
+                            ColumnDimensions = new[]
+                            {
+                                new Dimension(),
+                                new Dimension(GridSizeMode.Absolute, zoom_column_width),
+                                new Dimension(GridSizeMode.Absolute, divisor_column_width),
+                            },
+                            Content = new[]
+                            {
+                                new Drawable[]
+                                {
+                                    timelineStrip = new TimelineStrip(),
+                                    buildZoomColumn(),
+                                    new GarbusBeatDivisorControl { RelativeSizeAxes = Axes.Both },
+                                },
+                            },
+                        },
+                        // Composer fills the rest below the top region.
+                        new Container
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Padding = new MarginPadding { Top = TimelineStrip.HEIGHT },
+                            // Setting Clock = editorClock wires the entire composer subtree to the
+                            // EditorClock. The playfield's scrolling hitobject container reads
+                            // Clock.CurrentTime for layout, so this freezes it when the clock is
+                            // stopped (matching the selection harness pattern).
+                            Clock = editorClock,
+                            // The scrolling container positions grid/bar lines outside the visible
+                            // window with no masking of its own — clip here so they can't draw over
+                            // the timeline strip above.
+                            Child = new Container
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                                Masking = true,
+                                Child = composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                            },
+                        },
                     },
                 },
             };
@@ -90,6 +107,31 @@ namespace Garbus.Game.Edit.Screens
             var autoSeek = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
             autoSeek.BindValueChanged(e => composer.AutoSeekOnPlacement.Value = e.NewValue, true);
         }
+
+        // Vertical zoom stack: "+" on top half, "–" on bottom half.
+        private Drawable buildZoomColumn() => new Container
+        {
+            RelativeSizeAxes = Axes.Both,
+            Children = new Drawable[]
+            {
+                new BasicButton
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Height = 0.5f,
+                    Text = "+",
+                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value + 1f,
+                },
+                new BasicButton
+                {
+                    Anchor = Anchor.BottomLeft,
+                    Origin = Anchor.BottomLeft,
+                    RelativeSizeAxes = Axes.Both,
+                    Height = 0.5f,
+                    Text = "–",
+                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value - 1f,
+                },
+            },
+        };
 
         protected override void Update()
         {
