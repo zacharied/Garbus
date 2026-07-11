@@ -1,12 +1,14 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableShoulderNote.cs).
 // Original carries the ppy template MIT header:
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Adapted for Garbus: replaced the single "paddle" sprite with two square sprites on the ±45° quadrant
+// diagonals joined by a growing circular arc; self-positions each frame instead of being point-placed.
 
+using System;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
-using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.UI;
 using osuTK;
@@ -15,33 +17,23 @@ using osuTK.Graphics;
 namespace Garbus.Game.Objects.Drawables;
 
 /// <summary>
-/// A shoulder note — the analog-shoulder counterpart of <see cref="DrawableCardinalNote"/>. It behaves
-/// exactly like a cardinal note (travels out from the centre along its lane's direction and is judged on a
-/// timed press), but is drawn with the curved "paddle" sprite instead of a square.
+/// A shoulder note — the analog-shoulder counterpart of <see cref="DrawableCardinalNote"/>. It is still
+/// judged as a single timed press (see <see cref="DrawableNote{T}"/>), but is drawn as two purple square
+/// sprites riding outward along the ±45° diagonals of its side's quadrant (East for a right shoulder,
+/// West for a left one), joined by a circular arc whose radius grows with the note's travel distance.
 ///
-/// A left shoulder lives in the West lane, a right shoulder in the East lane (see
-/// <see cref="ShoulderNote.Direction"/>). The paddle art is drawn as a segment of the ring facing East,
-/// so it is rotated to face its lane's direction (180° for West), and auto-sized so its curvature radius
-/// matches the ring: the art's curve radius is ≈ its own height, so setting the height to the ring radius
-/// (<see cref="GarbusScrollingHitObjectContainer.ScrollLength"/>) makes the arc concentric with the
-/// outer ring when the note reaches it.
+/// Implements <see cref="ISelfPosition"/> so the scrolling container skips point-positioning it; the
+/// drawable instead fills the playfield and places its children in playfield-centre polar coordinates
+/// every frame from <see cref="GarbusScrollingHitObjectContainer.DistanceFromCentreAtTime(double)"/>.
 /// </summary>
-public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>
+public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>, ISelfPosition
 {
-    /// <summary>Paddle texture aspect ratio (width / height), used to size the sprite without distortion.</summary>
-    private const float paddle_aspect = 636f / 1912f;
+    private const float square_size = 80f;
+    private const float arc_thickness = 15f;
 
-    /// <summary>
-    /// The paddle's curvature radius expressed as a multiple of its texture height. The art is drawn with
-    /// a curve radius ≈ its height, so a value of 1 makes <c>height = ringRadius</c> align the arc with the
-    /// ring. Tweak to nudge the paddle in/out relative to the ring.
-    /// </summary>
-    private const float curve_radius_over_height = 1.0f;
-
-    private readonly Sprite sprite;
-
-    [Resolved]
-    private Ring ring { get; set; } = null!;
+    private Sprite squareA = null!;
+    private Sprite squareB = null!;
+    private Arc arc = null!;
 
     [Resolved]
     private GarbusScrollingHitObjectContainer scrollingContainer { get; set; } = null!;
@@ -49,42 +41,59 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>
     public DrawableShoulderNote(ShoulderNote hitObject)
         : base(hitObject)
     {
+        RelativeSizeAxes = Axes.Both;
+        Anchor = Anchor.Centre;
         Origin = Anchor.Centre;
         Colour = Colour4.Purple;
-        sprite = new Sprite
-        {
-            RelativeSizeAxes = Axes.Both,
-            FillMode = FillMode.Fit,
-            Anchor = Anchor.Centre,
-            Origin = Anchor.Centre,
-        };
     }
 
     [BackgroundDependencyLoader]
     private void load(TextureStore textures)
     {
-        sprite.Texture = textures.Get("paddle");
-        AddInternal(sprite);
+        var squareTexture = textures.Get("square");
 
-        // The paddle art faces East; rotate it to face this note's lane direction (screen rotation is
-        // clockwise-positive while the polar angle is counter-clockwise, hence the negation). West → 180°.
-        Rotation = -HitObject.Direction.ToDegrees();
+        // Arc radius is driven by its own size (Arc draws at min(ChildSize)/2), so size it each frame to
+        // grow with the note's travel. Angles are set each frame too; start collapsed (no span, no size).
+        AddInternal(arc = new Arc(thickness: arc_thickness)
+        {
+            RelativeSizeAxes = Axes.None,
+            Size = Vector2.Zero,
+            Anchor = Anchor.Centre,
+            Origin = Anchor.Centre,
+        });
+
+        AddInternal(squareA = createSquare(squareTexture));
+        AddInternal(squareB = createSquare(squareTexture));
     }
+
+    private static Sprite createSquare(Texture texture) => new Sprite
+    {
+        Texture = texture,
+        Size = new Vector2(square_size),
+        FillMode = FillMode.Fit,
+        Anchor = Anchor.Centre,
+        Origin = Anchor.Centre,
+    };
 
     protected override void Update()
     {
         base.Update();
 
-        // Size the paddle so its curvature matches the outer ring (see class remarks). The ring radius is
-        // resolved from the scrolling container, so it tracks the playfield size.
-        float height = scrollingContainer.ScrollLength / curve_radius_over_height;
-        Size = new Vector2(height * paddle_aspect, height);
+        float baseAngleDeg = HitObject.AngleDeg;
+        float radius = MathF.Max(0f, scrollingContainer.DistanceFromCentreAtTime(HitObject.StartTime));
+
+        squareA.Position = ShoulderNoteGeometry.SquarePosition(baseAngleDeg, radius, +1f);
+        squareB.Position = ShoulderNoteGeometry.SquarePosition(baseAngleDeg, radius, -1f);
+
+        arc.Size = new Vector2(2f * radius);
+        arc.StartRadians.Value = ShoulderNoteGeometry.ToRadians(baseAngleDeg - ShoulderNoteGeometry.DiagonalOffsetDeg);
+        arc.EndRadians.Value = ShoulderNoteGeometry.ToRadians(baseAngleDeg + ShoulderNoteGeometry.DiagonalOffsetDeg);
     }
 
     protected override void PrepareForUse()
     {
-        // Apply note spawn effect
-        sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+        // Spawn pop, scaled about the playfield centre (this drawable's centre origin).
+        this.ScaleTo(0).ScaleTo(1, 125, Easing.In);
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)
@@ -94,15 +103,14 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>
         switch (state)
         {
             case ArmedState.Hit:
-                sprite
-                    .FadeOut(350, Easing.OutQuint)
+                this.FadeOut(350, Easing.OutQuint)
                     .ScaleTo(new Vector2(1.4f), 350, Easing.OutQuint)
                     .OnComplete(_ => Expire());
                 break;
 
             case ArmedState.Miss:
-                sprite.FadeColour(Color4.Red, duration);
-                sprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
+                this.FadeColour(Color4.Red, duration);
+                this.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
                 break;
         }
     }
