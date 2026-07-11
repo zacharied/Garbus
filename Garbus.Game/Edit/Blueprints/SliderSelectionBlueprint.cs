@@ -252,9 +252,11 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         var result = composer.FindSnappedAngleTimeAndPosition(screenSpacePosition);
 
         // The moved set: the whole node selection when the grabbed node is part of it, else just the grabbed node.
-        var moved = selectedNodes.Contains(grabbed) && selectedNodes.Count > 0
-            ? new List<GarbusPathControlPoint>(selectedNodes)
-            : new List<GarbusPathControlPoint> { grabbed };
+        // Pass selectedNodes (a HashSet) through directly for O(1) Contains and no per-event allocation in the
+        // multi-select case; only the single-node fallback allocates a tiny array.
+        ICollection<GarbusPathControlPoint> moved = selectedNodes.Contains(grabbed)
+            ? selectedNodes
+            : new[] { grabbed };
 
         bool changed = false;
 
