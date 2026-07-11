@@ -380,6 +380,42 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestExtendingSliderDurationKeepsBodyAlive()
+        {
+            // GAR-4: dragging a slider's terminal node to a much later time extends its duration.
+            // The editor drawable swallows its own LifetimeEnd (it never self-expires), so the
+            // scrolling container is the sole lifetime authority — but it only recomputed the
+            // top-level object's lifetime on add / full layout invalidation, never when the end
+            // time changed. The body therefore kept the pre-edit lifetime and vanished the moment
+            // the playhead passed the OLD terminal time, even though it now extends much further.
+            waitForComposer();
+
+            AddStep("add short slider + park clock at start", () =>
+            {
+                var path = new GarbusPath { ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>() };
+                path.ControlPoints.Add(new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 });
+                editorChart.Add(new SliderBody { StartTime = 2000, AngleDeg = 270, Side = HorizontalDirection.Left, Path = path });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+
+            // Extend the terminal node far beyond the 5000ms scroll window (old end 2500 → new end 12000).
+            AddStep("extend terminal node to +10000ms", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                slider.Path.ControlPoints[0].TimeOffset = 10000;
+                editorChart.Update(slider);
+            });
+
+            // Seek to a time well inside the new duration but far past old-end + scroll window (7500).
+            // The body extends to StartTime+10000 = 12000, so at 11500 it must still be visible (alive).
+            AddStep("seek near new end", () => editorClock.Seek(11500));
+            AddAssert("slider body still alive", () =>
+                composer.HitObjects.OfType<EditorDrawableSliderBody>().Any(d => d.IsAlive));
+        }
+
+        [Test]
         public void TestHoldNoteSelectableByHead()
         {
             // ISSUES.md: the hold head sprite is centred on the start line, so its bottom half hangs
