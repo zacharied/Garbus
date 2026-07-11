@@ -55,7 +55,7 @@ The indicator applies only to **SliderHead** objects (the *indicated objects*). 
 
 The indicator for an indicated object *x* reveals itself when both of the following hold:
 
-- `x.StartTime - CurrentTime < WarningTime` — *x* is within the warning window of reaching the edge.
+- `x.StartTime - CurrentTime <= WarningTime` — *x* is within the warning window of reaching the edge (the lower bound is inclusive, matching the reveal window below).
 - The gap between the previous same-side stick object and *x* is greater than `WarningTime`. This rule considers *stick objects* (any Slider, SlamCentered, or SlamEdge on the same Side), not only indicated objects. The gap is measured from the previous stick object's **end** (when the stick frees up) to *x*'s StartTime; when there is no earlier same-side stick object the gap is unbounded, so an isolated object always warns. This means a warning appears only when the stick has been idle on that Side, not when *x* follows closely on recent same-side activity that already has the player's stick engaged.
 
 The reveal window is `[x.StartTime - WarningTime, x.StartTime)`: the indicator hides once *x* reaches the edge. Because two eligible same-side objects are always more than `WarningTime` apart, at most one indicated object per Side is shown at any instant.
