@@ -70,6 +70,30 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestPlacementInHitZoneRejectsNegativeTime()
+        {
+            waitForComposer();
+            AddStep("select note tool", () => input.Key(Key.Number2));
+
+            // A point deep in the hit zone (just above the playfield bottom, well below the judgement
+            // line). At editor time 0 this maps to a past — i.e. negative — time.
+            Vector2 hitZonePos = Vector2.Zero;
+            AddStep("target bottom of hit zone", () =>
+            {
+                var quad = playfield.ScreenSpaceDrawQuad;
+                float x = quad.TopLeft.X + quad.Width * EditorAngleMapping.ToX(270);
+                hitZonePos = new Vector2(x, quad.BottomLeft.Y - 4);
+            });
+            AddAssert("point maps to negative time", () => playfield.TimeAtScreenSpacePosition(hitZonePos) < 0);
+
+            AddStep("move into hit zone", () => input.MoveMouseTo(hitZonePos));
+            AddStep("click", () => input.Click(MouseButton.Left));
+
+            // The placement must be rejected: no object may be committed before time zero.
+            AddAssert("no object placed before time zero", () => editorChart.HitObjects.All(h => h.StartTime >= 0));
+        }
+
+        [Test]
         public void TestPlaceHoldNoteWithDrag()
         {
             waitForComposer();
@@ -195,7 +219,16 @@ namespace Garbus.Game.Tests.Editor
                 {
                     RelativeSizeAxes = Axes.Both,
                     UseParentInput = false,
-                    Child = Composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                    // Wire the composer subtree to the EditorClock (as ComposeTab does in production) so
+                    // the playfield's time→position mapping uses editor time, not the ambient wall
+                    // clock. Without this the playfield runs on session time and the hit zone never maps
+                    // to the negative times this scene needs to exercise.
+                    Child = new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Clock = dependencies.Get<EditorClock>(),
+                        Child = Composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                    },
                 };
                 // EditorClock must be in the hierarchy to tick; add it alongside the composer.
                 AddInternal(dependencies.Get<EditorClock>());

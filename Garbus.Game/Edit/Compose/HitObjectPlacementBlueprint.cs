@@ -62,6 +62,13 @@ namespace Garbus.Game.Edit.Compose
         {
             get
             {
+                // Reject negative times outright — the compose hit zone now extends below the
+                // judgement line into already-past time, so near the track start the cursor can map to
+                // a negative StartTime. Objects before time zero are never valid (see the Verify tab's
+                // CheckObjectsBeforeTimeZero).
+                if (HitObject.StartTime < 0)
+                    return false;
+
                 var firstTimingPoint = editorChart.ControlPointInfo.TimingPoints.FirstOrDefault();
                 return firstTimingPoint == null || HitObject.StartTime >= firstTimingPoint.Time;
             }
