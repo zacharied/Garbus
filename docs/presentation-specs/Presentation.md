@@ -34,6 +34,21 @@ A slider is presented as a path extending outward from its head toward the edge,
 
 When the stick crosses the radius threshold, a **catcher** is displayed: an arc slightly larger than the playfield circle, positioned at the stick's current angle, showing that the radius threshold has been met. It indicates where the player's edge input is currently aimed relative to the slider's required angle.
 
+### Warning indicator
+
+Because a stick object requires the player to pre-position the stick at the edge at a specific angle — which takes physical time, unlike a button tap — an approaching stick object may be telegraphed with a **warning indicator**: a blurred colored arc around the outside of the circle at the object's Side and angle. Its shape resembles the **catcher** described under Slider above, but it is rendered fully blurred, with the base arc shape not visible at all. The arc is colored by Side.
+
+The indicator applies only to **SliderHead** objects (the *indicated objects*). Slams are deliberately excluded: a Slam is a sudden, precisely timed flick, so a "move the stick here in advance" cue works against the timing it demands.
+
+The indicator for an indicated object *x* reveals itself when both of the following hold (see `../rules-specs/Inputs.md` for the stick-object terms these rules use):
+
+- `x.StartTime - CurrentTime <= WarningTime` — *x* is within the warning window of reaching the edge (the lower bound is inclusive, matching the reveal window below).
+- The gap between the previous same-side stick object and *x* is greater than `WarningTime`. This rule considers *stick objects* (any Slider, SlamCentered, or SlamEdge on the same Side), not only indicated objects. The gap is measured from the previous stick object's **end** (when the stick frees up) to *x*'s StartTime; when there is no earlier same-side stick object the gap is unbounded, so an isolated object always warns. This means a warning appears only when the stick has been idle on that Side, not when *x* follows closely on recent same-side activity that already has the player's stick engaged.
+
+The reveal window is `[x.StartTime - WarningTime, x.StartTime)`: the indicator hides once *x* reaches the edge. Because two eligible same-side objects are always more than `WarningTime` apart, at most one indicated object per Side is shown at any instant.
+
+`WarningTime` is a tunable parameter.
+
 ### SlamCentered
 
 A SlamCentered is presented as an arrow shape similar in size to a CardinalNote. The arrow is rotated such that it is pointing along its angle.

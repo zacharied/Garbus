@@ -47,21 +47,6 @@ Sliders and Slams are performed with an analog stick rather than a button. This 
 
 The radius threshold and angle tolerance are tunable parameters.
 
-### Warning indicator
-
-Because a stick object requires the player to pre-position the stick at the edge at a specific angle — which takes physical time, unlike a button tap — an approaching stick object may be telegraphed with a **warning indicator**: a blurred colored arc around the outside of the circle at the object's Side and angle. Its shape resembles the catcher (see the Slider presentation section), but it is rendered fully blurred, with the base arc shape not visible at all. The arc is colored by Side.
-
-The indicator applies only to **SliderHead** objects (the *indicated objects*). Slams are deliberately excluded: a Slam is a sudden, precisely timed flick, so a "move the stick here in advance" cue works against the timing it demands.
-
-The indicator for an indicated object *x* reveals itself when both of the following hold:
-
-- `x.StartTime - CurrentTime <= WarningTime` — *x* is within the warning window of reaching the edge (the lower bound is inclusive, matching the reveal window below).
-- The gap between the previous same-side stick object and *x* is greater than `WarningTime`. This rule considers *stick objects* (any Slider, SlamCentered, or SlamEdge on the same Side), not only indicated objects. The gap is measured from the previous stick object's **end** (when the stick frees up) to *x*'s StartTime; when there is no earlier same-side stick object the gap is unbounded, so an isolated object always warns. This means a warning appears only when the stick has been idle on that Side, not when *x* follows closely on recent same-side activity that already has the player's stick engaged.
-
-The reveal window is `[x.StartTime - WarningTime, x.StartTime)`: the indicator hides once *x* reaches the edge. Because two eligible same-side objects are always more than `WarningTime` apart, at most one indicated object per Side is shown at any instant.
-
-`WarningTime` is a tunable parameter.
-
 ## Hit object types
 
 Hit objects are classified into discrete or composite. Discrete hit objects are a prompt to perform an action at a specific time. Composite hit objects are composed of two discrete hit objects: a **head** with a StartTime, and a **tail** with an EndTime, and thus prompt an action that must be maintained over a period of time.
