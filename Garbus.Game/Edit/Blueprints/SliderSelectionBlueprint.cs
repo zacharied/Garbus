@@ -247,40 +247,70 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         if (index >= controlPoints.Count)
             return;
 
-        var cp = controlPoints[index];
+        var grabbed = controlPoints[index];
         var result = composer.FindSnappedAngleTimeAndPosition(screenSpacePosition);
+
+        // The moved set: the whole node selection when the grabbed node is part of it, else just the grabbed node.
+        var moved = selectedNodes.Contains(grabbed) && selectedNodes.Count > 0
+            ? new List<GarbusPathControlPoint>(selectedNodes)
+            : new List<GarbusPathControlPoint> { grabbed };
 
         bool changed = false;
 
+        // Time: shift every moved node by the grabbed node's delta, but only if the whole path stays
+        // strictly time-ordered and every offset stays > 0. All-or-nothing per event (no partial move).
         if (result.Time is double proposedTime)
         {
-            double proposedOffset = proposedTime - HitObject.StartTime;
-            double minOffset = index > 0 ? controlPoints[index - 1].TimeOffset : 0;
-            double? maxOffset = index < controlPoints.Count - 1 ? controlPoints[index + 1].TimeOffset : null;
+            double deltaTime = (proposedTime - HitObject.StartTime) - grabbed.TimeOffset;
 
-            if (proposedOffset != cp.TimeOffset && proposedOffset > minOffset && (maxOffset == null || proposedOffset < maxOffset))
+            if (deltaTime != 0 && timeShiftValid(controlPoints, moved, deltaTime))
             {
-                cp.TimeOffset = proposedOffset;
+                foreach (var cp in moved)
+                    cp.TimeOffset += deltaTime;
                 changed = true;
             }
         }
 
+        // Angle: rotation offsets are free integers (no ordering constraint), so apply the grabbed node's
+        // minimal snap delta to every moved node unconditionally.
         if (result is GarbusSnapResult snap)
         {
-            int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + cp.RotationOffset);
+            int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + grabbed.RotationOffset);
             int diff = EditorAngleMapping.MinimalDiff(currentAbsolute, snap.AngleDeg);
 
             if (diff != 0)
             {
-                cp.RotationOffset += diff;
+                foreach (var cp in moved)
+                    cp.RotationOffset += diff;
                 changed = true;
             }
         }
 
-        // Only run the (ApplyDefaults + state-save) update when the node actually moved — mouse-move
+        // Only run the (ApplyDefaults + state-save) update when something actually moved — mouse-move
         // events inside the same snap cell would otherwise re-apply the whole slider per event.
         if (changed)
             editorChart.Update(HitObject);
+    }
+
+    /// <summary>
+    /// True if shifting every node in <paramref name="moved"/> by <paramref name="deltaTime"/> keeps the full
+    /// control-point list strictly increasing in time and every offset above zero (nodes must follow the head).
+    /// </summary>
+    private static bool timeShiftValid(IReadOnlyList<GarbusPathControlPoint> controlPoints, ICollection<GarbusPathControlPoint> moved, double deltaTime)
+    {
+        double previous = 0; // the head sits at offset 0.
+
+        foreach (var cp in controlPoints)
+        {
+            double offset = moved.Contains(cp) ? cp.TimeOffset + deltaTime : cp.TimeOffset;
+
+            if (offset <= previous)
+                return false;
+
+            previous = offset;
+        }
+
+        return true;
     }
 
     /// <summary>Left-click selection of a node: plain click selects only it; Ctrl toggles it in the set.</summary>

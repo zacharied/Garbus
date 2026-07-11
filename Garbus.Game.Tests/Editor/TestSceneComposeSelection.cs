@@ -787,6 +787,71 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("count chip shown", () => handler().ChildrenOfType<GarbusSelectionHandler.SliderCountChip>().Single().Alpha == 1);
         }
 
+        [Test]
+        public void TestGroupDragMovesAllSelectedNodesByTheSameAngle()
+        {
+            waitForComposer();
+            placeDiagonalSlider();      // node 0 at rotation offset from head
+            addSecondNode();            // node 1 at +250ms, rotation 90
+            selectSliderOnLine();
+
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+select node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            int rot0Before = 0, rot1Before = 0;
+            AddStep("snapshot rotations", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                rot0Before = cps[0].RotationOffset;
+                rot1Before = cps[1].RotationOffset;
+            });
+
+            AddStep("press mouse on node 0 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 15);   // +45°
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("both nodes rotated by the same +45°", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                return cps[0].RotationOffset == rot0Before + 45 && cps[1].RotationOffset == rot1Before + 45;
+            });
+        }
+
+        [Test]
+        public void TestDraggingUnselectedHandleMovesOnlyThatNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            int rot1Before = 0;
+            AddStep("snapshot node 1 rotation", () => rot1Before = placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset);
+
+            // No node explicitly selected yet; pressing node 0's handle selects it, then dragging moves only it.
+            AddStep("press mouse on node 0 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 15);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("only node 0 selected", () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[0]));
+            AddAssert("node 1 unchanged", () => placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset, () => Is.EqualTo(rot1Before));
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.
