@@ -3,7 +3,7 @@
 // Adapted for Garbus: rewritten on osu-framework primitives with hardcoded colours (drops
 // OverlayColourProvider/OsuColour/OsuAnimatedButton/IconButton); the graphical tick row is
 // display-only (osu's interactive TickSliderBar is intentionally dropped). Divisor and type chevron
-// rows plus Shift+number entry are below; the 1/N label gains a custom-divisor popover in a later task.
+// rows plus Shift+number entry are below; the 1/N label opens a custom-divisor popover.
 using System;
 using System.Linq;
 using osu.Framework.Allocation;

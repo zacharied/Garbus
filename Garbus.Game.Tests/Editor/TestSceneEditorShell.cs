@@ -214,6 +214,18 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
             AddAssert("beat-divisor control exists", () => editor.ChildrenOfType<GarbusBeatDivisorControl>().Any());
             AddAssert("popover container hosts it", () => editor.ChildrenOfType<osu.Framework.Graphics.Cursor.PopoverContainer>().Any());
+
+            // Regression guard: the 35px zoom column + 120px divisor column must actually be reserved
+            // beside the timeline, not just present-somewhere-in-the-tree — a regression that zeroed a
+            // reserved column or reverted TimelineStrip to full-width would otherwise still pass.
+            AddUntilStep("timeline is narrower than the editor", () =>
+            {
+                var timelineStrip = editor.ChildrenOfType<ComposeTab>().Single()
+                                          .ChildrenOfType<Edit.Screens.Timeline.TimelineStrip>().SingleOrDefault();
+                return timelineStrip != null
+                       && timelineStrip.DrawWidth > 0
+                       && timelineStrip.DrawWidth < editor.DrawWidth - 100;
+            });
         }
 
         [Test]
