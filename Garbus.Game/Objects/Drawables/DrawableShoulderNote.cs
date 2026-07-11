@@ -80,7 +80,11 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>, ISelfPos
         base.Update();
 
         float baseAngleDeg = HitObject.AngleDeg;
-        float radius = MathF.Max(0f, scrollingContainer.DistanceFromCentreAtTime(HitObject.StartTime));
+
+        // Clamp travel to [0, ring]: below 0 before the arc emerges, and pinned at the ring after StartTime
+        // so the squares/arc stay on the ring while the hit/miss fade plays instead of overshooting past it
+        // (matches how cardinal notes rest at the ring).
+        float radius = Math.Clamp(scrollingContainer.DistanceFromCentreAtTime(HitObject.StartTime), 0f, scrollingContainer.ScrollLength);
 
         squareA.Position = ShoulderNoteGeometry.SquarePosition(baseAngleDeg, radius, +1f);
         squareB.Position = ShoulderNoteGeometry.SquarePosition(baseAngleDeg, radius, -1f);
