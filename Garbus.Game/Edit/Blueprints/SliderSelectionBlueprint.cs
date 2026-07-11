@@ -59,6 +59,12 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     private readonly List<Vector2> outlineVertices = new List<Vector2>();
     private SmoothPath? primaryOutline;
 
+    // Node selection is local to this blueprint (osu's PathControlPointVisualiser pattern): a set of the
+    // stable control-point references. Not part of EditorChart.SelectedHitObjects / undo / clipboard.
+    private readonly HashSet<GarbusPathControlPoint> selectedNodes = new HashSet<GarbusPathControlPoint>();
+
+    internal IReadOnlyCollection<GarbusPathControlPoint> SelectedNodes => selectedNodes;
+
     private InputManager inputManager = null!;
 
     public SliderSelectionBlueprint(SliderBody slider)
@@ -111,6 +117,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             int index = nodeHandles.Count;
             nodeHandles.Add(new NodeDragPiece
             {
+                SelectRequested = ctrl => selectNode(index, ctrl),
                 DragStarted = () => changeHandler?.BeginChange(),
                 Dragging = pos => dragNode(index, pos),
                 DragEnded = () => changeHandler?.EndChange(),
@@ -138,7 +145,12 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             nodeHandles[i].Position = new Vector2(
                 DrawWidth / 2 + (nodeGridDeg - bodyGridDeg) * pxPerDeg,
                 DrawHeight * (float)(1 - cp.TimeOffset / duration));
+
+            nodeHandles[i].NodeSelected = selectedNodes.Contains(cp);
         }
+
+        // Drop references orphaned by undo/redo restoring a fresh control-point list.
+        selectedNodes.RemoveWhere(n => !controlPoints.Contains(n));
 
         updateOutline(pxPerDeg, bodyGridDeg, duration);
     }
@@ -271,6 +283,31 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             editorChart.Update(HitObject);
     }
 
+    /// <summary>Left-click selection of a node: plain click selects only it; Ctrl toggles it in the set.</summary>
+    private void selectNode(int index, bool ctrl)
+    {
+        var controlPoints = HitObject.Path.ControlPoints;
+        if (index >= controlPoints.Count)
+            return;
+
+        var cp = controlPoints[index];
+
+        if (ctrl)
+        {
+            if (!selectedNodes.Add(cp))
+                selectedNodes.Remove(cp);
+            return;
+        }
+
+        // plain click on a node already in a multi-selection keeps the group (so a drag moves it all);
+        // otherwise reduce to just this node.
+        if (selectedNodes.Contains(cp))
+            return;
+
+        selectedNodes.Clear();
+        selectedNodes.Add(cp);
+    }
+
     protected override bool OnKeyDown(KeyDownEvent e)
     {
         if (e.Key != Key.T || e.Repeat || !IsSelected)
@@ -319,6 +356,22 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         editorChart.Update(HitObject);
         changeHandler?.EndChange();
+    }
+
+    protected override void OnDeselected()
+    {
+        base.OnDeselected();
+        selectedNodes.Clear();
+    }
+
+    protected override bool OnClick(ClickEvent e)
+    {
+        // A click that reached the blueprint body (not consumed by a node handle) clears node selection but
+        // leaves the whole-slider selection to BlueprintContainer's own click handling.
+        if (e.Button == MouseButton.Left)
+            selectedNodes.Clear();
+
+        return base.OnClick(e);
     }
 
     // sizes only the framework's rectangular handle box — bound the whole (primary, unwrapped) polyline so

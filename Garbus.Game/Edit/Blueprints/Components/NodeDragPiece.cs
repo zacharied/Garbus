@@ -8,15 +8,37 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
 using osuTK;
+using osuTK.Input;
 
 namespace Garbus.Game.Edit.Blueprints.Components;
 
-/// <summary>A draggable circle handle over a slider control-point node.</summary>
+/// <summary>A draggable circle handle over a slider control-point node. Fills solid when its node is selected.</summary>
 internal partial class NodeDragPiece : CompositeDrawable
 {
     public Action? DragStarted { get; init; }
     public Action<Vector2>? Dragging { get; init; }
     public Action? DragEnded { get; init; }
+
+    /// <summary>Invoked on left mouse-down with the Ctrl-pressed flag so the blueprint can update node selection.</summary>
+    public Action<bool>? SelectRequested { get; init; }
+
+    private readonly Box fill;
+
+    private bool nodeSelected;
+
+    /// <summary>Whether this handle's node is currently selected; drives the solid fill.</summary>
+    public bool NodeSelected
+    {
+        get => nodeSelected;
+        set
+        {
+            if (nodeSelected == value)
+                return;
+
+            nodeSelected = value;
+            fill.Alpha = value ? 1 : 0;
+        }
+    }
 
     public NodeDragPiece()
     {
@@ -28,13 +50,25 @@ internal partial class NodeDragPiece : CompositeDrawable
             Masking = true,
             BorderThickness = 3,
             BorderColour = new Colour4(255, 196, 40, 255),
-            Child = new Box
+            Child = fill = new Box
             {
                 RelativeSizeAxes = Axes.Both,
                 Alpha = 0,
                 AlwaysPresent = true,
             },
         };
+    }
+
+    protected override bool OnMouseDown(MouseDownEvent e)
+    {
+        if (e.Button != MouseButton.Left)
+            return base.OnMouseDown(e);
+
+        // Select on the press so a plain click and a drag both start from this node being selected.
+        // Returning true stops BlueprintContainer.performMouseDownActions from re-selecting / cycling the
+        // whole slider; the slider is already selected (handles only receive input while it is).
+        SelectRequested?.Invoke(e.ControlPressed);
+        return true;
     }
 
     protected override bool OnDragStart(DragStartEvent e)
