@@ -852,6 +852,71 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("node 1 unchanged", () => placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset, () => Is.EqualTo(rot1Before));
         }
 
+        [Test]
+        public void TestDeleteRemovesSelectedNodeNotWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();            // now two control points
+            selectSliderOnLine();
+
+            var node0 = new System.Func<GarbusPathControlPoint>(() => placedObject<SliderBody>()!.Path.ControlPoints[0]);
+
+            AddStep("select node 1", () => { input.MoveMouseTo(nodeHandleScreen(1)); input.Click(MouseButton.Left); });
+            AddAssert("one node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            var remaining = new GarbusPathControlPoint[1];
+            AddStep("remember node 0", () => remaining[0] = node0());
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("slider survives", () => placedObject<SliderBody>() != null);
+            AddAssert("one control point left", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+            AddAssert("the other node remains", () => placedObject<SliderBody>()!.Path.ControlPoints[0], () => Is.SameAs(remaining[0]));
+            AddAssert("node selection cleared", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestDeleteUndoRestoresNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("select node 1", () => { input.MoveMouseTo(nodeHandleScreen(1)); input.Click(MouseButton.Left); });
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("one control point left", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("both control points restored", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestDeletingLastNodeRemovesWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();      // single control point
+            selectSliderOnLine();
+
+            AddStep("select the only node", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("slider removed entirely", () => placedObject<SliderBody>() == null);
+        }
+
+        [Test]
+        public void TestDeleteWithNoNodeSelectedRemovesWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();       // slider selected, but no node picked
+
+            AddAssert("no node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.

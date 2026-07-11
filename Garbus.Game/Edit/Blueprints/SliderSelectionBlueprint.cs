@@ -12,6 +12,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Input;
+using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
 using Garbus.Game.Edit.Blueprints.Components;
 using Garbus.Game.Edit.Drawables;
@@ -33,7 +34,7 @@ namespace Garbus.Game.Edit.Blueprints;
 /// sizes the framework's rectangular handle box and never drives selection, so bounding the whole
 /// polyline there is safe.
 /// </summary>
-internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<SliderBody>
+internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<SliderBody>, IKeyBindingHandler<PlatformAction>
 {
     /// <summary>Thickness of the outline; doubles as the click tolerance for path-precise selection.</summary>
     private const float outline_radius = 8;
@@ -402,6 +403,50 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             selectedNodes.Clear();
 
         return base.OnClick(e);
+    }
+
+    public bool OnPressed(KeyBindingPressEvent<PlatformAction> e)
+    {
+        // Only intercept Delete when node(s) are picked; otherwise let SelectionHandler delete the whole
+        // slider. The blueprint sits above SelectionHandler in the input queue, so it sees the action first.
+        if (e.Action != PlatformAction.Delete || selectedNodes.Count == 0)
+            return false;
+
+        removeNodes(new List<GarbusPathControlPoint>(selectedNodes));
+        return true;
+    }
+
+    public void OnReleased(KeyBindingReleaseEvent<PlatformAction> e)
+    {
+    }
+
+    /// <summary>
+    /// Removes the given control points (wrapped in one change transaction). If this empties the path,
+    /// the slider itself is removed from the chart instead — a path needs at least one node.
+    /// </summary>
+    private void removeNodes(IReadOnlyList<GarbusPathControlPoint> nodes)
+    {
+        if (editorChart == null || nodes.Count == 0)
+            return;
+
+        var controlPoints = HitObject.Path.ControlPoints;
+
+        changeHandler?.BeginChange();
+
+        if (nodes.Count >= controlPoints.Count)
+        {
+            editorChart.Remove(HitObject);
+        }
+        else
+        {
+            foreach (var cp in nodes)
+                controlPoints.Remove(cp);
+
+            editorChart.Update(HitObject);
+        }
+
+        selectedNodes.Clear();
+        changeHandler?.EndChange();
     }
 
     // sizes only the framework's rectangular handle box — bound the whole (primary, unwrapped) polyline so
