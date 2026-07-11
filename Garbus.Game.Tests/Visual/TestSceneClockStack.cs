@@ -57,5 +57,20 @@ namespace Garbus.Game.Tests.Visual
             AddStep("seek to 5000", () => gameplayClock.Seek(5000));
             AddAssert("gameplay time at seek target", () => gameplayClock.CurrentTime, () => Is.EqualTo(5000).Within(1));
         }
+
+        [Test]
+        public void TestResetWhileRunningKeepsClockRunning()
+        {
+            // Reproduces GAR-8: the restart button (PlayScreen.restart) calls Reset(startClock: true)
+            // while the clock is running. Reset must leave the clock actually running afterwards — not
+            // stopped-but-reporting-unpaused, which forced the user to press Space twice to resume.
+            AddStep("start clock", () => gameplayClock.Start());
+            AddUntilStep("clock advancing", () => gameplayClock.CurrentTime, () => Is.GreaterThan(100));
+
+            AddStep("reset while running", () => gameplayClock.Reset(startClock: true));
+
+            AddAssert("not paused after reset", () => gameplayClock.IsPaused.Value, () => Is.False);
+            AddUntilStep("clock advances again after reset", () => gameplayClock.CurrentTime, () => Is.GreaterThan(100));
+        }
     }
 }

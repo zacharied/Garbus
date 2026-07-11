@@ -169,6 +169,14 @@ namespace Garbus.Game.Timing
             // This is to avoid any kind of isPaused state checks and frequency ramping (as provided by MasterGameplayClockContainer).
             GameplayClock.Stop();
 
+            // Adapted for Garbus (GAR-8): reconcile the paused state to match the clock we just stopped.
+            // osu leaves isPaused untouched here because it only ever restarts by reloading the screen
+            // with a fresh (already-paused) clock. Garbus's restart button calls Reset(startClock: true)
+            // on the *live* clock, so without this the stale isPaused == false makes the Start() below
+            // early-return (leaving the clock stopped but reporting un-paused — the "press Space twice"
+            // bug). Pinned by TestSceneClockStack.TestResetWhileRunningKeepsClockRunning.
+            isPaused.Value = true;
+
             if (time != null)
                 StartTime = time.Value;
 
