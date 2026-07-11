@@ -505,6 +505,137 @@ namespace Garbus.Game.Tests.Editor
             return (headScreen, nodeScreen);
         }
 
+        /// <summary>The single-node slider's one control point.</summary>
+        private GarbusPathControlPoint firstControlPoint() => placedObject<SliderBody>()!.Path.ControlPoints[0];
+
+        /// <summary>Adds a second control point directly (later in time, different angle) and refreshes.</summary>
+        private void addSecondNode()
+        {
+            AddStep("add second node", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                slider.Path.ControlPoints.Add(new GarbusPathControlPoint { TimeOffset = slider.Path.ControlPoints[0].TimeOffset + 250, RotationOffset = 90 });
+                editorChart.Update(slider);
+            });
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+        }
+
+        /// <summary>Screen centre of the node handle at control-point index <paramref name="i"/>.</summary>
+        private Vector2 nodeHandleScreen(int i)
+        {
+            var handles = composer.ChildrenOfType<NodeDragPiece>().ToList();
+            return handles[i].ScreenSpaceDrawQuad.Centre;
+        }
+
+        private SliderSelectionBlueprint sliderBlueprint() => composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
+
+        /// <summary>Selects the slider by clicking the midpoint of its head→node line.</summary>
+        private void selectSliderOnLine()
+        {
+            AddStep("select slider on its line", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestClickingNodeOnUnselectedSliderSelectsWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+
+            // slider is not selected; clicking its node handle position must select the whole slider, no node.
+            AddStep("click the node position", () =>
+            {
+                var (_, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo(nodeScreen);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("whole slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("no node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestClickingHandleOnSelectedSliderSelectsNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click the node handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("that node selected", () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(firstControlPoint()));
+        }
+
+        [Test]
+        public void TestCtrlClickTogglesNodesInSelection()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("click node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            AddStep("ctrl+click node 1 again", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("node 1 toggled off", () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[0]));
+        }
+
+        [Test]
+        public void TestClickingLineClearsNodeSelection()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click node handle", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            AddStep("click the line", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("node selection cleared", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestDeselectingSliderClearsNodeSelection()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click node handle", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            AddStep("deselect all", () => editorChart.SelectedHitObjects.Clear());
+            AddAssert("node selection cleared", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
         [Test]
         public void TestSliderSelectableOnlyOnPolylineAndNodes()
         {
@@ -654,6 +785,174 @@ namespace Garbus.Game.Tests.Editor
             Func<GarbusSelectionHandler> handler = () => composer.ChildrenOfType<GarbusSelectionHandler>().Single();
             AddUntilStep("compose selection box hidden", () => handler().ChildrenOfType<SelectionBox>().Single().Alpha == 0);
             AddUntilStep("count chip shown", () => handler().ChildrenOfType<GarbusSelectionHandler.SliderCountChip>().Single().Alpha == 1);
+        }
+
+        [Test]
+        public void TestGroupDragMovesAllSelectedNodesByTheSameAngle()
+        {
+            waitForComposer();
+            placeDiagonalSlider();      // node 0 at rotation offset from head
+            addSecondNode();            // node 1 at +250ms, rotation 90
+            selectSliderOnLine();
+
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+select node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            int rot0Before = 0, rot1Before = 0;
+            AddStep("snapshot rotations", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                rot0Before = cps[0].RotationOffset;
+                rot1Before = cps[1].RotationOffset;
+            });
+
+            AddStep("press mouse on node 0 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 15);   // +45°
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("both nodes rotated by the same +45°", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                return cps[0].RotationOffset == rot0Before + 45 && cps[1].RotationOffset == rot1Before + 45;
+            });
+        }
+
+        [Test]
+        public void TestDraggingUnselectedHandleMovesOnlyThatNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            int rot1Before = 0;
+            AddStep("snapshot node 1 rotation", () => rot1Before = placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset);
+
+            // No node explicitly selected yet; pressing node 0's handle selects it, then dragging moves only it.
+            AddStep("press mouse on node 0 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 15);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("only node 0 selected", () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[0]));
+            AddAssert("node 1 unchanged", () => placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset, () => Is.EqualTo(rot1Before));
+        }
+
+        [Test]
+        public void TestDeleteRemovesSelectedNodeNotWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();            // now two control points
+            selectSliderOnLine();
+
+            var node0 = new System.Func<GarbusPathControlPoint>(() => placedObject<SliderBody>()!.Path.ControlPoints[0]);
+
+            AddStep("select node 1", () => { input.MoveMouseTo(nodeHandleScreen(1)); input.Click(MouseButton.Left); });
+            AddAssert("one node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            var remaining = new GarbusPathControlPoint[1];
+            AddStep("remember node 0", () => remaining[0] = node0());
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("slider survives", () => placedObject<SliderBody>() != null);
+            AddAssert("one control point left", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+            AddAssert("the other node remains", () => placedObject<SliderBody>()!.Path.ControlPoints[0], () => Is.SameAs(remaining[0]));
+            AddAssert("node selection cleared", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestDeleteUndoRestoresNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("select node 1", () => { input.MoveMouseTo(nodeHandleScreen(1)); input.Click(MouseButton.Left); });
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("one control point left", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("both control points restored", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestDeletingLastNodeRemovesWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();      // single control point
+            selectSliderOnLine();
+
+            AddStep("select the only node", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("slider removed entirely", () => placedObject<SliderBody>() == null);
+        }
+
+        [Test]
+        public void TestDeleteWithNoNodeSelectedRemovesWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();       // slider selected, but no node picked
+
+            AddAssert("no node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
+        }
+
+        [Test]
+        public void TestQuickDeleteHoveredNodeRemovesOnlyThatNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("shift+right-click node 1 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LShift);
+                input.Click(MouseButton.Right);
+                input.ReleaseKey(Key.LShift);
+            });
+            AddAssert("slider survives", () => placedObject<SliderBody>() != null);
+            AddAssert("one control point left", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestQuickDeleteOnLineRemovesWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("shift+right-click the line (not a handle)", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.PressKey(Key.LShift);
+                input.Click(MouseButton.Right);
+                input.ReleaseKey(Key.LShift);
+            });
+            AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
         }
 
         // ------------------------------------------------------------------

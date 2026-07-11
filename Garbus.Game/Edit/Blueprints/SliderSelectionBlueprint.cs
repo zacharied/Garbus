@@ -12,6 +12,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Input;
+using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
 using Garbus.Game.Edit.Blueprints.Components;
 using Garbus.Game.Edit.Drawables;
@@ -33,7 +34,7 @@ namespace Garbus.Game.Edit.Blueprints;
 /// sizes the framework's rectangular handle box and never drives selection, so bounding the whole
 /// polyline there is safe.
 /// </summary>
-internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<SliderBody>
+internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<SliderBody>, IKeyBindingHandler<PlatformAction>
 {
     /// <summary>Thickness of the outline; doubles as the click tolerance for path-precise selection.</summary>
     private const float outline_radius = 8;
@@ -58,6 +59,12 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     private readonly List<SmoothPath> outlinePool = new List<SmoothPath>();
     private readonly List<Vector2> outlineVertices = new List<Vector2>();
     private SmoothPath? primaryOutline;
+
+    // Node selection is local to this blueprint (osu's PathControlPointVisualiser pattern): a set of the
+    // stable control-point references. Not part of EditorChart.SelectedHitObjects / undo / clipboard.
+    private readonly HashSet<GarbusPathControlPoint> selectedNodes = new HashSet<GarbusPathControlPoint>();
+
+    internal IReadOnlyCollection<GarbusPathControlPoint> SelectedNodes => selectedNodes;
 
     private InputManager inputManager = null!;
 
@@ -111,6 +118,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             int index = nodeHandles.Count;
             nodeHandles.Add(new NodeDragPiece
             {
+                SelectRequested = ctrl => selectNode(index, ctrl),
                 DragStarted = () => changeHandler?.BeginChange(),
                 Dragging = pos => dragNode(index, pos),
                 DragEnded = () => changeHandler?.EndChange(),
@@ -138,7 +146,12 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             nodeHandles[i].Position = new Vector2(
                 DrawWidth / 2 + (nodeGridDeg - bodyGridDeg) * pxPerDeg,
                 DrawHeight * (float)(1 - cp.TimeOffset / duration));
+
+            nodeHandles[i].NodeSelected = selectedNodes.Contains(cp);
         }
+
+        // Drop references orphaned by undo/redo restoring a fresh control-point list.
+        selectedNodes.RemoveWhere(n => !controlPoints.Contains(n));
 
         updateOutline(pxPerDeg, bodyGridDeg, duration);
     }
@@ -235,40 +248,97 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         if (index >= controlPoints.Count)
             return;
 
-        var cp = controlPoints[index];
+        var grabbed = controlPoints[index];
         var result = composer.FindSnappedAngleTimeAndPosition(screenSpacePosition);
+
+        // The moved set: the whole node selection when the grabbed node is part of it, else just the grabbed node.
+        // Pass selectedNodes (a HashSet) through directly for O(1) Contains and no per-event allocation in the
+        // multi-select case; only the single-node fallback allocates a tiny array.
+        ICollection<GarbusPathControlPoint> moved = selectedNodes.Contains(grabbed)
+            ? selectedNodes
+            : new[] { grabbed };
 
         bool changed = false;
 
+        // Time: shift every moved node by the grabbed node's delta, but only if the whole path stays
+        // strictly time-ordered and every offset stays > 0. All-or-nothing per event (no partial move).
         if (result.Time is double proposedTime)
         {
-            double proposedOffset = proposedTime - HitObject.StartTime;
-            double minOffset = index > 0 ? controlPoints[index - 1].TimeOffset : 0;
-            double? maxOffset = index < controlPoints.Count - 1 ? controlPoints[index + 1].TimeOffset : null;
+            double deltaTime = (proposedTime - HitObject.StartTime) - grabbed.TimeOffset;
 
-            if (proposedOffset != cp.TimeOffset && proposedOffset > minOffset && (maxOffset == null || proposedOffset < maxOffset))
+            if (deltaTime != 0 && timeShiftValid(controlPoints, moved, deltaTime))
             {
-                cp.TimeOffset = proposedOffset;
+                foreach (var cp in moved)
+                    cp.TimeOffset += deltaTime;
                 changed = true;
             }
         }
 
+        // Angle: rotation offsets are free integers (no ordering constraint), so apply the grabbed node's
+        // minimal snap delta to every moved node unconditionally.
         if (result is GarbusSnapResult snap)
         {
-            int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + cp.RotationOffset);
+            int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + grabbed.RotationOffset);
             int diff = EditorAngleMapping.MinimalDiff(currentAbsolute, snap.AngleDeg);
 
             if (diff != 0)
             {
-                cp.RotationOffset += diff;
+                foreach (var cp in moved)
+                    cp.RotationOffset += diff;
                 changed = true;
             }
         }
 
-        // Only run the (ApplyDefaults + state-save) update when the node actually moved — mouse-move
+        // Only run the (ApplyDefaults + state-save) update when something actually moved — mouse-move
         // events inside the same snap cell would otherwise re-apply the whole slider per event.
         if (changed)
             editorChart.Update(HitObject);
+    }
+
+    /// <summary>
+    /// True if shifting every node in <paramref name="moved"/> by <paramref name="deltaTime"/> keeps the full
+    /// control-point list strictly increasing in time and every offset above zero (nodes must follow the head).
+    /// </summary>
+    private static bool timeShiftValid(IReadOnlyList<GarbusPathControlPoint> controlPoints, ICollection<GarbusPathControlPoint> moved, double deltaTime)
+    {
+        double previous = 0; // the head sits at offset 0.
+
+        foreach (var cp in controlPoints)
+        {
+            double offset = moved.Contains(cp) ? cp.TimeOffset + deltaTime : cp.TimeOffset;
+
+            if (offset <= previous)
+                return false;
+
+            previous = offset;
+        }
+
+        return true;
+    }
+
+    /// <summary>Left-click selection of a node: plain click selects only it; Ctrl toggles it in the set.</summary>
+    private void selectNode(int index, bool ctrl)
+    {
+        var controlPoints = HitObject.Path.ControlPoints;
+        if (index >= controlPoints.Count)
+            return;
+
+        var cp = controlPoints[index];
+
+        if (ctrl)
+        {
+            if (!selectedNodes.Add(cp))
+                selectedNodes.Remove(cp);
+            return;
+        }
+
+        // plain click on a node already in a multi-selection keeps the group (so a drag moves it all);
+        // otherwise reduce to just this node.
+        if (selectedNodes.Contains(cp))
+            return;
+
+        selectedNodes.Clear();
+        selectedNodes.Add(cp);
     }
 
     protected override bool OnKeyDown(KeyDownEvent e)
@@ -319,6 +389,82 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         editorChart.Update(HitObject);
         changeHandler?.EndChange();
+    }
+
+    protected override void OnDeselected()
+    {
+        base.OnDeselected();
+        selectedNodes.Clear();
+    }
+
+    protected override bool OnClick(ClickEvent e)
+    {
+        // A click that reached the blueprint body (not consumed by a node handle) clears node selection but
+        // leaves the whole-slider selection to BlueprintContainer's own click handling.
+        if (e.Button == MouseButton.Left)
+            selectedNodes.Clear();
+
+        return base.OnClick(e);
+    }
+
+    public bool OnPressed(KeyBindingPressEvent<PlatformAction> e)
+    {
+        // Only intercept Delete when node(s) are picked; otherwise let SelectionHandler delete the whole
+        // slider. The blueprint sits above SelectionHandler in the input queue, so it sees the action first.
+        if (e.Action != PlatformAction.Delete || selectedNodes.Count == 0)
+            return false;
+
+        removeNodes(new List<GarbusPathControlPoint>(selectedNodes));
+        return true;
+    }
+
+    public void OnReleased(KeyBindingReleaseEvent<PlatformAction> e)
+    {
+    }
+
+    /// <summary>
+    /// Removes the given control points (wrapped in one change transaction). If this empties the path,
+    /// the slider itself is removed from the chart instead — a path needs at least one node.
+    /// </summary>
+    private void removeNodes(IReadOnlyList<GarbusPathControlPoint> nodes)
+    {
+        if (editorChart == null || nodes.Count == 0)
+            return;
+
+        var controlPoints = HitObject.Path.ControlPoints;
+
+        changeHandler?.BeginChange();
+
+        if (nodes.Count >= controlPoints.Count)
+        {
+            editorChart.Remove(HitObject);
+        }
+        else
+        {
+            foreach (var cp in nodes)
+                controlPoints.Remove(cp);
+
+            editorChart.Update(HitObject);
+        }
+
+        selectedNodes.Clear();
+        changeHandler?.EndChange();
+    }
+
+    public override bool HandleQuickDeletion()
+    {
+        // Shift+RightClick over a node handle deletes just that node; over the line, fall through (return
+        // false) so SelectionHandler removes the whole slider.
+        for (int i = 0; i < nodeHandles.Count && i < HitObject.Path.ControlPoints.Count; i++)
+        {
+            if (nodeHandles[i].IsHovered)
+            {
+                removeNodes(new List<GarbusPathControlPoint> { HitObject.Path.ControlPoints[i] });
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // sizes only the framework's rectangular handle box — bound the whole (primary, unwrapped) polyline so

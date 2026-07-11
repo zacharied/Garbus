@@ -118,6 +118,13 @@ classes:
   blueprint — updating an object regenerates nested objects, so the blueprint must be re-pointed.
 - Placement auto-seek: `HitObjectPlacementBlueprint.EndPlacement` seeks the clock to the placed object;
   wait for the seek before asserting screen positions in tests.
+- Slider **node selection** is local to `SliderSelectionBlueprint` (a `HashSet<GarbusPathControlPoint>`
+  by reference) — not part of `EditorChart.SelectedHitObjects`/undo/clipboard. Node handles only receive
+  input while the slider is selected, so clicking a node on an unselected slider selects the whole
+  slider; once selected, click picks a node (Ctrl toggles), and dragging one moves the whole node
+  selection. Delete (via `IKeyBindingHandler<PlatformAction>`, which sees the action before
+  `SelectionHandler`) and `HandleQuickDeletion` (Shift+RightClick) remove nodes; emptying the path
+  removes the slider. Pinned by the node tests in `TestSceneComposeSelection`.
 
 ## Current state (Phase 3 complete)
 
