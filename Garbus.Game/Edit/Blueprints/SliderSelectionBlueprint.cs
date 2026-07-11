@@ -449,6 +449,22 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         changeHandler?.EndChange();
     }
 
+    public override bool HandleQuickDeletion()
+    {
+        // Shift+RightClick over a node handle deletes just that node; over the line, fall through (return
+        // false) so SelectionHandler removes the whole slider.
+        for (int i = 0; i < nodeHandles.Count && i < HitObject.Path.ControlPoints.Count; i++)
+        {
+            if (nodeHandles[i].IsHovered)
+            {
+                removeNodes(new List<GarbusPathControlPoint> { HitObject.Path.ControlPoints[i] });
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // sizes only the framework's rectangular handle box — bound the whole (primary, unwrapped) polyline so
     // the handles enclose the slider; selection itself is driven by ReceivePositionalInputAt, not this.
     public override Quad SelectionQuad =>

@@ -917,6 +917,44 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
         }
 
+        [Test]
+        public void TestQuickDeleteHoveredNodeRemovesOnlyThatNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("shift+right-click node 1 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LShift);
+                input.Click(MouseButton.Right);
+                input.ReleaseKey(Key.LShift);
+            });
+            AddAssert("slider survives", () => placedObject<SliderBody>() != null);
+            AddAssert("one control point left", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestQuickDeleteOnLineRemovesWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("shift+right-click the line (not a handle)", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.PressKey(Key.LShift);
+                input.Click(MouseButton.Right);
+                input.ReleaseKey(Key.LShift);
+            });
+            AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.
