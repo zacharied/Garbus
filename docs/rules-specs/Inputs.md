@@ -33,7 +33,7 @@ what must be performed physically to be deemed a successful input in the game's 
 Every hit object has a StartTime; this is the gameplay clock time at which the input must be performed, and is also the time at which the object collides with the playfield circle's circumference.
 The playfield circle is divided at the center into a Cartesian grid rotated 45 degrees, such that it forms four quadrants with each quadrant opening towards a unique cardinal direction.
 
-This document will describe the mapping between the physical and game model.
+This document will describe the mapping between the physical and game model. For how each hit object is presented visually, see `../presentation-specs/Presentation.md`.
 
 ## Analog stick inputs
 
@@ -55,13 +55,7 @@ Hit objects are classified into discrete or composite. Discrete hit objects are 
 
 A discrete object with a Direction, input by pressing one of the two cardinal buttons that correspond to its direction.
 
-#### Presentation
-
-A CardinalNote is presented as a generic shape with a square bounding box of dimensions less than 15% the size of the playfield circle. It moves in a direction corresponding to its Angle.
-
 The playfield circle is divided at the center into a Cartesian grid rotated 45 degrees, such that it forms four quadrants with each quadrant opening towards a unique cardinal direction. The CardinalNote's Direction is equal to the cardinal direction corresponding to the quadrant in which its Angle resides.
-
-#### Gameplay notes
 
 Simultaneous CardinalNotes (that is, a set of CardinalNotes with equal StartTimes) are permitted.
 
@@ -71,23 +65,11 @@ Because there are two buttons per direction, a group of simultaneous CardinalNot
 
 A discrete object with a Side, input by pressing the shoulder button on the corresponding side of the controller.
 
-#### Presentation
-
-A ShoulderNote is presented as an arc connecting the two points above and below the East and West cardinal lines (its Side, described as Left or Right). It moves out like an East or West CardinalNote, but the arc grows bigger as the points grow apart in vertical distance.
-
-#### Gameplay notes
-
 A group of simultaneous ShoulderNotes can consist of at most two notes; one on each side.
 
 ### HoldCardinalNote
 
 The composite variant of CardinalNote, input by keeping pressed one of the two cardinal buttons corresponding to the direction.
-
-#### Presentation
-
-A HoldCardinalNote is presented as a line extending out of a CardinalNote note towards the center of the circle. It follows the same path as its parent CardinalNote.
-
-#### Gameplay notes
 
 Because the HoldCardinalNote simply checks that a button of its direction is pressed, one button can be used to activate an arbitrary number of HoldCardinalNotes.
 
@@ -97,12 +79,6 @@ If a HoldCardinalNote is currently being held, additional CardinalNotes or other
 
 The composite variant of ShoulderNote, input by keeping pressed the shoulder button that corresponds to its side.
 
-#### Presentation
-
-A HoldShoulderNote is presented as a line extending out of a shoulder note towards the center of the circle. It follows the same path as its parent ShoulderNote.
-
-#### Gameplay notes
-
 Unlike a Cardinal direction, a Side has only one button, so it cannot be pressed for a new ShoulderNote while a HoldShoulderNote on that side is held. Charts must not place a same-side ShoulderNote or HoldShoulderNote during a held HoldShoulderNote.
 
 ### Slider
@@ -110,14 +86,6 @@ Unlike a Cardinal direction, a Side has only one button, so it cannot be pressed
 A slider is a composite object with a Side and Angle, input by moving the analog stick of the slider's side to the edge of its circular well at an angle corresponding to the slider's angle.
 
 A slider is correctly performed at a given instant when its side's stick is at the edge and its stick angle is within tolerance of the slider's required angle at that instant. This is the condition the Judgement spec calls the input being "correctly active". The slider's head fixes the required angle at its StartTime; between consecutive children the required angle is **linearly interpolated**, so a curved body sweeps the required angle smoothly over the slider's duration.
-
-#### Presentation
-
-A slider is presented as a path extending outward from its head toward the edge, tracing its required angle over time; a multi-child slider curves as that angle interpolates between children.
-
-When the stick crosses the radius threshold, a **catcher** is displayed: an arc slightly larger than the playfield circle, positioned at the stick's current angle, showing that the radius threshold has been met. It indicates where the player's edge input is currently aimed relative to the slider's required angle.
-
-#### Gameplay notes
 
 Because a stick object occupies its side's stick for its whole duration, simultaneous same-side stick operations require consideration. 
 
@@ -132,16 +100,8 @@ A discrete object with a Side and Angle, input by flicking the analog stick of i
 
 The flick is detected as a rapid outward motion of the stick — its radius rising past the threshold — with its stick angle within tolerance of the slam's Angle.
 
-#### Presentation
-
-A SlamCentered is presented as an arrow shape similar in size to a CardinalNote. The arrow is rotated such that it is pointing along its angle.
-
 ### SlamEdge
 
 A discrete object with a Side, Angle, and rotational Direction (clockwise or counter-clockwise), input by sweeping the analog stick — already at the edge — through its Angle in that rotational direction.
 
 The input is detected when the stick, at or beyond the radius threshold, rotates so its stick angle passes through the slam's Angle while moving in the specified rotational direction. Like SlamCentered, it is early-permissive (see `Judgement.md`).
-
-#### Presentation
-
-*(Tentative — visual design TBD.)* A SlamEdge is presented as a marker at the edge at its Angle, with an indicator of the required rotational direction.
