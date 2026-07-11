@@ -199,5 +199,49 @@ namespace Garbus.Game.Tests.Editor
         {
             Assert.That(EditorAngleMapping.NormalizeDeg(450), Is.EqualTo(90));
         }
+
+        // --- ReflectionSum ---
+
+        [Test]
+        public void TestReflectionSumSingleAngleIsSelfMirror()
+        {
+            // A lone handle mirrors about itself: sum = 2θ, so NormalizeDeg(sum − θ) == θ.
+            Assert.That(EditorAngleMapping.ReflectionSum(new[] { 90 }), Is.EqualTo(180));
+        }
+
+        [Test]
+        public void TestReflectionSumSwapsAdjacentPair()
+        {
+            // Centre of [60,120] is 90; reflecting swaps them.
+            int sum = EditorAngleMapping.ReflectionSum(new[] { 60, 120 });
+            Assert.That(sum, Is.EqualTo(180));
+            Assert.That(EditorAngleMapping.NormalizeDeg(sum - 60), Is.EqualTo(120));
+            Assert.That(EditorAngleMapping.NormalizeDeg(sum - 120), Is.EqualTo(60));
+        }
+
+        [Test]
+        public void TestReflectionSumUsesLargestGapNotNaiveMidpoint()
+        {
+            // 0 and 90: the empty region is the 270° arc from 90 back to 0, so the covering arc is [0,90],
+            // centre 45 — NOT the naive "average = 45" that only coincidentally matches here.
+            Assert.That(EditorAngleMapping.ReflectionSum(new[] { 0, 90 }), Is.EqualTo(90));
+        }
+
+        [Test]
+        public void TestReflectionSumSeamStraddlingPairSwapsLocally()
+        {
+            // 350 and 10 straddle the 0° seam: covering arc [350,370], centre 0. They swap about 0 — the
+            // pivot is NOT the naive average (180) that would fling them across the circle.
+            int sum = EditorAngleMapping.ReflectionSum(new[] { 350, 10 });
+            Assert.That(sum, Is.EqualTo(0));
+            Assert.That(EditorAngleMapping.NormalizeDeg(sum - 350), Is.EqualTo(10));
+            Assert.That(EditorAngleMapping.NormalizeDeg(sum - 10), Is.EqualTo(350));
+        }
+
+        [Test]
+        public void TestReflectionSumEmptyIsZero()
+        {
+            Assert.That(EditorAngleMapping.ReflectionSum(System.Array.Empty<int>()), Is.EqualTo(0));
+        }
     }
 }

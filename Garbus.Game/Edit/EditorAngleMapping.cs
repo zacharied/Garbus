@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Garbus.Game.Edit;
 
@@ -112,5 +113,46 @@ public static class EditorAngleMapping
         float snappedUnwrapped = MathF.Round(unwrapped / increment) * increment;
         float snappedX = (snappedUnwrapped - ANGLE_ORIGIN + GHOST_DEGREES) / TOTAL_DEGREES;
         return (snappedX, NormalizeDeg((int)snappedUnwrapped));
+    }
+
+    /// <summary>
+    /// The reflection "sum" (<c>2·φ</c>, normalised to [0,360)) whose pivot <c>φ</c> is the centre of the
+    /// tightest angular arc covering <paramref name="angles"/> — the seam-robust bounding-box centre.
+    /// Reflecting an angle <c>θ</c> by this sum is <c>NormalizeDeg(sum − θ)</c>. Returns 0 for empty input
+    /// (the identity reflection about East). The covering arc is found as the complement of the largest
+    /// circular gap between the sorted angles, so a selection straddling the wrap seam mirrors in place.
+    /// </summary>
+    public static int ReflectionSum(IEnumerable<int> angles)
+    {
+        var sorted = angles.Select(NormalizeDeg).Distinct().OrderBy(a => a).ToList();
+
+        if (sorted.Count == 0)
+            return 0;
+        if (sorted.Count == 1)
+            return NormalizeDeg(2 * sorted[0]);
+
+        // Largest circular gap → the covering arc is everything else, starting just after that gap.
+        int gapStart = 0;
+        int largestGap = 360 - sorted[^1] + sorted[0]; // wrap gap: last → first
+        for (int i = 1; i < sorted.Count; i++)
+        {
+            int gap = sorted[i] - sorted[i - 1];
+            if (gap > largestGap)
+            {
+                largestGap = gap;
+                gapStart = i;
+            }
+        }
+
+        // Unwrap the run starting after the gap into monotone values; min is the start, max the far end.
+        int start = sorted[gapStart];
+        int max = start;
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            int a = sorted[(gapStart + i) % sorted.Count];
+            max = Math.Max(max, start + NormalizeDeg(a - start));
+        }
+
+        return NormalizeDeg(start + max);
     }
 }
