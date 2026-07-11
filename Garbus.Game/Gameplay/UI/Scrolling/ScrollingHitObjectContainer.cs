@@ -267,6 +267,19 @@ namespace Garbus.Game.Gameplay.UI.Scrolling
                     hitObject.Width = length;
                 else
                     hitObject.Height = length;
+
+                // Garbus (GAR-4): the Garbus editor drawables swallow their own LifetimeEnd writes (see
+                // EditorDrawableGarbusHitObject.LifetimeEnd), so — unlike osu, where DrawableHitObject.updateState
+                // keeps the lifetime end accurate — this container is the sole lifetime authority for them. But
+                // setComputedLifetime only refreshes the top-level object's lifetime on Add and on a full layout
+                // invalidation, never when its end time changes. A duration edit (e.g. dragging a slider's
+                // terminal node to a later time) therefore left the drawable expiring at its pre-edit end time,
+                // so the body vanished once the playhead passed the old terminal time. Refresh the end here —
+                // this block runs once per layout recompute, i.e. after each DefaultsApplied — so the lifetime
+                // tracks the live duration. Set it directly (not via setComputedLifetime) to also cover judged
+                // entries, whose lifetime these self-non-expiring editor drawables never otherwise correct.
+                if (hitObject.Entry != null)
+                    hitObject.Entry.LifetimeEnd = e.EndTime + timeRange.Value;
             }
 
             foreach (var obj in hitObject.NestedHitObjects)
