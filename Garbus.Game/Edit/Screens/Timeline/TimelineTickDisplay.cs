@@ -86,8 +86,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
                     int divisor = BindableBeatDivisor.GetDivisorForBeatIndex(beat, beatDivisor.Value);
                     bool isBar = beat % point.TimeSignature.Numerator == 0 && divisor <= 1;
 
-                    Color4 colour = getColourForDivisor(isBar ? 0 : divisor);
-                    float heightFrac = isBar ? 1.0f : getHeightForDivisor(divisor);
+                    Color4 colour = BeatDivisorColours.ColourFor(isBar ? 0 : divisor);
+                    float heightFrac = isBar ? 1.0f : BeatDivisorColours.HeightFor(divisor);
 
                     var box = getOrCreateTick(idx++);
                     box.RelativePositionAxes = Axes.X;
@@ -121,37 +121,6 @@ namespace Garbus.Game.Edit.Screens.Timeline
             tickPool.Add(box);
             AddInternal(box);
             return box;
-        }
-
-        /// <summary>Returns a colour for a beat divisor, cycling through a small palette.</summary>
-        private static Color4 getColourForDivisor(int divisor)
-        {
-            // Palette: bar-lines white, then by divisor value.
-            return divisor switch
-            {
-                0 => Color4.White,          // bar lines
-                1 => Color4.White,
-                2 => new Color4(220, 100, 100, 255),   // red family
-                3 => new Color4(100, 200, 100, 255),   // green
-                4 => new Color4(100, 140, 220, 255),   // blue
-                6 => new Color4(220, 160, 80, 255),    // orange
-                8 => new Color4(160, 100, 220, 255),   // purple
-                _ => new Color4(180, 180, 180, 255),   // grey for unusual divisors
-            };
-        }
-
-        private static float getHeightForDivisor(int divisor)
-        {
-            return divisor switch
-            {
-                1 => 1.0f,
-                2 => 0.7f,
-                3 => 0.6f,
-                4 => 0.5f,
-                6 => 0.45f,
-                8 => 0.4f,
-                _ => 0.35f,
-            };
         }
 
         protected override void Dispose(bool isDisposing)
