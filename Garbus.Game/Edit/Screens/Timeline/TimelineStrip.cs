@@ -24,7 +24,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
     [Cached]
     public partial class TimelineStrip : ZoomableScrollContainer
     {
-        public const float HEIGHT = 70;
+        public const float HEIGHT = 90;
 
         /// <summary>
         /// The current zoom level. When changed, updates the composer's
