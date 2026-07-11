@@ -104,5 +104,44 @@ namespace Garbus.Game.Tests
 
             Assert.That(schedule.Revealed(HorizontalDirection.Right, 4900)?.AngleDeg, Is.EqualTo(270));
         }
+
+        [Test]
+        public void SlamEdgeCountsAsStickObject()
+        {
+            // A SlamEdge occupies the stick through 5000; a slider head only 300ms later (< 600) is suppressed.
+            var suppressed = new WarningIndicatorSchedule(new GarbusHitObject[]
+            {
+                new GarbusSlamEdge { AngleDeg = 90, Side = HorizontalDirection.Left, StartTime = 5000 },
+                Slider(HorizontalDirection.Left, 180, 5300, 200),
+            }, warning_time);
+
+            Assert.That(suppressed.Revealed(HorizontalDirection.Left, 5100), Is.Null);
+
+            // A slider head 1000ms after the SlamEdge (> 600) IS telegraphed.
+            var eligible = new WarningIndicatorSchedule(new GarbusHitObject[]
+            {
+                new GarbusSlamEdge { AngleDeg = 90, Side = HorizontalDirection.Left, StartTime = 5000 },
+                Slider(HorizontalDirection.Left, 270, 6000, 200),
+            }, warning_time);
+
+            Assert.That(eligible.Revealed(HorizontalDirection.Left, 5500)?.AngleDeg, Is.EqualTo(270));
+        }
+
+        [Test]
+        public void RevealWindowAndGapBoundariesAreExact()
+        {
+            // Reveal lower bound is inclusive: at exactly StartTime - WarningTime the slider shows.
+            var isolated = new WarningIndicatorSchedule(
+                new GarbusHitObject[] { Slider(HorizontalDirection.Left, 90, 5000, 200) }, warning_time);
+            Assert.That(isolated.Revealed(HorizontalDirection.Left, 4400)?.AngleDeg, Is.EqualTo(90));
+
+            // Gap of exactly WarningTime is NOT eligible (rule is strict >): slam ends 5000, slider head at 5600 → gap 600.
+            var boundary = new WarningIndicatorSchedule(new GarbusHitObject[]
+            {
+                Slam(HorizontalDirection.Left, 0, 5000),
+                Slider(HorizontalDirection.Left, 180, 5600, 200),
+            }, warning_time);
+            Assert.That(boundary.Revealed(HorizontalDirection.Left, 5100), Is.Null);
+        }
     }
 }
