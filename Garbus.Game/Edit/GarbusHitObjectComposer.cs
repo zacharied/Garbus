@@ -43,6 +43,8 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
     private static readonly int[] angle_snap_options = { 5, 15, 45, 90 };
 
+    private FlipPivotOverlay flipPivotOverlay = null!;
+
     public GarbusHitObjectComposer()
     {
         // BAC synced this to the timeline zoom (mania-style). The timeline arrives in Task 17; until then
@@ -94,6 +96,8 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
         });
 
         angleSnapButtons.Items[Array.IndexOf(angle_snap_options, AngleSnap.Value)].Select();
+
+        PlayfieldContentContainer.Add(flipPivotOverlay = new FlipPivotOverlay(x => EditorAngleMapping.SnapX(x, AngleSnap.Value)));
     }
 
     /// <summary>
@@ -118,7 +122,6 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
         return new GarbusSnapResult(playfield.ToScreenSpace(local), timeSnapped.Time, angleDeg, playfield);
     }
 
-    // TODO(Task 3): replace with the interactive "flip around angle" overlay; this stub only keeps
-    // GarbusSelectionHandler's "Flip around angle..." menu item compiling until then.
-    public void BeginFlipAroundAngle(System.Action<int> onCommit) { }
+    /// <summary>Enters interactive "flip around angle" mode: the overlay picks a pivot; <paramref name="onCommit"/> receives 2·pivot.</summary>
+    public void BeginFlipAroundAngle(Action<int> onCommit) => flipPivotOverlay.Begin(onCommit);
 }

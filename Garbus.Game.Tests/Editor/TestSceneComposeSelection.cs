@@ -1162,6 +1162,81 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        [Test]
+        public void TestFlipAroundAngleReflectsNote()
+        {
+            waitForComposer();
+            placeNoteAt(90); // North
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+            AddAssert("note selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(1));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip around angle available", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot bar to East (0°)", () => input.MoveMouseTo(positionAtAngle(0, 0.5f)));
+            AddStep("click to commit", () => input.Click(MouseButton.Left));
+
+            // Reflect 90 about pivot 0 (sum 0) → 270 (South).
+            AddAssert("note now South (270)", () => placedObject<CardinalNote>()!.AngleDeg, () => Is.EqualTo(270));
+        }
+
+        [Test]
+        public void TestFlipAroundAngleEscapeCancels()
+        {
+            waitForComposer();
+            placeNoteAt(90);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip around angle available", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot bar to East", () => input.MoveMouseTo(positionAtAngle(0, 0.5f)));
+            AddStep("press Escape", () => input.Key(Key.Escape));
+            AddStep("click where the bar was", () => input.Click(MouseButton.Left));
+
+            AddAssert("note unchanged (still 90)", () => placedObject<CardinalNote>()!.AngleDeg, () => Is.EqualTo(90));
+        }
+
+        [Test]
+        public void TestFlipAroundAngleReflectsSelectedNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider(); // head 270, node 0 at absolute 0 (offset 90)
+            selectSliderOnLine();
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("one node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip around angle available", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot bar to North (90°)", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
+            AddStep("click to commit", () => input.Click(MouseButton.Left));
+
+            // Node abs 0 reflected about pivot 90 (sum 180) → abs 180; offset from head 270 = MinimalDiff(270,180) = -90.
+            AddAssert("head unchanged", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(270));
+            AddAssert("node offset now -90", () => firstControlPoint().RotationOffset, () => Is.EqualTo(-90));
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.
