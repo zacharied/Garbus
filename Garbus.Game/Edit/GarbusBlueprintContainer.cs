@@ -35,6 +35,9 @@ public partial class GarbusBlueprintContainer : ComposeBlueprintContainer
             case CardinalNote note:
                 return new OutlineSelectionBlueprint<CardinalNote>(note);
 
+            case ShoulderHoldNote shoulderHold:
+                return new ShoulderHoldNoteSelectionBlueprint(shoulderHold);
+
             case ShoulderNote shoulder:
                 return new ShoulderNoteSelectionBlueprint(shoulder);
 

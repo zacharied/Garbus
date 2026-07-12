@@ -493,6 +493,35 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestShoulderHoldSelectableByHead()
+        {
+            // Mirrors TestHoldNoteSelectableByHead for the shoulder-lane hold variant.
+            waitForComposer();
+
+            AddStep("add shoulder hold + park clock", () =>
+            {
+                editorChart.Add(new ShoulderHoldNote { StartTime = 2000, Duration = 1000, Side = HorizontalDirection.Right });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            AddStep("click lower half of head (below start line)", () =>
+            {
+                var quad = composer.HitObjects.Single().ScreenSpaceDrawQuad;
+                // bottom edge = start time; the head sprite extends half a note below it.
+                var target = new Vector2(quad.Centre.X, quad.BottomLeft.Y + 8);
+                input.MoveMouseTo(target);
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("shoulder hold selected via head", () =>
+                editorChart.SelectedHitObjects.SingleOrDefault() is ShoulderHoldNote);
+        }
+
+        [Test]
         public void TestNoHitsoundWhileScrubbing()
         {
             // ISSUES.md: objects must not play hitsounds while the compose view is scrubbed (clock
