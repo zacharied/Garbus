@@ -14,9 +14,7 @@
 // AutoSeekOnPlacement: wired from GarbusConfigManager.EditorAutoSeekOnPlacement to the composer's
 //   HitObjectPlacementBlueprint.AutoSeekOnPlacement via GarbusHitObjectComposer.AutoSeekOnPlacement.
 
-using System;
 using osu.Framework.Allocation;
-using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
@@ -119,7 +117,7 @@ namespace Garbus.Game.Edit.Screens
                     RelativeSizeAxes = Axes.Both,
                     Height = 0.5f,
                     Text = "+",
-                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value + 1f,
+                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value + 5f,
                 },
                 new BasicButton
                 {
@@ -128,7 +126,7 @@ namespace Garbus.Game.Edit.Screens
                     RelativeSizeAxes = Axes.Both,
                     Height = 0.5f,
                     Text = "–",
-                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value - 1f,
+                    Action = () => timelineStrip.Zoom = timelineStrip.CurrentZoom.Value - 5f,
                 },
             },
         };
