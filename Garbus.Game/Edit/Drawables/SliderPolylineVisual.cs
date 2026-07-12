@@ -33,6 +33,10 @@ public partial class SliderPolylineVisual : CompositeDrawable
     private readonly SliderBody slider;
 
     private readonly List<Vector2> vertices = new List<Vector2>();
+
+    // One entry per real node (head + each control point) — where the dot markers go. Distinct from
+    // `vertices`, which is the subdivided polyline fed to the SmoothPath.
+    private readonly List<Vector2> nodePositions = new List<Vector2>();
     private readonly List<int> wrapCopies = new List<int>();
 
     // Wrap copies are pooled and reused: each copy owns a buffered SmoothPath (its own framebuffer), so
@@ -64,7 +68,9 @@ public partial class SliderPolylineVisual : CompositeDrawable
 
         float pxPerDeg = playfield.DrawWidth / EditorAngleMapping.TOTAL_DEGREES;
 
-        var newVertices = computeVertices(pxPerDeg);
+        var newVertices = new List<Vector2>();
+        var newNodes = new List<Vector2>();
+        buildGeometry(pxPerDeg, newVertices, newNodes);
         var newCopies = computeWrapCopies();
 
         if (vertexListEquals(newVertices) && wrapCopies.SequenceEqual(newCopies))
@@ -72,6 +78,8 @@ public partial class SliderPolylineVisual : CompositeDrawable
 
         vertices.Clear();
         vertices.AddRange(newVertices);
+        nodePositions.Clear();
+        nodePositions.AddRange(newNodes);
         wrapCopies.Clear();
         wrapCopies.AddRange(newCopies);
 
@@ -91,7 +99,7 @@ public partial class SliderPolylineVisual : CompositeDrawable
                 AddInternal(created);
             }
 
-            copyPool[i].SetGeometry(vertices, -wrapCopies[i] * 360 * pxPerDeg);
+            copyPool[i].SetGeometry(vertices, nodePositions, -wrapCopies[i] * 360 * pxPerDeg);
         }
 
         // hide any pooled copies not needed this frame (cheaper than removing/recreating them).
@@ -115,23 +123,23 @@ public partial class SliderPolylineVisual : CompositeDrawable
             };
         }
 
-        public void SetGeometry(IReadOnlyList<Vector2> vertices, float offsetX)
+        public void SetGeometry(IReadOnlyList<Vector2> pathVertices, IReadOnlyList<Vector2> nodePositions, float offsetX)
         {
             Alpha = 1;
             X = offsetX;
 
-            path.Vertices = vertices;
+            path.Vertices = pathVertices;
             // Path auto-sizes to its vertex bounds; undo the bounding-box offset so vertex coordinates
             // land in our local space (same idiom as the gameplay DrawableSliderBody).
             path.Position = -path.PositionInBoundingBox(Vector2.Zero);
 
-            while (markers.Count > vertices.Count)
+            while (markers.Count > nodePositions.Count)
                 markers.Remove(markers[^1], true);
-            while (markers.Count < vertices.Count)
+            while (markers.Count < nodePositions.Count)
                 markers.Add(new Circle { Size = new Vector2(10), Origin = Anchor.Centre });
 
-            for (int i = 0; i < vertices.Count; i++)
-                markers[i].Position = vertices[i];
+            for (int i = 0; i < nodePositions.Count; i++)
+                markers[i].Position = nodePositions[i];
         }
 
         public void ClearGeometry()
@@ -141,27 +149,60 @@ public partial class SliderPolylineVisual : CompositeDrawable
         }
     }
 
-    private List<Vector2> computeVertices(float pxPerDeg)
+    private void buildGeometry(float pxPerDeg, List<Vector2> polyline, List<Vector2> nodes)
     {
-        var result = new List<Vector2>();
-
         double duration = slider.Duration;
         if (duration <= 0)
-            return result;
+            return;
 
         float centreX = DrawWidth / 2;
 
-        // head at the bottom (start time), nodes rising toward the end time.
-        result.Add(new Vector2(centreX, DrawHeight));
+        var controlPoints = slider.Path.ControlPoints;
+        int count = 1 + controlPoints.Count;
 
-        foreach (var cp in slider.Path.ControlPoints)
+        // Node value = angle offset in degrees (head = 0); node time = TimeOffset (head = 0).
+        var values = new float[count];
+        var times = new double[count];
+        var linkEasing = new Easing[count - 1];
+        var linkSmooth = new bool[count - 1];
+
+        values[0] = 0f;
+        times[0] = 0.0;
+
+        for (int i = 0; i < controlPoints.Count; i++)
         {
-            result.Add(new Vector2(
-                centreX + cp.RotationOffset * pxPerDeg,
-                DrawHeight * (float)(1 - cp.TimeOffset / duration)));
+            var cp = controlPoints[i];
+
+            values[i + 1] = cp.RotationOffset;
+            times[i + 1] = cp.TimeOffset;
+
+            // A control point governs the segment leading into it: link[i] ends at node[i+1] = CP[i].
+            linkEasing[i] = cp.SweepEasing;
+            linkSmooth[i] = cp.Smooth;
         }
 
-        return result;
+        var slopes = SliderSweep.ComputeSlopes(values, times);
+
+        // Map an (angle-offset, time-offset) node/sub-point into editor space: x from angle, y from time
+        // (head at the bottom = DrawHeight, later times rising). Time stays linear (matches gameplay).
+        Vector2 toPoint(float angleOffset, double timeOffset)
+            => new Vector2(centreX + angleOffset * pxPerDeg, DrawHeight * (float)(1 - timeOffset / duration));
+
+        for (int n = 0; n < count; n++)
+            nodes.Add(toPoint(values[n], times[n]));
+
+        polyline.Add(toPoint(values[0], times[0]));
+
+        for (int link = 0; link < count - 1; link++)
+        {
+            for (int k = 1; k <= SliderSweep.SegmentsPerLink; k++)
+            {
+                float t = (float)k / SliderSweep.SegmentsPerLink;
+                float angle = SliderSweep.ValueAt(values, slopes, times, linkEasing[link], linkSmooth[link], link, t);
+                double time = times[link] + (times[link + 1] - times[link]) * t;
+                polyline.Add(toPoint(angle, time));
+            }
+        }
     }
 
     private List<int> computeWrapCopies()
