@@ -99,6 +99,11 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
         angleSnapButtons.Items[Array.IndexOf(angle_snap_options, AngleSnap.Value)].Select();
 
+        RightToolbox.Add(new EditorToolboxGroup("inspector")
+        {
+            Child = new Inspector(),
+        });
+
         PlayfieldContentContainer.Add(flipPivotOverlay = new FlipPivotOverlay(x => EditorAngleMapping.SnapX(x, AngleSnap.Value)));
     }
 

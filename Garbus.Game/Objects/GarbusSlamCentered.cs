@@ -8,5 +8,5 @@ namespace Garbus.Game.Objects;
 public class GarbusSlamCentered : GarbusHitObject, IHasMutableAngle
 {
     public required int AngleDeg { get; set; }
-    public HorizontalDirection Side { get; init; } = HorizontalDirection.Left;
+    public HorizontalDirection Side = HorizontalDirection.Left;
 }
