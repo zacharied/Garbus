@@ -1,7 +1,6 @@
 // Pure-math tests for the shared slider sweep evaluation used by both the gameplay body
 // (DrawableSliderBody) and the editor polyline (SliderPolylineVisual). Plain NUnit — no game host.
 
-using System.Collections.Generic;
 using Garbus.Game.Objects;
 using NUnit.Framework;
 using osu.Framework.Graphics;

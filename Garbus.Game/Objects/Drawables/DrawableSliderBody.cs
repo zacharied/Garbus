@@ -9,7 +9,6 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Shapes;
-using osu.Framework.Utils;
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -212,7 +211,6 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         nodeRadians = new float[count];
         nodeTimes = new double[count];
         nodeRadii = new float[count];
-        nodeThetaSlopes = new float[count];
         linkSmooth = new bool[linkCount];
         linkEasing = new Easing[linkCount];
 
