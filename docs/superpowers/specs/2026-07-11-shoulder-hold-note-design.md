@@ -45,15 +45,22 @@ changes. Type/file renames:
 | Old | New |
 | --- | --- |
 | `HoldNote` | `CardinalHoldNote` |
-| `HoldNoteHead` | `CardinalHoldNoteHead` |
-| `DrawableHoldNote` | `DrawableCardinalHoldNote` |
-| `DrawableHoldNoteHead` | `DrawableCardinalHoldNoteHead` |
 | `EditorDrawableHoldNote` | `EditorDrawableCardinalHoldNote` |
 | `HoldNotePlacementBlueprint` | `CardinalHoldNotePlacementBlueprint` |
 | `HoldNoteSelectionBlueprint` | `CardinalHoldNoteSelectionBlueprint` |
 | `HoldNoteCompositionTool` | `CardinalHoldNoteCompositionTool` |
 | `HoldNoteDto` | `CardinalHoldNoteDto` |
 | serializer discriminator `"hold"` | `"cardinal-hold"` |
+
+Three of the current concrete classes are instead **generalised into shared bases** (see "Shared hold
+bases" below), so they are not simple renames:
+
+- `HoldNoteHead` → concrete generic `HoldNoteHead<TParent>`; the cardinal head is
+  `HoldNoteHead<CardinalHoldNote>` (no `CardinalHoldNoteHead` class).
+- `DrawableHoldNoteHead` → concrete generic `DrawableHoldNoteHead<THead>`; used directly (no
+  `DrawableCardinalHoldNoteHead` class).
+- `DrawableHoldNote` → abstract base `DrawableHoldNote<THitObject, THead>` + a thin
+  `DrawableCardinalHoldNote` subclass carrying only the cardinal visuals.
 
 **Shared component exception — `HoldNoteEndDragPiece` → `HoldEndDragPiece`.** This is a generic
 draggable duration handle with no cardinal-specific behavior, and the new `ShoulderHoldNote` selection
@@ -62,9 +69,11 @@ tied to either note type.
 
 Rename touch-points (from the codebase inventory):
 
-- Objects: `Objects/HoldNote.cs`, `Objects/HoldNoteHead.cs`.
-- Drawables: `Objects/Drawables/DrawableHoldNote.cs`, `Objects/Drawables/DrawableHoldNoteHead.cs`
-  (including the nested-object `switch` in `DrawableCardinalHoldNote.CreateNestedHitObject`).
+- Objects: `Objects/HoldNote.cs` → `Objects/CardinalHoldNote.cs`; `Objects/HoldNoteHead.cs` →
+  generic `Objects/HoldNoteHead.cs` (`HoldNoteHead<TParent>`, see shared bases).
+- Drawables: `Objects/Drawables/DrawableHoldNote.cs` splits into the abstract base +
+  `Objects/Drawables/DrawableCardinalHoldNote.cs`; `Objects/Drawables/DrawableHoldNoteHead.cs` becomes
+  the generic head drawable. The nested-object plumbing moves into the base.
 - Editor: `Edit/Drawables/EditorDrawableHoldNote.cs`,
   `Edit/Blueprints/HoldNotePlacementBlueprint.cs`, `Edit/Blueprints/HoldNoteSelectionBlueprint.cs`,
   `Edit/Blueprints/Components/HoldNoteEndDragPiece.cs`.
@@ -80,6 +89,74 @@ Rename touch-points (from the codebase inventory):
   factory), `Editor/TestSceneEditorIntegration.cs`, `Editor/TestTimingSectionAdjustments.cs`.
 
 Bundled test chart is regenerated (see Part B, testing).
+
+## Shared hold bases (refactor, spans both hold types)
+
+To avoid duplicating the hold judgement/input logic across the cardinal and shoulder hold drawables,
+the current concrete `HoldNote` drawables are generalised first, then both concrete hold types plug in:
+
+### `HoldNoteHead<TParent>` (concrete generic hit object)
+
+`Objects/HoldNoteHead.cs` — replaces the old `HoldNoteHead`. A nested judgemental head that delegates
+to its parent:
+
+```
+public class HoldNoteHead<TParent> : Note, IHasAngle where TParent : Note, IHasAngle
+{
+    public readonly TParent Parent;
+    public HoldNoteHead(TParent parent) => Parent = parent;
+    public int AngleDeg => Parent.AngleDeg;
+    public override GarbusButtonInput ButtonInput => Parent.ButtonInput;
+}
+```
+
+`CardinalHoldNote.Head` is a `HoldNoteHead<CardinalHoldNote>`; `ShoulderHoldNote.Head` a
+`HoldNoteHead<ShoulderHoldNote>`. Both parents already implement `IHasAngle` (cardinal via
+`IHasMutableAngle`, shoulder via its derived `AngleDeg`). No per-type head class.
+
+### `DrawableHoldNoteHead<THead>` (concrete generic drawable)
+
+`Objects/Drawables/DrawableHoldNoteHead.cs` — the current head drawable made generic over
+`THead : Note`. Purely judgemental (`DisplayResult = false`, draws nothing, public `UpdateResult`,
+auto-miss on window elapse). Instantiated directly by the base as `new DrawableHoldNoteHead<THead>(head)`.
+
+### `DrawableHoldNote<THitObject, THead>` (abstract base drawable)
+
+`Objects/Drawables/DrawableHoldNote.cs` — `DrawableNote<THitObject>, ISelfPosition`, with
+`where THitObject : Note, IHasDuration` and `where THead : Note`. Owns everything that is not visual:
+
+- **State:** `holdPresses`, `catchRecords`/`currentCatchRecord`, `headPopPlayed`, the resolved
+  `GarbusScrollingHitObjectContainer`, and a `Container<DrawableHoldNoteHead<THead>>` with a `Head`
+  accessor.
+- **Input:** `OnPressed` (matches `HitObject.ButtonInput`, increments `holdPresses`, judges the head via
+  `Head.UpdateResult()` on the first note-lock-permitted press), `OnReleased`, `MissForcefully` no-op.
+- **Judgement:** `updateCatchRecords` over `[StartTime, EndTime]`; `CheckForResult` deferring the tail
+  until the head is judged, folding the head grade into short holds (`headCarries` via
+  `Head.HitObject.HitWindows.WindowFor(Miss)`); `resultFor` mapping caught-fraction to a graded result.
+  All copied verbatim from today's `DrawableHoldNote` — behaviour-preserving.
+- **Lifecycle:** `OnFree` reset; an `Update` loop that fires the head-pop hook once when `Head.IsHit`
+  flips, then calls `UpdateVisuals()` and `updateCatchRecords()`.
+- **Nested plumbing:** generic `CreateNestedHitObject`/`AddNestedHitObject`/`ClearNestedHitObjects`
+  around `DrawableHoldNoteHead<THead>`.
+- **Shared visual state exposed to subclasses:** protected accessors such as `Holding`
+  (`holdPresses > 0`) and `HoldActive` (`Time.Current` within `[StartTime, EndTime]`) for the
+  drop-greying, plus `Judged`.
+
+**Abstract / virtual hooks subclasses implement:**
+
+- `protected abstract void UpdateVisuals();` — position/build the head and body for the frame.
+- `protected virtual void OnHeadHit() { }` — the head-hit pop (cardinal pops the head sprite; shoulder
+  may pop its squares).
+- `UpdateHitStateTransforms(ArmedState)` — per-type hit/miss transforms (already virtual).
+
+Subclasses add their own visual children in the ctor / BDL.
+
+### `DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNote, HoldNoteHead<CardinalHoldNote>>`
+
+`Objects/Drawables/DrawableCardinalHoldNote.cs` — the cardinal visuals only: the square `headSprite`
+and the `SmoothPath` trailing radial line, `UpdateVisuals` positioning both in polar space (today's
+`updateVisuals`), `OnHeadHit` popping the sprite, and the sprite/line hit/miss transforms. All the
+judgement/input code that used to live here now comes from the base.
 
 ## Part B — Add `ShoulderHoldNote`
 
@@ -98,33 +175,20 @@ public class ShoulderHoldNote : Note, IHasCardinalDirection, IHasAngle, IHasDura
     public override GarbusButtonInput ButtonInput => Side switch { Left => ButtonL, Right => ButtonR };
     public CardinalDirection Direction => Side == Left ? West : East;
 
-    public ShoulderHoldNoteHead Head { get; private set; }
-    protected override void CreateNestedHitObjects(...) => AddNested(Head = new ShoulderHoldNoteHead(this) { StartTime = StartTime });
+    public HoldNoteHead<ShoulderHoldNote> Head { get; private set; }
+    protected override void CreateNestedHitObjects(...) => AddNested(Head = new HoldNoteHead<ShoulderHoldNote>(this) { StartTime = StartTime });
 }
 ```
 
-This is `ShoulderNote`'s side-derived members + `CardinalHoldNote`'s duration + nested head. It does
-**not** implement `IHasMutableAngle` (the angle follows `Side`).
-
-### Object: `ShoulderHoldNoteHead`
-
-`Objects/ShoulderHoldNoteHead.cs` — mirrors `CardinalHoldNoteHead`: `: Note, IHasAngle`, holds a
-`readonly ShoulderHoldNote Parent`, delegates `AngleDeg => Parent.AngleDeg` and
-`ButtonInput => Parent.ButtonInput`.
+This is `ShoulderNote`'s side-derived members + `CardinalHoldNote`'s duration + the shared nested head.
+It does **not** implement `IHasMutableAngle` (the angle follows `Side`).
 
 ### Gameplay drawable: `DrawableShoulderHoldNote`
 
 `Objects/Drawables/DrawableShoulderHoldNote.cs` —
-`DrawableNote<ShoulderHoldNote>, ISelfPosition`. It combines the shoulder-note head visual with the
-cardinal-hold judgement.
-
-**Judgement (copied from `DrawableCardinalHoldNote`, unchanged in substance):** nested
-`DrawableShoulderHoldNoteHead` judged on press via `Head.UpdateResult()`; `holdPresses` count via
-`OnPressed`/`OnReleased`; `catchRecords` accumulate held time over `[StartTime, EndTime]`;
-`CheckForResult` defers the tail until the head is judged and folds the head grade into short holds;
-`MissForcefully` is a no-op. This logic is duplicated (the two hold drawables do not share a base beyond
-`DrawableNote<T>`), matching the existing mirror-not-inherit pattern; the only differences are the
-visual pieces and the button-match (which comes from `HitObject.ButtonInput`, so identical code).
+`DrawableHoldNote<ShoulderHoldNote, HoldNoteHead<ShoulderHoldNote>>` (the shared base). All hold
+judgement/input comes from the base; this subclass supplies only the visuals via `UpdateVisuals`,
+`OnHeadHit`, and `UpdateHitStateTransforms`.
 
 **Visual — head** = two purple `"square"` sprites + a growing `Arc`, positioned each frame with
 `ShoulderNoteGeometry.SquarePosition(AngleDeg, headRadius, ±1)` and arc radians `AngleDeg ± 45°`, where
@@ -147,22 +211,20 @@ fraction giving the hole):
   screen-y down. A geometry helper computes the rotation from `AngleDeg`; a headless test pins that a
   right note's wedge is centred on the east screen direction and a left note's on the west, spanning
   ±45°.
-- Alpha ~0.35 (transparent), colour purple. Greys toward the dropped colour while the hold is active
-  but not held, matching `DrawableCardinalHoldNote`'s trail behaviour.
+- Alpha ~0.35 (transparent), colour purple. Greys toward the dropped colour while the base reports the
+  hold active but not held (`HoldActive && !Holding`), matching `DrawableCardinalHoldNote`'s trail.
 - Hidden (`Progress`/size collapse or `InnerRadius → 1`) once the tail reaches the ring (fully
   consumed), and near spawn.
 
-**Animations** mirror the shoulder note / cardinal hold: spawn pop (scale 0→1, 125 ms), hit (fade + scale
-up, expire), miss (fade to red, expire), applied to head + trail as a unit.
+All of this lives in the subclass's `UpdateVisuals` (head squares + arc + sector), reading the base's
+`Holding`/`HoldActive`/`Judged` accessors for the drop-greying.
 
-**Nested-object plumbing** (`CreateNestedHitObject`/`AddNestedHitObject`/`ClearNestedHitObjects`) mirrors
-`DrawableCardinalHoldNote`, creating `DrawableShoulderHoldNoteHead` from `ShoulderHoldNoteHead`.
+**Animations** mirror the shoulder note / cardinal hold: spawn pop (scale 0→1, 125 ms via `PrepareForUse`),
+hit (fade + scale up, expire), miss (fade to red, expire) in `UpdateHitStateTransforms`, applied to head +
+trail as a unit.
 
-### Gameplay drawable: `DrawableShoulderHoldNoteHead`
-
-`Objects/Drawables/DrawableShoulderHoldNoteHead.cs` — a straight copy of
-`DrawableCardinalHoldNoteHead` retyped to `ShoulderHoldNoteHead` (purely judgemental, draws nothing,
-auto-miss on window elapse, public `UpdateResult`).
+**Nested head** is the shared `DrawableHoldNoteHead<HoldNoteHead<ShoulderHoldNote>>`, created by the base's
+generic plumbing — no per-type head drawable.
 
 ### Editor drawable: `EditorDrawableShoulderHoldNote`
 
@@ -241,7 +303,8 @@ than edited: `Edit/Screens/Timing/TimingSectionAdjustments.cs` (scales `Duration
 
 - No change to judgement timing, hit windows, input mapping, or the cardinal-hold behaviour (the rename
   is behaviour-preserving).
-- No new base class factored between the two hold drawables — they mirror, matching the existing
-  cardinal/shoulder drawable split. (`ShoulderNoteGeometry` and `HoldEndDragPiece` are the only shared
-  helpers.)
+- The shared hold bases (`DrawableHoldNote<,>`, `DrawableHoldNoteHead<>`, `HoldNoteHead<>`) are the only
+  new abstraction; the two hold **hit objects** (`CardinalHoldNote`/`ShoulderHoldNote`) stay separate
+  because they differ in angle mutability. `ShoulderNoteGeometry` and `HoldEndDragPiece` remain shared
+  helpers.
 - No warning-indicator / catcher interaction for shoulder holds.
