@@ -324,8 +324,9 @@ namespace Garbus.Game.Edit
         private static string readableTypeName(GarbusHitObject h) => h switch
         {
             CardinalNote => "Cardinal note",
-            HoldNote => "Hold note",
+            CardinalHoldNote => "Cardinal hold note",
             ShoulderNote => "Shoulder note",
+            ShoulderHoldNote => "Shoulder hold note",
             SliderBody => "Slider",
             GarbusSlamCentered => "Slam (centered)",
             GarbusSlamEdge => "Slam (edge)",
