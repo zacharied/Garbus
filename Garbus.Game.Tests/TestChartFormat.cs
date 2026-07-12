@@ -3,10 +3,12 @@
 // no game host required.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Format;
+using Garbus.Game.Core;
 using Garbus.Game.Objects;
 using Garbus.Resources;
 using NUnit.Framework;
@@ -98,6 +100,25 @@ namespace Garbus.Game.Tests
             Assert.That(decoded.PreviewTime, Is.EqualTo(12345.0));
         }
 
+        [Test]
+        public void ShoulderHoldNoteRoundtrips()
+        {
+            var chart = new GarbusChart
+            {
+                HitObjects = new List<GarbusHitObject>
+                {
+                    new ShoulderHoldNote { StartTime = 1000, Duration = 750, Side = HorizontalDirection.Right },
+                },
+            };
+
+            var decoded = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(chart));
+
+            var hold = (ShoulderHoldNote)decoded.HitObjects.Single();
+            Assert.That(hold.StartTime, Is.EqualTo(1000));
+            Assert.That(hold.Duration, Is.EqualTo(750));
+            Assert.That(hold.Side, Is.EqualTo(HorizontalDirection.Right));
+        }
+
         private static void assertChartsEqual(GarbusChart expected, GarbusChart actual)
         {
             Assert.Multiple(() =>
@@ -144,6 +165,12 @@ namespace Garbus.Game.Tests
 
                 case ShoulderNote e:
                     Assert.That(((ShoulderNote)actual).Side, Is.EqualTo(e.Side));
+                    break;
+
+                case ShoulderHoldNote e:
+                    var actualShoulderHold = (ShoulderHoldNote)actual;
+                    Assert.That(actualShoulderHold.Side, Is.EqualTo(e.Side));
+                    Assert.That(actualShoulderHold.Duration, Is.EqualTo(e.Duration));
                     break;
 
                 case SliderBody e:

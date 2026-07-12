@@ -54,6 +54,7 @@ public class TimingPointDto
 [JsonDerivedType(typeof(CardinalNoteDto), "cardinal")]
 [JsonDerivedType(typeof(CardinalHoldNoteDto), "cardinal-hold")]
 [JsonDerivedType(typeof(ShoulderNoteDto), "shoulder")]
+[JsonDerivedType(typeof(ShoulderHoldNoteDto), "shoulder-hold")]
 [JsonDerivedType(typeof(SliderBodyDto), "slider")]
 [JsonDerivedType(typeof(SlamCenteredDto), "slamCentered")]
 [JsonDerivedType(typeof(SlamEdgeDto), "slamEdge")]
@@ -76,6 +77,12 @@ public class CardinalHoldNoteDto : HitObjectDto
 public class ShoulderNoteDto : HitObjectDto
 {
     public string Side { get; set; } = string.Empty;
+}
+
+public class ShoulderHoldNoteDto : HitObjectDto
+{
+    public string Side { get; set; } = string.Empty;
+    public double Duration { get; set; }
 }
 
 public class SliderBodyDto : HitObjectDto
