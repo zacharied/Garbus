@@ -12,6 +12,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Core;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Drawables;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
@@ -118,6 +119,25 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestShoulderStripsSitOnWestEastLanes()
+        {
+            waitForComposer();
+            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(180)));
+            AddStep("click", () => input.Click(MouseButton.Left));
+            AddAssert("left shoulder placed", () => placedObject<ShoulderNote>()?.Side == HorizontalDirection.Left);
+            AddAssert("left shoulder drawn on West lane", () =>
+                System.Math.Abs(shoulderDrawableXFraction(HorizontalDirection.Left) - EditorAngleMapping.ToX(180)) < 0.005f);
+
+            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("move near right strip", () => input.MoveMouseTo(positionAtAngle(0)));
+            AddStep("click", () => input.Click(MouseButton.Left));
+            AddAssert("right shoulder placed", () => placedObject<ShoulderNote>(1)?.Side == HorizontalDirection.Right);
+            AddAssert("right shoulder drawn on East lane", () =>
+                System.Math.Abs(shoulderDrawableXFraction(HorizontalDirection.Right) - EditorAngleMapping.ToX(0)) < 0.005f);
+        }
+
+        [Test]
         public void TestPlaceShoulderHoldWithDrag()
         {
             waitForComposer();
@@ -190,6 +210,13 @@ namespace Garbus.Game.Tests.Editor
         // ------------------------------------------------------------------
 
         private T? placedObject<T>() where T : GarbusHitObject => editorChart.HitObjects.OfType<T>().FirstOrDefault();
+
+        private T? placedObject<T>(int index) where T : GarbusHitObject => editorChart.HitObjects.OfType<T>().ElementAtOrDefault(index);
+
+        /// <summary>The rendered x-fraction (<see cref="Drawable.X"/>, relative-positioned) of the placed
+        /// shoulder note's editor drawable for the given side.</summary>
+        private float shoulderDrawableXFraction(HorizontalDirection side) =>
+            playfield.ChildrenOfType<EditorDrawableShoulderNote>().First(d => d.HitObject.Side == side).X;
 
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
