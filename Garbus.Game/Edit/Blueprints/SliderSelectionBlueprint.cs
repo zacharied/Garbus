@@ -110,24 +110,12 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         var controlPoints = HitObject.Path.ControlPoints;
 
-        while (nodeHandles.Count > controlPoints.Count)
-            nodeHandles.Remove(nodeHandles[^1], true);
-
-        while (nodeHandles.Count < controlPoints.Count)
-        {
-            int index = nodeHandles.Count;
-            nodeHandles.Add(new NodeDragPiece
-            {
-                SelectRequested = ctrl => selectNode(index, ctrl),
-                DragStarted = () => changeHandler?.BeginChange(),
-                Dragging = pos => dragNode(index, pos),
-                DragEnded = () => changeHandler?.EndChange(),
-            });
-        }
-
         double duration = HitObject.Duration;
         if (duration <= 0)
         {
+            while (nodeHandles.Count > 0)
+                nodeHandles.Remove(nodeHandles[^1], true);
+
             clearOutline();
             return;
         }
@@ -135,19 +123,52 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         float pxPerDeg = HitObjectContainer.DrawWidth / EditorAngleMapping.TOTAL_DEGREES;
         float bodyGridDeg = EditorAngleMapping.ToGridDegrees(HitObject.AngleDeg);
 
+        int minOffset = 0, maxOffset = 0;
+        foreach (var cp in controlPoints)
+        {
+            minOffset = Math.Min(minOffset, cp.RotationOffset);
+            maxOffset = Math.Max(maxOffset, cp.RotationOffset);
+        }
+
+        // Wrap copies match the outline's — one handle per (node × visible wrap copy) so every ghost band
+        // clone of a node is independently clickable, not just whichever copy lands in the main grid.
+        wrapCopiesBuffer.Clear();
+        foreach (int k in EditorAngleMapping.VisibleWrapCopies(bodyGridDeg + minOffset, bodyGridDeg + maxOffset))
+            wrapCopiesBuffer.Add(k);
+
+        int handlesNeeded = controlPoints.Count * wrapCopiesBuffer.Count;
+
+        while (nodeHandles.Count > handlesNeeded)
+            nodeHandles.Remove(nodeHandles[^1], true);
+
+        while (nodeHandles.Count < handlesNeeded)
+        {
+            nodeHandles.Add(new NodeDragPiece
+            {
+                SelectRequested = (index, ctrl) => selectNode(index, ctrl),
+                DragStarted = () => changeHandler?.BeginChange(),
+                Dragging = (index, pos) => dragNode(index, pos),
+                DragEnded = () => changeHandler?.EndChange(),
+            });
+        }
+
+        int slot = 0;
         for (int i = 0; i < controlPoints.Count; i++)
         {
             var cp = controlPoints[i];
+            float y = DrawHeight * (float)(1 - cp.TimeOffset / duration);
+            bool selected = selectedNodes.Contains(cp);
 
-            // one handle per node, at the node's WRAPPED (on-grid) position — the polyline may draw the
-            // node again in a ghost band via a wrap copy, but only this handle is interactable.
-            float nodeGridDeg = EditorAngleMapping.ToGridDegrees(HitObject.AngleDeg + cp.RotationOffset);
-
-            nodeHandles[i].Position = new Vector2(
-                DrawWidth / 2 + (nodeGridDeg - bodyGridDeg) * pxPerDeg,
-                DrawHeight * (float)(1 - cp.TimeOffset / duration));
-
-            nodeHandles[i].NodeSelected = selectedNodes.Contains(cp);
+            foreach (int k in wrapCopiesBuffer)
+            {
+                var handle = nodeHandles[slot++];
+                handle.CpIndex = i;
+                handle.WrapK = k;
+                handle.Position = new Vector2(
+                    DrawWidth / 2 + (cp.RotationOffset - k * 360) * pxPerDeg,
+                    y);
+                handle.NodeSelected = selected;
+            }
         }
 
         // Drop references orphaned by undo/redo restoring a fresh control-point list.
@@ -155,6 +176,8 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         updateOutline(pxPerDeg, bodyGridDeg, duration);
     }
+
+    private readonly List<int> wrapCopiesBuffer = new List<int>();
 
     /// <summary>
     /// Rebuilds the outline polyline to match the drawn slider exactly: raw (unwrapped)
@@ -454,12 +477,14 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     public override bool HandleQuickDeletion()
     {
         // Shift+RightClick over a node handle deletes just that node; over the line, fall through (return
-        // false) so SelectionHandler removes the whole slider.
-        for (int i = 0; i < nodeHandles.Count && i < HitObject.Path.ControlPoints.Count; i++)
+        // false) so SelectionHandler removes the whole slider. Any wrap-copy handle for a node counts.
+        var controlPoints = HitObject.Path.ControlPoints;
+
+        foreach (var handle in nodeHandles)
         {
-            if (nodeHandles[i].IsHovered)
+            if (handle.IsHovered && handle.CpIndex < controlPoints.Count)
             {
-                removeNodes(new List<GarbusPathControlPoint> { HitObject.Path.ControlPoints[i] });
+                removeNodes(new List<GarbusPathControlPoint> { controlPoints[handle.CpIndex] });
                 return true;
             }
         }
@@ -474,8 +499,31 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     public override Vector2 ScreenSpaceSelectionPoint => head.ScreenSpaceDrawQuad.Centre;
 
-    /// <summary>Screen-space centre of the final (latest-time) node handle; the head when there are none.</summary>
-    public Vector2 FinalNodeScreenPosition => nodeHandles.Count > 0
-        ? nodeHandles[^1].ScreenSpaceDrawQuad.Centre
-        : head.ScreenSpaceDrawQuad.Centre;
+    /// <summary>Screen-space centre of the final (latest-time) node handle's primary (raw) copy;
+    /// the head when there are no nodes, or the first available handle if the primary isn't visible.</summary>
+    public Vector2 FinalNodeScreenPosition
+    {
+        get
+        {
+            var controlPoints = HitObject.Path.ControlPoints;
+            if (controlPoints.Count == 0)
+                return head.ScreenSpaceDrawQuad.Centre;
+
+            int finalIndex = controlPoints.Count - 1;
+            NodeDragPiece? chosen = null;
+
+            foreach (var handle in nodeHandles)
+            {
+                if (handle.CpIndex != finalIndex)
+                    continue;
+
+                if (handle.WrapK == 0)
+                    return handle.ScreenSpaceDrawQuad.Centre;
+
+                chosen ??= handle;
+            }
+
+            return chosen?.ScreenSpaceDrawQuad.Centre ?? head.ScreenSpaceDrawQuad.Centre;
+        }
+    }
 }

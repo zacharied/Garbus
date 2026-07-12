@@ -413,7 +413,9 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("press mouse on node handle", () =>
             {
-                var handle = composer.ChildrenOfType<NodeDragPiece>().Single();
+                // A slider wrapped past 360° has multiple visible wrap-copy handles per node — grab the
+                // primary (raw) one to drag.
+                var handle = composer.ChildrenOfType<NodeDragPiece>().First(h => h.WrapK == 0);
                 input.MoveMouseTo(handle);
                 input.PressButton(MouseButton.Left);
             });
@@ -632,11 +634,15 @@ namespace Garbus.Game.Tests.Editor
             settleWith(() => placedObject<SliderBody>()!.StartTime);
         }
 
-        /// <summary>Screen centre of the node handle at control-point index <paramref name="i"/>.</summary>
+        /// <summary>Screen centre of the node handle for control-point index <paramref name="i"/> that
+        /// currently sits inside the main grid — the one users visibly click. Wound sliders (offset ≥ 360°)
+        /// draw their raw copy off-screen; the on-grid wrap copy is what actually renders in the playfield.</summary>
         private Vector2 nodeHandleScreen(int i)
         {
-            var handles = composer.ChildrenOfType<NodeDragPiece>().ToList();
-            return handles[i].ScreenSpaceDrawQuad.Centre;
+            var playfieldQuad = playfield.ScreenSpaceDrawQuad;
+            var candidates = composer.ChildrenOfType<NodeDragPiece>().Where(h => h.CpIndex == i).ToList();
+            var onGrid = candidates.FirstOrDefault(h => playfieldQuad.Contains(h.ScreenSpaceDrawQuad.Centre));
+            return (onGrid ?? candidates[0]).ScreenSpaceDrawQuad.Centre;
         }
 
         private SliderSelectionBlueprint sliderBlueprint() => composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
@@ -707,6 +713,56 @@ namespace Garbus.Game.Tests.Editor
             });
             AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
             AddAssert("that node selected", () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(firstControlPoint()));
+        }
+
+        [Test]
+        public void TestClickingGhostBandCloneOfNodeSelectsIt()
+        {
+            // Regression: when a slider crosses the seam, its outline draws once per visible wrap copy
+            // (raw + ghost-band clones). Historically only ONE of those copies got a NodeDragPiece —
+            // whichever landed in the main grid — so clicking a visible clone on the far seam did
+            // nothing. Every visible wrap copy must now be independently clickable.
+            waitForComposer();
+
+            // Head near the left seam (grid 20°, absolute 155°) with a node RotationOffset of −50° puts the
+            // node's raw copy in the left ghost band and its k=+1 clone deep into the right main-grid area.
+            AddStep("add seam-crossing slider + park clock", () =>
+            {
+                var path = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = -50 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 155, // grid 20
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            AddStep("select slider via head", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddAssert("multiple wrap-copy handles exist", () =>
+                composer.ChildrenOfType<NodeDragPiece>().Count(h => h.CpIndex == 0), () => Is.GreaterThan(1));
+
+            AddStep("click a non-primary wrap copy of the node", () =>
+            {
+                var clone = composer.ChildrenOfType<NodeDragPiece>().First(h => h.CpIndex == 0 && h.WrapK != 0);
+                input.MoveMouseTo(clone.ScreenSpaceDrawQuad.Centre);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("that node is selected via the clone", () =>
+                sliderBlueprint().SelectedNodes.SingleOrDefault(), () => Is.SameAs(firstControlPoint()));
         }
 
         [Test]

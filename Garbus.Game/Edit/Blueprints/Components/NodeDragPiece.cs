@@ -16,11 +16,17 @@ namespace Garbus.Game.Edit.Blueprints.Components;
 internal partial class NodeDragPiece : CompositeDrawable
 {
     public Action? DragStarted { get; init; }
-    public Action<Vector2>? Dragging { get; init; }
+    public Action<int, Vector2>? Dragging { get; init; }
     public Action? DragEnded { get; init; }
 
-    /// <summary>Invoked on left mouse-down with the Ctrl-pressed flag so the blueprint can update node selection.</summary>
-    public Action<bool>? SelectRequested { get; init; }
+    /// <summary>Invoked on left mouse-down with (control-point index, Ctrl-pressed) so the blueprint can update node selection.</summary>
+    public Action<int, bool>? SelectRequested { get; init; }
+
+    /// <summary>Index of the control point this handle stands over — reassigned every frame as the path changes.</summary>
+    public int CpIndex { get; set; }
+
+    /// <summary>The wrap-copy this handle stands on (0 = raw/primary outline copy, non-zero = a ghost-band clone).</summary>
+    public int WrapK { get; set; }
 
     private readonly Box fill;
 
@@ -67,7 +73,7 @@ internal partial class NodeDragPiece : CompositeDrawable
         // Select on the press so a plain click and a drag both start from this node being selected.
         // Returning true stops BlueprintContainer.performMouseDownActions from re-selecting / cycling the
         // whole slider; the slider is already selected (handles only receive input while it is).
-        SelectRequested?.Invoke(e.ControlPressed);
+        SelectRequested?.Invoke(CpIndex, e.ControlPressed);
         return true;
     }
 
@@ -80,7 +86,7 @@ internal partial class NodeDragPiece : CompositeDrawable
     protected override void OnDrag(DragEvent e)
     {
         base.OnDrag(e);
-        Dragging?.Invoke(e.ScreenSpaceMousePosition);
+        Dragging?.Invoke(CpIndex, e.ScreenSpaceMousePosition);
     }
 
     protected override void OnDragEnd(DragEndEvent e)
