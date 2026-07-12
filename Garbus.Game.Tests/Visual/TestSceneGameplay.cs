@@ -184,6 +184,31 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestShoulderHoldSectorTrailsDuringApproach()
+        {
+            // The shoulder hold at 13000ms (1000ms) must show its transparent sector trailing inward
+            // toward the centre while the head is still approaching the ring — exactly like the cardinal
+            // hold body. CircularProgress renders nothing when InnerRadius == 0, so the fill fraction must
+            // be 1 - inner/outer (not inner/outer); an inverted value leaves the sector invisible until
+            // the ring, then grows it out of the head toward centre.
+            playThrough(12800); // StartTime 13000 → head still ~200ms out from the ring
+            AddAssert("sector visible mid-approach", () =>
+            {
+                var sector = shoulderHold()!.ChildrenOfType<osu.Framework.Graphics.UserInterface.CircularProgress>().Single();
+                return sector.InnerRadius > 0f;
+            });
+
+            // Partway through the hold the fill must span [tail, head]: the hole radius = (1-InnerRadius)*outer
+            // equals the tail distance, so InnerRadius sits well above 0.5 here (the inverted value would be < 0.5).
+            playThrough(13500);
+            AddAssert("fill spans tail→head, not a thin edge band", () =>
+            {
+                var sector = shoulderHold()!.ChildrenOfType<osu.Framework.Graphics.UserInterface.CircularProgress>().Single();
+                return sector.InnerRadius > 0.5f;
+            });
+        }
+
+        [Test]
         public void TestShoulderHoldHeldByButtonPress()
         {
             // Right shoulder hold at 13000ms, 1000ms long. Joystick6 maps to ButtonR.

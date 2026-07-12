@@ -100,9 +100,14 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
         arc.EndRadians.Value = ShoulderNoteGeometry.ToRadians(baseAngleDeg + ShoulderNoteGeometry.DiagonalOffsetDeg);
 
         // Body: the transparent sector fills the annulus [inner, outer] over the 90° slice.
+        // CircularProgress.InnerRadius is the fill *thickness* measured inward from the outer edge
+        // (0 = invisible, 1 = filled to the centre) — NOT the hole radius. The unfilled hole then has
+        // radius (1 - InnerRadius)·outer, which we want to equal the tail distance `inner`; hence the
+        // fill fraction is 1 - inner/outer. Using inner/outer directly inverts it, leaving the sector
+        // invisible while the tail sits at the centre during the approach (inner == 0 ⇒ InnerRadius 0).
         sector.Size = new Vector2(2f * outer);
         sector.Rotation = ShoulderNoteGeometry.SectorRotationDeg(baseAngleDeg);
-        sector.InnerRadius = outer > 0f ? inner / outer : 0f;
+        sector.InnerRadius = outer > 0f ? 1f - inner / outer : 0f;
 
         if (!Judged)
         {
