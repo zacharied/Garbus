@@ -8,6 +8,6 @@ namespace Garbus.Game.Objects;
 public class GarbusSlamEdge : GarbusHitObject, IHasMutableAngle
 {
     public required int AngleDeg { get; set; }
-    public HorizontalDirection Side;
+    public HorizontalDirection Side = HorizontalDirection.Left;
     public RotationalDirection Direction = RotationalDirection.Clockwise;
 }
