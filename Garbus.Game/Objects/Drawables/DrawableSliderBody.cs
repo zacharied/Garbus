@@ -61,7 +61,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// Because interpolation happens in polar space, a link whose endpoints share a radius renders as
     /// an arc rather than a chord; more sub-segments make that arc smoother.
     /// </summary>
-    private const int segments_per_link = 12;
+    // Straight sub-segments per link — shared with the editor polyline via SliderSweep.
+    private const int segments_per_link = SliderSweep.SegmentsPerLink;
 
     // The stick-catcher arc sits this far outside the ring (mirrors StickIndicator.RadiusScale). The
     // body is allowed to draw out to here so it can be seen escaping past / being consumed at the edge.
@@ -231,16 +232,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             linkEasing[i] = controlPoint.SweepEasing;
         }
 
-        // Catmull-Rom tangents: centred difference of angle over time for interior nodes, one-sided at
-        // the ends (the Min/Max clamps collapse the difference to the single available neighbour).
-        for (int n = 0; n < count; n++)
-        {
-            int lo = Math.Max(0, n - 1);
-            int hi = Math.Min(count - 1, n + 1);
-            double dt = nodeTimes[hi] - nodeTimes[lo];
-
-            nodeThetaSlopes[n] = dt > 0 ? (float)((nodeRadians[hi] - nodeRadians[lo]) / dt) : 0f;
-        }
+        // Catmull-Rom tangents for the smoothed-angle Hermite interpolation (shared with the editor).
+        nodeThetaSlopes = SliderSweep.ComputeSlopes(nodeRadians, nodeTimes);
     }
 
     /// <summary>
@@ -546,35 +539,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// tangents at the two surrounding nodes.
     /// </summary>
     private float thetaAt(int link, float t)
-    {
-        // Ease the angle's progress only (never the radius), so the sweep feel changes but timing does
-        // not. Endpoints are preserved (ease(0) = 0, ease(1) = 1), so node angles/times stay exact.
-        if (linkEasing[link] != Easing.None)
-            t = (float)Interpolation.ApplyEasing(linkEasing[link], t);
-
-        float theta0 = nodeRadians[link];
-        float theta1 = nodeRadians[link + 1];
-
-        // Linear by default — preserves the link's exact authored geometry. Only opted-in links smooth.
-        if (!linkSmooth[link])
-            return lerp(theta0, theta1, t);
-
-        // Tangents are dθ/dtime; scale by the link duration to express them per unit of t.
-        float h = (float)(nodeTimes[link + 1] - nodeTimes[link]);
-        float m0 = nodeThetaSlopes[link] * h;
-        float m1 = nodeThetaSlopes[link + 1] * h;
-
-        float t2 = t * t;
-        float t3 = t2 * t;
-
-        // Cubic Hermite basis functions.
-        float h00 = 2f * t3 - 3f * t2 + 1f;
-        float h10 = t3 - 2f * t2 + t;
-        float h01 = -2f * t3 + 3f * t2;
-        float h11 = t3 - t2;
-
-        return h00 * theta0 + h10 * m0 + h01 * theta1 + h11 * m1;
-    }
+        => SliderSweep.ValueAt(nodeRadians, nodeThetaSlopes, nodeTimes, linkEasing[link], linkSmooth[link], link, t);
 
     private static float toRadians(float degrees) => degrees * MathF.PI / 180f;
 
