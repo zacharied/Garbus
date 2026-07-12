@@ -45,18 +45,9 @@ namespace Garbus.Game.Input
             new KeyBinding(InputKey.JoystickHat1Left, GarbusAction.ButtonW1),
             new KeyBinding(InputKey.Joystick1, GarbusAction.ButtonW2),
 
-            // Keyboard — new for Garbus so gameplay is testable without a controller. Arrow keys mirror
-            // the d-pad, IJKL mirror the face buttons (same screen-position layout), Q/E the shoulders.
-            new KeyBinding(InputKey.Up, GarbusAction.ButtonN1),
-            new KeyBinding(InputKey.I, GarbusAction.ButtonN2),
-            new KeyBinding(InputKey.Right, GarbusAction.ButtonE1),
-            new KeyBinding(InputKey.L, GarbusAction.ButtonE2),
-            new KeyBinding(InputKey.Down, GarbusAction.ButtonS1),
-            new KeyBinding(InputKey.K, GarbusAction.ButtonS2),
-            new KeyBinding(InputKey.Left, GarbusAction.ButtonW1),
-            new KeyBinding(InputKey.J, GarbusAction.ButtonW2),
-            new KeyBinding(InputKey.Q, GarbusAction.ButtonL),
-            new KeyBinding(InputKey.E, GarbusAction.ButtonR),
+            // Left and right shoulder buttons
+            new KeyBinding(InputKey.Joystick5, GarbusAction.ButtonL),
+            new KeyBinding(InputKey.Joystick6, GarbusAction.ButtonR),
         };
     }
 }
