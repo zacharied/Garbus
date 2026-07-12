@@ -121,16 +121,6 @@ namespace Garbus.Game.Edit.Compose
                 EditorChart.Update(blueprint.Item);
         }
 
-        protected override bool OnDoubleClick(DoubleClickEvent e)
-        {
-            if (!base.OnDoubleClick(e))
-                return false;
-
-            if (ClickedBlueprint != null)
-                EditorClock.SeekSmoothlyTo(ClickedBlueprint.Item.StartTime);
-            return true;
-        }
-
         protected override SelectionBlueprintContainer CreateSelectionBlueprintContainer() => new HitObjectOrderedSelectionContainer { RelativeSizeAxes = Axes.Both };
 
         protected override SelectionHandler<GarbusHitObject> CreateSelectionHandler() => new EditorSelectionHandler();
