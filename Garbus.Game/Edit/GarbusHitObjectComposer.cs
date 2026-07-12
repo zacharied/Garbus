@@ -61,6 +61,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
         SliderBody slider => new EditorDrawableSliderBody(slider),
         CardinalHoldNote hold => new EditorDrawableCardinalHoldNote(hold),
         CardinalNote note => new EditorDrawableCardinalNote(note),
+        ShoulderHoldNote shoulderHold => new EditorDrawableShoulderHoldNote(shoulderHold),
         ShoulderNote shoulder => new EditorDrawableShoulderNote(shoulder),
         GarbusSlamCentered slam => new EditorDrawableGarbusSlamCentered(slam),
         GarbusSlamEdge slam => new EditorDrawableGarbusSlamEdge(slam),

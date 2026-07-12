@@ -127,6 +127,7 @@ namespace Garbus.Game.Tests.Editor
                     CardinalNote cn => new EditorDrawableCardinalNote(cn),
                     CardinalHoldNote hn => new EditorDrawableCardinalHoldNote(hn),
                     ShoulderNote sn => new EditorDrawableShoulderNote(sn),
+                    ShoulderHoldNote shn => new EditorDrawableShoulderHoldNote(shn),
                     GarbusSlamCentered sc => new EditorDrawableGarbusSlamCentered(sc),
                     GarbusSlamEdge se => new EditorDrawableGarbusSlamEdge(se),
                     SliderBody sb => new EditorDrawableSliderBody(sb),
