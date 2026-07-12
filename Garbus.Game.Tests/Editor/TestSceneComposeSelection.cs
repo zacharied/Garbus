@@ -1608,6 +1608,36 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("grid label at centre reads N", () => centreCardinalLabel() == "N");
         }
 
+        [Test]
+        public void TestSlamEdgeArrowFlipsWithViewDirection()
+        {
+            // The edge-slam arrow points sideways along the timeline in its rotational sense. Because the
+            // reversed view reflects the angle axis (CCW↔CW), the arrow must flip horizontally too —
+            // otherwise a clockwise slam still visually points the CCW way under the CW view.
+            waitForComposer();
+            placeSlamEdgeAt(45);
+
+            AddAssert("placed clockwise", () => placedObject<GarbusSlamEdge>()!.Direction,
+                () => Is.EqualTo(RotationalDirection.Clockwise));
+
+            // Normal (CCW) view: a clockwise slam points left (Rotation -90).
+            AddUntilStep("arrow points left (normal)", () =>
+                slamArrowRotation() is float r && Precision.AlmostEquals(r, -90, 0.1f));
+
+            AddStep("reverse the view (CW)", () => composer.ReverseAngleView.Value = true);
+
+            // Reversed view reflects the axis: the same clockwise slam now points right (Rotation +90).
+            AddUntilStep("arrow points right (reversed)", () =>
+                slamArrowRotation() is float r && Precision.AlmostEquals(r, 90, 0.1f));
+        }
+
+        /// <summary>The live <c>Rotation</c> of the edge-slam arrow sprite, or <c>null</c> if none placed.</summary>
+        private float? slamArrowRotation() => composer.HitObjects
+            .OfType<EditorDrawableGarbusSlamEdge>()
+            .FirstOrDefault()?
+            .ChildrenOfType<EditorSpritePiece>()
+            .FirstOrDefault()?.Rotation;
+
         /// <summary>
         /// The <c>Text</c> of the single-letter cardinal <see cref="SpriteText"/> the AngleGrid draws
         /// nearest the playfield's horizontal centre (x ≈ 0.5), or <c>null</c> if none is close enough.

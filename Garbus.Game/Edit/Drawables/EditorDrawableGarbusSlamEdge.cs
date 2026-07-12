@@ -11,8 +11,10 @@ namespace Garbus.Game.Edit.Drawables;
 
 /// <summary>
 /// An edge slam on the editor timeline: the arrow sprite pointed sideways. On the unrolled axis, angle
-/// increases (counter-clockwise) to the right, so a clockwise slam points left and an anticlockwise slam
-/// points right. Rotation tracks <see cref="GarbusSlamEdge.Direction"/> live since it's editable.
+/// increases to the right (counter-clockwise in the normal view, clockwise in the reversed view), so in
+/// the normal view a clockwise slam points left and an anticlockwise slam points right — and the reversed
+/// view mirrors that. Rotation tracks <see cref="GarbusSlamEdge.Direction"/> live since it's editable, and
+/// <see cref="EditorAngleMapping.Direction"/> so it flips with the view reflection.
 /// </summary>
 public partial class EditorDrawableGarbusSlamEdge : EditorDrawableGarbusHitObject<GarbusSlamEdge>
 {
@@ -40,6 +42,6 @@ public partial class EditorDrawableGarbusSlamEdge : EditorDrawableGarbusHitObjec
         base.Update();
 
         foreach (var arrow in arrows)
-            arrow.Rotation = HitObject.Direction == RotationalDirection.Clockwise ? -90 : 90;
+            arrow.Rotation = (HitObject.Direction == RotationalDirection.Clockwise ? -90 : 90) * EditorAngleMapping.Direction;
     }
 }
