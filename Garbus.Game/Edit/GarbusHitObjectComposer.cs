@@ -77,6 +77,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
         new CardinalNoteCompositionTool(),
         new CardinalHoldNoteCompositionTool(),
         new ShoulderNoteCompositionTool(),
+        new ShoulderHoldNoteCompositionTool(),
         new SlamCenteredCompositionTool(),
         new SlamEdgeCompositionTool(),
         new SliderCompositionTool(),

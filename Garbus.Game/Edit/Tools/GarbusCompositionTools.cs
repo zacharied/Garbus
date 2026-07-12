@@ -33,6 +33,18 @@ public class ShoulderNoteCompositionTool : CompositionTool
     public override HitObjectPlacementBlueprint CreatePlacementBlueprint() => new ShoulderNotePlacementBlueprint();
 }
 
+public class ShoulderHoldNoteCompositionTool : CompositionTool
+{
+    public ShoulderHoldNoteCompositionTool()
+        : base("Shoulder Hold")
+    {
+    }
+
+    public override Drawable CreateIcon() => new SpriteText { Text = "ShH" };
+
+    public override HitObjectPlacementBlueprint CreatePlacementBlueprint() => new ShoulderHoldNotePlacementBlueprint();
+}
+
 public class SlamCenteredCompositionTool : CompositionTool
 {
     public SlamCenteredCompositionTool()

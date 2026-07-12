@@ -560,7 +560,7 @@ namespace Garbus.Game.Tests.Editor
 
         private void placeDiagonalSlider()
         {
-            AddStep("select slider tool", () => input.Key(Key.Number7));
+            AddStep("select slider tool", () => input.Key(Key.Number8));
             // head at South (270°, early), one node at East (0°, later).
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
@@ -771,7 +771,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestTInsertsTimeOrderedNode()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number7));
+            AddStep("select slider tool", () => input.Key(Key.Number8));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             AddStep("move to node", () => input.MoveMouseTo(positionAtAngle(270, 0.3f)));
