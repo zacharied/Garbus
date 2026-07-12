@@ -138,6 +138,28 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestShoulderStripsInvariantUnderReverseAngleView()
+        {
+            waitForComposer();
+            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(180)));
+            AddStep("click", () => input.Click(MouseButton.Left));
+            AddAssert("left shoulder placed", () => placedObject<ShoulderNote>()?.Side == HorizontalDirection.Left);
+
+            float xBeforeReverse = 0;
+            AddStep("record left strip X", () => xBeforeReverse = shoulderDrawableXFraction(HorizontalDirection.Left));
+
+            AddStep("reverse angle view", () => composer.ReverseAngleView.Value = true);
+
+            // West(180)/East(0) sit on the E–W reflection axis — the shoulder strips must not move when
+            // the view direction flips, unlike the rest of the grid.
+            AddAssert("left strip X unchanged under reverse", () =>
+                System.Math.Abs(shoulderDrawableXFraction(HorizontalDirection.Left) - xBeforeReverse) < 0.005f);
+            AddAssert("left strip still on West lane", () =>
+                System.Math.Abs(shoulderDrawableXFraction(HorizontalDirection.Left) - EditorAngleMapping.ToX(180)) < 0.005f);
+        }
+
+        [Test]
         public void TestPlaceShoulderHoldWithDrag()
         {
             waitForComposer();

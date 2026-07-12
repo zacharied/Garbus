@@ -56,7 +56,11 @@ public static class EditorAngleMapping
         return angleDeg < 0 ? angleDeg + 360 : angleDeg;
     }
 
-    /// <summary>Degrees counter-clockwise from the left (West) edge of the main grid, in [0, 360).</summary>
+    /// <summary>
+    /// Degrees from the left edge of the main grid, in [0, 360) — grid-degree 0 is North (<see
+    /// cref="ANGLE_ORIGIN"/> == 90°). Honors the current view <see cref="Direction"/>: in the reversed
+    /// view the sense reads clockwise instead of counter-clockwise.
+    /// </summary>
     public static float ToGridDegrees(float angleDeg) => NormalizeDeg(applyDirection(angleDeg) - ANGLE_ORIGIN);
 
     /// <summary>

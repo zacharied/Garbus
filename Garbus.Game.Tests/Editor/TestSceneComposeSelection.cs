@@ -322,7 +322,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestIncrementalDragAcrossSeamTracksCursor()
         {
             waitForComposer();
-            // 90° is grid-degrees 315; dragging +90° crosses the wrap seam (grid 360/0 at absolute
+            // 45° is grid-degrees 315; dragging +90° crosses the wrap seam (grid 360/0 at absolute
             // 90°) and continues through the right ghost band. The note must land on 135 (the
             // cursor's snapped angle) — and the drag must not fire an update per mouse-move event
             // while the cursor sits a full wrap (360°) from the primary copy: that raw delta must
