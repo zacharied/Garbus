@@ -40,13 +40,13 @@ public class CardinalHoldNote : Note, IHasCardinalDirection, IHasMutableAngle, I
     /// The head note, judged like a <see cref="CardinalNote"/> at the hold's <see cref="Gameplay.Objects.HitObject.StartTime"/>. Its
     /// result is folded into the hold's final (tail) judgement, which is deferred until the head is judged.
     /// </summary>
-    public CardinalHoldNoteHead Head { get; private set; } = null!;
+    public HoldNoteHead<CardinalHoldNote> Head { get; private set; } = null!;
 
     protected override void CreateNestedHitObjects(CancellationToken cancellationToken)
     {
         base.CreateNestedHitObjects(cancellationToken);
 
-        AddNested(Head = new CardinalHoldNoteHead(this)
+        AddNested(Head = new HoldNoteHead<CardinalHoldNote>(this)
         {
             StartTime = StartTime,
         });
