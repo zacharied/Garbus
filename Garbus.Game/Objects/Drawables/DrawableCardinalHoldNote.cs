@@ -36,7 +36,7 @@ namespace Garbus.Game.Objects.Drawables;
 /// loop leaves it alone.
 ///
 /// <para>
-/// Judgement has two parts. The nested <see cref="DrawableCardinalCardinalHoldNoteHead"/> is judged like a cardinal note on
+/// Judgement has two parts. The nested <see cref="DrawableCardinalHoldNoteHead"/> is judged like a cardinal note on
 /// the press that starts the hold. The hold itself (the "tail") is judged with <see cref="DrawableSliderChild"/>'s
 /// time-accumulation algorithm over [head-hit, EndTime], but with finer result granularity (top tier at ≥99%
 /// caught) and capped by the head's grade. The tail judgement is <b>deferred until the head has been judged</b>
@@ -63,8 +63,8 @@ public partial class DrawableCardinalHoldNote : DrawableNote<CardinalHoldNote>, 
     private readonly SmoothPath body;
 
     // Nested judgemental head. Drawn by this parent (headSprite), judged via Head.UpdateResult() on press.
-    private readonly Container<DrawableCardinalCardinalHoldNoteHead> headContainer = new() { RelativeSizeAxes = Axes.Both };
-    private DrawableCardinalCardinalHoldNoteHead Head => headContainer.Child;
+    private readonly Container<DrawableCardinalHoldNoteHead> headContainer = new() { RelativeSizeAxes = Axes.Both };
+    private DrawableCardinalHoldNoteHead Head => headContainer.Child;
 
     // Number of currently-pressed bindings for this note's button (a cardinal has both a d-pad and a face
     // action collapsing onto the same input, so this is a count rather than a bool). holding == holdPresses > 0.
@@ -331,14 +331,14 @@ public partial class DrawableCardinalHoldNote : DrawableNote<CardinalHoldNote>, 
     {
         return hitObject switch
         {
-            CardinalHoldNoteHead head => new DrawableCardinalCardinalHoldNoteHead(head),
+            CardinalHoldNoteHead head => new DrawableCardinalHoldNoteHead(head),
             _ => throw new InvalidOperationException($"cannot create nested hit object for type {hitObject.GetType().Name}")
         };
     }
 
     protected override void AddNestedHitObject(DrawableHitObject hitObject)
     {
-        if (hitObject is not DrawableCardinalCardinalHoldNoteHead head)
+        if (hitObject is not DrawableCardinalHoldNoteHead head)
             throw new InvalidOperationException($"cannot add child of type {hitObject.GetType()}");
 
         headContainer.Child = head;

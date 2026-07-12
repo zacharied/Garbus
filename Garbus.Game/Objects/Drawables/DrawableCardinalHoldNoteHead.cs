@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableCardinalCardinalHoldNoteHead.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableHoldNoteHead.cs).
 // Original carries the ppy template MIT header:
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 
@@ -12,13 +12,13 @@ namespace Garbus.Game.Objects.Drawables;
 /// applied when the parent delegates a press via <see cref="UpdateResult"/>, or it auto-misses once its hit
 /// window elapses, mirroring <see cref="DrawableNote{T}.CheckForResult"/> (i.e. a plain cardinal note).
 /// </summary>
-public partial class DrawableCardinalCardinalHoldNoteHead : DrawableGarbusHitObject<CardinalHoldNoteHead>, ISelfPosition
+public partial class DrawableCardinalHoldNoteHead : DrawableGarbusHitObject<CardinalHoldNoteHead>, ISelfPosition
 {
     // The parent shows the combined hold result; the head is scored/combo'd but its popup is suppressed so
     // the two don't stack on the playfield centre.
     public override bool DisplayResult => false;
 
-    public DrawableCardinalCardinalHoldNoteHead(CardinalHoldNoteHead hitObject)
+    public DrawableCardinalHoldNoteHead(CardinalHoldNoteHead hitObject)
         : base(hitObject)
     {
     }
