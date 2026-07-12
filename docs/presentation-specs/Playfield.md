@@ -20,13 +20,16 @@ A CardinalNote is presented as a generic shape with a square bounding box of dim
 
 A ShoulderNote is presented as an arc connecting the two points above and below the East and West cardinal lines (its Side, described as Left or Right). It moves out like an East or West CardinalNote, but the arc grows bigger as the points grow apart in vertical distance.
 
-### HoldCardinalNote
+### CardinalHoldNote
 
-A HoldCardinalNote is presented as a line extending out of a CardinalNote note towards the center of the circle. It follows the same path as its parent CardinalNote.
+A CardinalHoldNote is presented as a line extending out of a CardinalNote note towards the center of the circle. It follows the same path as its parent CardinalNote.
 
-### HoldShoulderNote
+### ShoulderHoldNote
 
-A HoldShoulderNote is presented as a circle sector extending out of a shoulder note towards the center of the circle. It follows the same path as its parent ShoulderNote.
+A ShoulderHoldNote is presented as a shoulder note (two squares on the ±45° quadrant diagonals joined by
+an arc) with a transparent sector trailing inward toward the center of the circle. The sector spans the
+same 90° slice as the shoulder head and fills the band between the head (at StartTime) and the tail (at
+EndTime), shrinking to nothing as the tail reaches the ring.
 
 ### Slider
 
