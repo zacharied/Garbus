@@ -18,6 +18,11 @@ public partial class AnalogInputManager : Drawable
         [HorizontalDirection.Right] = new(JoystickAxisSource.GamePadRightStickX, JoystickAxisSource.GamePadRightStickY, HorizontalDirection.Right),
     }.ToImmutableDictionary();
 
+    public readonly ImmutableDictionary<HorizontalDirection, StickGestureTracker> StickGestureTrackers = new Dictionary<HorizontalDirection, StickGestureTracker> {
+        [HorizontalDirection.Left] = new StickGestureTracker(),
+        [HorizontalDirection.Right] = new StickGestureTracker(),
+    }.ToImmutableDictionary();
+
     protected override bool OnJoystickAxisMove(JoystickAxisMoveEvent e)
     {
         if (SliderCatchers[HorizontalDirection.Left].OnJoystickAxisMove(e))
@@ -26,6 +31,14 @@ public partial class AnalogInputManager : Drawable
             return true;
 
         return false;
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+
+        StickGestureTrackers[HorizontalDirection.Left].AddSample(Time.Current, SliderCatchers[HorizontalDirection.Left].Position);
+        StickGestureTrackers[HorizontalDirection.Right].AddSample(Time.Current, SliderCatchers[HorizontalDirection.Right].Position);
     }
 
     public class SliderCatcher
@@ -41,7 +54,7 @@ public partial class AnalogInputManager : Drawable
         private readonly JoystickAxisSource xAxis, yAxis;
         private float xAxisLast, yAxisLast;
 
-        private Vector2 joystickPosition => new Vector2(xAxisLast, yAxisLast);
+        public Vector2 Position => new Vector2(xAxisLast, yAxisLast);
         public float Size => SizeDeg * MathF.PI / 180f;
 
         public SliderCatcher(JoystickAxisSource xAxis, JoystickAxisSource yAxis, HorizontalDirection side)
@@ -66,8 +79,8 @@ public partial class AnalogInputManager : Drawable
                 ret = true;
             }
 
-            Angle = MathF.Atan2(-joystickPosition.Y, joystickPosition.X);
-            Activated = joystickPosition.Length() > DEADZONE;
+            Angle = MathF.Atan2(-Position.Y, Position.X);
+            Activated = Position.Length() > DEADZONE;
 
             return ret;
         }
