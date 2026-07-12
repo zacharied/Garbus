@@ -146,6 +146,53 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDragBoxSelectsObjects()
+        {
+            waitForComposer();
+
+            AddStep("add two notes at same time + park clock", () =>
+            {
+                editorChart.Add(new CardinalNote { StartTime = 2000, AngleDeg = 180 });
+                editorChart.Add(new CardinalNote { StartTime = 2000, AngleDeg = 0 });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("two drawables exist", () => composer.HitObjects.Count() == 2);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            AddStep("press on empty space above-left of notes", () =>
+            {
+                var (min, _) = notesBounds();
+                input.MoveMouseTo(new Vector2(min.X - 30, min.Y - 30));
+                input.PressButton(MouseButton.Left);
+            });
+            AddStep("drag box across both notes", () =>
+            {
+                var (_, max) = notesBounds();
+                input.MoveMouseTo(new Vector2(max.X + 30, max.Y + 30));
+            });
+            // The editor clock is stopped (normal while editing). The drag box must still become visible —
+            // it previously used a 250ms timed fade that never advanced on the frozen editor clock.
+            AddAssert("drag box is visible while clock stopped", () =>
+            {
+                var db = composer.ChildrenOfType<ScrollingDragBox>().Single();
+                return db.State == Visibility.Visible && db.Alpha > 0.9f && db.Box.DrawSize.X > 0 && db.Box.DrawSize.Y > 0;
+            });
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("both notes selected by drag box", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(2));
+        }
+
+        /// <summary>Screen-space bounding corners (min, max) of the two placed note drawables.</summary>
+        private (Vector2 min, Vector2 max) notesBounds()
+        {
+            var centres = composer.HitObjects.Select(d => d.ScreenSpaceDrawQuad.Centre).ToList();
+            float minX = centres.Min(c => c.X), minY = centres.Min(c => c.Y);
+            float maxX = centres.Max(c => c.X), maxY = centres.Max(c => c.Y);
+            return (new Vector2(minX, minY), new Vector2(maxX, maxY));
+        }
+
+        [Test]
         public void TestDragRotatesBySnappedIncrement()
         {
             waitForComposer();

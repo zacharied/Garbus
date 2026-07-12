@@ -113,11 +113,18 @@ namespace Garbus.Game.Edit.Compose
         {
             InternalChildren = new Drawable[]
             {
+                // Offset the content region between the toolboxes via X + Width rather than Padding.
+                // Padding would shift the blueprint container WITHIN this container's coordinate space,
+                // but the framework computes mouse-event positions in Target.Parent space
+                // (UIEvent.ToLocalSpace → Target.Parent.ToLocalSpace). The DragBox positions its box in the
+                // blueprint container's own (child) space, so any padding here double-counts as an offset —
+                // the drag-select box (and its selection quad) would be shifted right by TOOLBOX_WIDTH_LEFT.
+                // osu avoids this the same way (HitObjectComposer sets PlayfieldContentContainer.X, never pads it).
                 PlayfieldContentContainer = new Container
                 {
                     Name = "Playfield content",
-                    RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Left = TOOLBOX_WIDTH_LEFT, Right = TOOLBOX_WIDTH_RIGHT },
+                    RelativeSizeAxes = Axes.Y,
+                    X = TOOLBOX_WIDTH_LEFT,
                     Children = new Drawable[]
                     {
                         Playfield,
@@ -182,6 +189,15 @@ namespace Garbus.Game.Edit.Compose
             InputManager = GetContainingInputManager()!;
 
             EditorChart.SelectedHitObjects.CollectionChanged += onSelectedHitObjectsChanged;
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            // Size the content region to sit between the fixed-width toolboxes (see the layout note above:
+            // this replaces Padding, which would desync drag-select coordinates).
+            PlayfieldContentContainer.Width = Math.Max(0, DrawWidth - TOOLBOX_WIDTH_LEFT - TOOLBOX_WIDTH_RIGHT);
         }
 
         private void onSelectedHitObjectsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)

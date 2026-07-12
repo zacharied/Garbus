@@ -60,7 +60,11 @@ namespace Garbus.Game.Edit.Compose
                 if (value == state) return;
 
                 state = value;
-                this.FadeTo(state == Visibility.Hidden ? 0 : 1, 250, Easing.OutQuint);
+                // Deviation from osu: fade instantly rather than over 250ms. The Garbus compose subtree runs
+                // on the EditorClock (see ComposeTab), which is stopped while editing — a timed transform on a
+                // frozen clock never advances, so the box would stay at alpha 0 and be invisible. An instant
+                // (zero-duration) change applies on the next frame regardless of clock state.
+                this.FadeTo(state == Visibility.Hidden ? 0 : 1);
                 StateChanged?.Invoke(state);
             }
         }
