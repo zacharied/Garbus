@@ -99,9 +99,8 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
     protected override IEnumerable<MenuItem> GetContextMenuItemsForSelection(IEnumerable<SelectionBlueprint<GarbusHitObject>> selection)
     {
         yield return new GarbusMenuItem("Flip around angle...", MenuItemType.Standard,
-            () => composer.BeginFlipAroundAngle(Flip));
-        yield return new GarbusMenuItem("Flip selection", MenuItemType.Standard,
-            () => Flip(ComputeSelectionReflectionSum()));
+            () => composer.BeginFlipAroundAngle(flipAroundAngle));
+        yield return new GarbusMenuItem("Flip selection", MenuItemType.Standard, flipSelection);
 
         if (selection.All(s => s.Item is GarbusSlamEdge))
         {
@@ -165,13 +164,27 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         return true;
     }
 
+    private enum FlipMode
+    {
+        /// <summary>Pivot is the selection's own centre — node subsets reflect about their offset bbox.</summary>
+        SelectionCentre,
+
+        /// <summary>Pivot is an externally chosen angle — node subsets reflect about that mirror axis.</summary>
+        AroundPivot,
+    }
+
+    private void flipSelection() => flip(ComputeSelectionReflectionSum(), FlipMode.SelectionCentre, 0);
+
+    private void flipAroundAngle(int pivotDeg) =>
+        flip(EditorAngleMapping.NormalizeDeg(2 * pivotDeg), FlipMode.AroundPivot, pivotDeg);
+
     /// <summary>
-    /// Reflects every selected handle about the pivot encoded by <paramref name="sumDeg"/> (= 2·φ):
-    /// <c>θ → NormalizeDeg(sumDeg − θ)</c>. A true mirror — slider handedness reverses. A slider with
-    /// selected nodes reflects only those nodes (head anchored); a whole-selected slider mirrors rigidly.
-    /// One change transaction ⇒ a single undo step.
+    /// Reflects every selected handle. Point objects, ShoulderNote, and whole sliders reflect in absolute
+    /// space about <paramref name="sumDeg"/> (= 2·pivot). A slider with selected nodes reflects only those
+    /// nodes, in head-relative offset space, about a fixed offset-sum — an exact involution that preserves
+    /// winding (see reflectSelectedNodes). One change transaction ⇒ a single undo step.
     /// </summary>
-    private void Flip(int sumDeg)
+    private void flip(int sumDeg, FlipMode mode, int pivotDeg)
     {
         if (EditorChart.SelectedHitObjects.Count == 0)
             return;
@@ -186,19 +199,15 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             switch (h)
             {
                 case ShoulderNote shoulder:
-                    // No mutable angle: reflect its derived E/W angle, re-derive Side by hemisphere.
+                    // No mutable angle: reflect its derived E/W angle, re-derive Side by hemisphere. Note this
+                    // is only an involution for axis-aligned pivots (0/90/180/270); an oblique pivot snaps the
+                    // shoulder to the nearer hemisphere and is not reversible (shoulders live only on E/W).
                     int a = EditorAngleMapping.NormalizeDeg(sumDeg - shoulder.Side.ToAngleDeg());
                     shoulder.Side = inEastHemisphere(a) ? HorizontalDirection.Right : HorizontalDirection.Left;
                     break;
 
                 case SliderBody slider when blueprint is SliderSelectionBlueprint sb && sb.SelectedNodes.Count > 0:
-                    // Node subset: head fixed, reflect each selected node's absolute angle, store minimal offset.
-                    foreach (var cp in sb.SelectedNodes)
-                    {
-                        int abs = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + cp.RotationOffset);
-                        int newAbs = EditorAngleMapping.NormalizeDeg(sumDeg - abs);
-                        cp.RotationOffset = EditorAngleMapping.MinimalDiff(slider.AngleDeg, newAbs);
-                    }
+                    reflectSelectedNodes(slider, sb, mode, pivotDeg);
                     break;
 
                 case SliderBody slider:
@@ -226,6 +235,45 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         }
 
         EditorChart.EndChange();
+    }
+
+    /// <summary>
+    /// Reflects a slider's selected nodes in head-relative offset space about a fixed sum <c>S</c>
+    /// (<c>newOffset = S − offset</c>) — a winding-preserving involution. For a selection-centre flip
+    /// <c>S</c> is the nodes' own offset bounding box (<c>min + max</c>); for a pivot flip <c>S</c> is twice
+    /// the pivot reduced to the reflection axis relative to the head. The slider head is left fixed.
+    /// (In a mixed selection the nodes reflect about their own local centre rather than the whole
+    /// selection's centre — an accepted, minor divergence; node editing is inherently local.)
+    /// </summary>
+    private static void reflectSelectedNodes(SliderBody slider, SliderSelectionBlueprint sb, FlipMode mode, int pivotDeg)
+    {
+        int s;
+
+        if (mode == FlipMode.SelectionCentre)
+        {
+            int minOff = int.MaxValue, maxOff = int.MinValue;
+            foreach (var cp in sb.SelectedNodes)
+            {
+                minOff = Math.Min(minOff, cp.RotationOffset);
+                maxOff = Math.Max(maxOff, cp.RotationOffset);
+            }
+
+            s = minOff + maxOff;
+        }
+        else
+        {
+            // Fold the pivot's head-relative angle onto the mirror axis: φ and φ+180 are the same line.
+            int axisOff = EditorAngleMapping.MinimalDiff(slider.AngleDeg, pivotDeg);
+            if (axisOff > 90)
+                axisOff -= 180;
+            else if (axisOff <= -90)
+                axisOff += 180;
+
+            s = 2 * axisOff;
+        }
+
+        foreach (var cp in sb.SelectedNodes)
+            cp.RotationOffset = s - cp.RotationOffset;
     }
 
     /// <summary>The reflection sum whose pivot is the centre of the selection's handle-set angular bbox.</summary>

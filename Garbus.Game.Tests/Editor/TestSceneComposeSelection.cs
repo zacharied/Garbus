@@ -1238,6 +1238,79 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestFlipAroundAngleWoundNodeIsInvolution()
+        {
+            waitForComposer();
+            placeDiagonalSlider();   // head 270, node 0 at absolute 0 (offset 90)
+            selectSliderOnLine();
+
+            // Wind the node the long way (offset 90 -> 450, same absolute angle, +1 full turn).
+            AddStep("wind node to +450", () =>
+            {
+                firstControlPoint().RotationOffset = 450;
+                editorChart.Update(placedObject<SliderBody>()!);
+            });
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("one node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip around angle available", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+
+            // First flip about North (90). axisOff = fold(MinimalDiff(270,90)=180) = 0, S = 0 → 450 -> -450.
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot to North (90)", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
+            AddStep("commit", () => input.Click(MouseButton.Left));
+            AddAssert("offset reflected to -450 (winding preserved, not collapsed)",
+                () => firstControlPoint().RotationOffset, () => Is.EqualTo(-450));
+
+            // Second identical flip returns exactly to +450 (true involution).
+            AddStep("select node 0 again", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddUntilStep("Flip around angle available", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot to North (90)", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
+            AddStep("commit", () => input.Click(MouseButton.Left));
+            AddAssert("offset back to +450", () => firstControlPoint().RotationOffset, () => Is.EqualTo(450));
+        }
+
+        [Test]
+        public void TestFlipSelectionWoundNodeIsNoOp()
+        {
+            waitForComposer();
+            placeDiagonalSlider();   // head 270, node offset 90
+            selectSliderOnLine();
+
+            AddStep("wind node to +450", () =>
+            {
+                firstControlPoint().RotationOffset = 450;
+                editorChart.Update(placedObject<SliderBody>()!);
+            });
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip selection available", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                flip = flipMenuItem("Flip selection")!;
+                return flip != null;
+            });
+
+            // Single selected node: S = 2*offset, so newOffset = offset — an exact no-op preserving winding.
+            AddStep("invoke Flip selection", () => flip.Action.Value?.Invoke());
+            AddAssert("offset unchanged (+450, winding preserved)",
+                () => firstControlPoint().RotationOffset, () => Is.EqualTo(450));
+        }
+
+        [Test]
         public void TestFlipAroundAngleFlipsShoulderSideAcrossVerticalAxis()
         {
             waitForComposer();

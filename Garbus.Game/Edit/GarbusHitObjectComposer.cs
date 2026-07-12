@@ -122,6 +122,6 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
         return new GarbusSnapResult(playfield.ToScreenSpace(local), timeSnapped.Time, angleDeg, playfield);
     }
 
-    /// <summary>Enters interactive "flip around angle" mode: the overlay picks a pivot; <paramref name="onCommit"/> receives 2·pivot.</summary>
+    /// <summary>Enters interactive "flip around angle" mode: the overlay picks a pivot; <paramref name="onCommit"/> receives the chosen pivot angle.</summary>
     public void BeginFlipAroundAngle(Action<int> onCommit) => flipPivotOverlay.Begin(onCommit);
 }

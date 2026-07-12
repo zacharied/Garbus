@@ -21,6 +21,7 @@ public partial class FlipPivotOverlay : CompositeDrawable
 
     private Action<int>? onCommit;
     private bool active;
+    private bool moved;
     private int pivotAngle;
 
     public FlipPivotOverlay(Func<float, (float xFrac, int angleDeg)> snap)
@@ -43,12 +44,14 @@ public partial class FlipPivotOverlay : CompositeDrawable
     {
         onCommit = commit;
         active = true;
+        moved = false;
         Alpha = 1;
     }
 
     private void end()
     {
         active = false;
+        moved = false;
         Alpha = 0;
         onCommit = null;
     }
@@ -63,6 +66,7 @@ public partial class FlipPivotOverlay : CompositeDrawable
         float localX = ToLocalSpace(e.ScreenSpaceMousePosition).X;
         (float xFrac, int angleDeg) = snap(localX / DrawWidth);
         pivotAngle = angleDeg;
+        moved = true;
         bar.X = xFrac * DrawWidth;
         return true;
     }
@@ -83,8 +87,8 @@ public partial class FlipPivotOverlay : CompositeDrawable
         if (!active)
             return false;
 
-        if (e.Button == MouseButton.Left)
-            onCommit?.Invoke(EditorAngleMapping.NormalizeDeg(2 * pivotAngle));
+        if (e.Button == MouseButton.Left && moved)
+            onCommit?.Invoke(pivotAngle);
 
         end();
         return true;
