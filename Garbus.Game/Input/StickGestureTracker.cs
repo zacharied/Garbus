@@ -16,7 +16,7 @@ public class StickGestureTracker
     public const float FLICK_THRESHOLD = 0.7f;      // outward radius crossing that counts as a flick
     public const float EDGE_THRESHOLD = 0.7f;       // radius at/beyond which the stick is "at the edge"
     public const float ANGLE_TOLERANCE_DEG = 30f;   // flick angle must be within this of the slam angle
-    public const double SAMPLE_RETENTION_MS = 350;  // buffer horizon; larger than the widest window
+    public const double SAMPLE_RETENTION_MS = 350;  // buffer horizon; must exceed the full watch span from sinceTime (early-permissive reach + late window, not just the window half-width)
 
     private readonly struct Sample
     {
@@ -32,6 +32,12 @@ public class StickGestureTracker
 
     public void AddSample(double time, Vector2 position)
     {
+        // Clock ran backward (a restart or seek): the buffered samples are from a stale timeline and
+        // would otherwise satisfy queries for the new pass, so drop them. Also keeps the list
+        // monotonic, which the front-truncation pruning below relies on.
+        if (samples.Count > 0 && time < samples[^1].Time)
+            samples.Clear();
+
         samples.Add(new Sample(time, position));
 
         double cutoff = time - SAMPLE_RETENTION_MS;

@@ -72,6 +72,19 @@ namespace Garbus.Game.Tests
         }
 
         [Test]
+        public void TestBackwardTimeJumpClearsStaleGesture()
+        {
+            var t = new StickGestureTracker();
+            t.AddSample(1000, At(0, 0f));      // previous playthrough
+            t.AddSample(1010, At(0, 0.8f));    // a flick that crossed the threshold at 0deg
+
+            // Restart: clock seeks back to the start. The stale flick must not judge the new pass.
+            t.AddSample(0, At(0, 0f));
+
+            Assert.That(t.FlickedTowards(0, sinceTime: -1000), Is.False);
+        }
+
+        [Test]
         public void TestSweepThroughAngleInMatchingDirection()
         {
             var t = new StickGestureTracker();
