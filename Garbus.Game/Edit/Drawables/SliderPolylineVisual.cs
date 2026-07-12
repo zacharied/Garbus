@@ -155,54 +155,7 @@ public partial class SliderPolylineVisual : CompositeDrawable
         if (duration <= 0)
             return;
 
-        float centreX = DrawWidth / 2;
-
-        var controlPoints = slider.Path.ControlPoints;
-        int count = 1 + controlPoints.Count;
-
-        // Node value = angle offset in degrees (head = 0); node time = TimeOffset (head = 0).
-        var values = new float[count];
-        var times = new double[count];
-        var linkEasing = new Easing[count - 1];
-        var linkSmooth = new bool[count - 1];
-
-        values[0] = 0f;
-        times[0] = 0.0;
-
-        for (int i = 0; i < controlPoints.Count; i++)
-        {
-            var cp = controlPoints[i];
-
-            values[i + 1] = cp.RotationOffset;
-            times[i + 1] = cp.TimeOffset;
-
-            // A control point governs the segment leading into it: link[i] ends at node[i+1] = CP[i].
-            linkEasing[i] = cp.SweepEasing;
-            linkSmooth[i] = cp.Smooth;
-        }
-
-        var slopes = SliderSweep.ComputeSlopes(values, times);
-
-        // Map an (angle-offset, time-offset) node/sub-point into editor space: x from angle, y from time
-        // (head at the bottom = DrawHeight, later times rising). Time stays linear (matches gameplay).
-        Vector2 toPoint(float angleOffset, double timeOffset)
-            => new Vector2(centreX + angleOffset * pxPerDeg, DrawHeight * (float)(1 - timeOffset / duration));
-
-        for (int n = 0; n < count; n++)
-            nodes.Add(toPoint(values[n], times[n]));
-
-        polyline.Add(toPoint(values[0], times[0]));
-
-        for (int link = 0; link < count - 1; link++)
-        {
-            for (int k = 1; k <= SliderSweep.SegmentsPerLink; k++)
-            {
-                float t = (float)k / SliderSweep.SegmentsPerLink;
-                float angle = SliderSweep.ValueAt(values, slopes, times, linkEasing[link], linkSmooth[link], link, t);
-                double time = times[link] + (times[link + 1] - times[link]) * t;
-                polyline.Add(toPoint(angle, time));
-            }
-        }
+        EditorSliderPolyline.Build(slider.Path.ControlPoints, pxPerDeg, DrawWidth / 2, DrawHeight, duration, polyline, nodes);
     }
 
     private List<int> computeWrapCopies()

@@ -58,6 +58,9 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     // Outline paths are buffered drawables — pooled/reused (never new'd per frame), one per visible wrap copy.
     private readonly List<SmoothPath> outlinePool = new List<SmoothPath>();
     private readonly List<Vector2> outlineVertices = new List<Vector2>();
+    // EditorSliderPolyline.Build also emits node-dot positions; the outline doesn't use them (node handles
+    // are drawn separately), so it writes them into this throwaway buffer.
+    private readonly List<Vector2> outlineNodesScratch = new List<Vector2>();
     private SmoothPath? primaryOutline;
 
     // Node selection is local to this blueprint (osu's PathControlPointVisualiser pattern): a set of the
@@ -180,23 +183,21 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     private readonly List<int> wrapCopiesBuffer = new List<int>();
 
     /// <summary>
-    /// Rebuilds the outline polyline to match the drawn slider exactly: raw (unwrapped)
-    /// <see cref="GarbusPathControlPoint.RotationOffset"/> per node, drawn once per visible wrap copy. Kept
-    /// current every frame (even while deselected) because the paths back path-precise hit-testing.
+    /// Rebuilds the outline polyline to match the drawn slider exactly: the same subdivided, eased/smoothed
+    /// sweep as <see cref="SliderPolylineVisual"/> (via <see cref="EditorSliderPolyline"/>), drawn once per
+    /// visible wrap copy. Kept current every frame (even while deselected) because the paths back
+    /// path-precise hit-testing — so clicking the curved body selects it, not just the straight chord.
     /// </summary>
     private void updateOutline(float pxPerDeg, float bodyGridDeg, double duration)
     {
         outlineVertices.Clear();
-        outlineVertices.Add(new Vector2(DrawWidth / 2, DrawHeight));
+        outlineNodesScratch.Clear();
+        EditorSliderPolyline.Build(HitObject.Path.ControlPoints, pxPerDeg, DrawWidth / 2, DrawHeight, duration, outlineVertices, outlineNodesScratch);
 
         int minOffset = 0, maxOffset = 0;
 
         foreach (var cp in HitObject.Path.ControlPoints)
         {
-            outlineVertices.Add(new Vector2(
-                DrawWidth / 2 + cp.RotationOffset * pxPerDeg,
-                DrawHeight * (float)(1 - cp.TimeOffset / duration)));
-
             minOffset = Math.Min(minOffset, cp.RotationOffset);
             maxOffset = Math.Max(maxOffset, cp.RotationOffset);
         }
