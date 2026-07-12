@@ -184,13 +184,13 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
-        public void TestShoulderHoldHeldByKeyPress()
+        public void TestShoulderHoldHeldByButtonPress()
         {
-            // Right shoulder hold at 13000ms, 1000ms long. E maps to ButtonR.
+            // Right shoulder hold at 13000ms, 1000ms long. Joystick6 maps to ButtonR.
             playThrough(12900);
-            AddStep("press right shoulder", () => input.PressKey(Key.E));
+            AddStep("press right shoulder", () => input.PressJoystickButton(JoystickButton.Button6));
             playThrough(14100);
-            AddStep("release right shoulder", () => input.ReleaseKey(Key.E));
+            AddStep("release right shoulder", () => input.ReleaseJoystickButton(JoystickButton.Button6));
 
             AddUntilStep("shoulder hold judged", () => shoulderHold()?.Judged == true);
             AddAssert("shoulder hold hit", () => shoulderHold()?.IsHit == true);

@@ -653,7 +653,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>Places a slam-edge (instant placement) at an angle and returns to the select tool.</summary>
         private void placeSlamEdgeAt(float angleDeg)
         {
-            AddStep("select slam-edge tool", () => input.Key(Key.Number6));
+            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
             AddStep("place slam edge", () =>
             {
                 input.MoveMouseTo(positionAtAngle(angleDeg, 0.5f));
