@@ -68,6 +68,40 @@ public class StickGestureTracker
         return false;
     }
 
+    /// <summary>
+    /// True if, at or after <paramref name="sinceTime"/>, the stick — with both endpoints of a sample
+    /// step at or beyond the edge threshold — swept through <paramref name="angleDeg"/> travelling in
+    /// <paramref name="dir"/>.
+    /// </summary>
+    public bool SweptThrough(int angleDeg, RotationalDirection dir, double sinceTime)
+    {
+        float target = angleDeg * MathF.PI / 180f;
+        // Increasing angle (atan2(-y, x)) is anticlockwise; Clockwise = 1, Anticlockwise = -1.
+        int expectedSign = -(int)dir;
+
+        for (int i = 1; i < samples.Count; i++)
+        {
+            Sample prev = samples[i - 1], cur = samples[i];
+            if (cur.Time < sinceTime)
+                continue;
+
+            if (prev.Radius < EDGE_THRESHOLD || cur.Radius < EDGE_THRESHOLD)
+                continue;
+
+            float d = WrapPi(cur.Angle - prev.Angle);   // signed travel this step
+            float t = WrapPi(target - prev.Angle);       // target offset from step start
+
+            bool crossed = expectedSign > 0
+                ? d > 0 && t >= 0 && t <= d
+                : d < 0 && t <= 0 && t >= d;
+
+            if (crossed)
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>Shortest signed angular distance, wrapped to (-pi, pi].</summary>
     protected static float WrapPi(float x) => x - MathF.Tau * MathF.Floor((x + MathF.PI) / MathF.Tau);
 }

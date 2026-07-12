@@ -70,5 +70,45 @@ namespace Garbus.Game.Tests
 
             Assert.That(t.FlickedTowards(0, sinceTime: -1000), Is.False);
         }
+
+        [Test]
+        public void TestSweepThroughAngleInMatchingDirection()
+        {
+            var t = new StickGestureTracker();
+            t.AddSample(0, At(-20, 0.8f));   // at edge, -20deg
+            t.AddSample(10, At(20, 0.8f));   // at edge, +20deg -> swept anticlockwise through 0deg
+
+            Assert.That(t.SweptThrough(0, RotationalDirection.Anticlockwise, sinceTime: -1000), Is.True);
+        }
+
+        [Test]
+        public void TestSweepWrongDirectionRejected()
+        {
+            var t = new StickGestureTracker();
+            t.AddSample(0, At(-20, 0.8f));
+            t.AddSample(10, At(20, 0.8f));   // anticlockwise sweep
+
+            Assert.That(t.SweptThrough(0, RotationalDirection.Clockwise, sinceTime: -1000), Is.False);
+        }
+
+        [Test]
+        public void TestSweepInsideEdgeRejected()
+        {
+            var t = new StickGestureTracker();
+            t.AddSample(0, At(-20, 0.3f));   // not at edge
+            t.AddSample(10, At(20, 0.3f));
+
+            Assert.That(t.SweptThrough(0, RotationalDirection.Anticlockwise, sinceTime: -1000), Is.False);
+        }
+
+        [Test]
+        public void TestSweepAcrossSeamHandled()
+        {
+            var t = new StickGestureTracker();
+            t.AddSample(0, At(170, 0.8f));    // at edge, 170deg
+            t.AddSample(10, At(190, 0.8f));   // at edge, 190deg (== -170) -> anticlockwise through 180deg
+
+            Assert.That(t.SweptThrough(180, RotationalDirection.Anticlockwise, sinceTime: -1000), Is.True);
+        }
     }
 }
