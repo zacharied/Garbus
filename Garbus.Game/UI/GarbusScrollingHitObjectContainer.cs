@@ -96,7 +96,11 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
         return algorithm.Value.GetLength(startTime, endTime, timeRange.Value, scrollLength);
     }
 
-    private float scrollLength => (DrawRectangle.Width < DrawRectangle.Height ? DrawRectangle.Width : DrawRectangle.Height) / 2;
+    // A length is non-negative by definition. During a transient relayout frame the container's
+    // DrawRectangle can briefly report a negative dimension (e.g. padding exceeding a not-yet-sized
+    // parent), which would make this negative and break callers that clamp radii by it
+    // (Math.Clamp(dist, 0, ScrollLength) throws when max < min). Floor it at zero.
+    private float scrollLength => MathF.Max(0f, (DrawRectangle.Width < DrawRectangle.Height ? DrawRectangle.Width : DrawRectangle.Height) / 2);
 
     public override void Add(HitObjectLifetimeEntry entry)
     {
