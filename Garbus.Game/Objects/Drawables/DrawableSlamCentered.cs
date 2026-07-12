@@ -1,5 +1,6 @@
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Input;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
@@ -12,6 +13,13 @@ namespace Garbus.Game.Objects.Drawables;
 public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCentered>
 {
     private readonly Sprite sprite;
+
+    [Resolved]
+    private AnalogInputManager analogInput { get; set; } = null!;
+
+    // Symmetric first-cut window (ms). Replaced by a proper early-permissive HitWindows when the Near
+    // grade lands — see the design's Deferred section.
+    private const double window = 200;
 
     public DrawableSlamCentered(GarbusSlamCentered hitObject)
         : base(hitObject)
@@ -61,5 +69,20 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
                 sprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
                 break;
         }
+    }
+
+    protected override void CheckForResult(bool userTriggered, double timeOffset)
+    {
+        if (timeOffset < -window)
+            return; // early-permissive watch window not open yet
+
+        if (analogInput.StickGestureTrackers[HitObject.Side].FlickedTowards(HitObject.AngleDeg, HitObject.StartTime - window))
+        {
+            ApplyMaxResult(); // Perfect
+            return;
+        }
+
+        if (timeOffset > window)
+            ApplyMinResult(); // Miss — window elapsed with no flick
     }
 }
