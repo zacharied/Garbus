@@ -162,7 +162,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>A slider whose head sits near the wrap seam and whose node sweeps across it.</summary>
         private static SliderBody makeSeamCrossingSlider(double startTime)
         {
-            // The seam is the diagonal quadrant boundary (315°) opposite the grid's left edge (135°).
+            // The left edge is now South-adjacent (grid-degree 0 at 90°).
             // Head at 300° with a +90° node sweep carries the path across 315° (300 → 30).
             var path = new GarbusPath { ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>() };
             path.ControlPoints.Add(new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 90 });

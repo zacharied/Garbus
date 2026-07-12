@@ -217,8 +217,8 @@ namespace Garbus.Game.Tests.Editor
         public void TestSelectViaGhostTwin()
         {
             waitForComposer();
-            // 150° is within GHOST_DEGREES of the left edge (135°), so once snapped it shows a twin in the right band.
-            placeNoteAt(150);
+            // 105° is within GHOST_DEGREES of the left edge (90°), so once snapped it shows a twin in the right band.
+            placeNoteAt(105);
 
             AddStep("switch to select tool", () => input.Key(Key.Number1));
             hoverThenClick(() =>
@@ -322,12 +322,12 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
             // 90° is grid-degrees 315; dragging +90° crosses the wrap seam (grid 360/0 at absolute
-            // 135°) and continues through the right ghost band. The note must land on 180 (the
+            // 90°) and continues through the right ghost band. The note must land on 135 (the
             // cursor's snapped angle) — and the drag must not fire an update per mouse-move event
             // while the cursor sits a full wrap (360°) from the primary copy: that raw delta must
             // reduce to "no change", not to a fresh update+drawable-recreate every event (the
             // Phase4 GC-storm feeder).
-            placeNoteAt(90);
+            placeNoteAt(45);
 
             int updateCount = 0;
             AddStep("count updates", () => editorChart.HitObjectUpdated += _ => updateCount++);
@@ -344,7 +344,7 @@ namespace Garbus.Game.Tests.Editor
             AddRepeatStep("drag 3° right", () => dragStepRight(3), 30);
             AddStep("release", () => input.ReleaseButton(MouseButton.Left));
 
-            AddAssert("note followed cursor across seam to 180", () => placedObject<CardinalNote>()?.AngleDeg, () => Is.EqualTo(180));
+            AddAssert("note followed cursor across seam to 135", () => placedObject<CardinalNote>()?.AngleDeg, () => Is.EqualTo(135));
             AddAssert("single drawable remains", () => composer.HitObjects.Count(), () => Is.EqualTo(1));
             AddAssert("update churn bounded", () => updateCount, () => Is.LessThanOrEqualTo(8));
         }
@@ -724,7 +724,7 @@ namespace Garbus.Game.Tests.Editor
             // nothing. Every visible wrap copy must now be independently clickable.
             waitForComposer();
 
-            // Head near the left seam (grid 20°, absolute 155°) with a node RotationOffset of −50° puts the
+            // Head near the left seam (grid 20°, absolute 110°) with a node RotationOffset of −50° puts the
             // node's raw copy in the left ghost band and its k=+1 clone deep into the right main-grid area.
             AddStep("add seam-crossing slider + park clock", () =>
             {
@@ -735,7 +735,7 @@ namespace Garbus.Game.Tests.Editor
                 editorChart.Add(new SliderBody
                 {
                     StartTime = 2000,
-                    AngleDeg = 155, // grid 20
+                    AngleDeg = 110, // grid 20
                     Side = HorizontalDirection.Left,
                     Path = new GarbusPath { ControlPoints = path },
                 });

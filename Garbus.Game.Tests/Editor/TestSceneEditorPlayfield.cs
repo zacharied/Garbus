@@ -78,13 +78,13 @@ namespace Garbus.Game.Tests.Editor
         {
             AddUntilStep("composer loaded", () => harness.Composer.IsLoaded);
 
-            // A slider with AngleDeg = 135 (the seam) and a control point reaching well into the ghost
+            // A slider with AngleDeg = 85 (near the seam) and a control point reaching well into the ghost
             // band creates a range that crosses 0 grid-degrees → VisibleWrapCopies yields [0, 1] (or [-1, 0]).
             AddStep("add seam-crossing slider", () =>
             {
                 var slider = new SliderBody
                 {
-                    AngleDeg = 130, // near left seam
+                    AngleDeg = 85, // near left seam
                     Side = Core.HorizontalDirection.Left,
                     StartTime = 2000,
                     Path = new GarbusPath
@@ -103,7 +103,7 @@ namespace Garbus.Game.Tests.Editor
                 harness.Composer.Playfield.ChildrenOfType<SliderPolylineVisual>().Any());
 
             // Give the Update() loop a frame to build the wrap copies.
-            // The slider (AngleDeg=130, bodyGridDeg=355, offset=-40) spans grid range [315, 355].
+            // The slider (AngleDeg=85, bodyGridDeg=355, offset=-40) spans grid range [315, 355].
             // VisibleWrapCopies(315, 355) → k ∈ {0, 1} → exactly 2 active copies.
             // Active copies have their SmoothPath populated (ClearGeometry calls ClearVertices on idle pool slots).
             AddUntilStep("exactly 2 active SmoothPath wrap copies", () =>

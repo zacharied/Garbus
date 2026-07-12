@@ -10,11 +10,9 @@ namespace Garbus.Game.Edit;
 /// <summary>
 /// The single authority for converting between hit-object angles and the editor timeline's x-axis.
 ///
-/// The editor unrolls the circle onto a horizontal axis: the left edge of the main grid sits on the
-/// North/West quadrant boundary (135°) and angle increases (counter-clockwise in the game's polar
-/// convention) to the right — so the four cardinal lanes read West, South, East, North left-to-right,
-/// each centred a comfortable margin inside the grid rather than split across the wrap seam. The seam
-/// itself lands on a diagonal quadrant boundary, so no cardinal lane straddles it. On each side sits a
+/// The editor unrolls the circle onto a horizontal axis. The grid centre is South (270°); cardinals
+/// read North(edge) · West · South(centre) · East · North(edge) — the reflected <see cref="Direction"/>
+/// <c>== −1</c> view centres North instead, reflecting about the East–West axis. On each side sits a
 /// <see cref="GHOST_DEGREES"/>-wide "ghost" band previewing the wrap-around, so the full drawable width
 /// spans <see cref="TOTAL_DEGREES"/>.
 ///
@@ -25,16 +23,30 @@ namespace Garbus.Game.Edit;
 public static class EditorAngleMapping
 {
     /// <summary>
-    /// The absolute angle at the left edge of the main grid — the North/West quadrant boundary, chosen
-    /// so the wrap seam falls on a diagonal and every cardinal lane stays whole.
+    /// The absolute angle at the grid centre column's reference — the origin from which grid-degrees are
+    /// measured (grid-degree 0 is the left edge). At 90° the grid centre (grid-degree 180) lands on South
+    /// (270°), so the cardinals read North(edge) · West · South(centre) · East · North(edge).
     /// </summary>
-    public const int ANGLE_ORIGIN = 135;
+    public const int ANGLE_ORIGIN = 90;
 
     /// <summary>The angular width of each ghost wrap-around band.</summary>
     public const int GHOST_DEGREES = 30;
 
     /// <summary>The angular span of the full editor width: the 360° grid plus both ghost bands.</summary>
     public const int TOTAL_DEGREES = 360 + 2 * GHOST_DEGREES;
+
+    /// <summary>
+    /// View direction: <c>+1</c> unrolls the circle counter-clockwise with increasing x (South at the
+    /// grid centre); <c>−1</c> reflects the mapping about the East–West axis (North at the centre,
+    /// clockwise, West still left / East still right). Only +1 and −1 are valid. This is a global view
+    /// preference — never serialized.
+    /// </summary>
+    public static int Direction { get; set; } = 1;
+
+    /// <summary>Applies the current <see cref="Direction"/> reflection (θ → −θ when reversed).</summary>
+    private static float applyDirection(float angleDeg) => Direction == 1 ? angleDeg : NormalizeDeg(-angleDeg);
+
+    private static int applyDirection(int angleDeg) => Direction == 1 ? angleDeg : NormalizeDeg(-angleDeg);
 
     public static int NormalizeDeg(int angleDeg) => ((angleDeg % 360) + 360) % 360;
 
@@ -45,7 +57,7 @@ public static class EditorAngleMapping
     }
 
     /// <summary>Degrees counter-clockwise from the left (West) edge of the main grid, in [0, 360).</summary>
-    public static float ToGridDegrees(float angleDeg) => NormalizeDeg(angleDeg - ANGLE_ORIGIN);
+    public static float ToGridDegrees(float angleDeg) => NormalizeDeg(applyDirection(angleDeg) - ANGLE_ORIGIN);
 
     /// <summary>The x-fraction (of the full width, ghost bands included) at which an angle is drawn.</summary>
     public static float ToX(float angleDeg) => (GHOST_DEGREES + ToGridDegrees(angleDeg)) / TOTAL_DEGREES;
@@ -54,7 +66,7 @@ public static class EditorAngleMapping
     /// The angle at an x-fraction of the full width, in [0, 360). Positions inside a ghost band wrap
     /// onto the far side of the grid, which is what makes clicks in the bands "just work".
     /// </summary>
-    public static float ToAngle(float xFrac) => NormalizeDeg(xFrac * TOTAL_DEGREES - GHOST_DEGREES + ANGLE_ORIGIN);
+    public static float ToAngle(float xFrac) => applyDirection(NormalizeDeg(xFrac * TOTAL_DEGREES - GHOST_DEGREES + ANGLE_ORIGIN));
 
     /// <summary>
     /// Where the ghost twin of an angle is drawn, as an x-fraction of the full width — non-null only
@@ -112,7 +124,7 @@ public static class EditorAngleMapping
         float unwrapped = xFrac * TOTAL_DEGREES - GHOST_DEGREES + ANGLE_ORIGIN;
         float snappedUnwrapped = MathF.Round(unwrapped / increment) * increment;
         float snappedX = (snappedUnwrapped - ANGLE_ORIGIN + GHOST_DEGREES) / TOTAL_DEGREES;
-        return (snappedX, NormalizeDeg((int)snappedUnwrapped));
+        return (snappedX, applyDirection(NormalizeDeg((int)snappedUnwrapped)));
     }
 
     /// <summary>

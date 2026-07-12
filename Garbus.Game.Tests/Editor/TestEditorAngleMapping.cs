@@ -11,6 +11,44 @@ namespace Garbus.Game.Tests.Editor
     [TestFixture]
     public class TestEditorAngleMapping
     {
+        [TearDown]
+        public void ResetDirection() => EditorAngleMapping.Direction = 1;
+
+        // --- Direction reflection (reversed view: reflect about the E–W axis) ---
+
+        [Test]
+        public void TestNormalModeSouthAtCentre()
+        {
+            EditorAngleMapping.Direction = 1;
+            // South (270°) maps to the grid centre; the centre x-fraction is 0.5.
+            Assert.That(EditorAngleMapping.ToX(270), Is.EqualTo(0.5f).Within(1e-5f));
+            // West is left of centre, East is right of centre.
+            Assert.That(EditorAngleMapping.ToX(180), Is.LessThan(0.5f));
+            Assert.That(EditorAngleMapping.ToX(0), Is.GreaterThan(0.5f));
+        }
+
+        [Test]
+        public void TestReversedModeNorthAtCentreWestStillLeft()
+        {
+            EditorAngleMapping.Direction = -1;
+            // North (90°) maps to the grid centre.
+            Assert.That(EditorAngleMapping.ToX(90), Is.EqualTo(0.5f).Within(1e-5f));
+            // West stays on the left, East stays on the right (reflection about the E–W axis).
+            Assert.That(EditorAngleMapping.ToX(180), Is.LessThan(0.5f));
+            Assert.That(EditorAngleMapping.ToX(0), Is.GreaterThan(0.5f));
+        }
+
+        [Test]
+        public void TestReversedModeRoundTrip()
+        {
+            EditorAngleMapping.Direction = -1;
+            for (int a = 0; a < 360; a += 15)
+            {
+                float recovered = EditorAngleMapping.ToAngle(EditorAngleMapping.ToX(a));
+                Assert.That(recovered, Is.EqualTo(a).Within(0.01f), $"reversed round-trip failed for {a}");
+            }
+        }
+
         // --- VisibleWrapCopies (ported from BAC EditorAngleMappingTest) ---
 
         [Test]
@@ -58,7 +96,7 @@ namespace Garbus.Game.Tests.Editor
         // --- ToX / ToAngle ---
 
         /// <summary>
-        /// The left edge of the main grid sits at ANGLE_ORIGIN (135°), which is at x = GHOST_DEGREES/TOTAL_DEGREES.
+        /// The left edge of the main grid sits at ANGLE_ORIGIN (90°), which is at x = GHOST_DEGREES/TOTAL_DEGREES.
         /// </summary>
         [Test]
         public void TestToXAtOriginIsGhostFraction()
@@ -68,14 +106,14 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// 135° is 0 grid-degrees from the origin, so its x is GHOST/TOTAL.
-        /// The task brief confirms "ToX(135) == 0" is a domain check for the left edge of the MAIN grid
-        /// (not the full playfield) — i.e. ToGridDegrees(135) == 0.
+        /// 90° is 0 grid-degrees from the origin, so its x is GHOST/TOTAL.
+        /// The task brief confirms "ToX(90) == 0" is a domain check for the left edge of the MAIN grid
+        /// (not the full playfield) — i.e. ToGridDegrees(90) == 0.
         /// </summary>
         [Test]
         public void TestToGridDegreesAtOriginIsZero()
         {
-            Assert.That(EditorAngleMapping.ToGridDegrees(135), Is.EqualTo(0f).Within(1e-5f));
+            Assert.That(EditorAngleMapping.ToGridDegrees(90), Is.EqualTo(0f).Within(1e-5f));
         }
 
         [Test]
@@ -105,14 +143,14 @@ namespace Garbus.Game.Tests.Editor
         public void TestSnapXInLeftGhostBandSnapsToGridOrigin()
         {
             // A cursor half-way into the left ghost band resolves to the nearest 45° grid snap.
-            // Input x = ghostFrac * 0.5 = 15/420 → unwrapped angle = 120° → nearest 45° is 135°.
-            // SnapX must return that exact snap target: snappedX = (135 - 135 + 30) / 420 = ghostFrac,
-            // and angleDeg = 135.
+            // Input x = ghostFrac * 0.5 = 15/420 → unwrapped angle = 75° → nearest 45° is 90°.
+            // SnapX must return that exact snap target: snappedX = (90 - 90 + 30) / 420 = ghostFrac,
+            // and angleDeg = 90.
             float ghostFrac = (float)EditorAngleMapping.GHOST_DEGREES / EditorAngleMapping.TOTAL_DEGREES;
             float xInLeftGhost = ghostFrac * 0.5f;
             (float snappedX, int angleDeg) = EditorAngleMapping.SnapX(xInLeftGhost, 45);
 
-            Assert.That(angleDeg, Is.EqualTo(135), "nearest 45° snap from 120° unwrapped should be 135°");
+            Assert.That(angleDeg, Is.EqualTo(90), "nearest 45° snap from 75° unwrapped should be 90°");
             Assert.That(snappedX, Is.EqualTo(ghostFrac).Within(1e-5f), "snapped x should be exactly ghostFrac (the grid-left edge)");
         }
 
@@ -169,17 +207,17 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestGhostTwinXNonNullForNearEdgeAngle()
         {
-            // ANGLE_ORIGIN (135°) sits on the left edge of the grid, within GHOST_DEGREES of it.
+            // ANGLE_ORIGIN (90°) sits on the left edge of the grid, within GHOST_DEGREES of it.
             // Its grid-degrees == 0, which is < GHOST_DEGREES, so it has a twin.
-            Assert.That(EditorAngleMapping.GhostTwinX(135), Is.Not.Null);
+            Assert.That(EditorAngleMapping.GhostTwinX(90), Is.Not.Null);
         }
 
         [Test]
         public void TestGhostTwinXForRightEdgeAngle()
         {
-            // The angle 1° before the right seam (ANGLE_ORIGIN - 1 mod 360 = 134°):
-            // grid-degrees = NormalizeDeg(134 - 135) = 359, which is > 360 - GHOST_DEGREES, so has a twin.
-            float? twinX = EditorAngleMapping.GhostTwinX(134);
+            // The angle 1° before the right seam (ANGLE_ORIGIN - 1 mod 360 = 89°):
+            // grid-degrees = NormalizeDeg(89 - 90) = 359, which is > 360 - GHOST_DEGREES, so has a twin.
+            float? twinX = EditorAngleMapping.GhostTwinX(89);
             Assert.That(twinX, Is.Not.Null);
             // The twin x should be inside the left ghost band.
             float ghostFrac = (float)EditorAngleMapping.GHOST_DEGREES / EditorAngleMapping.TOTAL_DEGREES;
