@@ -1492,6 +1492,27 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("side unchanged", () => placedObject<ShoulderNote>()!.Side, () => Is.EqualTo(sideMid));
         }
 
+        [Test]
+        public void TestReverseAngleViewMovesNorthToCentre()
+        {
+            waitForComposer();
+            placeNoteAt(90); // North
+
+            AddAssert("North starts off-centre", () =>
+                Math.Abs(EditorAngleMapping.ToX(90) - 0.5f) > 0.1f);
+
+            AddStep("reverse the view", () => composer.ReverseAngleView.Value = true);
+
+            AddAssert("Direction flipped", () => EditorAngleMapping.Direction, () => Is.EqualTo(-1));
+            AddAssert("North now centred", () =>
+                Math.Abs(EditorAngleMapping.ToX(90) - 0.5f) < 1e-4f);
+            AddUntilStep("North drawable tracks to centre", () =>
+            {
+                var d = composer.HitObjects.OfType<EditorDrawableCardinalNote>().FirstOrDefault();
+                return d != null && Math.Abs(d.X - 0.5f) < 0.01f;
+            });
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.

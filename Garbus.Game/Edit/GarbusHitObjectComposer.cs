@@ -33,6 +33,12 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
     public readonly BindableInt AngleSnap = new BindableInt(45);
 
     /// <summary>
+    /// Whether the angle view is reversed — North at the centre, clockwise (reflected about the E–W axis).
+    /// View-only; drives <see cref="EditorAngleMapping.Direction"/>. Never serialized.
+    /// </summary>
+    public readonly BindableBool ReverseAngleView = new BindableBool();
+
+    /// <summary>
     /// Whether placing a hit object should automatically seek the editor clock to its start time.
     /// Wired from <see cref="Configuration.GarbusSetting.EditorAutoSeekOnPlacement"/> via ComposeTab (Task 17).
     /// Placement blueprints bind their own <c>AutoSeekOnPlacement</c> to this when the composer is
@@ -105,6 +111,10 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
         });
 
         PlayfieldContentContainer.Add(flipPivotOverlay = new FlipPivotOverlay(x => EditorAngleMapping.SnapX(x, AngleSnap.Value)));
+
+        // The composer is [Cached] and loads before the playfield's AngleGrid, so this direct subscriber
+        // sets Direction before the grid's (bound) subscriber regenerates — the grid reads a fresh value.
+        ReverseAngleView.BindValueChanged(v => EditorAngleMapping.Direction = v.NewValue ? -1 : 1, true);
     }
 
     /// <summary>

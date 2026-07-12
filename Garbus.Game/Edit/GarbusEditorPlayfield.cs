@@ -153,14 +153,19 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
         private GarbusHitObjectComposer? composer { get; set; }
 
         private readonly IBindable<int> angleSnap = new BindableInt(45);
+        private readonly IBindable<bool> reverseView = new BindableBool();
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
 
             if (composer != null)
+            {
                 angleSnap.BindTo(composer.AngleSnap);
+                reverseView.BindTo(composer.ReverseAngleView);
+            }
             angleSnap.BindValueChanged(_ => regenerate(), true);
+            reverseView.BindValueChanged(_ => regenerate());
         }
 
         private void regenerate()
