@@ -111,8 +111,8 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
             AddStep("select shoulder tool", () => input.Key(Key.Number4));
-            // Left strip is the West–South boundary (225°); Right strip the East–North boundary (45°).
-            AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(225)));
+            // Left strip is the West lane (180°); Right strip the East lane (0°).
+            AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(180)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("left shoulder placed", () => placedObject<ShoulderNote>()?.Side == HorizontalDirection.Left);
         }
@@ -122,9 +122,9 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
             AddStep("select shoulder hold tool", () => input.Key(Key.Number5));
-            AddStep("move near right strip", () => input.MoveMouseTo(positionAtAngle(45, 0.6f)));
+            AddStep("move near right strip", () => input.MoveMouseTo(positionAtAngle(0, 0.6f)));
             AddStep("press", () => input.PressButton(MouseButton.Left));
-            AddStep("drag upward", () => input.MoveMouseTo(positionAtAngle(45, 0.3f)));
+            AddStep("drag upward", () => input.MoveMouseTo(positionAtAngle(0, 0.3f)));
             AddStep("release", () => input.ReleaseButton(MouseButton.Left));
             AddAssert("shoulder hold placed with duration", () => placedObject<ShoulderHoldNote>()?.Duration > 0);
             AddAssert("right side", () => placedObject<ShoulderHoldNote>()?.Side == HorizontalDirection.Right);

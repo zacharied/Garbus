@@ -24,11 +24,11 @@ namespace Garbus.Game.Edit;
 /// </summary>
 public partial class GarbusEditorPlayfield : ScrollingPlayfield
 {
-    /// <summary>Absolute angle of the Left-shoulder lane strip (the West–South quadrant boundary).</summary>
-    public const int LEFT_SHOULDER_ANGLE_DEG = 225;
+    /// <summary>Absolute angle of the Left-shoulder lane strip — the West lane (a left shoulder travels West).</summary>
+    public const int LEFT_SHOULDER_ANGLE_DEG = 180;
 
-    /// <summary>Absolute angle of the Right-shoulder lane strip (the East–North quadrant boundary).</summary>
-    public const int RIGHT_SHOULDER_ANGLE_DEG = 45;
+    /// <summary>Absolute angle of the Right-shoulder lane strip — the East lane (a right shoulder travels East).</summary>
+    public const int RIGHT_SHOULDER_ANGLE_DEG = 0;
 
     /// <summary>Visual width of a shoulder lane strip, in degrees.</summary>
     public const float SHOULDER_STRIP_DEGREES = 16;
