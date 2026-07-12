@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using Garbus.Game.Core;
 using Garbus.Game.Objects;
 using Garbus.Game.Utils;
@@ -10,20 +12,25 @@ using osuTK;
 namespace Garbus.Game.UI;
 
 /// <summary>
-/// Draws a blurred colored arc around the outside of the playfield for an approaching slider head or
-/// SlamCentered (GAR-3). One arc per Side; the reveal logic lives in <see cref="WarningIndicatorSchedule"/>.
+/// Draws a blurred colored glow around the outside of the playfield ring for an approaching slider head
+/// (GAR-3). One glow per Side; the reveal logic lives in <see cref="WarningIndicatorSchedule"/>.
+///
+/// The glow is a wide (90°) blurred arc centred on the ring edge, then crisply clipped to the region
+/// <em>outside</em> the ring circle so it reads as light emanating from under the ring. The clip is a
+/// destination-out mask applied <em>after</em> the blur, so the inner edge stays a clean circle while the
+/// outer edge remains soft.
 /// </summary>
 public sealed partial class WarningIndicatorDisplay : CompositeDrawable
 {
     /// <summary>How far before an indicated object's StartTime the warning appears, in ms. Tunable.</summary>
-    public const double WARNING_TIME = 600;
+    public const double WARNING_TIME = 2000;
 
-    // Visual tuning. radius_scale sits just inside 1.0 so the outward blur has headroom inside the
-    // BufferedContainer framebuffer (the arc renders around the outside of the ring).
-    private const float radius_scale = 0.94f;
-    private const float thickness = 16f;
-    private const float blur_sigma = 8f;
-    private const float arc_half_width_deg = 15f;
+    // Visual tuning. The arc centreline sits on the ring (radius_scale = 1.0); the inner half is erased by
+    // the ring-circle mask, leaving the outward blur visible as an under-ring glow.
+    private const float radius_scale = 1.0f;
+    private const float thickness = 50;
+    private const float blur_sigma = 15f;
+    private const float arc_half_width_deg = 45f; // 90° total span across the ring.
     private const double fade_ms = 150;
 
     private WarningIndicatorSchedule? schedule;
@@ -46,19 +53,43 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
                 Origin = Anchor.Centre,
                 RelativeSizeAxes = Axes.Both,
                 Size = new Vector2(radius_scale),
-                Colour = side == HorizontalDirection.Left ? Colour4.Blue : Colour4.Red,
+                Colour = side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour
             };
 
-            var buffer = new BufferedContainer
+            // Blur the glow first (base arc shape invisible: DrawOriginal stays false).
+            var blurred = new BufferedContainer
             {
                 RelativeSizeAxes = Axes.Both,
                 BlurSigma = new Vector2(blur_sigma),
-                Alpha = 0,
                 Child = arc,
             };
 
-            sideArcs[side] = new SideArc(buffer, arc);
-            AddInternal(buffer);
+            // A circle matching the ring; destination-out blending erases the disc interior from the
+            // already-blurred glow, leaving a crisp inner clip at the ring edge. Sized each frame in Update
+            // so it stays a true circle (min dimension) even when the playfield area is not square.
+            var mask = new Circle
+            {
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                Blending = new BlendingParameters
+                {
+                    Source = BlendingType.Zero,
+                    Destination = BlendingType.OneMinusSrcAlpha,
+                    SourceAlpha = BlendingType.Zero,
+                    DestinationAlpha = BlendingType.OneMinusSrcAlpha,
+                },
+            };
+
+            // Outer buffer composites the crisp mask over the blurred glow (no blur of its own).
+            var clipped = new BufferedContainer
+            {
+                RelativeSizeAxes = Axes.Both,
+                Alpha = 0,
+                Children = new Drawable[] { blurred, mask },
+            };
+
+            sideArcs[side] = new SideArc(clipped, arc, mask);
+            AddInternal(clipped);
         }
     }
 
@@ -73,8 +104,13 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
     {
         base.Update();
 
+        float diameter = MathF.Min(DrawWidth, DrawHeight);
+
         foreach (var (side, s) in sideArcs)
         {
+            // Keep the mask a true ring-sized circle regardless of aspect ratio.
+            s.Mask.Size = new Vector2(diameter);
+
             var revealed = schedule?.Revealed(side, Time.Current);
 
             if (revealed is { } x)
@@ -106,12 +142,14 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
     {
         public readonly BufferedContainer Buffer;
         public readonly Arc Arc;
+        public readonly Circle Mask;
         public int? RevealedAngleDeg;
 
-        public SideArc(BufferedContainer buffer, Arc arc)
+        public SideArc(BufferedContainer buffer, Arc arc, Circle mask)
         {
             Buffer = buffer;
             Arc = arc;
+            Mask = mask;
         }
     }
 }

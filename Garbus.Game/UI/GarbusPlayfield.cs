@@ -41,12 +41,14 @@ public partial class GarbusPlayfield : Playfield
     [BackgroundDependencyLoader]
     private void load()
     {
+        // warningIndicators sits before the ring so the ring's white stroke draws on top of the glow's
+        // clipped inner edge — the glow reads as light emanating from under the ring.
         AddRangeInternal([
             analogInputManager,
+            warningIndicators,
             ring,
             stickIndicatorL,
             stickIndicatorR,
-            warningIndicators,
         ]);
     }
 
