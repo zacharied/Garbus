@@ -586,6 +586,27 @@ namespace Garbus.Game.Tests.Editor
                         .Sum(s => s.PlayCount), () => Is.Zero);
         }
 
+        [Test]
+        public void TestDirectionToggleButtonFlipsView()
+        {
+            waitForComposer();
+
+            AddAssert("starts CCW / not reversed", () => !composer.ReverseAngleView.Value);
+            AddAssert("button shows CCW", () =>
+                composer.ChildrenOfType<AngleDirectionToggleButton>().Single().LabelText == "⇄ CCW");
+
+            AddStep("click the toggle", () =>
+            {
+                var button = composer.ChildrenOfType<AngleDirectionToggleButton>().Single();
+                input.MoveMouseTo(button.ScreenSpaceDrawQuad.Centre);
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("now reversed", () => composer.ReverseAngleView.Value);
+            AddAssert("button shows CW", () =>
+                composer.ChildrenOfType<AngleDirectionToggleButton>().Single().LabelText == "⇄ CW");
+        }
+
         // ------------------------------------------------------------------
         // Slider selection: path-precise + T-key node insertion.
         // ------------------------------------------------------------------
