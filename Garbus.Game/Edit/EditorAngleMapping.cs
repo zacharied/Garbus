@@ -59,6 +59,16 @@ public static class EditorAngleMapping
     /// <summary>Degrees counter-clockwise from the left (West) edge of the main grid, in [0, 360).</summary>
     public static float ToGridDegrees(float angleDeg) => NormalizeDeg(applyDirection(angleDeg) - ANGLE_ORIGIN);
 
+    /// <summary>
+    /// The absolute angle (in [0,360)) at a whole-degree grid position, honoring the given
+    /// direction sign (+1/−1) explicitly rather than the static <see cref="Direction"/>. The integer
+    /// inverse of <see cref="ToGridDegrees"/> at whole degrees — callers who must derive direction from
+    /// something other than the (possibly stale, order-dependent) static should use this instead of
+    /// re-deriving the reflection by hand.
+    /// </summary>
+    public static int GridDegreesToAngle(int gridDeg, int direction) =>
+        direction == 1 ? NormalizeDeg(gridDeg + ANGLE_ORIGIN) : NormalizeDeg(-(gridDeg + ANGLE_ORIGIN));
+
     /// <summary>The x-fraction (of the full width, ghost bands included) at which an angle is drawn.</summary>
     public static float ToX(float angleDeg) => (GHOST_DEGREES + ToGridDegrees(angleDeg)) / TOTAL_DEGREES;
 

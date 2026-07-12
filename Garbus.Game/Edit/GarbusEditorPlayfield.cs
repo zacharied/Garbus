@@ -174,10 +174,11 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
 
             var lines = new List<Drawable>();
             int snap = angleSnap.Value;
+            int direction = reverseView.Value ? -1 : 1;
 
             for (int gridDeg = -EditorAngleMapping.GHOST_DEGREES; gridDeg <= 360 + EditorAngleMapping.GHOST_DEGREES; gridDeg += 1)
             {
-                int absolute = EditorAngleMapping.NormalizeDeg(gridDeg + EditorAngleMapping.ANGLE_ORIGIN);
+                int absolute = EditorAngleMapping.GridDegreesToAngle(gridDeg, direction);
 
                 bool cardinal = absolute % 90 == 0;
                 bool major = absolute % 45 == 0;

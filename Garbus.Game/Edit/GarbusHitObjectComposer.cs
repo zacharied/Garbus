@@ -112,8 +112,10 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
         PlayfieldContentContainer.Add(flipPivotOverlay = new FlipPivotOverlay(x => EditorAngleMapping.SnapX(x, AngleSnap.Value)));
 
-        // The composer is [Cached] and loads before the playfield's AngleGrid, so this direct subscriber
-        // sets Direction before the grid's (bound) subscriber regenerates — the grid reads a fresh value.
+        // This subscriber keeps the static Direction (read by the per-frame drawable x-mapping and reset
+        // per scene) in sync with the bindable. The AngleGrid does NOT read this static — it derives its
+        // own direction from its bound copy of ReverseAngleView, whose value is already up to date by the
+        // time its handler runs regardless of subscriber ordering, so the grid never sees a stale value.
         ReverseAngleView.BindValueChanged(v => EditorAngleMapping.Direction = v.NewValue ? -1 : 1, true);
     }
 

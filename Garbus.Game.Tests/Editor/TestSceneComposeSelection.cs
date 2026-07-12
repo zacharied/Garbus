@@ -27,6 +27,7 @@ using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Utils;
@@ -1511,7 +1512,34 @@ namespace Garbus.Game.Tests.Editor
                 var d = composer.HitObjects.OfType<EditorDrawableCardinalNote>().FirstOrDefault();
                 return d != null && Math.Abs(d.X - 0.5f) < 0.01f;
             });
+            AddUntilStep("grid label at centre reads N", () => centreCardinalLabel() == "N");
         }
+
+        [Test]
+        public void TestReverseAngleViewFlipsGridLabelAtCentre()
+        {
+            // Guards against the AngleGrid drawing frozen labels: before the toggle the grid centre must
+            // read South, and it must flip to North once the view is reversed — this inspects the actual
+            // rendered SpriteText output of GarbusEditorPlayfield's AngleGrid, not just the angle-mapping
+            // math, so a grid that never regenerates (or reads a stale Direction) fails this test.
+            waitForComposer();
+
+            AddUntilStep("grid label at centre reads S", () => centreCardinalLabel() == "S");
+
+            AddStep("reverse the view", () => composer.ReverseAngleView.Value = true);
+
+            AddUntilStep("grid label at centre reads N", () => centreCardinalLabel() == "N");
+        }
+
+        /// <summary>
+        /// The <c>Text</c> of the single-letter cardinal <see cref="SpriteText"/> the AngleGrid draws
+        /// nearest the playfield's horizontal centre (x ≈ 0.5), or <c>null</c> if none is close enough.
+        /// </summary>
+        private string? centreCardinalLabel() => composer.Playfield
+            .ChildrenOfType<SpriteText>()
+            .Where(t => t.Text.ToString().Length == 1 && "NESW".Contains(t.Text.ToString()))
+            .OrderBy(t => Math.Abs(t.X - 0.5f))
+            .FirstOrDefault(t => Math.Abs(t.X - 0.5f) < 0.02f)?.Text.ToString();
 
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts

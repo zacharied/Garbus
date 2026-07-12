@@ -49,6 +49,42 @@ namespace Garbus.Game.Tests.Editor
             }
         }
 
+        // --- GridDegreesToAngle (explicit-direction integer inverse of ToGridDegrees) ---
+
+        [Test]
+        public void TestGridDegreesToAngleNormalCentreIsSouth()
+        {
+            // Grid centre (180 grid-degrees) is South (270°) in the normal (+1) direction.
+            Assert.That(EditorAngleMapping.GridDegreesToAngle(180, 1), Is.EqualTo(270));
+        }
+
+        [Test]
+        public void TestGridDegreesToAngleReversedCentreIsNorth()
+        {
+            // Grid centre (180 grid-degrees) is North (90°) once reflected (-1 direction).
+            Assert.That(EditorAngleMapping.GridDegreesToAngle(180, -1), Is.EqualTo(90));
+        }
+
+        [Test]
+        public void TestGridDegreesToAngleNormalLeftEdgeIsOrigin()
+        {
+            Assert.That(EditorAngleMapping.GridDegreesToAngle(0, 1), Is.EqualTo(90));
+        }
+
+        [Test]
+        public void TestGridDegreesToAngleAgreesWithApplyDirectionReflection()
+        {
+            // GridDegreesToAngle(gridDeg, direction) must be the very same reflection ToX/ToAngle apply —
+            // i.e. it agrees with normalizing (gridDeg + ANGLE_ORIGIN) and then reflecting when reversed.
+            for (int gridDeg = 0; gridDeg < 360; gridDeg += 15)
+            {
+                int forwardAbsolute = EditorAngleMapping.NormalizeDeg(gridDeg + EditorAngleMapping.ANGLE_ORIGIN);
+
+                Assert.That(EditorAngleMapping.GridDegreesToAngle(gridDeg, 1), Is.EqualTo(forwardAbsolute));
+                Assert.That(EditorAngleMapping.GridDegreesToAngle(gridDeg, -1), Is.EqualTo(EditorAngleMapping.NormalizeDeg(-forwardAbsolute)));
+            }
+        }
+
         // --- VisibleWrapCopies (ported from BAC EditorAngleMappingTest) ---
 
         [Test]
