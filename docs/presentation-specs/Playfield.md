@@ -1,6 +1,6 @@
 *The contents of this document differ from the current implementation.*
 
-# Presentation specification
+# Playfield presentation specification
 
 This is the canonical reference for how every Garbus hit object is presented visually. It describes the shape, motion, and on-screen feedback of each object type. For the input behavior these visuals prompt, see `../rules-specs/Inputs.md`; for timing and judgement, see `../rules-specs/Judgement.md`.
 
@@ -26,7 +26,7 @@ A HoldCardinalNote is presented as a line extending out of a CardinalNote note t
 
 ### HoldShoulderNote
 
-A HoldShoulderNote is presented as a line extending out of a shoulder note towards the center of the circle. It follows the same path as its parent ShoulderNote.
+A HoldShoulderNote is presented as a circle sector extending out of a shoulder note towards the center of the circle. It follows the same path as its parent ShoulderNote.
 
 ### Slider
 
@@ -45,7 +45,7 @@ The indicator for an indicated object *x* reveals itself when both of the follow
 - `x.StartTime - CurrentTime <= WarningTime` — *x* is within the warning window of reaching the edge (the lower bound is inclusive, matching the reveal window below).
 - The gap between the previous same-side stick object and *x* is greater than `WarningTime`. This rule considers *stick objects* (any Slider, SlamCentered, or SlamEdge on the same Side), not only indicated objects. The gap is measured from the previous stick object's **end** (when the stick frees up) to *x*'s StartTime; when there is no earlier same-side stick object the gap is unbounded, so an isolated object always warns. This means a warning appears only when the stick has been idle on that Side, not when *x* follows closely on recent same-side activity that already has the player's stick engaged.
 
-The reveal window is `[x.StartTime - WarningTime, x.StartTime)`: the indicator hides once *x* reaches the edge. Because two eligible same-side objects are always more than `WarningTime` apart, at most one indicated object per Side is shown at any instant.
+The reveal window is `[x.StartTime - WarningTime, x.StartTime)`: the indicator hides once *x* reaches the edge. 
 
 `WarningTime` is a tunable parameter.
 

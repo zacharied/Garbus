@@ -99,6 +99,7 @@ Because a stick object occupies its side's stick for its whole duration, simulta
 A discrete object with a Side and Angle, input by flicking the analog stick of its side outward from center toward its angle.
 
 The flick is detected as a rapid outward motion of the stick — its radius rising past the threshold — with its stick angle within tolerance of the slam's Angle.
+The slam radius threshold differs from the radius threshold used to detect catchers.
 
 ### SlamEdge
 
