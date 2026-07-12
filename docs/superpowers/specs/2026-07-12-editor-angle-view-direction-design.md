@@ -106,8 +106,9 @@ Redraw:
 ### 5. Floating toggle button
 
 A small floating toggle drawable hosted top-left of the compose playfield, on the same vertical level as
-the N/E/S/W letter labels the `AngleGrid` draws at the top. It shows the currently-centered pole (e.g.
-`⇄ S` / `⇄ N`) and toggles `ReverseAngleView` on click. Minimal styling consistent with the existing
+the N/E/S/W letter labels the `AngleGrid` draws at the top. It shows the current x→θ rotation direction —
+**`⇄ CCW`** in Normal mode (angle increases counter-clockwise with x; South centered), **`⇄ CW`** when
+reversed (North centered) — and toggles `ReverseAngleView` on click. Minimal styling consistent with the existing
 editor chrome; exact host container (composer content vs. playfield overlay) settled during planning,
 constrained to render above the grid and receive clicks.
 
