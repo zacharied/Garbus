@@ -34,7 +34,7 @@ public partial class GarbusPlayfield : Playfield
 
     public GarbusPlayfield()
     {
-        Padding = new MarginPadding(150);
+        Padding = new MarginPadding(30);
         AddNested(ring);
     }
 
