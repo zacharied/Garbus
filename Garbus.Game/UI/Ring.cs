@@ -112,6 +112,7 @@ public partial class Ring : Playfield
         CardinalNote c => cardinalLanes[(int)c.Direction],
         CardinalHoldNote h => cardinalLanes[(int)h.Direction],
         ShoulderNote s => shoulderLanes[shoulderIndex(s.Side)],
+        ShoulderHoldNote sh => shoulderLanes[shoulderIndex(sh.Side)],
         _ => null
     };
 

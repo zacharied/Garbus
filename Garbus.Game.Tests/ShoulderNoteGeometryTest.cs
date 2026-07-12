@@ -59,5 +59,14 @@ namespace Garbus.Game.Tests
             var plus = ShoulderNoteGeometry.SquarePosition(0f, 0f, +1f);
             Assert.That(plus.Length, Is.EqualTo(0f).Within(0.01f));
         }
+
+        [Test]
+        public void SectorRotationCentresOnCardinalDirection()
+        {
+            // CircularProgress fills a 0.25 (90°) wedge clockwise from local up; the rotation places the
+            // wedge centre on the side's screen direction (east for a right note, west for a left one).
+            Assert.That(ShoulderNoteGeometry.SectorRotationDeg(0f), Is.EqualTo(45f));    // right → east
+            Assert.That(ShoulderNoteGeometry.SectorRotationDeg(180f), Is.EqualTo(-135f)); // left → west
+        }
     }
 }

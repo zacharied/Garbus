@@ -170,5 +170,30 @@ namespace Garbus.Game.Tests.Visual
 
         private Objects.Drawables.DrawableCardinalHoldNote? shortHold()
             => playfield.AllHitObjects.OfType<Objects.Drawables.DrawableCardinalHoldNote>().SingleOrDefault(h => h.HitObject.Duration < 100);
+
+        private Objects.Drawables.DrawableShoulderHoldNote? shoulderHold()
+            => playfield.AllHitObjects.OfType<Objects.Drawables.DrawableShoulderHoldNote>().SingleOrDefault();
+
+        [Test]
+        public void TestShoulderHoldMissedWhenUntouched()
+        {
+            playThrough(20000);
+
+            AddUntilStep("shoulder hold judged", () => shoulderHold()?.Judged == true);
+            AddAssert("shoulder hold missed", () => shoulderHold()?.Result?.Type == HitResult.Miss);
+        }
+
+        [Test]
+        public void TestShoulderHoldHeldByKeyPress()
+        {
+            // Right shoulder hold at 13000ms, 1000ms long. E maps to ButtonR.
+            playThrough(12900);
+            AddStep("press right shoulder", () => input.PressKey(Key.E));
+            playThrough(14100);
+            AddStep("release right shoulder", () => input.ReleaseKey(Key.E));
+
+            AddUntilStep("shoulder hold judged", () => shoulderHold()?.Judged == true);
+            AddAssert("shoulder hold hit", () => shoulderHold()?.IsHit == true);
+        }
     }
 }

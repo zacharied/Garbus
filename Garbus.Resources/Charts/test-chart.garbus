@@ -116,6 +116,12 @@
       "angleDeg": 0,
       "duration": 80,
       "time": 11000
+    },
+    {
+      "type": "shoulder-hold",
+      "side": "Right",
+      "duration": 1000,
+      "time": 13000
     }
   ]
 }

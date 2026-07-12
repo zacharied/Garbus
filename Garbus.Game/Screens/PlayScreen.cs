@@ -226,6 +226,7 @@ namespace Garbus.Game.Screens
             ShoulderNote note => new DrawableShoulderNote(note),
             GarbusSlamCentered slamCentered => new DrawableSlamCentered(slamCentered),
             GarbusSlamEdge slamEdge => new DrawableSlamEdge(slamEdge),
+            ShoulderHoldNote hold => new DrawableShoulderHoldNote(hold),
             _ => throw new ArgumentOutOfRangeException(nameof(h), h.GetType().Name, "no drawable representation")
         };
 

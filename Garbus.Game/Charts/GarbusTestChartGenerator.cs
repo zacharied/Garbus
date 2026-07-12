@@ -116,7 +116,13 @@ public class GarbusTestChartGenerator
                     StartTime = 11000,
                     Duration = 80,
                     AngleDeg = 0,
-                }
+                },
+                new ShoulderHoldNote()
+                {
+                    StartTime = 13000,
+                    Duration = 1000,
+                    Side = HorizontalDirection.Right,
+                },
             ]
         };
 

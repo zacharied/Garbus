@@ -25,4 +25,12 @@ public static class ShoulderNoteGeometry
     /// </summary>
     public static Vector2 SquarePosition(float baseAngleDeg, float radius, float offsetSign)
         => Polar(ToRadians(baseAngleDeg + offsetSign * DiagonalOffsetDeg), radius);
+
+    /// <summary>
+    /// Rotation (degrees) for a <see cref="osu.Framework.Graphics.UserInterface.CircularProgress"/> whose
+    /// 0.25 progress wedge should be centred on <paramref name="baseAngleDeg"/>'s screen direction, spanning
+    /// ±45°. CircularProgress fills clockwise from local up; screen-clockwise angle for playfield angle θ is
+    /// 90−θ, and the unrotated wedge centre sits at +45°, so rotation = (90−θ)−45 = 45−θ.
+    /// </summary>
+    public static float SectorRotationDeg(float baseAngleDeg) => 45f - baseAngleDeg;
 }
