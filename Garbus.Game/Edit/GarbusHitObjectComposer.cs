@@ -59,7 +59,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
     protected override DrawableHitObject? CreateDrawableRepresentation(GarbusHitObject hitObject) => hitObject switch
     {
         SliderBody slider => new EditorDrawableSliderBody(slider),
-        HoldNote hold => new EditorDrawableHoldNote(hold),
+        CardinalHoldNote hold => new EditorDrawableCardinalHoldNote(hold),
         CardinalNote note => new EditorDrawableCardinalNote(note),
         ShoulderNote shoulder => new EditorDrawableShoulderNote(shoulder),
         GarbusSlamCentered slam => new EditorDrawableGarbusSlamCentered(slam),
@@ -74,7 +74,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
     protected override IReadOnlyList<CompositionTool> CompositionTools => new CompositionTool[]
     {
         new CardinalNoteCompositionTool(),
-        new HoldNoteCompositionTool(),
+        new CardinalHoldNoteCompositionTool(),
         new ShoulderNoteCompositionTool(),
         new SlamCenteredCompositionTool(),
         new SlamEdgeCompositionTool(),

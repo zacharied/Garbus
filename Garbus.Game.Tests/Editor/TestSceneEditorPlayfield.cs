@@ -125,7 +125,7 @@ namespace Garbus.Game.Tests.Editor
                 hitObject switch
                 {
                     CardinalNote cn => new EditorDrawableCardinalNote(cn),
-                    HoldNote hn => new EditorDrawableHoldNote(hn),
+                    CardinalHoldNote hn => new EditorDrawableCardinalHoldNote(hn),
                     ShoulderNote sn => new EditorDrawableShoulderNote(sn),
                     GarbusSlamCentered sc => new EditorDrawableGarbusSlamCentered(sc),
                     GarbusSlamEdge se => new EditorDrawableGarbusSlamEdge(se),

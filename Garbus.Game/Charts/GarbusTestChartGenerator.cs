@@ -98,20 +98,20 @@ public class GarbusTestChartGenerator
                     StartTime = 3500,
                     Side = HorizontalDirection.Left,
                 },
-                new HoldNote()
+                new CardinalHoldNote()
                 {
                     StartTime = 6000,
                     Duration = 1000,
                     AngleDeg = 180,
                 },
-                new HoldNote()
+                new CardinalHoldNote()
                 {
                     StartTime = 8000,
                     Duration = 2000,
                     AngleDeg = 270,
                 },
                 // A hold shorter than the head press window: the deferred tail should just inherit the head.
-                new HoldNote()
+                new CardinalHoldNote()
                 {
                     StartTime = 11000,
                     Duration = 80,

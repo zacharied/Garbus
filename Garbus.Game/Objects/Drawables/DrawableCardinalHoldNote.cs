@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableHoldNote.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableCardinalHoldNote.cs).
 // Original carries the ppy template MIT header:
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 
@@ -28,7 +28,7 @@ namespace Garbus.Game.Objects.Drawables;
 ///
 /// The head behaves like a <see cref="DrawableCardinalNote"/> (emerges from the centre and reaches the ring
 /// at <see cref="HitObject.StartTime"/>), while the trailing line runs from the head inward toward the tail —
-/// the node at <see cref="HoldNote.EndTime"/>, which is closer to the centre because it is later in time. As
+/// the node at <see cref="CardinalHoldNote.EndTime"/>, which is closer to the centre because it is later in time. As
 /// time advances the whole thing sweeps outward: the head crosses the ring first, then the tail.
 ///
 /// This is an <see cref="ISelfPosition"/> drawable (like <see cref="DrawableSliderBody"/>): it computes both
@@ -36,7 +36,7 @@ namespace Garbus.Game.Objects.Drawables;
 /// loop leaves it alone.
 ///
 /// <para>
-/// Judgement has two parts. The nested <see cref="DrawableHoldNoteHead"/> is judged like a cardinal note on
+/// Judgement has two parts. The nested <see cref="DrawableCardinalCardinalHoldNoteHead"/> is judged like a cardinal note on
 /// the press that starts the hold. The hold itself (the "tail") is judged with <see cref="DrawableSliderChild"/>'s
 /// time-accumulation algorithm over [head-hit, EndTime], but with finer result granularity (top tier at ≥99%
 /// caught) and capped by the head's grade. The tail judgement is <b>deferred until the head has been judged</b>
@@ -45,7 +45,7 @@ namespace Garbus.Game.Objects.Drawables;
 /// pressing again just flips the recorded state, and the trail greys out whenever the hold is dropped.
 /// </para>
 /// </summary>
-public partial class DrawableHoldNote : DrawableNote<HoldNote>, ISelfPosition
+public partial class DrawableCardinalHoldNote : DrawableNote<CardinalHoldNote>, ISelfPosition
 {
     /// <summary>Full width of the trailing line, in pixels. Half of this is the <see cref="Path.PathRadius"/>.</summary>
     private const float body_thickness = 20f;
@@ -63,8 +63,8 @@ public partial class DrawableHoldNote : DrawableNote<HoldNote>, ISelfPosition
     private readonly SmoothPath body;
 
     // Nested judgemental head. Drawn by this parent (headSprite), judged via Head.UpdateResult() on press.
-    private readonly Container<DrawableHoldNoteHead> headContainer = new() { RelativeSizeAxes = Axes.Both };
-    private DrawableHoldNoteHead Head => headContainer.Child;
+    private readonly Container<DrawableCardinalCardinalHoldNoteHead> headContainer = new() { RelativeSizeAxes = Axes.Both };
+    private DrawableCardinalCardinalHoldNoteHead Head => headContainer.Child;
 
     // Number of currently-pressed bindings for this note's button (a cardinal has both a d-pad and a face
     // action collapsing onto the same input, so this is a count rather than a bool). holding == holdPresses > 0.
@@ -75,7 +75,7 @@ public partial class DrawableHoldNote : DrawableNote<HoldNote>, ISelfPosition
     private CatchRecord? currentCatchRecord;
     private bool headPopPlayed;
 
-    public DrawableHoldNote(HoldNote hitObject)
+    public DrawableCardinalHoldNote(CardinalHoldNote hitObject)
         : base(hitObject)
     {
         RelativeSizeAxes = Axes.Both;
@@ -331,14 +331,14 @@ public partial class DrawableHoldNote : DrawableNote<HoldNote>, ISelfPosition
     {
         return hitObject switch
         {
-            HoldNoteHead head => new DrawableHoldNoteHead(head),
+            CardinalHoldNoteHead head => new DrawableCardinalCardinalHoldNoteHead(head),
             _ => throw new InvalidOperationException($"cannot create nested hit object for type {hitObject.GetType().Name}")
         };
     }
 
     protected override void AddNestedHitObject(DrawableHitObject hitObject)
     {
-        if (hitObject is not DrawableHoldNoteHead head)
+        if (hitObject is not DrawableCardinalCardinalHoldNoteHead head)
             throw new InvalidOperationException($"cannot add child of type {hitObject.GetType()}");
 
         headContainer.Child = head;

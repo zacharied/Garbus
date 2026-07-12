@@ -70,7 +70,7 @@ namespace Garbus.Game.Tests.Editor
             // Placement is done via EditorChart.Add (real-input placement is covered exhaustively by
             // TestSceneComposePlacement; here we exercise the shell + change-handler + save path).
             AddStep("place cardinal note", () => editorChart.Add(new CardinalNote { StartTime = 1000, AngleDeg = 270 }));
-            AddStep("place hold note", () => editorChart.Add(new HoldNote { StartTime = 2000, AngleDeg = 90, Duration = 1000 }));
+            AddStep("place hold note", () => editorChart.Add(new CardinalHoldNote { StartTime = 2000, AngleDeg = 90, Duration = 1000 }));
             AddStep("place seam-crossing slider", () => editorChart.Add(makeSeamCrossingSlider(3000)));
             AddAssert("three objects placed", () => editorChart.HitObjects.Count, () => Is.EqualTo(3));
 

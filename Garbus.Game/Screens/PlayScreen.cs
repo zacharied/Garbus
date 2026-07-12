@@ -222,7 +222,7 @@ namespace Garbus.Game.Screens
         {
             SliderBody path => new DrawableSliderBody(path),
             CardinalNote button => new DrawableCardinalNote(button),
-            HoldNote hold => new DrawableHoldNote(hold),
+            CardinalHoldNote hold => new DrawableCardinalHoldNote(hold),
             ShoulderNote note => new DrawableShoulderNote(note),
             GarbusSlamCentered slamCentered => new DrawableSlamCentered(slamCentered),
             GarbusSlamEdge slamEdge => new DrawableSlamEdge(slamEdge),

@@ -1,7 +1,7 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/HoldNoteSelectionBlueprint.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/CardinalHoldNoteSelectionBlueprint.cs).
 // EditorBeatmap → EditorChart; BigAssCircleHitObjectComposer → GarbusHitObjectComposer;
 // osu.Game.Screens.Edit IEditorChangeHandler → Garbus.Game.Edit.IEditorChangeHandler; EditorDrawableCardinalNote /
-// EditSquarePiece / HoldNoteEndDragPiece from the Garbus editor.
+// EditSquarePiece / HoldEndDragPiece from the Garbus editor.
 
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
@@ -15,9 +15,9 @@ namespace Garbus.Game.Edit.Blueprints;
 
 /// <summary>
 /// Hold note selection: an outline over the whole duration with draggable head (bottom, retimes the
-/// start) and tail (top, retimes the end) handles, following mania's HoldNoteSelectionBlueprint.
+/// start) and tail (top, retimes the end) handles, following mania's CardinalHoldNoteSelectionBlueprint.
 /// </summary>
-internal partial class HoldNoteSelectionBlueprint : GarbusSelectionBlueprint<HoldNote>
+internal partial class CardinalHoldNoteSelectionBlueprint : GarbusSelectionBlueprint<CardinalHoldNote>
 {
     [Resolved]
     private IEditorChangeHandler? changeHandler { get; set; }
@@ -28,9 +28,9 @@ internal partial class HoldNoteSelectionBlueprint : GarbusSelectionBlueprint<Hol
     [Resolved]
     private GarbusHitObjectComposer? composer { get; set; }
 
-    private HoldNoteEndDragPiece head = null!;
+    private HoldEndDragPiece head = null!;
 
-    public HoldNoteSelectionBlueprint(HoldNote hold)
+    public CardinalHoldNoteSelectionBlueprint(CardinalHoldNote hold)
         : base(hold)
     {
         Width = EditorDrawableCardinalNote.NOTE_SIZE;
@@ -43,7 +43,7 @@ internal partial class HoldNoteSelectionBlueprint : GarbusSelectionBlueprint<Hol
         InternalChildren = new Drawable[]
         {
             new EditSquarePiece { RelativeSizeAxes = Axes.Both },
-            head = new HoldNoteEndDragPiece
+            head = new HoldEndDragPiece
             {
                 RelativeSizeAxes = Axes.X,
                 Height = EditorDrawableCardinalNote.NOTE_SIZE,
@@ -64,7 +64,7 @@ internal partial class HoldNoteSelectionBlueprint : GarbusSelectionBlueprint<Hol
                 },
                 DragEnded = () => changeHandler?.EndChange(),
             },
-            new HoldNoteEndDragPiece
+            new HoldEndDragPiece
             {
                 RelativeSizeAxes = Axes.X,
                 Height = 10,

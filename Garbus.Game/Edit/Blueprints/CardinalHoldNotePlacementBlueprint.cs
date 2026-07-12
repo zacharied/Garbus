@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/HoldNotePlacementBlueprint.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/CardinalHoldNotePlacementBlueprint.cs).
 // BacHitObject → GarbusHitObject; OsuColour resolve dropped — the body colour (osu's colours.Yellow)
 // is inlined as Colour4.Yellow; EditorDrawableCardinalNote from Edit.Drawables; SnapResult from
 // Edit.Compose; Composer/HitObject via GarbusPlacementBlueprint. Logic identical.
@@ -21,7 +21,7 @@ namespace Garbus.Game.Edit.Blueprints;
 /// Mania-style hold placement: the first click commits the start time/angle, dragging stretches the
 /// duration (in either direction — dragging upward swaps start/end), release commits.
 /// </summary>
-internal partial class HoldNotePlacementBlueprint : GarbusPlacementBlueprint<HoldNote>
+internal partial class CardinalHoldNotePlacementBlueprint : GarbusPlacementBlueprint<CardinalHoldNote>
 {
     private readonly Box bodyPiece;
     private readonly EditSquarePiece headPiece;
@@ -31,8 +31,8 @@ internal partial class HoldNotePlacementBlueprint : GarbusPlacementBlueprint<Hol
 
     protected override bool IsValidForPlacement => base.IsValidForPlacement && (PlacementActive == PlacementState.Waiting || Precision.DefinitelyBigger(HitObject.Duration, 0));
 
-    public HoldNotePlacementBlueprint()
-        : base(new HoldNote { AngleDeg = 0 })
+    public CardinalHoldNotePlacementBlueprint()
+        : base(new CardinalHoldNote { AngleDeg = 0 })
     {
         InternalChildren = new Drawable[]
         {

@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableHoldNote.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableCardinalHoldNote.cs).
 // BacHitObject → GarbusHitObject; DrawableHitObject import updated.
 
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace Garbus.Game.Edit.Drawables;
 /// <see cref="Garbus.Game.Gameplay.Objects.Types.IHasDuration"/> objects; downward scrolling grows it
 /// upward from the bottom origin).
 /// </summary>
-public partial class EditorDrawableHoldNote : EditorDrawableGarbusHitObject<HoldNote>
+public partial class EditorDrawableCardinalHoldNote : EditorDrawableGarbusHitObject<CardinalHoldNote>
 {
     private readonly Container nestedContainer;
 
@@ -27,7 +27,7 @@ public partial class EditorDrawableHoldNote : EditorDrawableGarbusHitObject<Hold
     // halves hang below this drawable's duration rectangle — track them so hit-testing covers them.
     private readonly List<Drawable> headPieces = new List<Drawable>();
 
-    public EditorDrawableHoldNote(HoldNote hitObject)
+    public EditorDrawableCardinalHoldNote(CardinalHoldNote hitObject)
         : base(hitObject)
     {
         Width = EditorDrawableCardinalNote.NOTE_SIZE;

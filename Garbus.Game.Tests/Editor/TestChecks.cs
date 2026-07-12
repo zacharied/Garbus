@@ -227,7 +227,7 @@ namespace Garbus.Game.Tests.Editor
         {
             var chart = new GarbusChart();
             // Hold starts at 50000, lasts 15000 → EndTime = 65000 > 60000
-            chart.HitObjects.Add(new HoldNote { StartTime = 50000, AngleDeg = 0, Duration = 15000 });
+            chart.HitObjects.Add(new CardinalHoldNote { StartTime = 50000, AngleDeg = 0, Duration = 15000 });
 
             var ctx = MakeContext(chart, MakeUnsavedChartFile(chart), trackLength: 60000);
             var issues = new CheckObjectsBeyondTrackEnd().Run(ctx).ToList();

@@ -103,7 +103,7 @@ namespace Garbus.Game.Tests.Editor
             // downward scrolling: dragging upward extends toward later times.
             AddStep("drag upward", () => input.MoveMouseTo(positionAtAngle(270, 0.3f)));
             AddStep("release", () => input.ReleaseButton(MouseButton.Left));
-            AddAssert("hold placed with duration", () => placedObject<HoldNote>()?.Duration > 0);
+            AddAssert("hold placed with duration", () => placedObject<CardinalHoldNote>()?.Duration > 0);
         }
 
         [Test]

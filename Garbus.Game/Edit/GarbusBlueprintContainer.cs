@@ -29,8 +29,8 @@ public partial class GarbusBlueprintContainer : ComposeBlueprintContainer
             case SliderBody slider:
                 return new SliderSelectionBlueprint(slider);
 
-            case HoldNote hold:
-                return new HoldNoteSelectionBlueprint(hold);
+            case CardinalHoldNote hold:
+                return new CardinalHoldNoteSelectionBlueprint(hold);
 
             case CardinalNote note:
                 return new OutlineSelectionBlueprint<CardinalNote>(note);

@@ -100,19 +100,19 @@
       "time": 3500
     },
     {
-      "type": "hold",
+      "type": "cardinal-hold",
       "angleDeg": 180,
       "duration": 1000,
       "time": 6000
     },
     {
-      "type": "hold",
+      "type": "cardinal-hold",
       "angleDeg": 270,
       "duration": 2000,
       "time": 8000
     },
     {
-      "type": "hold",
+      "type": "cardinal-hold",
       "angleDeg": 0,
       "duration": 80,
       "time": 11000

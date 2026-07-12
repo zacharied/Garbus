@@ -168,7 +168,7 @@ namespace Garbus.Game.Tests.Visual
         private Objects.Drawables.DrawableCardinalNote? firstCardinal()
             => playfield.AllHitObjects.OfType<Objects.Drawables.DrawableCardinalNote>().SingleOrDefault(h => h.HitObject.StartTime == 2000);
 
-        private Objects.Drawables.DrawableHoldNote? shortHold()
-            => playfield.AllHitObjects.OfType<Objects.Drawables.DrawableHoldNote>().SingleOrDefault(h => h.HitObject.Duration < 100);
+        private Objects.Drawables.DrawableCardinalHoldNote? shortHold()
+            => playfield.AllHitObjects.OfType<Objects.Drawables.DrawableCardinalHoldNote>().SingleOrDefault(h => h.HitObject.Duration < 100);
     }
 }

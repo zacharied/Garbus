@@ -9,16 +9,16 @@ using Garbus.Game.Edit.Compose;
 
 namespace Garbus.Game.Edit.Tools;
 
-public class HoldNoteCompositionTool : CompositionTool
+public class CardinalHoldNoteCompositionTool : CompositionTool
 {
-    public HoldNoteCompositionTool()
+    public CardinalHoldNoteCompositionTool()
         : base("Hold")
     {
     }
 
     public override Drawable CreateIcon() => new SpriteText { Text = "H" };
 
-    public override HitObjectPlacementBlueprint CreatePlacementBlueprint() => new HoldNotePlacementBlueprint();
+    public override HitObjectPlacementBlueprint CreatePlacementBlueprint() => new CardinalHoldNotePlacementBlueprint();
 }
 
 public class ShoulderNoteCompositionTool : CompositionTool

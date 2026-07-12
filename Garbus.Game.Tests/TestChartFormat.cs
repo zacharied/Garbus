@@ -136,8 +136,8 @@ namespace Garbus.Game.Tests
                     Assert.That(((CardinalNote)actual).AngleDeg, Is.EqualTo(e.AngleDeg));
                     break;
 
-                case HoldNote e:
-                    var actualHold = (HoldNote)actual;
+                case CardinalHoldNote e:
+                    var actualHold = (CardinalHoldNote)actual;
                     Assert.That(actualHold.AngleDeg, Is.EqualTo(e.AngleDeg));
                     Assert.That(actualHold.Duration, Is.EqualTo(e.Duration));
                     break;

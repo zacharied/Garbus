@@ -52,7 +52,7 @@ public class TimingPointDto
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(CardinalNoteDto), "cardinal")]
-[JsonDerivedType(typeof(HoldNoteDto), "hold")]
+[JsonDerivedType(typeof(CardinalHoldNoteDto), "cardinal-hold")]
 [JsonDerivedType(typeof(ShoulderNoteDto), "shoulder")]
 [JsonDerivedType(typeof(SliderBodyDto), "slider")]
 [JsonDerivedType(typeof(SlamCenteredDto), "slamCentered")]
@@ -67,7 +67,7 @@ public class CardinalNoteDto : HitObjectDto
     public int AngleDeg { get; set; }
 }
 
-public class HoldNoteDto : HitObjectDto
+public class CardinalHoldNoteDto : HitObjectDto
 {
     public int AngleDeg { get; set; }
     public double Duration { get; set; }

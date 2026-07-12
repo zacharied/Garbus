@@ -471,7 +471,7 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("add hold + park clock", () =>
             {
-                editorChart.Add(new HoldNote { StartTime = 2000, Duration = 1000, AngleDeg = 270 });
+                editorChart.Add(new CardinalHoldNote { StartTime = 2000, Duration = 1000, AngleDeg = 270 });
                 editorClock.Stop();
                 editorClock.Seek(2000);
             });
@@ -489,7 +489,7 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddAssert("hold selected via head", () =>
-                editorChart.SelectedHitObjects.SingleOrDefault() is HoldNote);
+                editorChart.SelectedHitObjects.SingleOrDefault() is CardinalHoldNote);
         }
 
         [Test]

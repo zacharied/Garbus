@@ -5,7 +5,7 @@
 //     section extends back to the start of time (objects before it belong to it).
 //   - AdjustHitObjectOffset shifts StartTime of in-section objects by the adjustment; others untouched.
 //   - SetHitObjectBPM keeps objects on the same beat: StartTime rescales around the point's time by
-//     newBeatLength/oldBeatLength; HoldNote.Duration scales; SliderBody scales its path TimeOffsets
+//     newBeatLength/oldBeatLength; CardinalHoldNote.Duration scales; SliderBody scales its path TimeOffsets
 //     (its Duration is derived from the path — the setter is a no-op).
 
 using Garbus.Game.Charts;
@@ -80,7 +80,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestSetHitObjectBPMScalesHoldDuration()
         {
-            var hold = new HoldNote { StartTime = 4400, Duration = 800, AngleDeg = 0 };
+            var hold = new CardinalHoldNote { StartTime = 4400, Duration = 800, AngleDeg = 0 };
             editorChart.Add(hold);
 
             double oldBeatLength = secondPoint.BeatLength;

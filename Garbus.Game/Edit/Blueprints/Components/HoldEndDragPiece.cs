@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/Components/HoldNoteEndDragPiece.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/Components/HoldEndDragPiece.cs).
 // Verbatim aside from namespace.
 
 using System;
@@ -10,13 +10,13 @@ using osuTK;
 namespace Garbus.Game.Edit.Blueprints.Components;
 
 /// <summary>A draggable end handle on a hold note selection (the Garbus analogue of mania's EditHoldNoteEndPiece).</summary>
-internal partial class HoldNoteEndDragPiece : CompositeDrawable
+internal partial class HoldEndDragPiece : CompositeDrawable
 {
     public Action? DragStarted { get; init; }
     public Action<Vector2>? Dragging { get; init; }
     public Action? DragEnded { get; init; }
 
-    public HoldNoteEndDragPiece()
+    public HoldEndDragPiece()
     {
         InternalChild = new EditSquarePiece { RelativeSizeAxes = Axes.Both };
     }

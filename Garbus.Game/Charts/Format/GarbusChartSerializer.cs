@@ -124,7 +124,7 @@ public static class GarbusChartSerializer
         HitObjectDto dto = hitObject switch
         {
             CardinalNote cardinal => new CardinalNoteDto { AngleDeg = cardinal.AngleDeg },
-            HoldNote hold => new HoldNoteDto { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
+            CardinalHoldNote hold => new CardinalHoldNoteDto { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
             ShoulderNote shoulder => new ShoulderNoteDto { Side = shoulder.Side.ToString() },
             SliderBody slider => new SliderBodyDto
             {
@@ -186,7 +186,7 @@ public static class GarbusChartSerializer
         GarbusHitObject hitObject = dto switch
         {
             CardinalNoteDto cardinal => new CardinalNote { AngleDeg = cardinal.AngleDeg },
-            HoldNoteDto hold => new HoldNote { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
+            CardinalHoldNoteDto hold => new CardinalHoldNote { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
             ShoulderNoteDto shoulder => new ShoulderNote { Side = parseEnum<HorizontalDirection>(shoulder.Side) },
             SliderBodyDto slider => new SliderBody
             {

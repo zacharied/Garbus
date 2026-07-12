@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/HoldNote.cs).
+// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/CardinalHoldNote.cs).
 
 using System;
 using System.Threading;
@@ -17,7 +17,7 @@ namespace Garbus.Game.Objects;
 /// while its derived <see cref="Direction"/> only selects the button / note-lock lane, so it rides the same
 /// cardinal lane a <see cref="CardinalNote"/> at the same angle would.
 /// </summary>
-public class HoldNote : Note, IHasCardinalDirection, IHasMutableAngle, IHasDuration
+public class CardinalHoldNote : Note, IHasCardinalDirection, IHasMutableAngle, IHasDuration
 {
     public required int AngleDeg { get; set; }
 
@@ -40,13 +40,13 @@ public class HoldNote : Note, IHasCardinalDirection, IHasMutableAngle, IHasDurat
     /// The head note, judged like a <see cref="CardinalNote"/> at the hold's <see cref="Gameplay.Objects.HitObject.StartTime"/>. Its
     /// result is folded into the hold's final (tail) judgement, which is deferred until the head is judged.
     /// </summary>
-    public HoldNoteHead Head { get; private set; } = null!;
+    public CardinalHoldNoteHead Head { get; private set; } = null!;
 
     protected override void CreateNestedHitObjects(CancellationToken cancellationToken)
     {
         base.CreateNestedHitObjects(cancellationToken);
 
-        AddNested(Head = new HoldNoteHead(this)
+        AddNested(Head = new CardinalHoldNoteHead(this)
         {
             StartTime = StartTime,
         });
