@@ -15,6 +15,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Audio.Sample;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Input;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Timing;
@@ -143,14 +144,14 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
-        public void TestCardinalNoteHitByKeyPress()
+        public void TestCardinalNoteHitByButtonPress()
         {
             playThrough(1900);
 
             // The first cardinal note (2000ms, 90° → North) should judge as a hit on the Up press —
             // 100ms early falls inside the Ok window of the default hit windows.
-            AddStep("press north", () => input.PressKey(Key.Up));
-            AddStep("release north", () => input.ReleaseKey(Key.Up));
+            AddStep("press north", () => input.PressJoystickButton(JoystickButton.Hat1Up));
+            AddStep("release north", () => input.ReleaseJoystickButton(JoystickButton.Hat1Up));
 
             AddUntilStep("first cardinal hit", () => firstCardinal()?.IsHit == true);
             AddAssert("later cardinal unjudged", () => playfield.AllHitObjects
