@@ -39,6 +39,16 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestGridOffsetFlipsSignWithDirection()
+        {
+            EditorAngleMapping.Direction = 1;
+            Assert.That(EditorAngleMapping.GridOffset(45), Is.EqualTo(45), "normal: +CCW offset maps to +grid (rightward)");
+
+            EditorAngleMapping.Direction = -1;
+            Assert.That(EditorAngleMapping.GridOffset(45), Is.EqualTo(-45), "reversed: +CCW offset maps to −grid (leftward)");
+        }
+
+        [Test]
         public void TestReversedModeRoundTrip()
         {
             EditorAngleMapping.Direction = -1;

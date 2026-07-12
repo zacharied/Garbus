@@ -136,7 +136,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         // Wrap copies match the outline's — one handle per (node × visible wrap copy) so every ghost band
         // clone of a node is independently clickable, not just whichever copy lands in the main grid.
         wrapCopiesBuffer.Clear();
-        foreach (int k in EditorAngleMapping.VisibleWrapCopies(bodyGridDeg + minOffset, bodyGridDeg + maxOffset))
+        foreach (int k in EditorAngleMapping.VisibleWrapCopiesForOffsets(bodyGridDeg, minOffset, maxOffset))
             wrapCopiesBuffer.Add(k);
 
         int handlesNeeded = controlPoints.Count * wrapCopiesBuffer.Count;
@@ -168,7 +168,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                 handle.CpIndex = i;
                 handle.WrapK = k;
                 handle.Position = new Vector2(
-                    DrawWidth / 2 + (cp.RotationOffset - k * 360) * pxPerDeg,
+                    DrawWidth / 2 + (EditorAngleMapping.GridOffset(cp.RotationOffset) - k * 360) * pxPerDeg,
                     y);
                 handle.NodeSelected = selected;
             }
@@ -207,7 +207,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         if (outlineVertices.Count >= 2)
         {
-            foreach (int k in EditorAngleMapping.VisibleWrapCopies(bodyGridDeg + minOffset, bodyGridDeg + maxOffset))
+            foreach (int k in EditorAngleMapping.VisibleWrapCopiesForOffsets(bodyGridDeg, minOffset, maxOffset))
             {
                 var path = poolOutline(used++);
                 path.Vertices = outlineVertices;

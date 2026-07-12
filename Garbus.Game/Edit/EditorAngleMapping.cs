@@ -129,6 +129,29 @@ public static class EditorAngleMapping
     }
 
     /// <summary>
+    /// The signed grid-degree displacement, from a slider body's grid position, of a control-point node
+    /// whose angle is <paramref name="rotationOffset"/> degrees counter-clockwise from the body. Equal to
+    /// <c>ToGridDegrees(body + offset) − ToGridDegrees(body)</c> locally: <c>+offset</c> in the normal
+    /// view, <c>−offset</c> in the reversed view (grid degrees increase the opposite way). Multiply by
+    /// pixels-per-degree to get the node's on-screen x-offset from the head.
+    /// </summary>
+    public static int GridOffset(int rotationOffset) => Direction * rotationOffset;
+
+    /// <summary>
+    /// <see cref="VisibleWrapCopies"/> for a slider whose body sits at <paramref name="bodyGridDeg"/> and
+    /// whose node rotation offsets (CCW degrees from the body) span
+    /// [<paramref name="minOffset"/>, <paramref name="maxOffset"/>]. Applies the current
+    /// <see cref="Direction"/> (via <see cref="GridOffset"/>) so a reversed view maps the offsets onto the
+    /// correct grid side, and orders the endpoints (the reflection swaps min/max).
+    /// </summary>
+    public static IEnumerable<int> VisibleWrapCopiesForOffsets(float bodyGridDeg, int minOffset, int maxOffset)
+    {
+        float g1 = bodyGridDeg + GridOffset(minOffset);
+        float g2 = bodyGridDeg + GridOffset(maxOffset);
+        return VisibleWrapCopies(MathF.Min(g1, g2), MathF.Max(g1, g2));
+    }
+
+    /// <summary>
     /// Snaps in the unwrapped band domain so a cursor inside a ghost band stays there visually. Returns
     /// both the snapped x-fraction (same domain as the input) and the wrapped absolute angle to store.
     /// </summary>

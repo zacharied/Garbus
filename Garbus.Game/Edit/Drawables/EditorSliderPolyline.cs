@@ -1,7 +1,8 @@
 // Builds the editor-space slider polyline shared by the compose-view drawable (SliderPolylineVisual)
 // and the selection outline (SliderSelectionBlueprint), so both trace the exact same swept geometry.
 // Each link is subdivided and its angle run through SliderSweep (matching gameplay's DrawableSliderBody);
-// time stays linear. Space: x = centreX + angleOffsetDeg * pxPerDeg, y = drawHeight * (1 - timeOffset/duration).
+// time stays linear. Space: x = centreX + Direction * angleOffsetDeg * pxPerDeg, y = drawHeight * (1 - timeOffset/duration)
+// (EditorAngleMapping.Direction reflects the angle axis in the reversed view).
 
 using System.Collections.Generic;
 using Garbus.Game.Objects;
@@ -46,8 +47,10 @@ public static class EditorSliderPolyline
 
         var slopes = SliderSweep.ComputeSlopes(values, times);
 
+        // EditorAngleMapping.Direction reflects the angle axis (CCW↔CW) in the reversed view, so a node's
+        // signed offset from the head flips sign — the same reflection the node handles and body apply.
         Vector2 toPoint(float angleOffset, double timeOffset)
-            => new Vector2(centreX + angleOffset * pxPerDeg, drawHeight * (float)(1 - timeOffset / duration));
+            => new Vector2(centreX + EditorAngleMapping.Direction * angleOffset * pxPerDeg, drawHeight * (float)(1 - timeOffset / duration));
 
         for (int n = 0; n < count; n++)
             nodes.Add(toPoint(values[n], times[n]));

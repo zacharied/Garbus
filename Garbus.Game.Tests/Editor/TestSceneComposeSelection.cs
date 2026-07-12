@@ -704,6 +704,62 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
         }
 
+        /// <summary>Screen X of the primary (WrapK 0) node handle for control-point <paramref name="i"/>, or null.</summary>
+        private float? primaryNodeHandleX(int i)
+        {
+            var handle = composer.ChildrenOfType<NodeDragPiece>().FirstOrDefault(h => h.CpIndex == i && h.WrapK == 0);
+            return handle?.ScreenSpaceDrawQuad.Centre.X;
+        }
+
+        [Test]
+        public void TestSliderNodeHandleRendersAtItsTrueAngleUnderReversedView()
+        {
+            waitForComposer();
+
+            // Head at West (180°, on the E–W reflection axis so its own column is identical in both views),
+            // one node +45° CCW → absolute 225°, which stays mid-grid (no ghost band) in both directions.
+            AddStep("add slider + park clock", () =>
+            {
+                var path = new BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 180,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("slider drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            AddStep("select slider via head", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            // Normal (CCW) view: the node (absolute 225°) renders at the 225° column, to the RIGHT of the head.
+            AddUntilStep("node handle at 225° column (normal)", () =>
+                primaryNodeHandleX(0) is float x && Precision.AlmostEquals(x, positionAtAngle(225).X, 3f));
+            AddAssert("node right of head (normal)", () =>
+                primaryNodeHandleX(0) > positionAtAngle(180).X);
+
+            AddStep("reverse the view (CW)", () => composer.ReverseAngleView.Value = true);
+
+            // Reversed view: the node must STILL render at its true 225° column — now to the LEFT of the head.
+            // Before the fix the handle stayed at head + 45·pxPerDeg (the CCW side): inverted horizontal motion.
+            AddUntilStep("node handle at 225° column (reversed)", () =>
+                primaryNodeHandleX(0) is float x && Precision.AlmostEquals(x, positionAtAngle(225).X, 3f));
+            AddAssert("node left of head (reversed)", () =>
+                primaryNodeHandleX(0) < positionAtAngle(180).X);
+        }
+
         [Test]
         public void TestClickingNodeOnUnselectedSliderSelectsWholeSlider()
         {

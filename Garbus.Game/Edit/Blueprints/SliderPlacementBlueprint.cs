@@ -145,7 +145,7 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
             foreach (var cp in HitObject.Path.ControlPoints)
             {
                 vertices.Add(new Vector2(
-                    headX + cp.RotationOffset * pxPerDeg,
+                    headX + EditorAngleMapping.GridOffset(cp.RotationOffset) * pxPerDeg,
                     ToLocalSpace(container.ScreenSpacePositionAtTime(HitObject.StartTime + cp.TimeOffset)).Y));
 
                 minOffset = Math.Min(minOffset, cp.RotationOffset);
@@ -161,7 +161,7 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
                 int lastAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + lastRotation);
                 int rubberOffset = lastRotation + EditorAngleMapping.MinimalDiff(lastAbsolute, cursorAngleDeg);
 
-                vertices.Add(new Vector2(headX + rubberOffset * pxPerDeg, cursorPiece.Position.Y));
+                vertices.Add(new Vector2(headX + EditorAngleMapping.GridOffset(rubberOffset) * pxPerDeg, cursorPiece.Position.Y));
 
                 minOffset = Math.Min(minOffset, rubberOffset);
                 maxOffset = Math.Max(maxOffset, rubberOffset);
@@ -174,7 +174,7 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
         {
             float headGridDeg = EditorAngleMapping.ToGridDegrees(HitObject.AngleDeg);
 
-            foreach (int k in EditorAngleMapping.VisibleWrapCopies(headGridDeg + minOffset, headGridDeg + maxOffset))
+            foreach (int k in EditorAngleMapping.VisibleWrapCopiesForOffsets(headGridDeg, minOffset, maxOffset))
             {
                 var path = poolPath(used++);
                 path.Vertices = vertices;

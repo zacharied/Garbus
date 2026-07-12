@@ -170,7 +170,7 @@ public partial class SliderPolylineVisual : CompositeDrawable
             if (cp.RotationOffset > maxOffset) maxOffset = cp.RotationOffset;
         }
 
-        return EditorAngleMapping.VisibleWrapCopies(bodyGridDeg + minOffset, bodyGridDeg + maxOffset).ToList();
+        return EditorAngleMapping.VisibleWrapCopiesForOffsets(bodyGridDeg, minOffset, maxOffset).ToList();
     }
 
     private bool vertexListEquals(List<Vector2> other)
