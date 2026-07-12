@@ -1237,6 +1237,56 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("node offset now -90", () => firstControlPoint().RotationOffset, () => Is.EqualTo(-90));
         }
 
+        [Test]
+        public void TestFlipAroundAngleFlipsShoulderSideAcrossVerticalAxis()
+        {
+            waitForComposer();
+
+            // Place a shoulder on the West side; read back whatever Side placement assigned.
+            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("place shoulder (West)", () =>
+            {
+                input.MoveMouseTo(positionAtAngle(180, 0.5f));
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("shoulder placed", () => placedObject<ShoulderNote>() != null);
+            settleWith(() => placedObject<ShoulderNote>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            hoverThenClick(() => screenPositionOf(placedObject<ShoulderNote>()!));
+            AddAssert("shoulder selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(1));
+
+            HorizontalDirection sideBefore = default;
+            AddStep("snapshot side", () => sideBefore = placedObject<ShoulderNote>()!.Side);
+
+            // Flip about North (90°): a vertical-ish axis swaps East<->West, so Side must flip.
+            GarbusMenuItem flip = null!;
+            AddUntilStep("Flip around angle available", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<ShoulderNote>()!));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot to North (90°)", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
+            AddStep("commit", () => input.Click(MouseButton.Left));
+            AddAssert("side flipped", () => placedObject<ShoulderNote>()!.Side, () => Is.Not.EqualTo(sideBefore));
+
+            // Flip again about East (0°): a horizontal axis (N<->S) leaves E/W untouched, so Side is unchanged.
+            HorizontalDirection sideMid = default;
+            AddStep("snapshot side", () => sideMid = placedObject<ShoulderNote>()!.Side);
+            AddUntilStep("Flip around angle available again", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<ShoulderNote>()!));
+                flip = flipMenuItem("Flip around angle...")!;
+                return flip != null;
+            });
+            AddStep("begin flip-around", () => flip.Action.Value?.Invoke());
+            AddStep("move pivot to East (0°)", () => input.MoveMouseTo(positionAtAngle(0, 0.5f)));
+            AddStep("commit", () => input.Click(MouseButton.Left));
+            AddAssert("side unchanged", () => placedObject<ShoulderNote>()!.Side, () => Is.EqualTo(sideMid));
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.
