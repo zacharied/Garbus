@@ -234,7 +234,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     {
         while (outlinePool.Count <= index)
         {
-            var path = new SmoothPath { PathRadius = outline_radius };
+            var path = new HollowOutlinePath { PathRadius = outline_radius };
             outlinePool.Add(path);
             outlineContainer.Add(path);
         }
