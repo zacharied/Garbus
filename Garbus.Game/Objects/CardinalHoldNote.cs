@@ -3,6 +3,7 @@
 using System;
 using System.Threading;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Input;
 
@@ -51,4 +52,6 @@ public class CardinalHoldNote : Note, IHasCardinalDirection, IHasMutableAngle, I
             StartTime = StartTime,
         });
     }
+
+    public override HitsoundFamily Hitsounds => HitsoundFamilies.CardinalHoldNote;
 }

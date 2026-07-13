@@ -1,5 +1,7 @@
+using System.Linq;
 using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Scoring;
+using Garbus.Game.Objects;
 using NUnit.Framework;
 
 namespace Garbus.Game.Tests
@@ -65,6 +67,18 @@ namespace Garbus.Game.Tests
             };
 
             Assert.That(family.AllSamples, Is.EquivalentTo(new[] { a }));
+        }
+
+        [Test]
+        public void ConcreteTypesSeedSamplesFromTheirFamily()
+        {
+            var note = new Garbus.Game.Objects.CardinalNote { AngleDeg = 0 };
+            note.ApplyDefaults();
+
+            var expected = HitsoundFamilies.CardinalNote.AllSamples.ToArray();
+
+            Assert.That(note.Samples, Is.EquivalentTo(expected));
+            Assert.That(note.Hitsounds.Resolve(HitResult.Meh), Is.Not.Null);
         }
     }
 }

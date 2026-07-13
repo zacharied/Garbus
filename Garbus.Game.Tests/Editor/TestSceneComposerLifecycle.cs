@@ -8,6 +8,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Compose;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -94,6 +95,8 @@ namespace Garbus.Game.Tests.Editor
         private class MinimalNote : GarbusHitObject
         {
             public override Judgement CreateJudgement() => new Judgement();
+
+            public override HitsoundFamily Hitsounds => HitsoundFamilies.CardinalNote;
         }
 
         // ---------------------------------------------------------------------------

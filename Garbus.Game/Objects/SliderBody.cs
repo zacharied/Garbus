@@ -3,6 +3,7 @@
 using System.Linq;
 using System.Threading;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Types;
 
@@ -61,4 +62,6 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle
             AddNested(childHitObject);
         }
     }
+
+    public override HitsoundFamily Hitsounds => HitsoundFamilies.SliderBody;
 }

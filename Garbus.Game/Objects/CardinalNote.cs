@@ -2,6 +2,7 @@
 
 using System;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Input;
 
 namespace Garbus.Game.Objects;
@@ -20,4 +21,6 @@ public class CardinalNote : Note, IHasCardinalDirection, IHasMutableAngle
         CardinalDirection.South => GarbusButtonInput.ButtonS,
         _ => throw new InvalidOperationException()
     };
+
+    public override HitsoundFamily Hitsounds => HitsoundFamilies.CardinalNote;
 }

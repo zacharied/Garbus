@@ -2,6 +2,7 @@
 
 using System;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Input;
 
 namespace Garbus.Game.Objects;
@@ -25,4 +26,6 @@ public partial class ShoulderNote : Note, IHasCardinalDirection, IHasAngle
     public CardinalDirection Direction => Side == HorizontalDirection.Left
         ? CardinalDirection.West
         : CardinalDirection.East;
+
+    public override HitsoundFamily Hitsounds => HitsoundFamilies.ShoulderNote;
 }

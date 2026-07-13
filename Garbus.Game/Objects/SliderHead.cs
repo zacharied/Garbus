@@ -1,5 +1,7 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/SliderHead.cs).
 
+using Garbus.Game.Gameplay.Audio;
+
 namespace Garbus.Game.Objects;
 
 public class SliderHead : GarbusHitObject, IHasAngle
@@ -12,4 +14,6 @@ public class SliderHead : GarbusHitObject, IHasAngle
     }
 
     public int AngleDeg => parent.AngleDeg;
+
+    public override HitsoundFamily Hitsounds => HitsoundFamilies.SliderHead;
 }

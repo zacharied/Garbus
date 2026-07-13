@@ -3,6 +3,7 @@
 using System;
 using System.Threading;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Input;
 
@@ -45,4 +46,6 @@ public class ShoulderHoldNote : Note, IHasCardinalDirection, IHasAngle, IHasDura
             StartTime = StartTime,
         });
     }
+
+    public override HitsoundFamily Hitsounds => HitsoundFamilies.ShoulderHoldNote;
 }
