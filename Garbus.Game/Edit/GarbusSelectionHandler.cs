@@ -16,11 +16,13 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input.Events;
 using Garbus.Game.Core;
 using Garbus.Game.Edit.Blueprints;
 using Garbus.Game.Edit.Compose;
 using Garbus.Game.Objects;
 using osuTK;
+using osuTK.Input;
 
 namespace Garbus.Game.Edit;
 
@@ -94,6 +96,37 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             if (h is SliderBody slider)
                 slider.Side = side;
         });
+    }
+
+    /// <summary>Flips the selected slider(s) to the opposite side, mirroring the "Right side" context-menu toggle.</summary>
+    private void toggleSliderSide() =>
+        setSliderSide(selectionRightSideState.Value == TernaryState.True ? HorizontalDirection.Left : HorizontalDirection.Right);
+
+    protected override bool OnKeyDown(KeyDownEvent e)
+    {
+        if (e.Repeat || e.AltPressed || e.SuperPressed)
+            return base.OnKeyDown(e);
+
+        switch (e.Key)
+        {
+            case Key.Q when e is { ControlPressed: false, ShiftPressed: false }:
+                composer.ReverseAngleView.Value = !composer.ReverseAngleView.Value;
+                return true;
+
+            case Key.S when e is { ControlPressed: false, ShiftPressed: false } && SelectedItems.OfType<SliderBody>().Any():
+                toggleSliderSide();
+                return true;
+
+            case Key.F when e is { ControlPressed: true, ShiftPressed: false } && SelectedItems.Count > 0:
+                composer.BeginFlipAroundAngle(flipAroundAngle);
+                return true;
+
+            case Key.F when e is { ControlPressed: false, ShiftPressed: false } && SelectedItems.Count > 0:
+                flipSelection();
+                return true;
+        }
+
+        return base.OnKeyDown(e);
     }
 
     protected override IEnumerable<MenuItem> GetContextMenuItemsForSelection(IEnumerable<SelectionBlueprint<GarbusHitObject>> selection)
