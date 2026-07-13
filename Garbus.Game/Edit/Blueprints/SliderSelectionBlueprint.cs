@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -367,11 +368,54 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     protected override bool OnKeyDown(KeyDownEvent e)
     {
-        if (e.Key != Key.T || e.Repeat || !IsSelected)
+        if (e.Repeat || !IsSelected)
+            return base.OnKeyDown(e);
+
+        if (e is { ControlPressed: true, ShiftPressed: false, AltPressed: false })
+        {
+            switch (e.Key)
+            {
+                case Key.Q:
+                    setSelectedNodesEasing(Easing.In);
+                    return true;
+
+                case Key.W:
+                    setSelectedNodesEasing(Easing.Out);
+                    return true;
+
+                case Key.E:
+                    setSelectedNodesEasing(Easing.InOutQuad);
+                    return true;
+
+                case Key.R:
+                    setSelectedNodesEasing(Easing.None);
+                    return true;
+            }
+
+            return base.OnKeyDown(e);
+        }
+
+        if (e.Key != Key.T)
             return base.OnKeyDown(e);
 
         insertNodeAtCursor();
         return true;
+    }
+
+    /// <summary>Sets every selected node's <see cref="GarbusPathControlPoint.SweepEasing"/> — same transaction pattern as the Inspector's Easing dropdown.</summary>
+    private void setSelectedNodesEasing(Easing easing)
+    {
+        if (selectedNodes.Count == 0 || editorChart == null)
+            return;
+
+        if (selectedNodes.All(n => n.SweepEasing == easing))
+            return;
+
+        changeHandler?.BeginChange();
+        foreach (var n in selectedNodes)
+            n.SweepEasing = easing;
+        editorChart.Update(HitObject);
+        changeHandler?.EndChange();
     }
 
     private void insertNodeAtCursor()
