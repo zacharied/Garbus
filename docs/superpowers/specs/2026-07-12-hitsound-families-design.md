@@ -64,10 +64,13 @@ dependencies and is unit-testable in isolation.
 
 ### `DrawableGarbusHitObject<T>` — select by judgement
 
-- Override `PlaySamples()`:
-  `Samples?.Play(HitObject.Hitsounds.Resolve(Result.Type))`.
-- Nested head/tail/child drawables derive from this type, so they inherit judgement-selected playback
-  automatically. The vendored `DrawableHitObject.PlaySamples()` is left as written.
+- Override `PlaySamples()` to play the family member resolved from the earned `Result.Type`, guarded on
+  `Result?.IsHit == true`.
+- Most gameplay drawables derive from `DrawableGarbusHitObject<T>` (notes, hold notes, hold-note heads,
+  slider heads, slider bodies, slams), so one override there covers them. The exception is
+  `DrawableSliderChild`, which derives from `DrawableHitObject<SliderChild>` directly and needs its own
+  override. Both delegate to a shared static helper so the resolution logic lives in one place. The
+  vendored `DrawableHitObject.PlaySamples()` is left as written.
 
 ## Data flow
 
