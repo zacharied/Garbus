@@ -26,6 +26,8 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     {
     }
 
+    public override void PlaySamples() => GarbusHitSoundPlayback.Play(Samples, HitObject, Result);
+
     protected internal override JudgementResult CreateResult(Gameplay.Judgements.Judgement judgement)
     {
         return new SliderJudgementResult(HitObject, judgement);

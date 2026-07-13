@@ -14,4 +14,9 @@ public partial class DrawableGarbusHitObject<T> : DrawableHitObject<GarbusHitObj
         : base(hitObject)
     {
     }
+
+    /// <summary>Number of family members this object has played. Test seam.</summary>
+    public int SamplesPlayCount => Samples?.PlayCount ?? 0;
+
+    public override void PlaySamples() => GarbusHitSoundPlayback.Play(Samples, HitObject, Result);
 }

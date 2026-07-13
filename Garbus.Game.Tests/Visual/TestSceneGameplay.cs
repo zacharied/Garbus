@@ -5,6 +5,7 @@
 using System;
 using System.Linq;
 using Garbus.Game.Charts;
+using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
@@ -158,6 +159,47 @@ namespace Garbus.Game.Tests.Visual
                                                                 .OfType<Objects.Drawables.DrawableCardinalNote>()
                                                                 .Count(h => !h.Judged) == 2);
         }
+
+        [Test]
+        public void HittingAnObjectPlaysExactlyOneFamilyMember()
+        {
+            Garbus.Game.Gameplay.Objects.Drawables.DrawableHitObject drawable = null!;
+
+            AddUntilStep("wait for a cardinal note drawable", () =>
+            {
+                drawable = playfield.AllHitObjects
+                                    .FirstOrDefault(d => d.HitObject is CardinalNote);
+                return drawable != null;
+            });
+
+            // Seek into the note's hit window and press its bound direction key — same mechanics as
+            // TestCardinalNoteHitByButtonPress (walk the clock forward in sub-lifetime increments via
+            // playThrough, then press 100ms early so the offset lands inside the Ok window), but
+            // generalised over whichever direction the located note happens to be (rather than
+            // assuming North).
+            AddUntilStep("play through to note", () =>
+            {
+                double target = ((CardinalNote)drawable.HitObject).StartTime - 100;
+                manualClock.CurrentTime = Math.Min(target, manualClock.CurrentTime + 200);
+                return manualClock.CurrentTime >= target;
+            });
+            AddStep("press key", () => input.PressJoystickButton(cardinalButton(((CardinalNote)drawable.HitObject).Direction)));
+            AddStep("release key", () => input.ReleaseJoystickButton(cardinalButton(((CardinalNote)drawable.HitObject).Direction)));
+
+            AddUntilStep("note is hit", () => drawable.IsHit);
+            AddAssert("exactly one member played", () =>
+                ((Garbus.Game.Objects.Drawables.DrawableGarbusHitObject<CardinalNote>)drawable).SamplesPlayCount,
+                () => Is.EqualTo(1));
+        }
+
+        private static JoystickButton cardinalButton(CardinalDirection direction) => direction switch
+        {
+            CardinalDirection.North => JoystickButton.Hat1Up,
+            CardinalDirection.East => JoystickButton.Hat1Right,
+            CardinalDirection.South => JoystickButton.Hat1Down,
+            CardinalDirection.West => JoystickButton.Hat1Left,
+            _ => throw new ArgumentOutOfRangeException(nameof(direction))
+        };
 
         [Test]
         public void TestHitSampleResolves()
