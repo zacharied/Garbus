@@ -3,7 +3,6 @@
 // single sample store via osu-framework's DrawableSample, so audio adjustments flow through the
 // drawable hierarchy exactly as they do for osu's skinnable sounds.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
@@ -16,43 +15,44 @@ namespace Garbus.Game.Gameplay.Audio
     public partial class HitSoundContainer : CompositeDrawable
     {
         /// <summary>
-        /// The minimum allowable volume for sample playback, matching osu's floor.
+        /// The single fixed playback volume (0–100) applied to every hitsound. Hitsounds are not
+        /// chart-author configured, so there is no per-sample volume.
         /// </summary>
-        public const int MINIMUM_SAMPLE_VOLUME = 5;
+        public const int HITSOUND_VOLUME = 100;
 
         [Resolved]
         private ISampleStore sampleStore { get; set; } = null!;
 
-        private readonly List<(HitSampleInfo info, DrawableSample sample)> drawableSamples = new List<(HitSampleInfo, DrawableSample)>();
+        private readonly List<(GarbusHitSample sample, DrawableSample drawable)> drawableSamples = new List<(GarbusHitSample, DrawableSample)>();
         private readonly List<SampleChannel> playingChannels = new List<SampleChannel>();
 
         /// <summary>
         /// The longest length among the loaded samples, in milliseconds.
         /// </summary>
-        public double Length => drawableSamples.Count == 0 ? 0 : drawableSamples.Max(s => s.sample.Length);
+        public double Length => drawableSamples.Count == 0 ? 0 : drawableSamples.Max(s => s.drawable.Length);
 
         /// <summary>
         /// Loads the given samples, replacing any previously loaded set. Unresolvable lookups are skipped.
         /// </summary>
-        public IEnumerable<HitSampleInfo> Samples
+        public IEnumerable<GarbusHitSample> Samples
         {
             set
             {
                 ClearSamples();
 
-                foreach (var info in value)
+                foreach (var sample in value)
                 {
-                    Sample? sample = info.LookupNames.Select(name => sampleStore.Get(name)).FirstOrDefault(s => s != null);
+                    Sample? loaded = sampleStore.Get(sample.Name);
 
-                    if (sample == null)
+                    if (loaded == null)
                         continue;
 
-                    var drawableSample = new DrawableSample(sample)
+                    var drawableSample = new DrawableSample(loaded)
                     {
-                        Volume = { Value = Math.Max(info.Volume, MINIMUM_SAMPLE_VOLUME) / 100.0 },
+                        Volume = { Value = HITSOUND_VOLUME / 100.0 },
                     };
 
-                    drawableSamples.Add((info, drawableSample));
+                    drawableSamples.Add((sample, drawableSample));
                     AddInternal(drawableSample);
                 }
             }
@@ -62,17 +62,17 @@ namespace Garbus.Game.Gameplay.Audio
         {
             Stop();
 
-            foreach (var (_, sample) in drawableSamples)
-                RemoveInternal(sample, true);
+            foreach (var (_, drawable) in drawableSamples)
+                RemoveInternal(drawable, true);
 
             drawableSamples.Clear();
         }
 
-        /// <summary>How many times <see cref="Play()"/> has been invoked. Test observability seam.</summary>
+        /// <summary>How many times a sample has been played. Test observability seam.</summary>
         public int PlayCount { get; private set; }
 
-        /// <summary>The info last matched and played by <see cref="Play(HitSampleInfo?)"/>. Test seam.</summary>
-        public HitSampleInfo? LastPlayed { get; private set; }
+        /// <summary>The sample last matched and played by <see cref="Play(GarbusHitSample?)"/>. Test seam.</summary>
+        public GarbusHitSample? LastPlayed { get; private set; }
 
         public void Play()
         {
@@ -80,29 +80,29 @@ namespace Garbus.Game.Gameplay.Audio
 
             playingChannels.RemoveAll(c => !c.Playing);
 
-            foreach (var (_, sample) in drawableSamples)
-                playingChannels.Add(sample.Play());
+            foreach (var (_, drawable) in drawableSamples)
+                playingChannels.Add(drawable.Play());
         }
 
         /// <summary>
-        /// Plays the single preloaded member whose originating <see cref="HitSampleInfo"/> equals <paramref name="info"/>.
-        /// A null or unmatched info is a no-op.
+        /// Plays the single preloaded member whose <see cref="GarbusHitSample"/> equals <paramref name="sample"/>.
+        /// A null or unmatched sample is a no-op.
         /// </summary>
-        public void Play(HitSampleInfo? info)
+        public void Play(GarbusHitSample? sample)
         {
-            if (info == null)
+            if (sample == null)
                 return;
 
-            foreach (var (loadedInfo, sample) in drawableSamples)
+            foreach (var (loaded, drawable) in drawableSamples)
             {
-                if (!loadedInfo.Equals(info))
+                if (!loaded.Equals(sample))
                     continue;
 
                 PlayCount++;
-                LastPlayed = info;
+                LastPlayed = sample;
 
                 playingChannels.RemoveAll(c => !c.Playing);
-                playingChannels.Add(sample.Play());
+                playingChannels.Add(drawable.Play());
                 return;
             }
         }

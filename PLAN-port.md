@@ -117,7 +117,8 @@ path-precise selection, snapping math) ports as-is; only the scaffolding is rebu
       `Scoring/`, `UI/`, `UI/Scrolling/`, `Audio/`). Trims: skinning/combo-colour/mods/cursor stripped
       from `DrawableHitObject`/`Playfield`; `HitObject.ApplyDefaults()` takes no ControlPointInfo (fixed
       difficulty 5 until Phase 3 charts carry one); `HitResult` drops `LegacyComboIncrease`/`SliderTailHit`;
-      `HitSampleInfo` reduced to plain sample-store lookups (`Samples/Gameplay/{bank}-{name}`); the
+      osu's author-configurable `HitSampleInfo` dropped for Garbus's own `GarbusHitSample` (a plain
+      sample-store lookup name; hitsounds are fixed per hit-object type, not chart-author configured); the
       skin-entangled `SkinnableSound` is replaced by `Gameplay/Audio/HitSoundContainer` (~90-line
       `DrawableSample` wrapper, as planned); `GarbusScrollingInfo` replaces the borrowed
       `ScrollingTestContainer.TestScrollingInfo` (TimeRange 700, constant algorithm)

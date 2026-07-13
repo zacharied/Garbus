@@ -10,8 +10,8 @@ namespace Garbus.Game.Tests.Visual
     {
         private HitSoundContainer container = null!;
 
-        private static readonly HitSampleInfo real = new HitSampleInfo(HitSampleInfo.HIT_NORMAL, HitSampleInfo.BANK_SOFT);
-        private static readonly HitSampleInfo unloaded = new HitSampleInfo("does-not-exist");
+        private static readonly GarbusHitSample real = new GarbusHitSample("Gameplay/soft-hitnormal");
+        private static readonly GarbusHitSample unloaded = new GarbusHitSample("does-not-exist");
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -42,7 +42,7 @@ namespace Garbus.Game.Tests.Visual
         [Test]
         public void PlayingNullIsSilent()
         {
-            AddStep("play null", () => container.Play((HitSampleInfo?)null));
+            AddStep("play null", () => container.Play((GarbusHitSample?)null));
             AddAssert("play count stays 0", () => container.PlayCount, () => Is.EqualTo(0));
         }
     }

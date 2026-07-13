@@ -3,7 +3,8 @@
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: ControlPointInfo/Kiai and IBeatmapDifficultyInfo removed (ApplyDefaults takes no
 // timing/difficulty arguments; hit windows are fixed), combo information and legacy sample helpers
-// (CreateSlidingSamples/CreateHitSampleInfo) removed, nullability enabled.
+// (CreateSlidingSamples/CreateHitSampleInfo) removed, nullability enabled. Samples are Garbus's own
+// GarbusHitSample (a plain sample-store lookup name) rather than osu's author-configurable HitSampleInfo.
 
 using System;
 using System.Collections.Generic;
@@ -42,12 +43,12 @@ namespace Garbus.Game.Gameplay.Objects
             set => StartTimeBindable.Value = value;
         }
 
-        public readonly BindableList<HitSampleInfo> SamplesBindable = new BindableList<HitSampleInfo>();
+        public readonly BindableList<GarbusHitSample> SamplesBindable = new BindableList<GarbusHitSample>();
 
         /// <summary>
         /// The samples to be played when this hit object is hit.
         /// </summary>
-        public IList<HitSampleInfo> Samples
+        public IList<GarbusHitSample> Samples
         {
             get => SamplesBindable;
             set

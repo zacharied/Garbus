@@ -7,8 +7,11 @@ namespace Garbus.Game.Objects
 {
     public static class HitsoundFamilies
     {
+        // The bundled hitsound asset (Samples/Gameplay/soft-hitnormal.wav).
+        private const string soft_hitnormal = "Gameplay/soft-hitnormal";
+
         private static HitsoundFamily softNormal()
-            => HitsoundFamily.Single(new HitSampleInfo(HitSampleInfo.HIT_NORMAL, HitSampleInfo.BANK_SOFT));
+            => HitsoundFamily.Single(new GarbusHitSample(soft_hitnormal));
 
         public static readonly HitsoundFamily CardinalNote = softNormal();
         public static readonly HitsoundFamily ShoulderNote = softNormal();

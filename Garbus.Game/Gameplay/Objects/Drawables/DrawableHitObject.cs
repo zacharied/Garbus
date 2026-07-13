@@ -3,6 +3,7 @@
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: skinning removed (ISkinSource, combo colours, IAnimationTimeReference),
 // positional hitsound balance removed, PausableSkinnableSound replaced by HitSoundContainer,
+// samples are Garbus's GarbusHitSample (a sample-store lookup name) rather than osu's HitSampleInfo,
 // GameplayRate reads the plain clock rate (no mod-adjusted "true" gameplay rate).
 
 #nullable disable
@@ -62,7 +63,7 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
         private bool samplesLoaded;
 
-        public virtual IEnumerable<HitSampleInfo> GetSamples() => HitObject.Samples;
+        public virtual IEnumerable<GarbusHitSample> GetSamples() => HitObject.Samples;
 
         private readonly List<DrawableHitObject> nestedHitObjects = new List<DrawableHitObject>();
         public SlimReadOnlyListWrapper<DrawableHitObject> NestedHitObjects => nestedHitObjects.AsSlimReadOnly();
@@ -122,7 +123,7 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         public bool AllJudged => Entry?.AllJudged ?? false;
 
         public readonly Bindable<double> StartTimeBindable = new Bindable<double>();
-        private readonly BindableList<HitSampleInfo> samplesBindable = new BindableList<HitSampleInfo>();
+        private readonly BindableList<GarbusHitSample> samplesBindable = new BindableList<GarbusHitSample>();
 
         protected override bool RequiresChildrenUpdate => true;
 

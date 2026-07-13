@@ -9,7 +9,7 @@ namespace Garbus.Game.Tests
     [TestFixture]
     public class HitsoundFamilyTest
     {
-        private static HitSampleInfo sample(string name) => new HitSampleInfo(name);
+        private static GarbusHitSample sample(string name) => new GarbusHitSample(name);
 
         [Test]
         public void SingleTopEntryResolvesEveryHitJudgement()

@@ -11,12 +11,12 @@ namespace Garbus.Game.Gameplay.Audio
     /// </summary>
     public class HitsoundFamily
     {
-        private readonly Dictionary<HitResult, HitSampleInfo> members = new Dictionary<HitResult, HitSampleInfo>();
+        private readonly Dictionary<HitResult, GarbusHitSample> members = new Dictionary<HitResult, GarbusHitSample>();
 
         /// <summary>
         /// Assigns a member for object-initializer construction: <c>new HitsoundFamily { [HitResult.Perfect] = sample }</c>.
         /// </summary>
-        public HitSampleInfo this[HitResult result]
+        public GarbusHitSample this[HitResult result]
         {
             set => members[result] = value;
         }
@@ -24,19 +24,19 @@ namespace Garbus.Game.Gameplay.Audio
         /// <summary>
         /// Every distinct member, for preloading.
         /// </summary>
-        public IEnumerable<HitSampleInfo> AllSamples => members.Values.Distinct();
+        public IEnumerable<GarbusHitSample> AllSamples => members.Values.Distinct();
 
         /// <summary>
         /// Builds a family with a single member, keyed at the type's best judgement by default.
         /// </summary>
-        public static HitsoundFamily Single(HitSampleInfo sample, HitResult key = HitResult.Perfect)
+        public static HitsoundFamily Single(GarbusHitSample sample, HitResult key = HitResult.Perfect)
             => new HitsoundFamily { [key] = sample };
 
         /// <summary>
         /// Resolves the member to play for an earned judgement: nearest at-least-as-good member first,
         /// then nearest worse. Null if the family is empty.
         /// </summary>
-        public HitSampleInfo? Resolve(HitResult earned)
+        public GarbusHitSample? Resolve(HitResult earned)
         {
             int earnedIndex = earned.GetIndexForOrderedDisplay();
 
