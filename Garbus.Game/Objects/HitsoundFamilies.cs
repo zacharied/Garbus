@@ -13,15 +13,14 @@ namespace Garbus.Game.Objects
         private static HitsoundFamily softNormal()
             => HitsoundFamily.Single(new GarbusHitSample(soft_hitnormal));
 
-        public static readonly HitsoundFamily CardinalNote = softNormal();
-        public static readonly HitsoundFamily ShoulderNote = softNormal();
-        public static readonly HitsoundFamily CardinalHoldNote = softNormal();
-        public static readonly HitsoundFamily ShoulderHoldNote = softNormal();
-        public static readonly HitsoundFamily HoldNoteHead = softNormal();
-        public static readonly HitsoundFamily SliderHead = softNormal();
-        public static readonly HitsoundFamily SliderChild = softNormal();
-        public static readonly HitsoundFamily SliderBody = softNormal();
-        public static readonly HitsoundFamily SlamCentered = softNormal();
-        public static readonly HitsoundFamily SlamEdge = softNormal();
+        public static readonly HitsoundFamily CardinalNote = HitsoundFamily.Single(new("Gameplay/cardinal"));
+        public static readonly HitsoundFamily ShoulderNote = HitsoundFamily.Single(new("Gameplay/shoulder"));
+        public static readonly HitsoundFamily CardinalHoldNote = HitsoundFamily.Single(new("Gameplay/cardinal"));
+        public static readonly HitsoundFamily ShoulderHoldNote = HitsoundFamily.Single(new("Gameplay/shoulder"));
+        public static readonly HitsoundFamily SliderHead = HitsoundFamily.Single(new("Gameplay/slider"));
+        public static readonly HitsoundFamily SliderChild = HitsoundFamily.Single(new("Gameplay/slider"));
+        public static readonly HitsoundFamily SliderBody = HitsoundFamily.Single(new("Gameplay/slider"));
+        public static readonly HitsoundFamily SlamCentered = HitsoundFamily.Single(new("Gameplay/slam"));
+        public static readonly HitsoundFamily SlamEdge = HitsoundFamily.Single(new("Gameplay/slam"));
     }
 }

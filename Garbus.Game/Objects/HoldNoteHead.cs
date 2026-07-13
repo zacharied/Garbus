@@ -25,5 +25,5 @@ public class HoldNoteHead<TParent> : Note, IHasAngle
 
     public override GarbusButtonInput ButtonInput => Parent.ButtonInput;
 
-    public override HitsoundFamily Hitsounds => HitsoundFamilies.HoldNoteHead;
+    public override HitsoundFamily Hitsounds => Parent.Hitsounds;
 }
