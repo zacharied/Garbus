@@ -26,6 +26,9 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     {
     }
 
+    /// <summary>Number of family members this child has played. Test seam.</summary>
+    public int SamplesPlayCount => Samples?.PlayCount ?? 0;
+
     public override void PlaySamples() => GarbusHitSoundPlayback.Play(Samples, HitObject, Result);
 
     protected internal override JudgementResult CreateResult(Gameplay.Judgements.Judgement judgement)

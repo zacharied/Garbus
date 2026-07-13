@@ -17,6 +17,7 @@ using osu.Framework.Audio.Sample;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input;
+using osu.Framework.Input.StateChanges;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Timing;
@@ -200,6 +201,58 @@ namespace Garbus.Game.Tests.Visual
             CardinalDirection.West => JoystickButton.Hat1Left,
             _ => throw new ArgumentOutOfRangeException(nameof(direction))
         };
+
+        [Test]
+        public void HittingASliderChildPlaysExactlyOneFamilyMember()
+        {
+            Objects.Drawables.DrawableSliderBody body = null!;
+            Objects.Drawables.DrawableSliderChild child = null!;
+
+            // The right-side slider at 2000ms (bundled test chart) has its first control point at
+            // RotationOffset 0 / TimeOffset 1000, i.e. target angle 0 over the segment window
+            // [2000, 3000]. Holding the right stick (this slider's Side) pinned at angle 0 for that
+            // whole window should catch every frame and land a hit.
+            AddUntilStep("wait for right slider body drawable", () =>
+            {
+                body = playfield.AllHitObjects
+                                .OfType<Objects.Drawables.DrawableSliderBody>()
+                                .FirstOrDefault(b => ((SliderBody)b.HitObject).Side == HorizontalDirection.Right)!;
+                return body != null;
+            });
+
+            playThrough(1900);
+
+            AddUntilStep("first child drawable present", () =>
+            {
+                var controlPoint = ((SliderBody)body.HitObject).Path.ControlPoints[0];
+                child = body.NestedHitObjects
+                            .OfType<Objects.Drawables.DrawableSliderChild>()
+                            .FirstOrDefault(c => ((SliderChild)c.HitObject).ControlPoint == controlPoint)!;
+                return child != null;
+            });
+
+            AddStep("hold right stick on target angle", () => input.Input(new JoystickAxisInput(new[]
+            {
+                new JoystickAxis(JoystickAxisSource.GamePadRightStickX, 1f),
+                new JoystickAxis(JoystickAxisSource.GamePadRightStickY, 0f),
+            })));
+
+            AddUntilStep("play through segment", () =>
+            {
+                manualClock.CurrentTime = Math.Min(3000, manualClock.CurrentTime + 50);
+                return manualClock.CurrentTime >= 3000;
+            });
+
+            AddStep("release right stick", () => input.Input(new JoystickAxisInput(new[]
+            {
+                new JoystickAxis(JoystickAxisSource.GamePadRightStickX, 0f),
+                new JoystickAxis(JoystickAxisSource.GamePadRightStickY, 0f),
+            })));
+
+            AddUntilStep("child judged", () => child.Judged);
+            AddAssert("child is hit", () => child.IsHit);
+            AddAssert("exactly one member played", () => child.SamplesPlayCount, () => Is.EqualTo(1));
+        }
 
         [Test]
         public void TestHitSampleResolves()
