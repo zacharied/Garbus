@@ -1,6 +1,7 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableSlamCentered.cs).
 // BacSlamCentered → GarbusSlamCentered.
 
+using Garbus.Game.Core;
 using osu.Framework.Graphics;
 using Garbus.Game.Objects;
 using osuTK;
@@ -21,5 +22,6 @@ public partial class EditorDrawableGarbusSlamCentered : EditorDrawableGarbusHitO
         Anchor = Anchor.Centre,
         Origin = Anchor.Centre,
         Rotation = 180,
+        Colour = HitObject.Side.ToColour()
     };
 }

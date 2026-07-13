@@ -32,6 +32,7 @@ public partial class EditorDrawableGarbusSlamEdge : EditorDrawableGarbusHitObjec
         {
             Anchor = Anchor.Centre,
             Origin = Anchor.Centre,
+            Colour = HitObject.Side.ToColour()
         };
         arrows.Add(arrow);
         return arrow;
