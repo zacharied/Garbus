@@ -7,7 +7,7 @@
 //   4. Arrow keys move playhead by one beat-divisor step.
 //   5. Z key seeks to start; X plays from start; C pause/resume; V seeks to end.
 //   6. ↑/↓ keys change beatDivisor.
-//   7. TimelineStrip drag seeks raw; snap-on-release is applied.
+//   7. TimelineStrip drag seeks raw; no snap on release.
 //
 // Harness: wraps GarbusEditor in a ScreenStack inside a ManualInputManager so transport
 // keys can be injected into the same input pipeline that GarbusEditor.OnKeyDown handles.
@@ -310,15 +310,15 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
-        // 7. TimelineStrip raw-drag / snap-on-release (carried from Task 17)
+        // 7. TimelineStrip raw drag; no snap on release
         //
         // The TimelineStrip drag mechanism: scroll position → time via TimeAtPosition(Current).
-        // We validate the fix by seeking to a non-snapped position, then simulating an end-of-drag
-        // (releasing the mouse), verifying that the snap is applied via SeekSnapped on release.
+        // Dragging the waveform display must stay raw/unsnapped throughout, including on release —
+        // matching SummaryTimeline's existing raw-seek behaviour.
         // ------------------------------------------------------------------
 
         [Test]
-        public void TestTimelineStripSnapOnRelease()
+        public void TestTimelineStripDragDoesNotSnapOnRelease()
         {
             waitForEditor();
 
@@ -334,9 +334,7 @@ namespace Garbus.Game.Tests.Editor
 
             AddWaitStep("wait one frame for seek to settle", 2);
 
-            // Now simulate a drag end on the timeline strip. The endUserDrag() logic calls
-            // SeekSnapped(editorClock.CurrentTime) which should snap 333ms → 375ms (3×125ms).
-            AddStep("mouse-press then release on timeline strip (simulates drag end)", () =>
+            AddStep("mouse-press on timeline strip (simulates drag start)", () =>
             {
                 var strip = editor.ChildrenOfType<TimelineStrip>().First();
                 // Position the mouse somewhere on the strip so OnMouseDown is triggered.
@@ -348,19 +346,16 @@ namespace Garbus.Game.Tests.Editor
 
             AddWaitStep("wait a frame", 2);
 
-            AddStep("release mouse — snap should be applied", () =>
-                input.ReleaseButton(MouseButton.Left));
+            double timeBeforeRelease = 0;
+            AddStep("capture time just before release", () => timeBeforeRelease = editorClock!.CurrentTime);
 
-            AddWaitStep("wait for snap to settle", 3);
+            AddStep("release mouse", () => input.ReleaseButton(MouseButton.Left));
 
-            // After release, position should be snapped to a 125ms multiple.
-            AddAssert("position snapped after release", () =>
-            {
-                const double snapMs = 500.0 / 4; // BeatLength / divisor
-                double t = editorClock!.CurrentTime;
-                double remainder = t % snapMs;
-                return remainder < 15 || remainder > snapMs - 15;
-            });
+            AddWaitStep("wait a few frames", 3);
+
+            // Releasing the drag must not move the playhead — no beat-snap correction on release.
+            AddAssert("position unchanged by release (no snap applied)", () =>
+                System.Math.Abs(editorClock!.CurrentTime - timeBeforeRelease) < 1.0);
         }
     }
 }
