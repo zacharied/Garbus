@@ -23,13 +23,13 @@ namespace Garbus.Game.Gameplay.Audio
         [Resolved]
         private ISampleStore sampleStore { get; set; } = null!;
 
-        private readonly List<DrawableSample> drawableSamples = new List<DrawableSample>();
+        private readonly List<(HitSampleInfo info, DrawableSample sample)> drawableSamples = new List<(HitSampleInfo, DrawableSample)>();
         private readonly List<SampleChannel> playingChannels = new List<SampleChannel>();
 
         /// <summary>
         /// The longest length among the loaded samples, in milliseconds.
         /// </summary>
-        public double Length => drawableSamples.Count == 0 ? 0 : drawableSamples.Max(s => s.Length);
+        public double Length => drawableSamples.Count == 0 ? 0 : drawableSamples.Max(s => s.sample.Length);
 
         /// <summary>
         /// Loads the given samples, replacing any previously loaded set. Unresolvable lookups are skipped.
@@ -52,7 +52,7 @@ namespace Garbus.Game.Gameplay.Audio
                         Volume = { Value = Math.Max(info.Volume, MINIMUM_SAMPLE_VOLUME) / 100.0 },
                     };
 
-                    drawableSamples.Add(drawableSample);
+                    drawableSamples.Add((info, drawableSample));
                     AddInternal(drawableSample);
                 }
             }
@@ -62,14 +62,17 @@ namespace Garbus.Game.Gameplay.Audio
         {
             Stop();
 
-            foreach (var sample in drawableSamples)
+            foreach (var (_, sample) in drawableSamples)
                 RemoveInternal(sample, true);
 
             drawableSamples.Clear();
         }
 
-        /// <summary>How many times <see cref="Play"/> has been invoked. Test observability seam.</summary>
+        /// <summary>How many times <see cref="Play()"/> has been invoked. Test observability seam.</summary>
         public int PlayCount { get; private set; }
+
+        /// <summary>The info last matched and played by <see cref="Play(HitSampleInfo?)"/>. Test seam.</summary>
+        public HitSampleInfo? LastPlayed { get; private set; }
 
         public void Play()
         {
@@ -77,8 +80,31 @@ namespace Garbus.Game.Gameplay.Audio
 
             playingChannels.RemoveAll(c => !c.Playing);
 
-            foreach (var sample in drawableSamples)
+            foreach (var (_, sample) in drawableSamples)
                 playingChannels.Add(sample.Play());
+        }
+
+        /// <summary>
+        /// Plays the single preloaded member whose originating <see cref="HitSampleInfo"/> equals <paramref name="info"/>.
+        /// A null or unmatched info is a no-op.
+        /// </summary>
+        public void Play(HitSampleInfo? info)
+        {
+            if (info == null)
+                return;
+
+            foreach (var (loadedInfo, sample) in drawableSamples)
+            {
+                if (!loadedInfo.Equals(info))
+                    continue;
+
+                PlayCount++;
+                LastPlayed = info;
+
+                playingChannels.RemoveAll(c => !c.Playing);
+                playingChannels.Add(sample.Play());
+                return;
+            }
         }
 
         public void Stop()
