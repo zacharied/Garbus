@@ -6,7 +6,7 @@
 //   TimelineTimeRange = EditorClock.TrackLength / CurrentZoom / 2
 // Waveform layer: WaveformGraph fed from track waveform via ChartFile directory store (null-safe).
 // Content width ∝ TrackLength × zoom; CentreMarker is a fixed overlay (non-scrolling).
-// Scroll-to-clock when playing; user drag seeks (raw while dragging, beat-snapped on release).
+// Scroll-to-clock when playing; user drag seeks raw throughout — no beat snapping on release.
 
 using System;
 using osu.Framework.Allocation;
@@ -197,11 +197,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
             double target = TimeAtPosition(Current);
             target = Math.Clamp(target, 0, editorClock.TrackLength);
 
-            if (handlingDragInput)
-                // Raw (unsnapped) seek while dragging — snapping happens on mouse-up.
-                editorClock.Seek(target);
-            else
-                editorClock.SeekSnapped(target);
+            // Raw (unsnapped) seek — the waveform display is never subject to beat snapping.
+            editorClock.Seek(target);
         }
 
         private void scrollToTrackTime()
@@ -217,7 +214,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
         public float PositionAtTime(double time)
             => (float)(time / editorClock.TrackLength * Content.DrawWidth);
 
-        // ---- Mouse drag: seek while dragging, snap on release ----
+        // ---- Mouse drag: raw seek throughout, no snap on release ----
 
         protected override bool OnMouseDown(MouseDownEvent e)
         {
@@ -246,8 +243,6 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private void endUserDrag()
         {
             handlingDragInput = false;
-            // Beat-snap the clock position on release.
-            editorClock.SeekSnapped(editorClock.CurrentTime);
             if (trackWasPlaying)
                 editorClock.Start();
         }
