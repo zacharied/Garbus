@@ -34,7 +34,7 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
             Colour = hitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour
         };
         Origin = Anchor.Centre;
-        Rotation = HitObject.AngleDeg;
+        Rotation = 270 - HitObject.AngleDeg + (hitObject.Direction == RotationalDirection.Anticlockwise ? 90 : -90);
     }
 
     [BackgroundDependencyLoader]

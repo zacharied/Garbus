@@ -34,7 +34,7 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
             Colour = hitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour
         };
         Origin = Anchor.Centre;
-        Rotation = HitObject.AngleDeg;
+        Rotation = 90 - HitObject.AngleDeg;
     }
 
     [BackgroundDependencyLoader]
