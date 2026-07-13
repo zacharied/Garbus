@@ -264,6 +264,25 @@ namespace Garbus.Game.Edit.Screens.Timeline
             currentWaveform?.Dispose();
             currentWaveform = stream == null ? null : new Waveform(stream);
             waveform.Waveform = currentWaveform;
+
+            Scheduler.AddOnce(applyVisualOffset);
+        }
+
+        // Shift the waveform earlier by GarbusEditor.WAVEFORM_VISUAL_OFFSET so timing points line
+        // up with the audio the same way they do in osu's editor (which bakes in an assumption of
+        // full system latency). Mirrors osu's Timeline.applyVisualOffset. X is relative to the
+        // zoomed content width, which spans the whole track — so the shift is the fraction of the
+        // track that the offset represents.
+        private void applyVisualOffset()
+        {
+            waveform.RelativePositionAxes = Axes.X;
+
+            double trackLength = editorClock.TrackLength;
+            if (trackLength > 0)
+                waveform.X = -(float)(GarbusEditor.WAVEFORM_VISUAL_OFFSET / trackLength);
+            else
+                // Track length can momentarily read 0 right after a track switch; retry once it populates.
+                Scheduler.AddOnce(applyVisualOffset);
         }
 
         protected override void Dispose(bool isDisposing)

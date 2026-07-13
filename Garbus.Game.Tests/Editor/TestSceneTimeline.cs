@@ -13,6 +13,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Timeline;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
@@ -21,6 +22,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing;
 
@@ -161,6 +163,35 @@ namespace Garbus.Game.Tests.Editor
                 float x = findMarker()!.ScreenSpaceDrawQuad.Centre.X;
                 return System.Math.Abs(x - strip.ScreenSpaceDrawQuad.Centre.X) < 2f
                        && System.Math.Abs(x - xAtFirstSeek) < 2f;
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // 6. Waveform carries osu's 20ms visual offset so timing points line up
+        //    with the audio the same way they do in osu's editor.
+        // ------------------------------------------------------------------
+
+        private WaveformGraph? findWaveform() => strip.ChildrenOfType<WaveformGraph>().FirstOrDefault();
+
+        [Test]
+        public void TestWaveformVisualOffsetApplied()
+        {
+            waitForStrip();
+
+            AddAssert("waveform exists", () => findWaveform() != null);
+
+            AddUntilStep("waveform shifted left by 20ms of track length", () =>
+            {
+                var wf = findWaveform()!;
+                if (!wf.RelativePositionAxes.HasFlag(Axes.X))
+                    return false;
+
+                double trackLength = editorClock.TrackLength;
+                if (trackLength <= 0)
+                    return false;
+
+                float expected = -(float)(GarbusEditor.WAVEFORM_VISUAL_OFFSET / trackLength);
+                return System.Math.Abs(wf.X - expected) < 1e-7f;
             });
         }
 

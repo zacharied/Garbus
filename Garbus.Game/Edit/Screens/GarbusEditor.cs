@@ -26,6 +26,18 @@ namespace Garbus.Game.Edit.Screens
 {
     public partial class GarbusEditor : Screen
     {
+        /// <summary>
+        /// An offset (ms) applied to waveform visuals to align them with expectations.
+        /// </summary>
+        /// <remarks>
+        /// Vendored from osu's <c>Editor.WAVEFORM_VISUAL_OFFSET</c>. osu! beatmaps have an
+        /// assumption of full system latency baked in — a culmination of platform offset, average
+        /// hardware playback latency, and users tuning their universal offsets against it. The
+        /// timeline waveform is shifted earlier by this amount so a beat drawn under the playhead
+        /// sits where the user expects to place a timing point.
+        /// </remarks>
+        public const float WAVEFORM_VISUAL_OFFSET = 20;
+
         // --- Public contract ---
 
         public readonly Bindable<EditorTab> Tab = new Bindable<EditorTab>(EditorTab.Compose);
