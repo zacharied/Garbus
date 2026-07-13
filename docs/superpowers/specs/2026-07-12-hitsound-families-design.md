@@ -94,4 +94,5 @@ dependencies and is unit-testable in isolation.
 - Authoring judgement-specific sound files (only `soft-hitnormal` exists; families are structured for
   later expansion).
 - Any change to judgement/hit-window behaviour or the `HitResult` ladder itself.
-- Slam playback wiring beyond declaring the family (Slams still have no gameplay drawable).
+- Authoring judgement-specific slam sounds; the slam drawables already route through the override, so
+  they play their family's single member like every other type.
