@@ -12,6 +12,7 @@ using osu.Framework.Graphics.Shapes;
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
 using Garbus.Game.UI;
 using osuTK;
@@ -465,7 +466,20 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
-//        ApplyResult(HitResult.IgnoreHit);
+        // Wait until the path has fully played out (timeOffset >= 0, i.e. Time.Current >= EndTime) AND
+        // every nested object has judged. The children read this body's per-frame geometry (AngleDegAt)
+        // to detect catches, so the body must stay alive until they are done; only then does it take its
+        // own unscored IgnoreHit, leave Idle, and expire via UpdateHitStateTransforms.
+        if (timeOffset < 0)
+            return;
+
+        foreach (var nested in NestedHitObjects)
+        {
+            if (!nested.AllJudged)
+                return;
+        }
+
+        ApplyResult(HitResult.IgnoreHit);
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)

@@ -6,6 +6,7 @@ using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Types;
+using Garbus.Game.Gameplay.Scoring;
 
 namespace Garbus.Game.Objects;
 
@@ -64,4 +65,14 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle
     }
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.SliderBody;
+
+    // The body itself is unscored — the head and children carry the slider's judgement. It only earns an
+    // IgnoreHit so it can leave the Idle state and expire once the path plays out; without a result the
+    // body would live (and re-render its glow framebuffer every frame) for the rest of the chart.
+    public override Gameplay.Judgements.Judgement CreateJudgement() => new SliderBodyJudgement();
+
+    private class SliderBodyJudgement : Gameplay.Judgements.Judgement
+    {
+        public override HitResult MaxResult => HitResult.IgnoreHit;
+    }
 }
