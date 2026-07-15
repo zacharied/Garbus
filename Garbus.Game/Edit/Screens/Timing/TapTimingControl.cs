@@ -43,6 +43,7 @@ namespace Garbus.Game.Edit.Screens.Timing
         private MetronomeDisplay metronome = null!;
         private WaveformComparisonDisplay waveform = null!;
         private TapButton tapButton = null!;
+        private BasicCheckbox clickCheckbox = null!;
 
         [BackgroundDependencyLoader]
         private void load()
@@ -63,13 +64,21 @@ namespace Garbus.Game.Edit.Screens.Timing
                     new Container
                     {
                         RelativeSizeAxes = Axes.X,
-                        Height = 160,
+                        Height = 200,
                         Children = new Drawable[]
                         {
                             metronome = new MetronomeDisplay
                             {
                                 Anchor = Anchor.CentreLeft,
                                 Origin = Anchor.CentreLeft,
+                            },
+                            clickCheckbox = new BasicCheckbox
+                            {
+                                Anchor = Anchor.BottomLeft,
+                                Origin = Anchor.BottomLeft,
+                                Position = new Vector2(8, -4),
+                                LabelText = "Metronome",
+                                Current = { BindTarget = metronome.EnableClicking },
                             },
                             waveform = new WaveformComparisonDisplay
                             {

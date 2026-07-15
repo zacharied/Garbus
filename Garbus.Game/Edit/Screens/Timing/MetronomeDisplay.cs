@@ -32,8 +32,9 @@ namespace Garbus.Game.Edit.Screens.Timing
         /// <summary>Bind to TimingPointList.SelectedGroup.</summary>
         public readonly Bindable<ControlPointGroup?> SelectedGroup = new Bindable<ControlPointGroup?>();
 
-        /// <summary>When false, samples are not played (used while tap-to-BPM is capturing).</summary>
-        public bool EnableClicking { get; set; } = true;
+        /// <summary>When false, samples are not played (used while tap-to-BPM is capturing, or when
+        /// muted via the click toggle).</summary>
+        public readonly BindableBool EnableClicking = new BindableBool(true);
 
         private Sample? sampleTick;
         private Sample? sampleDownbeat;
@@ -114,6 +115,12 @@ namespace Garbus.Game.Edit.Screens.Timing
             base.LoadComplete();
 
             SelectedGroup.BindValueChanged(_ => onGroupChanged(), true);
+
+            EnableClicking.BindValueChanged(e =>
+            {
+                if (!e.NewValue)
+                    swing.RotateTo(0, 600, Easing.OutQuint);
+            });
         }
 
         private void onGroupChanged()
@@ -208,15 +215,14 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             if (currentTimingPoint == null) return;
 
+            if (!EnableClicking.Value) return;
+
             bool isDownbeat = (beatIndex % currentTimingPoint.TimeSignature.Numerator) == 0;
 
-            if (EnableClicking)
-            {
-                if (isDownbeat)
-                    sampleDownbeat?.Play();
-                else
-                    sampleTick?.Play();
-            }
+            if (isDownbeat)
+                sampleDownbeat?.Play();
+            else
+                sampleTick?.Play();
 
             // Pendulum swing.
             float angle = 25f;
