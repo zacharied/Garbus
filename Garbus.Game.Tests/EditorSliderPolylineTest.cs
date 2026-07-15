@@ -74,5 +74,32 @@ namespace Garbus.Game.Tests
             // Clearly off the straight-chord midpoint (angle 45).
             Assert.That(polyline[6].X, Is.Not.EqualTo(centre_x + 45 * px_per_deg).Within(1f));
         }
+
+        [Test]
+        public void ZeroTimeLinkRendersAsHorizontalSegment()
+        {
+            // A leading zero-length link: the head (time 0) and a child also at time 0, then a later node so
+            // the path has a real duration. The head→child link shares a time, so it must draw as a horizontal
+            // segment (all its sub-vertices share y) that sweeps only in angle.
+            var polyline = new List<Vector2>();
+            var nodes = new List<Vector2>();
+            var cps = new[]
+            {
+                new GarbusPathControlPoint { TimeOffset = 0, RotationOffset = 90 },
+                new GarbusPathControlPoint { TimeOffset = duration, RotationOffset = 180 },
+            };
+            EditorSliderPolyline.Build(cps, px_per_deg, centre_x, draw_height, duration, polyline, nodes);
+
+            // Head and the offset-0 child both sit at the bottom edge (time 0 → y = drawHeight).
+            Assert.That(nodes[0].Y, Is.EqualTo(draw_height).Within(1e-3));
+            Assert.That(nodes[1].Y, Is.EqualTo(draw_height).Within(1e-3));
+
+            // The first link's sub-vertices (indices 0..SegmentsPerLink) all share that y — a horizontal line.
+            for (int i = 0; i <= SliderSweep.SegmentsPerLink; i++)
+                Assert.That(polyline[i].Y, Is.EqualTo(draw_height).Within(1e-3));
+
+            // ...but it sweeps in x from the head (centre) toward the 90° column.
+            Assert.That(polyline[SliderSweep.SegmentsPerLink].X, Is.EqualTo(centre_x + 90 * px_per_deg).Within(1e-3));
+        }
     }
 }
