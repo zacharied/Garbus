@@ -286,7 +286,8 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         bool changed = false;
 
         // Time: shift every moved node by the grabbed node's delta, but only if the whole path stays
-        // strictly time-ordered and every offset stays > 0. All-or-nothing per event (no partial move).
+        // non-decreasing (at most one zero-length link in a row) with total duration > 0. All-or-nothing
+        // per event (no partial move).
         if (result.Time is double proposedTime)
         {
             double deltaTime = (proposedTime - HitObject.StartTime) - grabbed.TimeOffset;
@@ -424,18 +425,22 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         double timeOffset = time - HitObject.StartTime;
 
-        // nodes must come strictly after the head.
-        if (timeOffset <= 0)
-            return;
-
         var controlPoints = HitObject.Path.ControlPoints;
 
         int insertIndex = 0;
         while (insertIndex < controlPoints.Count && controlPoints[insertIndex].TimeOffset < timeOffset)
             insertIndex++;
 
-        // don't stack two nodes on the exact same time.
-        if (insertIndex < controlPoints.Count && controlPoints[insertIndex].TimeOffset == timeOffset)
+        // Validate the path the insertion would produce: non-decreasing, at most one zero-length link
+        // in a row, duration > 0. This permits a single horizontal arc (inserting at an existing node's
+        // time, or at time 0 after the head) while still rejecting a backwards time, a 3-node stack, or
+        // a duration-0 path.
+        var prospective = new List<double>(controlPoints.Count + 1);
+        for (int i = 0; i < controlPoints.Count; i++)
+            prospective.Add(controlPoints[i].TimeOffset);
+        prospective.Insert(insertIndex, timeOffset);
+
+        if (!GarbusSliderPath.AreTimesValid(prospective))
             return;
 
         int previousRotation = insertIndex > 0 ? controlPoints[insertIndex - 1].RotationOffset : 0;

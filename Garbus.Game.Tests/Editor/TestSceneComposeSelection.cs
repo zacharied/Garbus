@@ -971,6 +971,33 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestTInsertAtExistingNodeTimeCreatesArc()
+        {
+            waitForComposer();
+            placeDiagonalSlider();   // one node at time > 0
+            selectSliderOnLine();
+
+            // Move the cursor to the existing node's exact time but a different angle column, then press T.
+            AddStep("move cursor to node time, new angle", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                var container = playfield.HitObjectContainer;
+                var screen = container.ScreenSpacePositionAtTime(slider.StartTime + slider.Path.ControlPoints[0].TimeOffset);
+                screen.X = positionAtAngle(315).X;
+                input.MoveMouseTo(screen);
+            });
+            AddStep("press T", () => input.Key(Key.T));
+
+            AddAssert("second node inserted",
+                () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+            AddAssert("the two nodes share a time (horizontal arc)", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                return cps[0].TimeOffset == cps[1].TimeOffset;
+            });
+        }
+
+        [Test]
         public void TestSliderSideContextMenuTogglesAndUndoes()
         {
             waitForComposer();
