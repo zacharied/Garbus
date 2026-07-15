@@ -227,6 +227,86 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("no slider placed", () => placedObject<SliderBody>() == null);
         }
 
+        [Test]
+        public void TestPlaceSliderWithHorizontalSegment()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
+            AddStep("click body", () => input.Click(MouseButton.Left));
+            AddStep("move to node 1", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
+            AddStep("click node 1", () => input.Click(MouseButton.Left));
+            // node 2 at the SAME time as node 1 (same yFrac) but a different angle — a horizontal arc.
+            AddStep("move to node 2 (same time, new angle)", () => input.MoveMouseTo(positionAtAngle(0, 0.5f)));
+            AddStep("click node 2", () => input.Click(MouseButton.Left));
+            AddStep("right click to commit", () => input.Click(MouseButton.Right));
+
+            AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+            AddAssert("two control points", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+            AddAssert("last two nodes share a time (horizontal arc)", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                return cps[0].TimeOffset == cps[1].TimeOffset && cps[0].TimeOffset > 0;
+            });
+        }
+
+        [Test]
+        public void TestPlaceSliderRejectsThreeNodesAtSameTime()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
+            AddStep("click body", () => input.Click(MouseButton.Left));
+            AddStep("move to node 1", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
+            AddStep("click node 1", () => input.Click(MouseButton.Left));
+            AddStep("move to node 2 (same time)", () => input.MoveMouseTo(positionAtAngle(0, 0.5f)));
+            AddStep("click node 2", () => input.Click(MouseButton.Left));
+            // a THIRD node at the same time must be rejected (two zero-length links in a row).
+            AddStep("move to node 3 (same time)", () => input.MoveMouseTo(positionAtAngle(45, 0.5f)));
+            AddStep("click node 3 (rejected)", () => input.Click(MouseButton.Left));
+            AddStep("right click to commit", () => input.Click(MouseButton.Right));
+
+            AddAssert("only two control points (third rejected)",
+                () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestPlaceSliderWithLeadingArcCommits()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("click body", () => input.Click(MouseButton.Left));
+            // node 1 at the head's time (offset 0) — a leading horizontal arc.
+            AddStep("move to node 1 at head time", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
+            AddStep("click node 1", () => input.Click(MouseButton.Left));
+            // node 2 strictly later, so the path has a real duration and can commit.
+            AddStep("move to node 2 (later)", () => input.MoveMouseTo(positionAtAngle(0, 0.3f)));
+            AddStep("click node 2", () => input.Click(MouseButton.Left));
+            AddStep("right click to commit", () => input.Click(MouseButton.Right));
+
+            AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+            AddAssert("first node at head time (leading arc)",
+                () => placedObject<SliderBody>()!.Path.ControlPoints[0].TimeOffset, () => Is.EqualTo(0.0));
+            AddAssert("second node later",
+                () => placedObject<SliderBody>()!.Path.ControlPoints[1].TimeOffset, () => Is.GreaterThan(0.0));
+        }
+
+        [Test]
+        public void TestPlaceSliderZeroDurationDoesNotCommit()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("click body", () => input.Click(MouseButton.Left));
+            // the only node sits at the head's time (offset 0): ordered, but total duration is 0.
+            AddStep("move to node at head time", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
+            AddStep("click node", () => input.Click(MouseButton.Left));
+            AddStep("right click to commit", () => input.Click(MouseButton.Right));
+
+            AddAssert("no slider placed (duration 0)", () => placedObject<SliderBody>() == null);
+        }
+
         // ------------------------------------------------------------------
         // placed-object query helpers
         // ------------------------------------------------------------------

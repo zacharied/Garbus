@@ -40,7 +40,8 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
     private int cursorAngleDeg;
     private double cursorTime;
 
-    protected override bool IsValidForPlacement => base.IsValidForPlacement && HitObject.Path.ControlPoints.Count > 0;
+    protected override bool IsValidForPlacement =>
+        base.IsValidForPlacement && HitObject.Path.ControlPoints.Count > 0 && HitObject.Duration > 0;
 
     public SliderPlacementBlueprint()
         : base(new SliderBody
@@ -103,10 +104,16 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
 
         double timeOffset = cursorTime - HitObject.StartTime;
         var previous = controlPoints.Count > 0 ? controlPoints[^1] : null;
-        double previousOffset = previous?.TimeOffset ?? 0;
 
-        // control points must always advance in time along the path.
-        if (timeOffset <= previousOffset)
+        // Reject unless the prospective path stays ordered: non-decreasing, with at most one
+        // zero-length link in a row (a single horizontal arc). The duration > 0 half is deferred to
+        // IsValidForPlacement so a leading zero-arc can still be built up node by node.
+        var prospective = new List<double>(controlPoints.Count + 1);
+        foreach (var cp in controlPoints)
+            prospective.Add(cp.TimeOffset);
+        prospective.Add(timeOffset);
+
+        if (!GarbusSliderPath.AreTimesOrdered(prospective))
             return;
 
         int previousRotation = previous?.RotationOffset ?? 0;
@@ -156,7 +163,7 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
             // rubber-band to the cursor when it would form a valid next node — at the UNWRAPPED
             // continuation the commit would produce (MinimalDiff from the last node), not the raw cursor
             // x, so previewing across the wrap seam goes the short way; a wrap copy lands it on the cursor.
-            if (cursorTime - HitObject.StartTime > (HitObject.Path.ControlPoints.Count > 0 ? HitObject.Path.ControlPoints[^1].TimeOffset : 0))
+            if (cursorTime - HitObject.StartTime >= (HitObject.Path.ControlPoints.Count > 0 ? HitObject.Path.ControlPoints[^1].TimeOffset : 0))
             {
                 int lastAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + lastRotation);
                 int rubberOffset = lastRotation + EditorAngleMapping.MinimalDiff(lastAbsolute, cursorAngleDeg);
