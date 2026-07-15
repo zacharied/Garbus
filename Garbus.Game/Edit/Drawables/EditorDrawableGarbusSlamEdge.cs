@@ -42,7 +42,16 @@ public partial class EditorDrawableGarbusSlamEdge : EditorDrawableGarbusHitObjec
     {
         base.Update();
 
+        // Read Side/Direction live (not once in CreateVisual): the editor mutates them in place via
+        // EditorChart.Update, which re-Apply()s the drawable rather than recreating it, so changes must
+        // be reflected here.
+        var sideColour = HitObject.Side.ToColour();
+        var rotation = (HitObject.Direction == RotationalDirection.Clockwise ? -90 : 90) * EditorAngleMapping.Direction;
+
         foreach (var arrow in arrows)
-            arrow.Rotation = (HitObject.Direction == RotationalDirection.Clockwise ? -90 : 90) * EditorAngleMapping.Direction;
+        {
+            arrow.Colour = sideColour;
+            arrow.Rotation = rotation;
+        }
     }
 }

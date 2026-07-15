@@ -64,11 +64,11 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             switch (state.NewValue)
             {
                 case TernaryState.False:
-                    setSliderSide(HorizontalDirection.Left);
+                    setSide(HorizontalDirection.Left);
                     break;
 
                 case TernaryState.True:
-                    setSliderSide(HorizontalDirection.Right);
+                    setSide(HorizontalDirection.Right);
                     break;
             }
         };
@@ -86,21 +86,21 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         });
     }
 
-    private void setSliderSide(HorizontalDirection side)
+    private void setSide(HorizontalDirection side)
     {
-        if (SelectedItems.OfType<SliderBody>().All(s => s.Side == side))
+        if (SelectedItems.OfType<IHasSide>().All(s => s.Side == side))
             return;
 
         EditorChart.PerformOnSelection(h =>
         {
-            if (h is SliderBody slider)
-                slider.Side = side;
+            if (h is IHasSide sided)
+                sided.Side = side;
         });
     }
 
-    /// <summary>Flips the selected slider(s) to the opposite side, mirroring the "Right side" context-menu toggle.</summary>
-    private void toggleSliderSide() =>
-        setSliderSide(selectionRightSideState.Value == TernaryState.True ? HorizontalDirection.Left : HorizontalDirection.Right);
+    /// <summary>Flips the selected sided object(s) to the opposite side, mirroring the "Right side" context-menu toggle.</summary>
+    private void toggleSide() =>
+        setSide(selectionRightSideState.Value == TernaryState.True ? HorizontalDirection.Left : HorizontalDirection.Right);
 
     protected override bool OnKeyDown(KeyDownEvent e)
     {
@@ -113,8 +113,8 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
                 composer.ReverseAngleView.Value = !composer.ReverseAngleView.Value;
                 return true;
 
-            case Key.S when e is { ControlPressed: false, ShiftPressed: false } && SelectedItems.OfType<SliderBody>().Any():
-                toggleSliderSide();
+            case Key.S when e is { ControlPressed: false, ShiftPressed: false } && SelectedItems.OfType<IHasSide>().Any():
+                toggleSide();
                 return true;
 
             case Key.F when e is { ControlPressed: true, ShiftPressed: false } && SelectedItems.Count > 0:
@@ -143,7 +143,7 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             };
         }
 
-        if (selection.All(s => s.Item is SliderBody))
+        if (selection.All(s => s.Item is IHasSide))
         {
             yield return new TernaryStateToggleMenuItem("Right side")
             {
@@ -164,7 +164,7 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             s => s.Direction == RotationalDirection.Anticlockwise);
 
         selectionRightSideState.Value = GetStateFromSelection(
-            EditorChart.SelectedHitObjects.OfType<SliderBody>(),
+            EditorChart.SelectedHitObjects.OfType<IHasSide>(),
             s => s.Side == HorizontalDirection.Right);
     }
 

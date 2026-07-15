@@ -6,10 +6,10 @@ using Garbus.Game.Gameplay.Audio;
 
 namespace Garbus.Game.Objects;
 
-public class GarbusSlamCentered : GarbusHitObject, IHasMutableAngle
+public class GarbusSlamCentered : GarbusHitObject, IHasMutableAngle, IHasSide
 {
     public required int AngleDeg { get; set; }
-    public HorizontalDirection Side = HorizontalDirection.Left;
+    public HorizontalDirection Side { get; set; } = HorizontalDirection.Left;
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.SlamCentered;
 }

@@ -211,52 +211,41 @@ namespace Garbus.Game.Edit
 
         private void addControls(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes)
         {
-            // Side dropdown: single slider/slam selection only.
+            // Side / Direction dropdowns: single object selection only.
             if (objects.Length == 1)
             {
-                switch (objects[0])
+                var single = objects[0];
+
+                // Side applies to every IHasSide object (slider, both slam types); shoulders carry a Side
+                // but it's positional and intentionally not IHasSide, so no dropdown for them.
+                if (single is IHasSide sided)
                 {
-                    case SliderBody slider:
-                        addEnumDropdown(
-                            "Side",
-                            slider.Side,
-                            value =>
-                            {
-                                if (slider.Side == value) return;
-                                changeHandler?.BeginChange();
-                                slider.Side = value;
-                                editorChart.Update(slider);
-                                changeHandler?.EndChange();
-                            });
-                        break;
+                    addEnumDropdown(
+                        "Side",
+                        sided.Side,
+                        value =>
+                        {
+                            if (sided.Side == value) return;
+                            changeHandler?.BeginChange();
+                            sided.Side = value;
+                            editorChart.Update(single);
+                            changeHandler?.EndChange();
+                        });
+                }
 
-                    case GarbusSlamCentered slam:
-                        addEnumDropdown(
-                            "Side",
-                            slam.Side,
-                            value =>
-                            {
-                                if (slam.Side == value) return;
-                                changeHandler?.BeginChange();
-                                slam.Side = value;
-                                editorChart.Update(slam);
-                                changeHandler?.EndChange();
-                            });
-                        break;
-
-                    case GarbusSlamEdge slam:
-                        addEnumDropdown(
-                            "Side",
-                            slam.Side,
-                            value =>
-                            {
-                                if (slam.Side == value) return;
-                                changeHandler?.BeginChange();
-                                slam.Side = value;
-                                editorChart.Update(slam);
-                                changeHandler?.EndChange();
-                            });
-                        break;
+                if (single is GarbusSlamEdge slam)
+                {
+                    addEnumDropdown(
+                        "Direction",
+                        slam.Direction,
+                        value =>
+                        {
+                            if (slam.Direction == value) return;
+                            changeHandler?.BeginChange();
+                            slam.Direction = value;
+                            editorChart.Update(slam);
+                            changeHandler?.EndChange();
+                        });
                 }
             }
 

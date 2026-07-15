@@ -692,6 +692,20 @@ namespace Garbus.Game.Tests.Editor
             AddStep("switch to select tool", () => input.Key(Key.Number1));
         }
 
+        /// <summary>Places a centered slam (instant placement) at an angle and returns to the select tool.</summary>
+        private void placeSlamCenteredAt(float angleDeg)
+        {
+            AddStep("select slam-centered tool", () => input.Key(Key.Number6));
+            AddStep("place slam centered", () =>
+            {
+                input.MoveMouseTo(positionAtAngle(angleDeg, 0.5f));
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slam centered placed", () => placedObject<GarbusSlamCentered>() != null);
+            settleWith(() => placedObject<GarbusSlamCentered>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+        }
+
         /// <summary>Selects the slider by clicking the midpoint of its head→node line.</summary>
         private void selectSliderOnLine()
         {
@@ -1036,6 +1050,54 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("redo", () => changeHandler.RestoreState(1));
             AddAssert("slider Right again", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+        }
+
+        [Test]
+        public void TestSKeyTogglesSlamSide()
+        {
+            // The S-key side toggle applies to every IHasSide object, not just sliders — here a centered slam.
+            waitForComposer();
+            placeSlamCenteredAt(270);
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamCentered>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamCentered>());
+            AddAssert("slam starts Left", () => placedObject<GarbusSlamCentered>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
+
+            AddStep("press S", () => input.Key(Key.S));
+            AddAssert("slam now Right", () => placedObject<GarbusSlamCentered>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+
+            AddStep("press S again", () => input.Key(Key.S));
+            AddAssert("slam back to Left", () => placedObject<GarbusSlamCentered>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("slam Right after undo", () => placedObject<GarbusSlamCentered>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+        }
+
+        [Test]
+        public void TestSKeyDoesNotToggleShoulderSide()
+        {
+            // Shoulders have a Side but it's positional (it picks the lane/button), so they intentionally
+            // don't implement IHasSide and the S-key must leave them untouched.
+            waitForComposer();
+
+            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("place shoulder (West)", () =>
+            {
+                input.MoveMouseTo(positionAtAngle(180, 0.5f));
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("shoulder placed", () => placedObject<ShoulderNote>() != null);
+            settleWith(() => placedObject<ShoulderNote>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            hoverThenClick(() => screenPositionOf(placedObject<ShoulderNote>()!));
+            AddAssert("shoulder selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(1));
+
+            HorizontalDirection sideBefore = default;
+            AddStep("snapshot side", () => sideBefore = placedObject<ShoulderNote>()!.Side);
+
+            AddStep("press S", () => input.Key(Key.S));
+            AddAssert("shoulder side unchanged", () => placedObject<ShoulderNote>()!.Side, () => Is.EqualTo(sideBefore));
         }
 
         [Test]
@@ -1699,6 +1761,30 @@ namespace Garbus.Game.Tests.Editor
             .FirstOrDefault()?
             .ChildrenOfType<EditorSpritePiece>()
             .FirstOrDefault()?.Rotation;
+
+        [Test]
+        public void TestSlamEdgeArrowRecoloursLiveWithSideChange()
+        {
+            // Like TestSliderSideContextMenuTogglesAndUndoes, but for the slam-edge arrow: EditorChart.Update
+            // re-Apply()s the drawable in place rather than recreating it, so the arrow's Colour must be read
+            // live from HitObject.Side every frame, not just once in CreateVisual().
+            waitForComposer();
+            placeSlamEdgeAt(45);
+
+            AddAssert("placed Left", () => placedObject<GarbusSlamEdge>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
+            AddUntilStep("arrow coloured Left", () =>
+                composer.ChildrenOfType<EditorDrawableGarbusSlamEdge>().FirstOrDefault()?
+                    .ChildrenOfType<EditorSpritePiece>().FirstOrDefault()?.Colour.Equals(Constants.LeftColour) == true);
+
+            AddStep("flip side to Right", () =>
+            {
+                placedObject<GarbusSlamEdge>()!.Side = HorizontalDirection.Right;
+                editorChart.Update(placedObject<GarbusSlamEdge>()!);
+            });
+            AddUntilStep("arrow recoloured to Right", () =>
+                composer.ChildrenOfType<EditorDrawableGarbusSlamEdge>().FirstOrDefault()?
+                    .ChildrenOfType<EditorSpritePiece>().FirstOrDefault()?.Colour.Equals(Constants.RightColour) == true);
+        }
 
         /// <summary>
         /// The <c>Text</c> of the single-letter cardinal <see cref="SpriteText"/> the AngleGrid draws

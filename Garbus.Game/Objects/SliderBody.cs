@@ -10,7 +10,7 @@ using Garbus.Game.Gameplay.Scoring;
 
 namespace Garbus.Game.Objects;
 
-public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle
+public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle, IHasSide
 {
     /// <summary>
     /// The initial direction of the path, in degrees. Each child control point's
@@ -18,7 +18,7 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle
     /// </summary>
     public required int AngleDeg { get; set; }
 
-    public required HorizontalDirection Side;
+    public required HorizontalDirection Side { get; set; }
 
     public required GarbusPath Path { get; init; }
 
