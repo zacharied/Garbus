@@ -38,4 +38,9 @@ public class ChartMetadata
     /// empty when the chart has none. Stored only this phase — nothing renders it yet.
     /// </summary>
     public string BackgroundFile { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Numeric difficulty level of the chart (0 = unset).
+    /// </summary>
+    public int Level { get; set; }
 }

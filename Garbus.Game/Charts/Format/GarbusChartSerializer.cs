@@ -107,6 +107,7 @@ public static class GarbusChartSerializer
             Tags = chart.Metadata.Tags,
             AudioFile = chart.Metadata.AudioFile,
             BackgroundFile = chart.Metadata.BackgroundFile,
+            Level = chart.Metadata.Level,
         },
         PreviewTime = chart.PreviewTime,
         TimingPoints = chart.ControlPointInfo.TimingPoints.Select(t => new TimingPointDto
@@ -164,6 +165,7 @@ public static class GarbusChartSerializer
                 Tags = dto.Metadata.Tags,
                 AudioFile = dto.Metadata.AudioFile,
                 BackgroundFile = dto.Metadata.BackgroundFile,
+                Level = dto.Metadata.Level,
             },
             PreviewTime = dto.PreviewTime,
             HitObjects = dto.HitObjects.Select(fromDto).ToList(),
