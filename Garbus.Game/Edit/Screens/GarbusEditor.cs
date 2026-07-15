@@ -344,7 +344,24 @@ namespace Garbus.Game.Edit.Screens
                         RelativeSizeAxes = Axes.Both,
                         Colour = new osuTK.Graphics.Color4(20, 20, 28, 255),
                     },
-                    createMenuBar(),
+                    new FillFlowContainer
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        AutoSizeAxes = Axes.X,
+                        RelativeSizeAxes = Axes.Y,
+                        Direction = FillDirection.Horizontal,
+                        Spacing = new osuTK.Vector2(16, 0),
+                        Children = new Drawable[]
+                        {
+                            createMenuBar(),
+                            new ChartTitleDisplay
+                            {
+                                Anchor = Anchor.CentreLeft,
+                                Origin = Anchor.CentreLeft,
+                            },
+                        },
+                    },
                     new BasicTabControl<EditorTab>
                     {
                         Anchor = Anchor.CentreRight,

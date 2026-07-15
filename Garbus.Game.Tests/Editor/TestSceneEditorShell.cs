@@ -294,6 +294,57 @@ namespace Garbus.Game.Tests.Editor
 
         private GarbusHitObjectComposer composer() => editor.ChildrenOfType<GarbusHitObjectComposer>().Single();
 
+        /// <summary>
+        /// Regression guard: SpriteText.IsPresent is false while Text is empty, and Drawable.Update()
+        /// is skipped entirely while !IsPresent — a dynamically-computed label starting from empty
+        /// text would otherwise never run the Update() that assigns it (permanent deadlock) without
+        /// AlwaysPresent.
+        /// </summary>
+        [Test]
+        public void TestChartTitleDisplayShowsFormattedTitle()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+
+            AddAssert("shows unsaved-with-metadata text (chart pre-saved by SetUp)", () =>
+                editor.ChildrenOfType<ChartTitleDisplay>().Single().Text.ToString() == " [Lv??]");
+
+            AddStep("set title/chartname/level", () =>
+            {
+                editor.EditorChart.Metadata.Title = "Song";
+                editor.EditorChart.Metadata.ChartName = "Hard";
+                editor.EditorChart.Metadata.Level = 5;
+            });
+            AddUntilStep("shows full formatted text", () =>
+                editor.ChildrenOfType<ChartTitleDisplay>().Single().Text.ToString() == "Song [Hard Lv5]");
+        }
+
+        [Test]
+        public void TestChartTitleDisplayShowsNewChartWhenUnsaved()
+        {
+            GarbusEditor unsavedEditor = null!;
+
+            AddStep("push editor with unsaved chart", () =>
+            {
+                var chart = new GarbusChart();
+                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.Metadata.Title = "Song"; // even with metadata set, unsaved takes priority.
+
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = new ScreenStack(unsavedEditor = new GarbusEditor(new ChartFile(chart))) { RelativeSizeAxes = Axes.Both },
+                };
+            });
+
+            AddUntilStep("shows New Chart, greyed out", () =>
+            {
+                var display = unsavedEditor.ChildrenOfType<ChartTitleDisplay>().SingleOrDefault();
+                return display != null && display.Text.ToString() == "New Chart"
+                       && display.Colour == (osu.Framework.Graphics.Colour4)new osuTK.Graphics.Color4(140, 140, 140, 255);
+            });
+        }
+
         [Test]
         public void TestDirtyTracking()
         {
