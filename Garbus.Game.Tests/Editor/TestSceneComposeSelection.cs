@@ -1122,6 +1122,41 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDraggingNodeOntoNeighbourTimeCreatesArc()
+        {
+            waitForComposer();
+            placeDiagonalSlider();   // one node at time > 0
+            addSecondNode();         // second node at node0 + 250ms
+            selectSliderOnLine();
+
+            AddStep("select node 1", () => { input.MoveMouseTo(nodeHandleScreen(1)); input.Click(MouseButton.Left); });
+            AddAssert("node 1 selected",
+                () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[1]));
+
+            AddStep("press node 1 handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressButton(MouseButton.Left);
+            });
+            // Drag node 1 up in time onto node 0's time (same beat) — collapsing the link to a horizontal arc.
+            AddStep("drag onto node 0's time", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                var container = playfield.HitObjectContainer;
+                var target = container.ScreenSpacePositionAtTime(slider.StartTime + slider.Path.ControlPoints[0].TimeOffset);
+                target.X = nodeHandleScreen(1).X;
+                input.MoveMouseTo(target);
+            });
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("nodes now share a time (horizontal arc)", () =>
+            {
+                var cps = placedObject<SliderBody>()!.Path.ControlPoints;
+                return cps[0].TimeOffset == cps[1].TimeOffset && cps[0].TimeOffset > 0;
+            });
+        }
+
+        [Test]
         public void TestDeleteRemovesSelectedNodeNotWholeSlider()
         {
             waitForComposer();

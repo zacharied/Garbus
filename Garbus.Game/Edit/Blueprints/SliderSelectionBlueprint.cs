@@ -321,24 +321,18 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     }
 
     /// <summary>
-    /// True if shifting every node in <paramref name="moved"/> by <paramref name="deltaTime"/> keeps the full
-    /// control-point list strictly increasing in time and every offset above zero (nodes must follow the head).
+    /// True if shifting every node in <paramref name="moved"/> by <paramref name="deltaTime"/> leaves the
+    /// full path valid: non-decreasing times, at most one zero-length link in a row (a single horizontal
+    /// arc), and total duration &gt; 0 (the head sits at offset 0).
     /// </summary>
     private static bool timeShiftValid(IReadOnlyList<GarbusPathControlPoint> controlPoints, ICollection<GarbusPathControlPoint> moved, double deltaTime)
     {
-        double previous = 0; // the head sits at offset 0.
+        var offsets = new List<double>(controlPoints.Count);
 
         foreach (var cp in controlPoints)
-        {
-            double offset = moved.Contains(cp) ? cp.TimeOffset + deltaTime : cp.TimeOffset;
+            offsets.Add(moved.Contains(cp) ? cp.TimeOffset + deltaTime : cp.TimeOffset);
 
-            if (offset <= previous)
-                return false;
-
-            previous = offset;
-        }
-
-        return true;
+        return GarbusSliderPath.AreTimesValid(offsets);
     }
 
     /// <summary>Left-click selection of a node: plain click selects only it; Ctrl toggles it in the set.</summary>
