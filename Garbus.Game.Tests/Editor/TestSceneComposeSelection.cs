@@ -990,10 +990,10 @@ namespace Garbus.Game.Tests.Editor
 
             AddAssert("second node inserted",
                 () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
-            AddAssert("the two nodes share a time (horizontal arc)", () =>
+            AddAssert("the two nodes share a time (horizontal arc), not collapsed onto the head", () =>
             {
                 var cps = placedObject<SliderBody>()!.Path.ControlPoints;
-                return cps[0].TimeOffset == cps[1].TimeOffset;
+                return cps[0].TimeOffset == cps[1].TimeOffset && cps[0].TimeOffset > 0;
             });
         }
 

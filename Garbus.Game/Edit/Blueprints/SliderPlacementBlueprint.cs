@@ -163,7 +163,14 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
             // rubber-band to the cursor when it would form a valid next node — at the UNWRAPPED
             // continuation the commit would produce (MinimalDiff from the last node), not the raw cursor
             // x, so previewing across the wrap seam goes the short way; a wrap copy lands it on the cursor.
-            if (cursorTime - HitObject.StartTime >= (HitObject.Path.ControlPoints.Count > 0 ? HitObject.Path.ControlPoints[^1].TimeOffset : 0))
+            // Mirrors tryAddNode's acceptance check exactly (same prospective-offsets list through
+            // AreTimesOrdered) so the preview can never promise a vertex the next click would reject.
+            var prospective = new List<double>(HitObject.Path.ControlPoints.Count + 1);
+            foreach (var cp in HitObject.Path.ControlPoints)
+                prospective.Add(cp.TimeOffset);
+            prospective.Add(cursorTime - HitObject.StartTime);
+
+            if (GarbusSliderPath.AreTimesOrdered(prospective))
             {
                 int lastAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + lastRotation);
                 int rubberOffset = lastRotation + EditorAngleMapping.MinimalDiff(lastAbsolute, cursorAngleDeg);
