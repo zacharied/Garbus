@@ -25,7 +25,7 @@ namespace Garbus.Game.Edit.Screens.Setup
         /// <summary>Exposes the textbox so tests can read the current value.</summary>
         public BasicTextBox TextBox => textBox;
 
-        public FormRow(string label, string initialValue, Action<string> commitCallback)
+        public FormRow(string label, string initialValue, Action<string> commitCallback, bool numericOnly = false)
         {
             onCommit = commitCallback;
             lastCommittedValue = initialValue;
@@ -36,13 +36,11 @@ namespace Garbus.Game.Edit.Screens.Setup
             Spacing = new Vector2(8, 0);
             Padding = new MarginPadding { Vertical = 4 };
 
-            textBox = new CommittableTextBox
-            {
-                Width = 300,
-                Height = 30,
-                CommitOnFocusLost = true,
-                Text = initialValue,
-            };
+            textBox = numericOnly ? new NumericTextBox() : new CommittableTextBox();
+            textBox.Width = 300;
+            textBox.Height = 30;
+            textBox.CommitOnFocusLost = true;
+            textBox.Text = initialValue;
 
             // OnCommit fires on Enter key and on focus loss (when CommitOnFocusLost is true).
             textBox.OnCommit += (_, _) =>
@@ -88,6 +86,11 @@ namespace Garbus.Game.Edit.Screens.Setup
         private partial class CommittableTextBox : BasicTextBox
         {
             public new void Commit() => base.Commit();
+        }
+
+        private partial class NumericTextBox : CommittableTextBox
+        {
+            protected override bool CanAddCharacter(char character) => char.IsAsciiDigit(character);
         }
     }
 }

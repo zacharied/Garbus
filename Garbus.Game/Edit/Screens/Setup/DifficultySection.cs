@@ -37,7 +37,7 @@ namespace Garbus.Game.Edit.Screens.Setup
                     editorChart.SaveState();
                     changeHandler.EndChange();
                 }
-            });
+            }, numericOnly: true);
 
             Children = new Drawable[]
             {
