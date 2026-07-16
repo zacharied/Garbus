@@ -59,9 +59,12 @@ fixed chart):
 - A `ChordIndex` is built once from the playfield's chart and cached (DI) so drawables can resolve it.
 - `DrawableCardinalNote` and `DrawableCardinalHoldNote` set their tint in `PrepareForUse` (the
   pooled-reuse hook): yellow if `IsInChord`, otherwise reset to white (pooled drawables must reset, or a
-  reused instance keeps a stale yellow). Tint is applied to the head sprite (and, for the hold, is
-  independent of the body's held/dropped colour logic — the chord tint sits on the head; body colour
-  behaviour is unchanged).
+  reused instance keeps a stale yellow).
+- The tint applies to the **whole note**: the `CardinalNote` head sprite, and for `CardinalHoldNote`
+  **both the head sprite and the hold body**. The body's held/dropped grey/white state and the miss
+  red-fade still run as transforms on top; the chord tint is the base colour they modulate. (Setting the
+  chord tint at the drawable `Colour` level, above the sprite/body pieces, is the simplest way to cover
+  head + body at once while leaving the piece-level transforms intact.)
 - The existing miss transform (`FadeColour(Red)`) still runs and overrides the tint during the miss
   animation. That is acceptable — miss is a fail state.
 
@@ -76,24 +79,37 @@ fixed chart):
 
 ### 3. `ChordConnectorOverlay` — gameplay only
 
-A new drawable (e.g. `Garbus.Game/UI/ChordConnectorOverlay.cs`) added to `Ring`, drawn **above the
-lanes** (all four cardinal lanes share the same polar centre and full size, so positions are directly
-comparable across lanes; a connector spanning lanes must live above them, in the ring).
+A new drawable (`Garbus.Game/UI/ChordConnectorOverlay.cs`) added to `Ring`, drawn **above the lanes**
+(all four cardinal lanes share the same polar centre and full size, so positions are directly comparable
+across lanes; a connector spanning lanes must live above them, in the ring). **Not** a hit object — a
+single overlay, so no synthetic objects enter the chart / serializer / scoring / editor.
 
-Each frame:
-- For every chord group, gather the members that are currently **present** — alive drawables that have
-  not yet been hit/missed (once judged they animate out and should leave the connector).
-- If fewer than 2 members remain present, draw nothing for that group.
-- Otherwise all present members are co-radial: take the current radius from the ring's scrolling
-  container (`ProgressAtTime(StartTime)`), and each member's angle. Draw one thin, semi-transparent
-  yellow polygon whose vertices are `polar(angle, radius)` for each member, ordered by angle, closed
-  into a loop (a 2-vertex "loop" is just the single segment).
-- The polygon updates every frame, so it grows outward with the notes and shrinks/vanishes as members
-  are consumed.
+**Geometry is derived from chord data, never from live note positions.** Because all members of a chord
+share a StartTime they are **co-radial**: the shared radius is `ring.ProgressAtTime(StartTime)` and each
+vertex is `polar(memberAngle, radius)`. This is computed from the `ChordIndex` group's static
+angle+time data, so the connector keeps its **full shape (all original vertices)** regardless of which
+members have already been hit and despawned — dissolving the "a note despawns before reaching the ring"
+concern. (`ProgressAtTime` clamps at the ring, so after StartTime the vertices sit pinned at the ring
+radius during the notes' hit/miss fade.)
 
-Depends on: the `ChordIndex` (which groups exist), the ring's `GarbusScrollingHitObjectContainer` (for
-the shared radius via `ProgressAtTime`), and the ability to tell which members are still present
-(query the alive/judged state of the corresponding drawables, or track spawned drawables).
+**Visibility per group is stateless, checked each frame:** draw the group's polygon **iff at least one
+of its members is currently represented by an alive drawable** in its cardinal lane. A `DrawableHitObject`
+stays alive until it `Expire()`s — i.e. through its entire hit/miss fade-out — so the connector appears
+when the first member spawns and stays, at full shape, until the **last** member has fully despawned.
+No subscriptions or counters: each frame, for each group, ask the lanes' alive objects whether any
+member's `HitObject` is present.
+
+Each frame, for every chord group:
+- Determine presence: is any member's `HitObject` currently an alive drawable in a cardinal lane? If not,
+  draw nothing for this group.
+- Otherwise compute `radius = ring.ProgressAtTime(StartTime)` and draw one thin, semi-transparent yellow
+  polygon whose vertices are `polar(memberAngle, radius)` for **every** member of the group, ordered by
+  angle and closed into a loop (a 2-vertex "loop" is just the single segment). The polygon grows outward
+  as the radius grows.
+
+Depends on: the `ChordIndex` (which groups exist and their member angles/StartTime), the ring's
+`GarbusScrollingHitObjectContainer` (shared radius via `ProgressAtTime`), and read-only access to the
+cardinal lanes' alive objects (presence check).
 
 ## Data flow
 
@@ -103,8 +119,9 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
         ┌─────────────────┼──────────────────────────┐
         ▼                 ▼                           ▼
   gameplay drawables  editor drawables         ChordConnectorOverlay (gameplay)
-  tint yellow on      recolor on chart          per-frame: radius = ProgressAtTime,
-  PrepareForUse       change                    vertices = member angles → polygon
+  tint whole note     recolor on chart          per-frame: if any member alive →
+  on PrepareForUse    change                    radius = ProgressAtTime(StartTime),
+                                                 vertices = all member angles → polygon
 ```
 
 ## Edge cases
@@ -114,8 +131,12 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
 - **Stacked same angle** (e.g. a `CardinalNote` and `CardinalHoldNote` at the same time *and* same
   angle): both yellow; the polygon has a zero-length edge there — degenerate and invisible, no special
   handling needed.
-- **Members hit/missed independently:** as each leaves, the connector re-forms among the rest and
-  disappears below 2. Coloring on the remaining members is unchanged (miss fades them red as today).
+- **Members hit/missed independently / at different times:** the connector keeps its full shape (all
+  original vertices, computed from chord data) for as long as **any** member's drawable is still alive,
+  then disappears once the last one despawns. It never degrades to a partial polygon mid-chord. Coloring
+  on each member is unchanged (miss fades that member red as today).
+- **A member hit early / despawns before the ring:** handled — geometry is from `ProgressAtTime`, not
+  the departed drawable, so its vertex stays until the whole chord is gone.
 - **Editor live edits:** moving a note onto another's time colours both; moving it off returns the
   loner to white. Rebuild-on-change covers add, remove, and StartTime edits.
 - **Pooled reuse (gameplay):** `PrepareForUse` must set the tint explicitly to yellow *or* white so a
@@ -135,9 +156,10 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
   - Placing/moving two cardinal notes onto the same time colours both yellow; moving one away returns it
     to white. No connector drawable appears in the editor.
 - **Gameplay (headless visual scene, manual clock):**
-  - A coincident pair renders yellow and the connector overlay produces a segment between them at the
-    expected radius; auto-miss/hit of a member drops it from the connector and the connector clears
-    below 2 present members.
+  - A coincident pair renders yellow (head + hold body for a hold) and the connector overlay produces a
+    segment between them at the expected radius (`ProgressAtTime(StartTime)`).
+  - The connector keeps its full shape while at least one member is alive, including after one member has
+    been hit/despawned, and only disappears once every member has despawned.
 
 ## Non-goals / YAGNI
 
