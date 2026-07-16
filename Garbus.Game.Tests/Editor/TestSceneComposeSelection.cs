@@ -376,6 +376,41 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDragRotatesTowardCursorInReversedView()
+        {
+            // GAR bug: dragging an object rotated it the WRONG way under the reversed ("clockwise") view.
+            // HandleMovement derives a grid-degree delta from the horizontal screen delta, but the reversed
+            // view runs grid-degrees opposite to absolute angle — so the delta must be mapped back through
+            // Direction before being applied to AngleDeg. Without that, dragging right sends the object left
+            // (and the accumulating cursor gap makes it bounce around unpredictably).
+            //
+            // North (90°) sits dead centre once reversed; East (0°) is to its RIGHT (West is to the left).
+            // A single 45° rightward drag must land the note on East (45°), NOT West (135°).
+            waitForComposer();
+            placeNoteAt(90); // North — centre column once the view is reversed.
+
+            AddStep("reverse the view (CW)", () => composer.ReverseAngleView.Value = true);
+            AddAssert("Direction reversed", () => EditorAngleMapping.Direction, () => Is.EqualTo(-1));
+            settleWith(() => placedObject<GarbusHitObject>()!.StartTime);
+
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
+            AddAssert("note selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<CardinalNote>());
+
+            AddStep("start drag", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
+                input.PressButton(MouseButton.Left);
+            });
+            AddStep("drag one 45° increment right", () => input.MoveMouseTo(
+                input.CurrentState.Mouse.Position + new Vector2(playfield.ScreenSpaceDrawQuad.Width * 45f / EditorAngleMapping.TOTAL_DEGREES, 0)));
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("note rotated right toward East (45), not West (135)",
+                () => placedObject<CardinalNote>()?.AngleDeg, () => Is.EqualTo(45));
+        }
+
+        [Test]
         public void TestUpdateRefreshesDrawableInPlace()
         {
             // EditorChart.Update must NOT recreate the drawable: DrawableHitObject already re-applies

@@ -98,6 +98,13 @@ classes:
   `GarbusSelectionHandler.HandleMovement` must reduce the degree delta via `MinimalDiff` so
   "already there" is 0 (no update fired), not a spurious ±360 that rebuilds every selected object
   per mouse-move event. Pinned by the incremental-drag tests in `TestSceneComposeSelection`.
+- **The horizontal drag delta is in GRID degrees, not absolute angle.** In the reversed ("clockwise")
+  view (`EditorAngleMapping.Direction == -1`) grid degrees run opposite to absolute angle, so
+  `HandleMovement` must map the screen-derived delta through `Direction` (× ±1, same sense as
+  `GridOffset`) before adding it to `AngleDeg` — otherwise a rightward drag rotates the object the
+  wrong way and the growing cursor gap makes it bounce around unpredictably. Pinned by
+  `TestDragRotatesTowardCursorInReversedView` (an endpoint check on a *full clean* drag hides this —
+  a full wrap re-resolves to the cursor by coincidence; assert a partial/single-step drag direction).
 - **Lambda event subscriptions leak** if not unsubscribed (timeline/metronome components subscribe to
   `ControlPointInfo.ControlPointsChanged`, clock, selection, `HitObjectUpdated`). Keep a field
   reference to the handler and unsubscribe in `Dispose`.

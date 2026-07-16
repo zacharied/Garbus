@@ -176,7 +176,13 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         // wraps, so unlike mania's column clamping every selected object can rotate freely.
         float localDeltaX = playfield.ToLocalSpace(moveEvent.Blueprint.ScreenSpaceSelectionPoint + moveEvent.ScreenSpaceDelta).X
                             - playfield.ToLocalSpace(moveEvent.Blueprint.ScreenSpaceSelectionPoint).X;
-        int deltaDeg = (int)Math.Round(localDeltaX / playfield.DrawWidth * EditorAngleMapping.TOTAL_DEGREES);
+
+        // The screen delta is measured in GRID degrees (the unrolled x-axis). In the reversed view grid
+        // degrees run opposite to absolute angle, so map back through Direction before applying to AngleDeg
+        // (same +1/−1 correspondence as EditorAngleMapping.GridOffset) — otherwise a rightward drag rotates
+        // the object the wrong way and the growing cursor gap makes it bounce around unpredictably.
+        int gridDeltaDeg = (int)Math.Round(localDeltaX / playfield.DrawWidth * EditorAngleMapping.TOTAL_DEGREES);
+        int deltaDeg = EditorAngleMapping.Direction * gridDeltaDeg;
 
         // The snapped target can sit a full wrap (±360°) from the object's primary copy — the cursor
         // hovering the ghost twin of an object on the far side of the seam. Reduce to the minimal
