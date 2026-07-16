@@ -1123,6 +1123,15 @@ namespace Garbus.Game.Tests.Editor
                 var cps = placedObject<SliderBody>()!.Path.ControlPoints;
                 return cps[0].TimeOffset == cps[1].TimeOffset && cps[0].TimeOffset > 0;
             });
+            AddAssert("new equal-time node is appended AFTER the existing node", () =>
+            {
+                // The original diagonal node points East (~0°); the cursor was at 315° when T was pressed.
+                // The new node must land last, so the 315° node is cps[1], not cps[0].
+                var slider = placedObject<SliderBody>()!;
+                var cps = slider.Path.ControlPoints;
+                int lastAbsolute = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + cps[1].RotationOffset);
+                return lastAbsolute == 315;
+            });
         }
 
         [Test]

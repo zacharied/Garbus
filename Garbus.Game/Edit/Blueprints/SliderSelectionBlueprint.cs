@@ -428,10 +428,10 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         var controlPoints = HitObject.Path.ControlPoints;
 
         int insertIndex = 0;
-        // Strict `<` means an equal-time insert lands just BEFORE an existing node at that time — the
-        // intentional counterpart to placement's tryAddNode, which always APPENDS an equal-time node
-        // after the previous last node. Both produce a valid single zero-link arc.
-        while (insertIndex < controlPoints.Count && controlPoints[insertIndex].TimeOffset < timeOffset)
+        // `<=` means an equal-time insert lands just AFTER an existing node at that time — matching
+        // placement's tryAddNode, which always APPENDS an equal-time node after the previous last node.
+        // Both produce a valid single zero-link arc.
+        while (insertIndex < controlPoints.Count && controlPoints[insertIndex].TimeOffset <= timeOffset)
             insertIndex++;
 
         // Validate the path the insertion would produce: non-decreasing, at most one zero-length link
