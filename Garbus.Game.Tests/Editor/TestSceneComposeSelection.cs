@@ -1796,6 +1796,47 @@ namespace Garbus.Game.Tests.Editor
             .OrderBy(t => Math.Abs(t.X - 0.5f))
             .FirstOrDefault(t => Math.Abs(t.X - 0.5f) < 0.02f)?.Text.ToString();
 
+        [Test]
+        public void TestSideDropdownMultiSelectMixedAppliesToAll()
+        {
+            GarbusSlamEdge a = null!;
+            GarbusSlamEdge b = null!;
+
+            waitForComposer();
+
+            AddStep("add two slam edges with differing sides", () =>
+            {
+                a = new GarbusSlamEdge { AngleDeg = 0, Side = HorizontalDirection.Left, StartTime = 1000 };
+                b = new GarbusSlamEdge { AngleDeg = 90, Side = HorizontalDirection.Right, StartTime = 2000 };
+                editorChart.Add(a);
+                editorChart.Add(b);
+                editorChart.SelectedHitObjects.Add(a);
+                editorChart.SelectedHitObjects.Add(b);
+            });
+
+            MultiValueEnumDropdown<HorizontalDirection> sideDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+
+            AddUntilStep("Side dropdown appears", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any());
+            AddAssert("shows <multiple>", () => sideDropdown().Current.Value.IsMixed);
+
+            AddStep("pick Right for all", () =>
+                sideDropdown().Current.Value = new MultiValueEnumDropdown<HorizontalDirection>.Choice(HorizontalDirection.Right));
+            AddAssert("both now Right", () =>
+                a.Side == HorizontalDirection.Right && b.Side == HorizontalDirection.Right);
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            // Undo swaps in freshly-deserialized instances, so re-query the chart rather than
+            // reading the stale a/b references (matching TestUndoRestoresDeletedSelection).
+            AddAssert("single undo step restores mix", () =>
+            {
+                var slams = editorChart.HitObjects.OfType<GarbusSlamEdge>().OrderBy(s => s.StartTime).ToArray();
+                return slams.Length == 2
+                    && slams[0].Side == HorizontalDirection.Left
+                    && slams[1].Side == HorizontalDirection.Right;
+            });
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.

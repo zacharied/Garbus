@@ -211,85 +211,72 @@ namespace Garbus.Game.Edit
 
         private void addControls(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes)
         {
-            // Side / Direction dropdowns: single object selection only.
-            if (objects.Length == 1)
+            // Side: every selected object must carry a mutable Side (slider + both slam types).
+            if (objects.Length > 0 && objects.All(o => o is IHasSide))
             {
-                var single = objects[0];
+                var sided = objects.Cast<IHasSide>().ToArray();
+                var state = MultiValue.Aggregate(sided, s => s.Side);
 
-                // Side applies to every IHasSide object (slider, both slam types); shoulders carry a Side
-                // but it's positional and intentionally not IHasSide, so no dropdown for them.
-                if (single is IHasSide sided)
+                addMultiValueDropdown("Side", state, value =>
                 {
-                    addEnumDropdown(
-                        "Side",
-                        sided.Side,
-                        value =>
-                        {
-                            if (sided.Side == value) return;
-                            changeHandler?.BeginChange();
-                            sided.Side = value;
-                            editorChart.Update(single);
-                            changeHandler?.EndChange();
-                        });
-                }
+                    if (!state.IsMixed && EqualityComparer<HorizontalDirection>.Default.Equals(state.Value, value))
+                        return;
 
-                if (single is GarbusSlamEdge slam)
-                {
-                    addEnumDropdown(
-                        "Direction",
-                        slam.Direction,
-                        value =>
-                        {
-                            if (slam.Direction == value) return;
-                            changeHandler?.BeginChange();
-                            slam.Direction = value;
-                            editorChart.Update(slam);
-                            changeHandler?.EndChange();
-                        });
-                }
+                    changeHandler?.BeginChange();
+                    foreach (var s in sided) s.Side = value;
+                    foreach (var o in objects) editorChart.Update(o);
+                    changeHandler?.EndChange();
+                });
             }
 
-            // SweepEasing dropdown: shown whenever one or more slider nodes are picked. Applied to every
-            // picked node (the shared value is shown when they agree, else the first node's value).
+            // Direction: every selected object must be a GarbusSlamEdge.
+            if (objects.Length > 0 && objects.All(o => o is GarbusSlamEdge))
+            {
+                var slams = objects.Cast<GarbusSlamEdge>().ToArray();
+                var state = MultiValue.Aggregate(slams, s => s.Direction);
+
+                addMultiValueDropdown("Direction", state, value =>
+                {
+                    if (!state.IsMixed && EqualityComparer<RotationalDirection>.Default.Equals(state.Value, value))
+                        return;
+
+                    changeHandler?.BeginChange();
+                    foreach (var s in slams) s.Direction = value;
+                    foreach (var s in slams) editorChart.Update(s);
+                    changeHandler?.EndChange();
+                });
+            }
+
+            // Easing: shown whenever one or more slider control-point nodes are picked.
             if (selectedNodes.Count > 0)
             {
-                var firstNode = selectedNodes.First();
-                var shared = selectedNodes.All(n => n.SweepEasing == firstNode.SweepEasing)
-                    ? firstNode.SweepEasing
-                    : firstNode.SweepEasing;
+                var nodes = selectedNodes.ToArray();
+                var state = MultiValue.Aggregate(nodes, n => n.SweepEasing);
 
-                // Find every slider whose control-point list contains any of the picked nodes — we need to
-                // fire EditorChart.Update on each of them.
                 var affectedSliders = editorChart.HitObjects.OfType<SliderBody>()
                     .Where(s => s.Path.ControlPoints.Any(cp => selectedNodes.Contains(cp)))
                     .ToArray();
 
-                addEnumDropdown(
-                    "Easing",
-                    shared,
-                    value =>
-                    {
-                        if (selectedNodes.All(n => n.SweepEasing == value)) return;
-                        changeHandler?.BeginChange();
-                        foreach (var n in selectedNodes)
-                            n.SweepEasing = value;
-                        foreach (var s in affectedSliders)
-                            editorChart.Update(s);
-                        changeHandler?.EndChange();
-                    });
+                addMultiValueDropdown("Easing", state, value =>
+                {
+                    if (!state.IsMixed && EqualityComparer<Easing>.Default.Equals(state.Value, value))
+                        return;
+
+                    changeHandler?.BeginChange();
+                    foreach (var n in nodes) n.SweepEasing = value;
+                    foreach (var s in affectedSliders) editorChart.Update(s);
+                    changeHandler?.EndChange();
+                });
             }
         }
 
-        private void addEnumDropdown<T>(string label, T current, Action<T> onChange) where T : struct, Enum
+        private void addMultiValueDropdown<T>(string label, MultiValue<T> state, Action<T> onChange)
+            where T : struct, Enum
         {
-            var dropdown = new BasicDropdown<T>
+            var dropdown = new MultiValueEnumDropdown<T>(state, onChange)
             {
                 RelativeSizeAxes = Axes.X,
-                Items = Enum.GetValues<T>(),
-                Current = { Value = current },
             };
-
-            dropdown.Current.BindValueChanged(v => onChange(v.NewValue));
 
             controlsFlow.Add(new FillFlowContainer
             {
