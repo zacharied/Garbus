@@ -15,6 +15,7 @@ namespace Garbus.Game.Configuration
         protected override void InitialiseDefaults()
         {
             SetDefault(GarbusSetting.AudioOffset, 0.0, -500.0, 500.0);
+            SetDefault(GarbusSetting.UseExperimentalWasapi, true);
 
             // Editor view defaults.
             SetDefault(GarbusSetting.EditorShowTimingChanges, true);

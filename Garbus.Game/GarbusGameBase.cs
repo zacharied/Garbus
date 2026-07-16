@@ -43,6 +43,12 @@ namespace Garbus.Game
             dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
             dependencies.Cache(new ChartStore(Resources));
 
+            // Low-latency audio: drive the framework's experimental WASAPI output from a config toggle.
+            // Roughly halves output latency on Windows (needed for editor hitsound feedback to sit on
+            // the beat); the chart clock's platform offset auto-recalibrates when this changes. The
+            // framework falls back to the normal output path when the device can't do WASAPI.
+            LocalConfig.BindWith(GarbusSetting.UseExperimentalWasapi, Audio.UseExperimentalWasapi);
+
             // Reduced master volume, pinned on every startup until the Phase 5 settings screen exposes
             // volume control (the framework would otherwise persist whatever value was last set).
             Audio.Volume.Value = 0.01;

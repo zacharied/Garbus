@@ -8,6 +8,15 @@ namespace Garbus.Game.Configuration
         /// </summary>
         AudioOffset,
 
+        /// <summary>
+        /// Use the framework's experimental low-latency WASAPI output path. Roughly halves audio
+        /// output latency on Windows, which the editor's hitsound feedback needs to feel on-beat.
+        /// The clock's platform offset auto-recalibrates (+15 → −10 ms) when this flips
+        /// (see <c>FramedChartClock.WINDOWS_EXPERIMENTAL_AUDIO_OFFSET</c>). Falls back to the normal
+        /// output path if the device does not support it.
+        /// </summary>
+        UseExperimentalWasapi,
+
         // --- Editor View settings ---
 
         /// <summary>Show red timing-change lines in the timeline strip.</summary>
