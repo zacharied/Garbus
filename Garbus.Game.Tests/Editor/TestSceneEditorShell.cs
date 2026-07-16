@@ -228,6 +228,37 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        /// <summary>
+        /// Ctrl+scroll over the main compose area (below the waveform strip) must zoom the timeline,
+        /// mirroring the strip's own ctrl+scroll behaviour. Without ComposeTab forwarding the event to
+        /// its <see cref="Edit.Screens.Timeline.TimelineStrip"/>, the scroll bubbles up to
+        /// GarbusEditor.OnScroll, which ignores ctrl — so nothing zooms.
+        /// </summary>
+        [Test]
+        public void TestCtrlScrollOverComposeAreaZoomsTimeline()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+            AddUntilStep("timeline zoom set up", () => timelineStrip().CurrentZoom.Value > 1);
+
+            float capturedZoom = 0;
+            AddStep("capture zoom", () => capturedZoom = timelineStrip().CurrentZoom.Value);
+
+            AddStep("ctrl + wheel up over compose area", () =>
+            {
+                var compose = editor.ChildrenOfType<ComposeTab>().Single();
+                input.MoveMouseTo(compose.ToScreenSpace(new osuTK.Vector2(compose.DrawWidth * 0.5f, compose.DrawHeight * 0.5f)));
+                input.PressKey(Key.LControl);
+                input.ScrollVerticalBy(1);
+                input.ReleaseKey(Key.LControl);
+            });
+
+            AddUntilStep("timeline zoomed in", () => timelineStrip().CurrentZoom.Value > capturedZoom + 0.01f);
+        }
+
+        private Edit.Screens.Timeline.TimelineStrip timelineStrip() =>
+            editor.ChildrenOfType<ComposeTab>().Single()
+                  .ChildrenOfType<Edit.Screens.Timeline.TimelineStrip>().Single();
+
         [Test]
         public void TestVerifyTabHasHeight()
         {

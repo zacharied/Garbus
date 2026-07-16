@@ -19,6 +19,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input.Events;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit.Compose;
 using Garbus.Game.Edit.Screens.Timeline;
@@ -130,6 +131,20 @@ namespace Garbus.Game.Edit.Screens
                 },
             },
         };
+
+        // Ctrl+scroll anywhere in the compose view zooms the timeline, matching the behaviour when the
+        // cursor is directly over the waveform strip (ZoomableScrollContainer.OnScroll). Scroll over the
+        // composer below the strip otherwise bubbles up to GarbusEditor.OnScroll, which ignores ctrl.
+        protected override bool OnScroll(ScrollEvent e)
+        {
+            if (e.ControlPressed)
+            {
+                timelineStrip.AdjustZoomRelatively(e.ScrollDelta.Y);
+                return true;
+            }
+
+            return base.OnScroll(e);
+        }
 
         protected override void Update()
         {
