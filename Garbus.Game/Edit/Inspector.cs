@@ -2,10 +2,12 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: EditorBeatmap → EditorChart; OsuTextFlowContainer/OsuFont/OverlayColourProvider dropped in
-// favour of plain TextFlowContainer + hard-coded colours; adds two dropdowns that osu's plain-text inspector
-// doesn't have — a Side dropdown when the selection is a single slider or slam, and a SweepEasing dropdown when
-// one or more slider control-point nodes are picked in a SliderSelectionBlueprint. Node selection isn't in
-// EditorChart.SelectedHitObjects — polled via the composer's SelectionHandler alongside the 250ms rolling refresh.
+// favour of plain TextFlowContainer + hard-coded colours; adds multi-value-aware dropdowns that osu's plain-text
+// inspector doesn't have — a Side dropdown when every selected object is IHasSide, a Direction dropdown when every
+// selected object is a GarbusSlamEdge, and a SweepEasing dropdown when one or more slider control-point nodes are
+// picked in a SliderSelectionBlueprint. Each shows "<multiple>" when the selection's values disagree and applies an
+// edit to the whole selection as one undo step. Node selection isn't in EditorChart.SelectedHitObjects — polled via
+// the composer's SelectionHandler alongside the 250ms rolling refresh.
 
 using System;
 using System.Collections.Generic;
