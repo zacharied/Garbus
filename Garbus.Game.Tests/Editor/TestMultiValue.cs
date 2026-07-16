@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Garbus.Game.Edit;
 using NUnit.Framework;
 

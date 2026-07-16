@@ -22,9 +22,6 @@ namespace Garbus.Game.Edit
         private readonly string label;
         private readonly Action<bool> onChange;
 
-        private Box checkMark = null!;
-        private Box dash = null!;
-
         public MultiValueCheckbox(string label, MultiValue<bool> state, Action<bool> onChange)
         {
             this.label = label;
@@ -58,7 +55,8 @@ namespace Garbus.Game.Edit
                         Children = new Drawable[]
                         {
                             new Box { RelativeSizeAxes = Axes.Both, Colour = new Colour4(40, 40, 48, 255) },
-                            checkMark = new Box
+                            // check mark (shown when True)
+                            new Box
                             {
                                 RelativeSizeAxes = Axes.Both,
                                 Scale = new Vector2(0.6f),
@@ -67,7 +65,8 @@ namespace Garbus.Game.Edit
                                 Colour = Colour4.White,
                                 Alpha = State == TernaryState.True ? 1 : 0,
                             },
-                            dash = new Box
+                            // indeterminate dash (shown when Indeterminate / mixed)
+                            new Box
                             {
                                 RelativeSizeAxes = Axes.X,
                                 Height = 3,

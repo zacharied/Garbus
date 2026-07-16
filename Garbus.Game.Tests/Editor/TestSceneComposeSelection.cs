@@ -1837,6 +1837,41 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        [Test]
+        public void TestEasingDropdownShowsMultipleForDifferingNodes()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+
+            AddStep("give the two nodes differing easing", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                slider.Path.ControlPoints[0].SweepEasing = Easing.None;
+                slider.Path.ControlPoints[1].SweepEasing = Easing.OutQuad;
+                editorChart.Update(slider);
+            });
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            selectSliderOnLine();
+
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            // Regression guard for the old no-op where mixed nodes never showed as mixed.
+            AddUntilStep("Easing dropdown appears", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<Easing>>().Any());
+            AddAssert("shows <multiple>", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<Easing>>().Single().Current.Value.IsMixed);
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.
