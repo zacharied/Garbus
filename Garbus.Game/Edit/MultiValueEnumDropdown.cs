@@ -1,47 +1,74 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Localisation;
 
 namespace Garbus.Game.Edit
 {
     /// <summary>
-    /// A <see cref="BasicDropdown{T}"/> over a nullable enum where <c>null</c> is a transient
-    /// "<multiple>" sentinel shown when the selection holds differing values. Picking a real value
-    /// invokes the supplied callback; the sentinel disappears once the caller re-aggregates.
+    /// A dropdown over enum values with an optional transient "&lt;multiple&gt;" entry, shown when the
+    /// selection holds differing values. Picking a real value invokes the supplied callback; the
+    /// "&lt;multiple&gt;" entry is display-only and disappears once the caller re-aggregates.
     /// </summary>
-    public partial class MultiValueEnumDropdown<T> : BasicDropdown<T?> where T : struct, Enum
+    public partial class MultiValueEnumDropdown<T> : BasicDropdown<MultiValueEnumDropdown<T>.Choice> where T : struct, Enum
     {
         public const string MixedText = "<multiple>";
 
-        private List<T?> allItems = null!;
-
         public MultiValueEnumDropdown(MultiValue<T> state, Action<T> onChange)
         {
-            var items = new List<T?>();
+            var items = new List<Choice>();
             if (state.IsMixed)
-                items.Add(null);
-            items.AddRange(Enum.GetValues<T>().Select(v => (T?)v));
+                items.Add(Choice.Mixed);
+            items.AddRange(Enum.GetValues<T>().Select(v => new Choice(v)));
 
-            allItems = items;
-            // Only pass non-null items to the base implementation (dropdown menu can't use null as key)
-            base.Items = items.Where(v => v.HasValue).ToList();
-
-            Current.Value = state.IsMixed ? null : state.Value;
+            Items = items;
+            Current.Value = state.IsMixed ? Choice.Mixed : new Choice(state.Value);
 
             // Bound AFTER the initial value is set, so only user selections fire the callback.
             Current.BindValueChanged(e =>
             {
-                if (e.NewValue is T v)
-                    onChange(v);
+                if (!e.NewValue.IsMixed)
+                    onChange(e.NewValue.Value);
             });
         }
 
-        // Expose the full items list including the null sentinel
-        public new IReadOnlyList<T?> Items => allItems;
+        protected override LocalisableString GenerateItemText(Choice item) => FormatChoice(item);
 
-        protected override LocalisableString GenerateItemText(T? item)
-            => item.HasValue ? base.GenerateItemText(item) : MixedText;
+        internal static LocalisableString FormatChoice(Choice item)
+            => item.IsMixed ? MixedText : item.Value.GetLocalisableDescription();
+
+        /// <summary>
+        /// A dropdown entry: either a concrete enum <see cref="Value"/> or the display-only
+        /// "&lt;multiple&gt;" sentinel (<see cref="IsMixed"/>). A value type so the dropdown's item map
+        /// can key on it without null-key issues.
+        /// </summary>
+        public readonly struct Choice : IEquatable<Choice>
+        {
+            public readonly bool IsMixed;
+            public readonly T Value;
+
+            public Choice(T value)
+            {
+                IsMixed = false;
+                Value = value;
+            }
+
+            private Choice(bool isMixed)
+            {
+                IsMixed = isMixed;
+                Value = default;
+            }
+
+            public static readonly Choice Mixed = new Choice(isMixed: true);
+
+            public bool Equals(Choice other)
+                => IsMixed == other.IsMixed && EqualityComparer<T>.Default.Equals(Value, other.Value);
+
+            public override bool Equals(object? obj) => obj is Choice other && Equals(other);
+
+            public override int GetHashCode() => IsMixed ? -1 : Value.GetHashCode();
+        }
     }
 }

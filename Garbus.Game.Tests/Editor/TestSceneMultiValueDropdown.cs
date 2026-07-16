@@ -23,11 +23,11 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
-        public void Mixed_SelectsNullSentinel()
+        public void Mixed_SelectsMixedSentinel()
         {
             AddStep("build mixed", () => build(new MultiValue<HorizontalDirection>(isMixed: true, default)));
-            AddAssert("current is null", () => dropdown.Current.Value == null);
-            AddAssert("items include null", () => dropdown.Items.Any(i => i == null));
+            AddAssert("current is Mixed", () => dropdown.Current.Value.IsMixed);
+            AddAssert("items include Mixed", () => dropdown.Items.Any(i => i.IsMixed));
         }
 
         [Test]
@@ -35,16 +35,26 @@ namespace Garbus.Game.Tests.Editor
         {
             AddStep("build shared Right",
                 () => build(new MultiValue<HorizontalDirection>(isMixed: false, HorizontalDirection.Right)));
-            AddAssert("current is Right", () => dropdown.Current.Value == HorizontalDirection.Right);
-            AddAssert("no null item", () => dropdown.Items.All(i => i != null));
+            AddAssert("current is Right",
+                () => !dropdown.Current.Value.IsMixed && dropdown.Current.Value.Value == HorizontalDirection.Right);
+            AddAssert("no Mixed item", () => dropdown.Items.All(i => !i.IsMixed));
         }
 
         [Test]
         public void SelectingValue_FiresOnChange()
         {
             AddStep("build mixed", () => build(new MultiValue<HorizontalDirection>(isMixed: true, default)));
-            AddStep("pick Right", () => dropdown.Current.Value = HorizontalDirection.Right);
+            AddStep("pick Right",
+                () => dropdown.Current.Value = new MultiValueEnumDropdown<HorizontalDirection>.Choice(HorizontalDirection.Right));
             AddAssert("onChange got Right", () => lastChange == HorizontalDirection.Right);
+        }
+
+        [Test]
+        public void MixedEntryRendersAsMultipleText()
+        {
+            Assert.That(
+                MultiValueEnumDropdown<HorizontalDirection>.FormatChoice(MultiValueEnumDropdown<HorizontalDirection>.Choice.Mixed).ToString(),
+                Is.EqualTo("<multiple>"));
         }
 
         [Test]
