@@ -232,6 +232,31 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestGhostTwinHiddenUntilSelected()
+        {
+            waitForComposer();
+            // 105° is within GHOST_DEGREES of the left edge (90°), so once snapped it shows a twin in the right band.
+            placeNoteAt(105);
+
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            AddUntilStep("twin outline exists", () => blueprintFor(placedObject<CardinalNote>()!).ChildrenOfType<EditSquarePiece>().Count() > 1);
+            AddAssert("outlines hidden while not selected",
+                () => blueprintFor(placedObject<CardinalNote>()!).ChildrenOfType<EditSquarePiece>().All(p => p.Alpha == 0));
+
+            hoverThenClick(() =>
+            {
+                var main = screenPositionOf(placedObject<CardinalNote>()!);
+                float wrapOffset = playfield.ScreenSpaceDrawQuad.Width * 360f / EditorAngleMapping.TOTAL_DEGREES;
+                return main + new Vector2(wrapOffset, 0);
+            });
+            AddAssert("outlines visible once selected",
+                () => blueprintFor(placedObject<CardinalNote>()!).ChildrenOfType<EditSquarePiece>().All(p => p.Alpha == 1));
+        }
+
+        private HitObjectSelectionBlueprint blueprintFor(GarbusHitObject hitObject)
+            => composer.ChildrenOfType<HitObjectSelectionBlueprint>().Single(b => b.Item == hitObject);
+
+        [Test]
         public void TestDeleteRemovesSelection()
         {
             waitForComposer();

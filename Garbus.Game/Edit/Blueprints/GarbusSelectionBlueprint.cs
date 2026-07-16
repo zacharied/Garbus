@@ -73,7 +73,14 @@ internal abstract partial class GarbusSelectionBlueprint<T> : HitObjectSelection
 
             // blueprint space shares the playfield's scale, so the offset in container-local pixels applies directly.
             twin.X = (twinX - ComputeXFraction()) * HitObjectContainer.DrawWidth;
-            twin.Show();
+
+            // Newly-added children miss the OnSelected/OnDeselected sweep that ran at LoadComplete
+            // (the twin only exists once the object nears a ghost band), so it must track State itself
+            // instead of always Show()-ing — otherwise it renders regardless of selection.
+            if (IsSelected)
+                twin.Show();
+            else
+                twin.Hide();
         }
         else
             twin?.Hide();
