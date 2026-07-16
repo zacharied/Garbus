@@ -58,7 +58,12 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
                 caught += record.Duration;
         }
 
-        double fraction = total > 0 ? caught / total : 0;
+        // No records means no frame ever sampled this child's catch window [segmentStart, segmentEnd] —
+        // the segment was shorter than a frame (in the limit, a zero-duration constant-radius arc, as a
+        // slam's coincident children also are). The player was never given a frame on which to catch, so
+        // grant the hit rather than an unavoidable miss. Any segment long enough to sample yields at least
+        // one record (created on the first in-window frame regardless of catch state), so total > 0 there.
+        double fraction = catchRecords.Count == 0 ? 1 : caught / total;
 
         if (fraction >= catch_threshold)
             ApplyMaxResult();

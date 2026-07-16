@@ -255,6 +255,53 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestUnsampledCatchWindowGrantsHit()
+        {
+            Objects.Drawables.DrawableSliderBody body = null!;
+
+            // A slider whose only child sits at TimeOffset 0 (a zero-duration constant-radius arc, as a
+            // slam's coincident children also are): its catch window [StartTime, StartTime] has zero
+            // width, so no frame can ever sample it. StartTime 5050 sits off the 200ms playThrough grid,
+            // guaranteeing the window is never landed on → the tracker ends with 0 records. That must be
+            // granted as a hit, not an unavoidable miss.
+            AddStep("add zero-duration slider", () =>
+            {
+                var slider = new SliderBody
+                {
+                    StartTime = 5050,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 0, RotationOffset = 90 },
+                        },
+                    },
+                };
+                slider.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(slider));
+            });
+
+            AddUntilStep("zero-duration slider body present", () =>
+            {
+                body = playfield.AllHitObjects
+                                .OfType<Objects.Drawables.DrawableSliderBody>()
+                                .FirstOrDefault(b => b.HitObject.StartTime == 5050)!;
+                return body != null;
+            });
+
+            playThrough(20000);
+
+            AddUntilStep("child judged", () => body.NestedHitObjects
+                                                   .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                   .All(c => c.Judged));
+            AddAssert("child hit despite no catch records", () => body.NestedHitObjects
+                                                                     .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                                     .All(c => c.IsHit));
+        }
+
+        [Test]
         public void TestHitSampleResolves()
         {
             AddAssert("soft-hitnormal sample resolves", () => samples.Get(@"Gameplay/soft-hitnormal") != null);
