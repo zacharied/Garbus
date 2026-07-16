@@ -490,6 +490,60 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestOutOfBoundsSliderDoesNotStealToolboxInput()
+        {
+            // A slider that wraps past 360° draws outline wrap-copies whose ends spill past the playfield's
+            // x-range into the left/right toolbox columns. Those columns are drawn ON TOP of the playfield
+            // content, but the blueprint container claims positional input over the whole screen
+            // (ReceivePositionalInputAt => true), so without clipping the playfield content region a click
+            // landing on the spilled outline — inside an empty toolbox area — selected the slider instead of
+            // reaching (or being blocked by) the toolbox. The content region must mask its subtree so
+            // out-of-bounds blueprints can't receive input over the toolbox / inspector.
+            waitForComposer();
+            placeDiagonalSlider();
+
+            AddStep("wrap slider past 360°", () =>
+            {
+                placedObject<SliderBody>()!.Path.ControlPoints[0].RotationOffset = 400;
+                editorChart.Update(placedObject<SliderBody>()!);
+            });
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddAssert("nothing selected before click", () => editorChart.SelectedHitObjects, () => Is.Empty);
+
+            // Locate a point INSIDE the right toolbox (right of the playfield content) that lies on the
+            // slider's spilled outline — proving the out-of-bounds geometry exists to be stolen through.
+            Vector2 toolboxOverlap = Vector2.Zero;
+            AddUntilStep("slider outline spills into the right toolbox", () =>
+            {
+                var blueprint = composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
+                var content = playfield.ScreenSpaceDrawQuad;
+                var whole = composer.ScreenSpaceDrawQuad;
+
+                for (float x = content.TopRight.X + 2; x < whole.TopRight.X; x += 2)
+                {
+                    for (float y = content.TopLeft.Y; y < content.BottomLeft.Y; y += 3)
+                    {
+                        var p = new Vector2(x, y);
+                        if (blueprint.ReceivePositionalInputAt(p))
+                        {
+                            toolboxOverlap = p;
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            });
+
+            AddStep("click the spilled outline inside the toolbox", () =>
+            {
+                input.MoveMouseTo(toolboxOverlap);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider NOT selected by the toolbox-area click", () => editorChart.SelectedHitObjects, () => Is.Empty);
+        }
+
+        [Test]
         public void TestExtendingSliderDurationKeepsBodyAlive()
         {
             // GAR-4: dragging a slider's terminal node to a much later time extends its duration.

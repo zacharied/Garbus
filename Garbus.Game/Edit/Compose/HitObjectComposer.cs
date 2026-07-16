@@ -125,6 +125,16 @@ namespace Garbus.Game.Edit.Compose
                     Name = "Playfield content",
                     RelativeSizeAxes = Axes.Y,
                     X = TOOLBOX_WIDTH_LEFT,
+                    // Clip the playfield and its blueprint overlay to the content region between the toolboxes.
+                    // The blueprint container returns positional input over the WHOLE screen
+                    // (ComposeBlueprintContainer.ReceivePositionalInputAt => true) so partially-offscreen
+                    // blueprints stay selectable; the Garbus polar→x mapping lets an object's blueprint (e.g. a
+                    // slider wrapping past 360°) spill past the playfield edges into the toolbox / inspector
+                    // columns. Masking here gates the positional-input recursion (ReceivePositionalInputAtSubTree
+                    // = !Masking || ReceivePositionalInputAt) at the content bounds, so the spilled outline can't
+                    // steal clicks over the toolboxes. All legitimately-visible content (incl. the ghost wrap
+                    // bands) maps to x within [0,1] of this region, so nothing intended is clipped.
+                    Masking = true,
                     Children = new Drawable[]
                     {
                         Playfield,
