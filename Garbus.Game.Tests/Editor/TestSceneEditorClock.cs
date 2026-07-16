@@ -6,6 +6,7 @@ using Garbus.Game.Timing;
 using NUnit.Framework;
 using osu.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
 using osu.Framework.Utils;
 
@@ -17,8 +18,24 @@ namespace Garbus.Game.Tests.Editor
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
 
-        private static double expectedPlatformOffset =>
-            RuntimeInfo.OS == RuntimeInfo.Platform.Windows ? FramedChartClock.WINDOWS_BASE_AUDIO_OFFSET : 0;
+        [Resolved]
+        private AudioManager audio { get; set; } = null!;
+
+        // Mirrors FramedChartClock.updatePlatformOffset: the experimental WASAPI path shifts the
+        // platform offset, so read the live state rather than assuming the non-WASAPI value.
+        private double expectedPlatformOffset
+        {
+            get
+            {
+                if (RuntimeInfo.OS != RuntimeInfo.Platform.Windows)
+                    return 0;
+
+                double offset = FramedChartClock.WINDOWS_BASE_AUDIO_OFFSET;
+                if (audio.UseExperimentalWasapi.Value)
+                    offset += FramedChartClock.WINDOWS_EXPERIMENTAL_AUDIO_OFFSET;
+                return offset;
+            }
+        }
 
         [Test]
         public void TestPlatformOffsetApplied()
