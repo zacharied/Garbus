@@ -1288,6 +1288,31 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestInspectorCountsHeadAsSelectedNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+
+            AddUntilStep("inspector shows one selected node (the head)", () =>
+            {
+                var inspector = composer.ChildrenOfType<Inspector>().FirstOrDefault();
+                if (inspector == null) return false;
+
+                // TextFlowContainer splits a multi-word paragraph into one SpriteText run per word (each
+                // keeping its own trailing space, e.g. "Selected " then "Nodes:"), so concatenate them
+                // back with no extra separator before matching. The header and its value are still
+                // separate paragraphs (no space between them), so "Selected Nodes:" is immediately
+                // followed by its count — this still fails if that count is 0 (head not counted) or if
+                // it's actually the unrelated "Nodes:" (path control-point count) that reads 1.
+                string joined = string.Concat(inspector.ChildrenOfType<SpriteText>().Select(t => t.Text.ToString()));
+                return joined.Contains("Selected Nodes:1");
+            });
+        }
+
+        [Test]
         public void TestSliderSelectableOnlyOnPolylineAndNodes()
         {
             waitForComposer();

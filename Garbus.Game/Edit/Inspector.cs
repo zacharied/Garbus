@@ -52,6 +52,9 @@ namespace Garbus.Game.Edit
         // Tracked so a node-selection change (which isn't observable via events) triggers a rebuild.
         private readonly HashSet<GarbusPathControlPoint> lastNodeSelectionSnapshot = new HashSet<GarbusPathControlPoint>();
 
+        // Tracked so a head-selection change (also not event-observable) triggers a rebuild.
+        private readonly HashSet<SliderBody> lastHeadSelectionSnapshot = new HashSet<SliderBody>();
+
         public Inspector()
         {
             RelativeSizeAxes = Axes.X;
@@ -105,7 +108,8 @@ namespace Garbus.Game.Edit
             // Node selection lives on SliderSelectionBlueprint (local HashSet, no event). Poll once per
             // frame — cheap set-equality — so picking/deselecting a node updates the dropdown immediately.
             var currentNodes = collectSelectedNodes();
-            if (!currentNodes.SetEquals(lastNodeSelectionSnapshot))
+            var currentHeads = collectHeadSelectedSliders();
+            if (!currentNodes.SetEquals(lastNodeSelectionSnapshot) || !currentHeads.SetEquals(lastHeadSelectionSnapshot))
                 rebuild();
         }
 
@@ -119,6 +123,22 @@ namespace Garbus.Game.Edit
                 {
                     foreach (var node in sliderBlueprint.SelectedNodes)
                         set.Add(node);
+                }
+            }
+
+            return set;
+        }
+
+        private HashSet<SliderBody> collectHeadSelectedSliders()
+        {
+            var set = new HashSet<SliderBody>();
+
+            foreach (var blueprint in composer.BlueprintContainer.SelectionHandler.SelectedBlueprints)
+            {
+                if (blueprint is SliderSelectionBlueprint { HeadSelected: true } sliderBlueprint
+                    && sliderBlueprint.Item is SliderBody body)
+                {
+                    set.Add(body);
                 }
             }
 
@@ -139,12 +159,15 @@ namespace Garbus.Game.Edit
             lastNodeSelectionSnapshot.Clear();
             foreach (var n in selectedNodes) lastNodeSelectionSnapshot.Add(n);
 
+            lastHeadSelectionSnapshot.Clear();
+            foreach (var h in collectHeadSelectedSliders()) lastHeadSelectionSnapshot.Add(h);
+
             writeSummary(objects, selectedNodes);
             addControls(objects, selectedNodes);
 
             // Middle-ground rolling refresh (osu's HitObjectInspector does the same) — catches value changes
             // from drags/other panels without binding to every property.
-            if (objects.Length > 0 || selectedNodes.Count > 0)
+            if (objects.Length > 0 || selectedNodes.Count > 0 || collectHeadSelectedSliders().Count > 0)
                 rollingUpdate ??= Scheduler.AddDelayed(rebuild, 250);
         }
 
@@ -204,10 +227,11 @@ namespace Garbus.Game.Edit
                     break;
             }
 
-            if (selectedNodes.Count > 0)
+            int headCount = collectHeadSelectedSliders().Count;
+            if (selectedNodes.Count + headCount > 0)
             {
                 addHeader("Selected Nodes");
-                addValue($"{selectedNodes.Count}");
+                addValue($"{selectedNodes.Count + headCount}");
             }
         }
 
