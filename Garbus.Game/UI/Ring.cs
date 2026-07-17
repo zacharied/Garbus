@@ -2,6 +2,8 @@
 // template MIT header: Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using Garbus.Game.Core;
@@ -58,9 +60,10 @@ public partial class Ring : Playfield
             AddNested(lane);
         }
 
-        // Back-to-front: radial spokes, cross-lane paths, the lanes (keybeams + buttons on top), the ring.
+        // Back-to-front: radial spokes, chord connectors (under all notes), cross-lane paths, the lanes, the ring.
         AddRangeInternal([
             new PlayfieldRadialLines(),
+            new ChordConnectorOverlay(),
             HitObjectContainer,
             laneContainer,
             new Arc(0, 2 * MathF.PI)
@@ -70,6 +73,14 @@ public partial class Ring : Playfield
             },
         ]);
     }
+
+    /// <summary>The ring's own scrolling container (paths live here); also the shared radius source
+    /// (ProgressAtTime) for the chord connector — all containers share the same size, so the radius matches.</summary>
+    public GarbusScrollingHitObjectContainer ScrollingContainer => (GarbusScrollingHitObjectContainer)HitObjectContainer;
+
+    /// <summary>Every hit object drawable in the ring and its lanes (used by the chord connector's
+    /// presence check).</summary>
+    public IEnumerable<DrawableHitObject> AliveHitObjects => AllHitObjects.Where(h => h.IsAlive);
 
     public override void Add(HitObject hitObject)
     {

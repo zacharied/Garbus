@@ -10,6 +10,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input;
+using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Timing;
 using osuTK;
@@ -78,6 +79,52 @@ namespace Garbus.Game.Tests.Visual.HitObjects
             AddUntilStep("alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().Any(d => d.IsAlive));
 
             AddAssert("white", () => cardinalAt(90).Colour, () => Is.EqualTo((ColourInfo)Colour4.White));
+        }
+
+        private ChordConnectorOverlay overlay =>
+            playfield.ChildrenOfType<ChordConnectorOverlay>().Single();
+
+        private System.Collections.Generic.IEnumerable<osu.Framework.Graphics.Lines.SmoothPath> visiblePaths() =>
+            overlay.ChildrenOfType<osu.Framework.Graphics.Lines.SmoothPath>().Where(p => p.IsPresent);
+
+        [Test]
+        public void ConnectorAppearsForAlivePairAndClearsAfterDespawn()
+        {
+            AddStep("two cardinals at 2000ms", () => buildScene(
+                new CardinalNote { AngleDeg = 90, StartTime = 2000 },
+                new CardinalNote { AngleDeg = 270, StartTime = 2000 }));
+            AddUntilStep("loaded", () => playfield.IsLoaded);
+
+            AddAssert("no connector before spawn", () => !visiblePaths().Any());
+
+            AddStep("seek to make alive", () => manualClock.CurrentTime = 2000);
+            AddUntilStep("both alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => d.IsAlive));
+            AddUntilStep("connector visible", () => visiblePaths().Count() == 1);
+
+            // Walk well past the notes so they auto-miss and despawn; the connector must clear.
+            AddUntilStep("play past despawn", () =>
+            {
+                manualClock.CurrentTime = System.Math.Min(6000, manualClock.CurrentTime + 200);
+                return manualClock.CurrentTime >= 6000
+                       && playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => !d.IsAlive);
+            });
+            AddUntilStep("connector cleared", () => !visiblePaths().Any());
+        }
+
+        [Test]
+        public void ConnectorHasVertexPerMemberForThreeNoteChord()
+        {
+            AddStep("three cardinals at 2000ms", () => buildScene(
+                new CardinalNote { AngleDeg = 0, StartTime = 2000 },
+                new CardinalNote { AngleDeg = 120, StartTime = 2000 },
+                new CardinalNote { AngleDeg = 240, StartTime = 2000 }));
+            AddUntilStep("loaded", () => playfield.IsLoaded);
+            AddStep("seek to make alive", () => manualClock.CurrentTime = 2000);
+            AddUntilStep("all alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => d.IsAlive));
+
+            // Closed triangle: 3 members + repeat of the first vertex = 4 points.
+            AddUntilStep("closed triangle", () => visiblePaths().Any()
+                && visiblePaths().Single().Vertices.Count == 4);
         }
     }
 }
