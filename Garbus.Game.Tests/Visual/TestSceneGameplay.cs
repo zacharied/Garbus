@@ -302,6 +302,56 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestHeadOnlySliderDisplaysCircle()
+        {
+            Objects.Drawables.DrawableSliderBody body = null!;
+
+            // A slider with ZERO control points — just its head. It renders no path line, so it must show
+            // a circle (body-line radius) to stay visible. StartTime 5050 sits off the playThrough grid.
+            AddStep("add head-only slider", () =>
+            {
+                var slider = new SliderBody
+                {
+                    StartTime = 5050,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>(),
+                    },
+                };
+                slider.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(slider));
+            });
+
+            AddUntilStep("head-only slider body present", () =>
+            {
+                body = playfield.AllHitObjects
+                                .OfType<Objects.Drawables.DrawableSliderBody>()
+                                .FirstOrDefault(b => b.HitObject.StartTime == 5050)!;
+                return body != null;
+            });
+
+            // Walk the clock up to just before StartTime; the head must have emerged and be visible as a
+            // circle (Alpha > 0, non-zero size) BEFORE it reaches the ring and auto-hits.
+            AddUntilStep("head circle visible before judgement", () =>
+            {
+                manualClock.CurrentTime = Math.Min(5000, manualClock.CurrentTime + 50);
+                var circle = body.ChildrenOfType<osu.Framework.Graphics.Shapes.Circle>().FirstOrDefault();
+                return circle != null && circle.Alpha > 0 && circle.DrawWidth > 0 && manualClock.CurrentTime >= 5000;
+            });
+
+            // Judgement is unchanged: the head still auto-passes once its time arrives.
+            playThrough(6000);
+            AddUntilStep("head judged", () => body.NestedHitObjects
+                                                  .OfType<Objects.Drawables.DrawableSliderHead>()
+                                                  .All(h => h.Judged));
+            AddAssert("head hit (max result)", () => body.NestedHitObjects
+                                                         .OfType<Objects.Drawables.DrawableSliderHead>()
+                                                         .All(h => h.IsHit));
+        }
+
+        [Test]
         public void TestHitSampleResolves()
         {
             AddAssert("soft-hitnormal sample resolves", () => samples.Get(@"Gameplay/soft-hitnormal") != null);

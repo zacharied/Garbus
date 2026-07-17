@@ -128,6 +128,21 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         RelativeSizeAxes = Axes.Both,
     };
 
+    // A head-only slider (no control points) has no line to draw; render its single node as a filled
+    // circle of the body's own line radius so it stays visible. Wrapped in a fade-managed container
+    // (like pathContainer) so it fades/tints as a unit, while the circle carries per-frame band alpha.
+    private readonly Container headContainer = new()
+    {
+        RelativeSizeAxes = Axes.Both,
+    };
+
+    private readonly Circle headCircle = new()
+    {
+        Anchor = Anchor.Centre,
+        Origin = Anchor.Centre,
+        Alpha = 0,
+    };
+
     // Per-node data, rebuilt whenever a new hit object is applied.
     private float[] nodeRadians = Array.Empty<float>();
     private double[] nodeTimes = Array.Empty<double>();
@@ -155,6 +170,9 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         pathContainer.Colour = sideColour;
         escapeContainer.Colour = sideColour;
         tipBox.Colour = sideColour;
+
+        headContainer.Colour = sideColour;
+        headContainer.Add(headCircle);
     }
 
     [BackgroundDependencyLoader]
@@ -177,6 +195,9 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         AddInternal(escapeContainer);
         AddInternal(tipBox);
 
+        headCircle.Size = new Vector2(Thickness);
+        AddInternal(headContainer);
+
         AddInternal(nestedContainer);
     }
 
@@ -191,6 +212,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         base.PrepareForUse();
         pathContainer.FadeInFromZero(100, Easing.In);
         escapeContainer.FadeInFromZero(100, Easing.In);
+        headContainer.FadeInFromZero(100, Easing.In);
     }
 
     protected override void Update()
@@ -243,6 +265,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// </summary>
     private void updatePath()
     {
+        updateHeadCircle();
+
         int bodyIndex = 0;
         int escapeIndex = 0;
 
@@ -298,6 +322,31 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             bodyPaths[i].Vertices = Array.Empty<Vector2>();
         for (int i = escapeIndex; i < escapePaths.Count; i++)
             escapePaths[i].Vertices = Array.Empty<Vector2>();
+    }
+
+    /// <summary>
+    /// A head-only slider (no control points) has no path to render; show its single node as a filled
+    /// circle of the body's own line radius, travelling centre→ring like a body head would. Hidden for
+    /// any slider that has a real path (its line already draws the head).
+    /// </summary>
+    private void updateHeadCircle()
+    {
+        if (nodeTimes.Length >= 2)
+        {
+            headCircle.Alpha = 0;
+            return;
+        }
+
+        float ringRadius = scrollingContainer.ScrollLength;
+        float r = scrollingContainer.DistanceFromCentreAtTime(nodeTimes[0]);
+
+        if (r >= 0 && r <= ringRadius)
+        {
+            headCircle.Position = polarToCartesian(nodeRadians[0], r);
+            headCircle.Alpha = 1;
+        }
+        else
+            headCircle.Alpha = 0;
     }
 
     /// <summary>
@@ -491,6 +540,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             case ArmedState.Hit:
                 escapeContainer.FadeOut(350, Easing.OutQuint);
                 tipBox.FadeOut(350, Easing.OutQuint);
+                headContainer.FadeOut(350, Easing.OutQuint);
                 pathContainer.FadeOut(350, Easing.OutQuint).OnComplete(_ => Expire());
                 break;
 
@@ -499,6 +549,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
                 escapeContainer.FadeColour(Colour4.Red, duration);
                 escapeContainer.FadeOut(duration, Easing.InQuint);
                 tipBox.FadeOut(duration, Easing.InQuint);
+                headContainer.FadeColour(Colour4.Red, duration);
+                headContainer.FadeOut(duration, Easing.InQuint);
                 pathContainer.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
                 break;
         }
