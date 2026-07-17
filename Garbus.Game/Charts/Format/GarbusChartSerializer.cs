@@ -108,6 +108,7 @@ public static class GarbusChartSerializer
             AudioFile = chart.Metadata.AudioFile,
             BackgroundFile = chart.Metadata.BackgroundFile,
             Level = chart.Metadata.Level,
+            Difficulty = chart.Metadata.Difficulty.ToString(),
         },
         PreviewTime = chart.PreviewTime,
         TimingPoints = chart.ControlPointInfo.TimingPoints.Select(t => new TimingPointDto
@@ -166,6 +167,7 @@ public static class GarbusChartSerializer
                 AudioFile = dto.Metadata.AudioFile,
                 BackgroundFile = dto.Metadata.BackgroundFile,
                 Level = dto.Metadata.Level,
+                Difficulty = parseEnum<Difficulty>(dto.Metadata.Difficulty),
             },
             PreviewTime = dto.PreviewTime,
             HitObjects = dto.HitObjects.Select(fromDto).ToList(),

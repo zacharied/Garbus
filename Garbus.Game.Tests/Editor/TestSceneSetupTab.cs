@@ -227,6 +227,49 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
+        // Difficulty dropdown updates metadata and is one undo step
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void TestDifficultyDropdownUpdatesMetadataAndIsOneUndoStep()
+        {
+            setupEditorUnsaved();
+
+            GarbusChartChangeHandler changeHandler = null!;
+            AddUntilStep("editor loaded", () =>
+            {
+                if (!editor.IsLoaded) return false;
+                changeHandler = editor.ChangeHandlerForTests;
+                return true;
+            });
+
+            AddStep("switch to Setup tab", () => editor.Tab.Value = EditorTab.Setup);
+            AddUntilStep("setup tab visible + difficulty section", () =>
+                editor.ChildrenOfType<SetupTab>().Any() &&
+                editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
+                editor.ChildrenOfType<DifficultySection>().Any());
+
+            AddAssert("dropdown reflects default (Novice)", () =>
+                editor.ChildrenOfType<DifficultySection>().First().DifficultyDropdown.Current.Value == Difficulty.Novice);
+
+            AddStep("select Expert", () =>
+                editor.ChildrenOfType<DifficultySection>().First().DifficultyDropdown.Current.Value = Difficulty.Expert);
+
+            AddAssert("metadata.Difficulty updated", () =>
+                editor.EditorChart.Metadata.Difficulty == Difficulty.Expert);
+
+            AddAssert("can undo", () => changeHandler.CanUndo.Value);
+
+            AddStep("undo", () => changeHandler.Undo());
+            AddAssert("difficulty reverted to Novice", () =>
+                editor.EditorChart.Metadata.Difficulty == Difficulty.Novice);
+
+            AddStep("redo", () => changeHandler.Redo());
+            AddAssert("difficulty restored to Expert", () =>
+                editor.EditorChart.Metadata.Difficulty == Difficulty.Expert);
+        }
+
+        // ------------------------------------------------------------------
         // 2. Resource rows disabled for unsaved chart
         // ------------------------------------------------------------------
 

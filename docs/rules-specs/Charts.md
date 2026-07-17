@@ -46,9 +46,8 @@ The difficulty of a chart is a semantic representation of a chart's difficulty r
 |----------|
 | Tutorial |
 | Novice   |
-| Moderate |
-| Hard     |
-| Expert |
+| Advanced |
+| Expert   |
 
 #### Difficulty restrictions
 

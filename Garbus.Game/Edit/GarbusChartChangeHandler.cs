@@ -110,6 +110,8 @@ namespace Garbus.Game.Edit
             editorChart.Metadata.Tags = targetChart.Metadata.Tags;
             editorChart.Metadata.AudioFile = targetChart.Metadata.AudioFile;
             editorChart.Metadata.BackgroundFile = targetChart.Metadata.BackgroundFile;
+            editorChart.Metadata.Level = targetChart.Metadata.Level;
+            editorChart.Metadata.Difficulty = targetChart.Metadata.Difficulty;
 
             // --- PreviewTime ---
             editorChart.Chart.PreviewTime = targetChart.PreviewTime;

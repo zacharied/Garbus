@@ -10,7 +10,9 @@
     "source": "",
     "tags": "",
     "audioFile": "test-track.ogg",
-    "backgroundFile": ""
+    "backgroundFile": "",
+    "level": 0,
+    "difficulty": "Novice"
   },
   "previewTime": null,
   "timingPoints": [

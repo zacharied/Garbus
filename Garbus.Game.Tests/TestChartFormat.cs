@@ -86,6 +86,7 @@ namespace Garbus.Game.Tests
                     Charter = "C", ChartName = "N",
                     Source = "some game", Tags = "tag1 tag2",
                     AudioFile = "track.ogg", BackgroundFile = "bg.png",
+                    Difficulty = Difficulty.Expert,
                 },
                 PreviewTime = 12345.0,
             };
@@ -97,6 +98,7 @@ namespace Garbus.Game.Tests
             Assert.That(decoded.Metadata.Source, Is.EqualTo("some game"));
             Assert.That(decoded.Metadata.Tags, Is.EqualTo("tag1 tag2"));
             Assert.That(decoded.Metadata.BackgroundFile, Is.EqualTo("bg.png"));
+            Assert.That(decoded.Metadata.Difficulty, Is.EqualTo(Difficulty.Expert));
             Assert.That(decoded.PreviewTime, Is.EqualTo(12345.0));
         }
 

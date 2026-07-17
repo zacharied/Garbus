@@ -38,6 +38,7 @@ public class ChartMetadataDto
     public string AudioFile { get; set; } = string.Empty;
     public string BackgroundFile { get; set; } = string.Empty;
     public int Level { get; set; }
+    public string Difficulty { get; set; } = nameof(Charts.Difficulty.Novice);
 }
 
 public class TimingPointDto

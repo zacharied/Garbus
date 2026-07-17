@@ -43,4 +43,9 @@ public class ChartMetadata
     /// Numeric difficulty level of the chart (0 = unset).
     /// </summary>
     public int Level { get; set; }
+
+    /// <summary>
+    /// The chart's difficulty gradation relative to the other charts for its song.
+    /// </summary>
+    public Difficulty Difficulty { get; set; } = Difficulty.Novice;
 }
