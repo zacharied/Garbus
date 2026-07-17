@@ -2366,10 +2366,12 @@ namespace Garbus.Game.Tests.Editor
             });
 
             int node1AbsBefore = 0;
-            AddStep("capture node1 absolute", () =>
+            int off0 = 0;
+            AddStep("capture node1 absolute + off0", () =>
             {
                 var s = placedObject<SliderBody>()!;
                 node1AbsBefore = EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[1].RotationOffset);
+                off0 = s.Path.ControlPoints[0].RotationOffset;
             });
 
             AddStep("flip selection", () =>
@@ -2385,6 +2387,18 @@ namespace Garbus.Game.Tests.Editor
                 return EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[1].RotationOffset);
             }, () => Is.EqualTo(node1AbsBefore));
 
+            // Head is in the selected set, so S includes the 0 offset of the head: S = min(0, off0) + max(0, off0) = off0.
+            // Since off0 != 0, the head angle MUST move under the new head-aware reflection. Old (pre-Task-8) code left
+            // the head untouched here (the guard was already satisfied by node0 alone, and the legacy reflect path never
+            // touches AngleDeg) — this is the key discriminator between old and new behavior.
+            // (expectedS is computed lazily inside the assertion below — off0 is only populated once the
+            // "capture node1 absolute + off0" step above has actually run.)
+            AddAssert("head angle moved to expected reflected angle",
+                () => placedObject<SliderBody>()!.AngleDeg,
+                () => Is.EqualTo(EditorAngleMapping.NormalizeDeg(origHeadAngle + Math.Min(0, off0) + Math.Max(0, off0))));
+            AddAssert("head angle actually changed (sanity: S != 0)",
+                () => placedObject<SliderBody>()!.AngleDeg, () => Is.Not.EqualTo(origHeadAngle));
+
             AddStep("flip again", () => { input.MoveMouseTo(headHandleScreen()); input.Key(Key.F); });
 
             AddAssert("head angle restored (involution)", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(origHeadAngle));
@@ -2397,6 +2411,43 @@ namespace Garbus.Game.Tests.Editor
                     && s.Path.ControlPoints[0].TimeOffset == origCp0Time
                     && s.Path.ControlPoints[1].TimeOffset == origCp1Time;
             });
+        }
+
+        [Test]
+        public void TestFlipHeadOnlyIsNoOp()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            int origHeadAngle = 0, origCp0 = 0, origCp1 = 0;
+            AddStep("capture originals", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                origHeadAngle = s.AngleDeg;
+                origCp0 = s.Path.ControlPoints[0].RotationOffset;
+                origCp1 = s.Path.ControlPoints[1].RotationOffset;
+            });
+
+            AddStep("select only the head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddAssert("head selected, no nodes", () =>
+                sliderBlueprint().HeadSelected && sliderBlueprint().SelectedNodes.Count == 0);
+
+            AddStep("flip selection", () =>
+            {
+                input.MoveMouseTo(headHandleScreen()); // ensure a blueprint is hovered for the key handler
+                input.Key(Key.F);
+            });
+
+            // Head-only selection: the reflection bbox is just {0}, so S = 0 and nothing should change.
+            // Old (pre-Task-8) code had no head-aware guard branch for this case (SelectedNodes.Count == 0
+            // fails the guard), so it fell through to the RIGID whole-slider mirror — which flips AngleDeg
+            // and negates every control point's RotationOffset regardless of what's selected. Asserting
+            // everything is unchanged proves the new guard branch (not the rigid fallback) is taken.
+            AddAssert("head angle unchanged", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(origHeadAngle));
+            AddAssert("cp0 offset unchanged", () => placedObject<SliderBody>()!.Path.ControlPoints[0].RotationOffset, () => Is.EqualTo(origCp0));
+            AddAssert("cp1 offset unchanged", () => placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset, () => Is.EqualTo(origCp1));
         }
 
         [Test]
