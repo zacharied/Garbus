@@ -1655,6 +1655,69 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDraggingHeadMovesStartAndCompensatesNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            double origStart = 0, origNodeAbsTime = 0;
+            int origAngle = 0, origNodeAbsAngle = 0;
+            AddStep("capture originals", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                var cp = s.Path.ControlPoints[0];
+                origStart = s.StartTime;
+                origAngle = s.AngleDeg;
+                origNodeAbsTime = s.StartTime + cp.TimeOffset;
+                origNodeAbsAngle = EditorAngleMapping.NormalizeDeg(s.AngleDeg + cp.RotationOffset);
+            });
+
+            // Select only the head, then drag it 45° to the right (one snap increment).
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddAssert("head selected", () => sliderBlueprint().HeadSelected, () => Is.True);
+
+            AddStep("press on head handle", () => { input.MoveMouseTo(headHandleScreen()); input.PressButton(MouseButton.Left); });
+            AddStep("drag 45° right", () => dragStepRight(45));
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("head angle changed by +45", () =>
+                placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(EditorAngleMapping.NormalizeDeg(origAngle + 45)));
+            AddAssert("node kept its absolute angle", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                var cp = s.Path.ControlPoints[0];
+                return EditorAngleMapping.NormalizeDeg(s.AngleDeg + cp.RotationOffset);
+            }, () => Is.EqualTo(origNodeAbsAngle));
+            AddAssert("start time unchanged (pure angle drag)", () =>
+                placedObject<SliderBody>()!.StartTime, () => Is.EqualTo(origStart));
+            AddAssert("node kept its absolute time", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return s.StartTime + s.Path.ControlPoints[0].TimeOffset;
+            }, () => Is.EqualTo(origNodeAbsTime));
+        }
+
+        [Test]
+        public void TestDraggingHeadDoesNotRecreateDrawable()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            Gameplay.Objects.Drawables.DrawableHitObject drawable = null!;
+            AddStep("capture drawable", () => drawable = composer.HitObjects.Single());
+
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddStep("press on head handle", () => { input.MoveMouseTo(headHandleScreen()); input.PressButton(MouseButton.Left); });
+            AddRepeatStep("wiggle right", () => dragStepRight(4), 8);
+            AddRepeatStep("wiggle left", () => dragStepRight(-4), 8);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("drawable never recreated", () => composer.HitObjects.Single(), () => Is.SameAs(drawable));
+        }
+
+        [Test]
         public void TestDeleteRemovesSelectedNodeNotWholeSlider()
         {
             waitForComposer();

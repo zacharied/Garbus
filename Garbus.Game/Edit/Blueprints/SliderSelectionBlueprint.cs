@@ -74,6 +74,10 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     // control point. Binding the drag to a fixed reference keeps it on the grabbed node the whole time.
     private GarbusPathControlPoint? draggedNode;
 
+    // The implicit head has no GarbusPathControlPoint to capture in draggedNode, so a head drag is flagged
+    // separately. Set in beginNodeDrag(head_index), cleared in endNodeDrag.
+    private bool draggingHead;
+
     internal IReadOnlyCollection<GarbusPathControlPoint> SelectedNodes => selectedNodes;
 
     // The implicit head node (offset 0 = slider StartTime/AngleDeg). Selectable alongside control points
@@ -108,9 +112,9 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                 Origin = Anchor.Centre,
                 CpIndex = head_index,
                 SelectRequested = (index, ctrl) => selectNode(index, ctrl),
-                DragStarted = () => changeHandler?.BeginChange(),
-                Dragging = (index, pos) => dragNode(index, pos),
-                DragEnded = () => changeHandler?.EndChange(),
+                DragStarted = () => beginNodeDrag(head_index),
+                Dragging = (_, pos) => dragNode(pos),
+                DragEnded = () => endNodeDrag(),
             },
             nodeHandles = new Container<NodeDragPiece> { RelativeSizeAxes = Axes.Both },
         };
@@ -276,83 +280,149 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     private void beginNodeDrag(int index)
     {
         var controlPoints = HitObject.Path.ControlPoints;
-        draggedNode = index < controlPoints.Count ? controlPoints[index] : null;
+        draggingHead = index == head_index;
+        draggedNode = !draggingHead && index < controlPoints.Count ? controlPoints[index] : null;
         changeHandler?.BeginChange();
     }
 
     private void endNodeDrag()
     {
         draggedNode = null;
+        draggingHead = false;
         changeHandler?.EndChange();
     }
 
     private void dragNode(Vector2 screenSpacePosition)
     {
-        if (composer == null || editorChart == null || draggedNode is not { } grabbed)
+        if (composer == null || editorChart == null)
             return;
 
         var controlPoints = HitObject.Path.ControlPoints;
-        if (!controlPoints.Contains(grabbed))
-            return;
+
+        // The grabbed handle is either the implicit head (draggingHead) or a control point captured by stable
+        // reference at drag start (draggedNode) — the index is untrustworthy mid-drag as wrap copies reshuffle.
+        // A non-head grab whose node has since left the path aborts the event.
+        GarbusPathControlPoint? grabbed = null;
+
+        if (!draggingHead)
+        {
+            if (draggedNode is not { } node || !controlPoints.Contains(node))
+                return;
+
+            grabbed = node;
+        }
 
         var result = composer.FindSnappedAngleTimeAndPosition(screenSpacePosition);
 
-        // The moved set: the whole node selection when the grabbed node is part of it, else just the grabbed node.
-        // Pass selectedNodes (a HashSet) through directly for O(1) Contains and no per-event allocation in the
-        // multi-select case; only the single-node fallback allocates a tiny array.
-        ICollection<GarbusPathControlPoint> moved = selectedNodes.Contains(grabbed)
-            ? selectedNodes
-            : new[] { grabbed };
+        // The grabbed handle's current absolute time/angle define the snap deltas (the head sits at offset 0).
+        double grabbedTimeOffset = grabbed?.TimeOffset ?? 0;
+        int grabbedRotationOffset = grabbed?.RotationOffset ?? 0;
+
+        // The moved set: the whole combined selection when the grabbed handle is part of it, else just the
+        // grabbed handle. `movedHead` mirrors the head flag; `movedNodes` the control-point subset.
+        bool grabbedSelected = draggingHead ? headSelected : selectedNodes.Contains(grabbed!);
+
+        bool movedHead;
+        ICollection<GarbusPathControlPoint> movedNodes;
+
+        if (grabbedSelected)
+        {
+            movedHead = headSelected;
+            movedNodes = selectedNodes;
+        }
+        else
+        {
+            movedHead = draggingHead;
+            movedNodes = draggingHead ? System.Array.Empty<GarbusPathControlPoint>() : new[] { grabbed! };
+        }
 
         bool changed = false;
 
-        // Time: shift every moved node by the grabbed node's delta, but only if the whole path stays
-        // non-decreasing (at most one zero-length link in a row). All-or-nothing per event (no partial move).
+        // Time: shift the grabbed handle by its delta; apply to the moved set only if the whole path stays
+        // valid (including StartTime >= 0 when the head moves). All-or-nothing per event.
         if (result.Time is double proposedTime)
         {
-            double deltaTime = (proposedTime - HitObject.StartTime) - grabbed.TimeOffset;
+            double deltaTime = (proposedTime - HitObject.StartTime) - grabbedTimeOffset;
 
-            if (deltaTime != 0 && timeShiftValid(controlPoints, moved, deltaTime))
+            if (deltaTime != 0 && timeShiftValidWithHead(controlPoints, movedNodes, movedHead, deltaTime))
             {
-                foreach (var cp in moved)
-                    cp.TimeOffset += deltaTime;
+                if (movedHead)
+                {
+                    HitObject.StartTime += deltaTime;
+                    // Nodes NOT in the moved set hold their absolute time — compensate their offsets.
+                    foreach (var cp in controlPoints)
+                    {
+                        if (!movedNodes.Contains(cp))
+                            cp.TimeOffset -= deltaTime;
+                    }
+                }
+                else
+                {
+                    foreach (var cp in movedNodes)
+                        cp.TimeOffset += deltaTime;
+                }
+
                 changed = true;
             }
         }
 
-        // Angle: rotation offsets are free integers (no ordering constraint), so apply the grabbed node's
-        // minimal snap delta to every moved node unconditionally.
+        // Angle: rotation offsets are free integers (no ordering constraint), so apply the grabbed handle's
+        // minimal snap delta unconditionally.
         if (result is GarbusSnapResult snap)
         {
-            int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + grabbed.RotationOffset);
+            int currentAbsolute = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + grabbedRotationOffset);
             int diff = EditorAngleMapping.MinimalDiff(currentAbsolute, snap.AngleDeg);
 
             if (diff != 0)
             {
-                foreach (var cp in moved)
-                    cp.RotationOffset += diff;
+                if (movedHead)
+                {
+                    HitObject.AngleDeg = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + diff);
+                    foreach (var cp in controlPoints)
+                    {
+                        if (!movedNodes.Contains(cp))
+                            cp.RotationOffset -= diff;
+                    }
+                }
+                else
+                {
+                    foreach (var cp in movedNodes)
+                        cp.RotationOffset += diff;
+                }
+
                 changed = true;
             }
         }
 
-        // Only run the (ApplyDefaults + state-save) update when something actually moved — mouse-move
-        // events inside the same snap cell would otherwise re-apply the whole slider per event.
         if (changed)
             editorChart.Update(HitObject);
     }
 
     /// <summary>
-    /// True if shifting every node in <paramref name="moved"/> by <paramref name="deltaTime"/> leaves the
-    /// full path valid: non-decreasing times, at most one zero-length link in a row (a single horizontal
-    /// arc), and at least one control point. A zero total duration is allowed (a constant-radius arc at a
-    /// single instant), so a drag may collapse the whole path onto the head's time.
+    /// True if applying <paramref name="deltaTime"/> leaves the full path valid. When the head moves
+    /// (<paramref name="headInSet"/>), StartTime shifts by Δ and every node NOT in <paramref name="movedNodes"/>
+    /// has its offset reduced by Δ (so its absolute time is fixed) — plus StartTime + Δ must stay >= 0.
+    /// When the head is fixed, only the moved nodes' offsets grow by Δ. Validity is delegated to
+    /// <see cref="GarbusSliderPath.AreTimesValid"/>: non-decreasing times, at most one zero-length link in a
+    /// row, and at least one control point — a zero total duration is allowed (the path may collapse onto the
+    /// head's time as a constant-radius arc at a single instant).
     /// </summary>
-    private static bool timeShiftValid(IReadOnlyList<GarbusPathControlPoint> controlPoints, ICollection<GarbusPathControlPoint> moved, double deltaTime)
+    private bool timeShiftValidWithHead(IReadOnlyList<GarbusPathControlPoint> controlPoints, ICollection<GarbusPathControlPoint> movedNodes, bool headInSet, double deltaTime)
     {
+        if (headInSet && HitObject.StartTime + deltaTime < 0)
+            return false;
+
         var offsets = new List<double>(controlPoints.Count);
 
         foreach (var cp in controlPoints)
-            offsets.Add(moved.Contains(cp) ? cp.TimeOffset + deltaTime : cp.TimeOffset);
+        {
+            bool inSet = movedNodes.Contains(cp);
+
+            if (headInSet)
+                offsets.Add(inSet ? cp.TimeOffset : cp.TimeOffset - deltaTime);
+            else
+                offsets.Add(inSet ? cp.TimeOffset + deltaTime : cp.TimeOffset);
+        }
 
         return GarbusSliderPath.AreTimesValid(offsets);
     }
