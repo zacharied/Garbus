@@ -219,9 +219,10 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
 
     /// <summary>
     /// Reflects every selected handle. Point objects, ShoulderNote, and whole sliders reflect in absolute
-    /// space about <paramref name="sumDeg"/> (= 2·pivot). A slider with selected nodes reflects only those
-    /// nodes, in head-relative offset space, about a fixed offset-sum — an exact involution that preserves
-    /// winding (see reflectSelectedNodes). One change transaction ⇒ a single undo step.
+    /// space about <paramref name="sumDeg"/> (= 2·pivot). A slider with a node subset selected (and/or the
+    /// head) reflects that subset in head-relative offset space about a fixed offset-sum — an exact
+    /// involution that preserves winding (see reflectSelectedNodes). One change transaction ⇒ a single
+    /// undo step.
     /// </summary>
     private void flip(int sumDeg, FlipMode mode, int pivotDeg)
     {
@@ -277,10 +278,17 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
     }
 
     /// <summary>
-    /// Reflects a slider's selected nodes in head-relative offset space about a fixed sum <c>S</c>
-    /// (<c>newOffset = S − offset</c>) — a winding-preserving involution. For a selection-centre flip
-    /// <c>S</c> is the nodes' own offset bounding box (<c>min + max</c>); for a pivot flip <c>S</c> is twice
-    /// the pivot reduced to the reflection axis relative to the head. The slider head is left fixed.
+    /// Reflects a slider's selected nodes (and, when <see cref="SliderSelectionBlueprint.HeadSelected"/>,
+    /// the head) in head-relative offset space about a fixed sum <c>S</c> — a winding-preserving involution.
+    /// For a selection-centre flip <c>S</c> is the selected offsets' own bounding box (<c>min + max</c>,
+    /// including offset 0 when the head is selected); for a pivot flip <c>S</c> is twice the pivot reduced
+    /// to the reflection axis relative to the head.
+    /// <para/>
+    /// When the head is NOT selected it is left fixed and only the selected nodes reflect
+    /// (<c>newOffset = S − offset</c>). When the head IS selected, offset 0 (the head) moves by <c>S</c> too:
+    /// expressed as absolute mutations that keep unselected nodes at a fixed absolute angle, the head's
+    /// <c>AngleDeg</c> grows by <c>S</c>, each selected node's offset negates (the re-based reflection), and
+    /// each unselected node's offset shrinks by <c>S</c> to compensate.
     /// (In a mixed selection the nodes reflect about their own local centre rather than the whole
     /// selection's centre — an accepted, minor divergence; node editing is inherently local.)
     /// </summary>
