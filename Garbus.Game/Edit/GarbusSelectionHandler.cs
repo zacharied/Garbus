@@ -245,7 +245,7 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
                     shoulder.Side = inEastHemisphere(a) ? HorizontalDirection.Right : HorizontalDirection.Left;
                     break;
 
-                case SliderBody slider when blueprint is SliderSelectionBlueprint sb && sb.SelectedNodes.Count > 0:
+                case SliderBody slider when blueprint is SliderSelectionBlueprint sb && (sb.SelectedNodes.Count > 0 || sb.HeadSelected):
                     reflectSelectedNodes(slider, sb, mode, pivotDeg);
                     break;
 
@@ -291,6 +291,14 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         if (mode == FlipMode.SelectionCentre)
         {
             int minOff = int.MaxValue, maxOff = int.MinValue;
+
+            // The head participates in the centre when selected (its offset is 0).
+            if (sb.HeadSelected)
+            {
+                minOff = Math.Min(minOff, 0);
+                maxOff = Math.Max(maxOff, 0);
+            }
+
             foreach (var cp in sb.SelectedNodes)
             {
                 minOff = Math.Min(minOff, cp.RotationOffset);
@@ -311,8 +319,26 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
             s = 2 * axisOff;
         }
 
-        foreach (var cp in sb.SelectedNodes)
-            cp.RotationOffset = s - cp.RotationOffset;
+        if (!sb.HeadSelected)
+        {
+            // Head fixed: reflect only the selected nodes in offset space.
+            foreach (var cp in sb.SelectedNodes)
+                cp.RotationOffset = s - cp.RotationOffset;
+
+            return;
+        }
+
+        // Head moves by S. Shift the head, re-base selected nodes (S - x, then - S = -x), and compensate the
+        // unselected nodes (which must keep their absolute angle while AngleDeg grew by S).
+        slider.AngleDeg = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + s);
+
+        foreach (var cp in slider.Path.ControlPoints)
+        {
+            if (sb.SelectedNodes.Contains(cp))
+                cp.RotationOffset = -cp.RotationOffset;
+            else
+                cp.RotationOffset -= s;
+        }
     }
 
     /// <summary>The reflection sum whose pivot is the centre of the selection's handle-set angular bbox.</summary>
@@ -328,7 +354,9 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         {
             switch (blueprint.Item)
             {
-                case SliderBody slider when blueprint is SliderSelectionBlueprint sb && sb.SelectedNodes.Count > 0:
+                case SliderBody slider when blueprint is SliderSelectionBlueprint sb && (sb.SelectedNodes.Count > 0 || sb.HeadSelected):
+                    if (sb.HeadSelected)
+                        yield return EditorAngleMapping.NormalizeDeg(slider.AngleDeg);
                     foreach (var cp in sb.SelectedNodes)
                         yield return EditorAngleMapping.NormalizeDeg(slider.AngleDeg + cp.RotationOffset);
                     break;

@@ -2335,6 +2335,71 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestFlipWithHeadReflectsAndIsInvolution()
+        {
+            waitForComposer();
+            placeDiagonalSlider();  // head 270°, node absolute 0°
+            addSecondNode();        // second node absolute 90°+... (offset 90 from head)
+            selectSliderOnLine();
+
+            int origHeadAngle = 0, origCp0 = 0, origCp1 = 0;
+            double origStart = 0, origCp0Time = 0, origCp1Time = 0;
+            AddStep("capture originals", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                origHeadAngle = s.AngleDeg;
+                origCp0 = s.Path.ControlPoints[0].RotationOffset;
+                origCp1 = s.Path.ControlPoints[1].RotationOffset;
+                origStart = s.StartTime;
+                origCp0Time = s.Path.ControlPoints[0].TimeOffset;
+                origCp1Time = s.Path.ControlPoints[1].TimeOffset;
+            });
+
+            // Select head + node 0 (leave node 1 unselected).
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 0", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+
+            int node1AbsBefore = 0;
+            AddStep("capture node1 absolute", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                node1AbsBefore = EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[1].RotationOffset);
+            });
+
+            AddStep("flip selection", () =>
+            {
+                var handler = composer.ChildrenOfType<GarbusSelectionHandler>().Single();
+                input.MoveMouseTo(headHandleScreen()); // ensure a blueprint is hovered for the key handler
+                input.Key(Key.F);
+            });
+
+            AddAssert("unselected node1 kept absolute angle", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[1].RotationOffset);
+            }, () => Is.EqualTo(node1AbsBefore));
+
+            AddStep("flip again", () => { input.MoveMouseTo(headHandleScreen()); input.Key(Key.F); });
+
+            AddAssert("head angle restored (involution)", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(origHeadAngle));
+            AddAssert("cp0 offset restored", () => placedObject<SliderBody>()!.Path.ControlPoints[0].RotationOffset, () => Is.EqualTo(origCp0));
+            AddAssert("cp1 offset restored", () => placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset, () => Is.EqualTo(origCp1));
+            AddAssert("times untouched by flip", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return s.StartTime == origStart
+                    && s.Path.ControlPoints[0].TimeOffset == origCp0Time
+                    && s.Path.ControlPoints[1].TimeOffset == origCp1Time;
+            });
+        }
+
+        [Test]
         public void TestFlipAroundAngleFlipsShoulderSideAcrossVerticalAxis()
         {
             waitForComposer();
