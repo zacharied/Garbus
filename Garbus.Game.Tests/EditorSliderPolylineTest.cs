@@ -101,5 +101,29 @@ namespace Garbus.Game.Tests
             // ...but it sweeps in x from the head (centre) toward the 90° column.
             Assert.That(polyline[SliderSweep.SegmentsPerLink].X, Is.EqualTo(centre_x + 90 * px_per_deg).Within(1e-3));
         }
+
+        [Test]
+        public void ZeroDurationPinsEveryNodeToTheBottomLine()
+        {
+            // A slider collapsed entirely to StartTime (duration 0): head + one node at time 0, different
+            // angle. No vertical extent, so every vertex sits on the bottom line (y = drawHeight) with no
+            // NaN, while still sweeping in x toward the node's angle column.
+            var polyline = new List<Vector2>();
+            var nodes = new List<Vector2>();
+            var cp = new GarbusPathControlPoint { TimeOffset = 0, RotationOffset = 90 };
+            EditorSliderPolyline.Build(new[] { cp }, px_per_deg, centre_x, draw_height, 0.0, polyline, nodes);
+
+            Assert.That(nodes.Count, Is.EqualTo(2));
+            Assert.That(nodes[0], Is.EqualTo(new Vector2(centre_x, draw_height)));
+            Assert.That(nodes[1].X, Is.EqualTo(centre_x + 90 * px_per_deg).Within(1e-3));
+            Assert.That(nodes[1].Y, Is.EqualTo(draw_height).Within(1e-3));
+
+            // Every polyline vertex sits on the bottom line — and none is NaN.
+            foreach (var v in polyline)
+            {
+                Assert.That(float.IsNaN(v.Y), Is.False);
+                Assert.That(v.Y, Is.EqualTo(draw_height).Within(1e-3));
+            }
+        }
     }
 }

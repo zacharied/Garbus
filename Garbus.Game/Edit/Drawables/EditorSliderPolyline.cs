@@ -17,8 +17,9 @@ public static class EditorSliderPolyline
     /// Fills <paramref name="polyline"/> with the subdivided, eased/smoothed line vertices and
     /// <paramref name="nodes"/> with one point per real node (head + each control point). Node 0 is the
     /// head at <c>(centreX, drawHeight)</c>; angle offsets are the raw (unwrapped)
-    /// <see cref="GarbusPathControlPoint.RotationOffset"/>. The caller supplies fresh (or cleared) lists
-    /// and guarantees <paramref name="duration"/> &gt; 0.
+    /// <see cref="GarbusPathControlPoint.RotationOffset"/>. The caller supplies fresh (or cleared) lists.
+    /// <paramref name="duration"/> may be 0 — a path collapsed entirely to the head's time; every node
+    /// then pins to the bottom line (y = drawHeight).
     /// </summary>
     public static void Build(IReadOnlyList<GarbusPathControlPoint> controlPoints, float pxPerDeg, float centreX, float drawHeight, double duration, List<Vector2> polyline, List<Vector2> nodes)
     {
@@ -49,8 +50,13 @@ public static class EditorSliderPolyline
 
         // EditorAngleMapping.Direction reflects the angle axis (CCW↔CW) in the reversed view, so a node's
         // signed offset from the head flips sign — the same reflection the node handles and body apply.
+        // A zero-duration path (every node at time 0) has no vertical extent — pin every node to the
+        // bottom line (the StartTime / judgement line) instead of dividing by zero.
         Vector2 toPoint(float angleOffset, double timeOffset)
-            => new Vector2(centreX + EditorAngleMapping.Direction * angleOffset * pxPerDeg, drawHeight * (float)(1 - timeOffset / duration));
+        {
+            float yFrac = duration > 0 ? (float)(timeOffset / duration) : 0f;
+            return new Vector2(centreX + EditorAngleMapping.Direction * angleOffset * pxPerDeg, drawHeight * (1 - yFrac));
+        }
 
         for (int n = 0; n < count; n++)
             nodes.Add(toPoint(values[n], times[n]));
