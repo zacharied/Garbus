@@ -1783,6 +1783,101 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDeletingHeadPromotesFirstNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            double promotedAbsTime = 0;
+            int promotedAbsAngle = 0, survivorAbsAngle = 0;
+            double survivorAbsTime = 0;
+            AddStep("capture node absolutes", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                var cp0 = s.Path.ControlPoints[0];
+                var cp1 = s.Path.ControlPoints[1];
+                promotedAbsTime = s.StartTime + cp0.TimeOffset;
+                promotedAbsAngle = EditorAngleMapping.NormalizeDeg(s.AngleDeg + cp0.RotationOffset);
+                survivorAbsTime = s.StartTime + cp1.TimeOffset;
+                survivorAbsAngle = EditorAngleMapping.NormalizeDeg(s.AngleDeg + cp1.RotationOffset);
+            });
+
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddAssert("head selected", () => sliderBlueprint().HeadSelected, () => Is.True);
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+
+            AddAssert("one node left (was 2)", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+            AddAssert("new head at promoted node's absolute time", () =>
+                placedObject<SliderBody>()!.StartTime, () => Is.EqualTo(promotedAbsTime));
+            AddAssert("new head at promoted node's absolute angle", () =>
+                placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(promotedAbsAngle));
+            AddAssert("survivor kept absolute time", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return s.StartTime + s.Path.ControlPoints[0].TimeOffset;
+            }, () => Is.EqualTo(survivorAbsTime));
+            AddAssert("survivor kept absolute angle", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[0].RotationOffset);
+            }, () => Is.EqualTo(survivorAbsAngle));
+            AddAssert("head deselected after delete", () => sliderBlueprint().HeadSelected, () => Is.False);
+        }
+
+        [Test]
+        public void TestDeletingHeadAndAllNodesRemovesSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();  // head + 1 node
+            selectSliderOnLine();
+
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 0", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("head + node selected", () =>
+                sliderBlueprint().HeadSelected && sliderBlueprint().SelectedNodes.Count == 1);
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("slider removed", () => placedObject<SliderBody>(), () => Is.Null);
+        }
+
+        [Test]
+        public void TestUndoRestoresPromotedHead()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            int origAngle = 0, origNodeCount = 0;
+            double origStart = 0;
+            AddStep("capture", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                origAngle = s.AngleDeg;
+                origStart = s.StartTime;
+                origNodeCount = s.Path.ControlPoints.Count;
+            });
+
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("node count dropped", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(origNodeCount - 1));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("start restored", () => placedObject<SliderBody>()!.StartTime, () => Is.EqualTo(origStart));
+            AddAssert("angle restored", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(origAngle));
+            AddAssert("node count restored", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(origNodeCount));
+        }
+
+        [Test]
         public void TestQuickDeleteHoveredNodeRemovesOnlyThatNode()
         {
             waitForComposer();

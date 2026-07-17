@@ -589,12 +589,13 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     public bool OnPressed(KeyBindingPressEvent<PlatformAction> e)
     {
-        // Only intercept Delete when node(s) are picked; otherwise let SelectionHandler delete the whole
-        // slider. The blueprint sits above SelectionHandler in the input queue, so it sees the action first.
-        if (e.Action != PlatformAction.Delete || selectedNodes.Count == 0)
+        // Only intercept Delete when the head or node(s) are picked; otherwise let SelectionHandler delete
+        // the whole slider. The blueprint sits above SelectionHandler in the input queue, so it sees the
+        // action first.
+        if (e.Action != PlatformAction.Delete || (!headSelected && selectedNodes.Count == 0))
             return false;
 
-        removeNodes(new List<GarbusPathControlPoint>(selectedNodes));
+        removeSelection();
         return true;
     }
 
@@ -628,6 +629,66 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         }
 
         selectedNodes.Clear();
+        changeHandler?.EndChange();
+    }
+
+    /// <summary>
+    /// Removes the current head+node selection in one transaction. Head not selected → same as removeNodes.
+    /// Head selected with survivors → the selected control points are dropped, then the new first control
+    /// point is promoted into StartTime/AngleDeg and the remaining offsets rebased. Head + everything → the
+    /// slider is removed.
+    /// </summary>
+    private void removeSelection()
+    {
+        if (editorChart == null)
+            return;
+
+        if (!headSelected)
+        {
+            if (selectedNodes.Count > 0)
+                removeNodes(new List<GarbusPathControlPoint>(selectedNodes));
+            return;
+        }
+
+        var controlPoints = HitObject.Path.ControlPoints;
+
+        // Head + every remaining control point selected → nothing survives → remove the slider.
+        if (selectedNodes.Count >= controlPoints.Count)
+        {
+            changeHandler?.BeginChange();
+            editorChart.Remove(HitObject);
+            selectedNodes.Clear();
+            headSelected = false;
+            changeHandler?.EndChange();
+            return;
+        }
+
+        changeHandler?.BeginChange();
+
+        // Drop the selected control points first.
+        foreach (var cp in selectedNodes)
+            controlPoints.Remove(cp);
+
+        // Promote the new first control point to be the head.
+        var promoted = controlPoints[0];
+        double deltaTime = promoted.TimeOffset;
+        int deltaAngle = promoted.RotationOffset;
+
+        HitObject.StartTime += deltaTime;
+        HitObject.AngleDeg = EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg + deltaAngle);
+
+        controlPoints.RemoveAt(0);
+
+        foreach (var cp in controlPoints)
+        {
+            cp.TimeOffset -= deltaTime;
+            cp.RotationOffset -= deltaAngle;
+        }
+
+        selectedNodes.Clear();
+        headSelected = false;
+
+        editorChart.Update(HitObject);
         changeHandler?.EndChange();
     }
 
