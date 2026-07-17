@@ -41,10 +41,11 @@ public static class GarbusSliderPath
     }
 
     /// <summary>
-    /// The full invariant for a complete path: <see cref="AreTimesOrdered"/> plus a total duration
-    /// &gt; 0 (at least one node past the head). The list is non-decreasing when ordered, so the last
-    /// element is the maximum (= the duration). Used by node drag, T-insert, and placement commit.
+    /// The full invariant for a complete path: <see cref="AreTimesOrdered"/> plus at least one control
+    /// point (the head alone is not a path). The total duration MAY be 0 — a path collapsed entirely to
+    /// the head's time is a constant-radius arc at a single instant. Used by node drag, T-insert, and
+    /// placement commit.
     /// </summary>
     public static bool AreTimesValid(IReadOnlyList<double> offsets)
-        => AreTimesOrdered(offsets) && offsets.Count > 0 && offsets[^1] > 0;
+        => AreTimesOrdered(offsets) && offsets.Count > 0;
 }

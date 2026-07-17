@@ -23,13 +23,13 @@ namespace Garbus.Game.Tests
         }
 
         [Test]
-        public void LeadingZeroLengthLinkNeedsALaterNode()
+        public void LoneZeroNodeIsAValidZeroDurationArc()
         {
             // child at offset 0 right after the head, followed by a real node: valid.
             Assert.That(GarbusSliderPath.AreTimesValid(new double[] { 0, 200 }), Is.True);
-            // a lone node at 0 is ordered but not valid (duration 0).
+            // a lone node at 0 (head + one node at the same instant) is a zero-duration arc: now valid.
             Assert.That(GarbusSliderPath.AreTimesOrdered(new double[] { 0 }), Is.True);
-            Assert.That(GarbusSliderPath.AreTimesValid(new double[] { 0 }), Is.False);
+            Assert.That(GarbusSliderPath.AreTimesValid(new double[] { 0 }), Is.True);
         }
 
         [Test]
