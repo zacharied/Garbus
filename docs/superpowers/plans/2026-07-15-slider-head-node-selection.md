@@ -825,8 +825,10 @@ Add a new method and route both delete entry points through it. Insert after `re
 
         var controlPoints = HitObject.Path.ControlPoints;
 
-        // Head + every remaining control point selected → nothing survives → remove the slider.
-        if (selectedNodes.Count >= controlPoints.Count)
+        // Head selected → after dropping the selected nodes, promotion consumes one more survivor (the new
+        // first control point). So the guard is `Count - 1`, not `Count`: at most one control point may
+        // survive the node-drop and still be safely promoted away without leaving an empty path.
+        if (selectedNodes.Count >= controlPoints.Count - 1)
         {
             changeHandler?.BeginChange();
             editorChart.Remove(HitObject);
@@ -977,7 +979,7 @@ Replace `HandleQuickDeletion()` (lines 524-540) with a version that checks the h
     }
 ```
 
-Note: if the head is the only node (no control points), `removeSelection` with `selectedNodes.Count (0) >= controlPoints.Count (0)` removes the slider — correct (a headless path is impossible).
+Note: if the head is the only node (no control points), `removeSelection` with `selectedNodes.Count (0) >= controlPoints.Count - 1 (-1)` removes the slider — correct (a headless path is impossible).
 
 - [ ] **Step 4: Add a selection-anchor regression test**
 

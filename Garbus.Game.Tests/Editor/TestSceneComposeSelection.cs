@@ -1771,6 +1771,58 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDraggingNodeWithHeadCoSelectedMovesBoth()
+        {
+            // The other branch of the shared dragNode routine: grabbing a NODE handle while the head is
+            // part of a multi-selection. The head rides along with the grabbed node's snap delta, and any
+            // UNSELECTED node (node1 here) compensates its offset so its absolute angle stays put — mirroring
+            // TestDraggingHeadMovesStartAndCompensatesNode but with the grab/compensation roles reversed.
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            int origHead = 0, origNode0Abs = 0, origNode1Abs = 0;
+            AddStep("capture originals", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                origHead = s.AngleDeg;
+                origNode0Abs = EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[0].RotationOffset);
+                origNode1Abs = EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[1].RotationOffset);
+            });
+
+            // Co-select head + node0 (leave node1 unselected).
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 0", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(0));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("head + node0 selected", () =>
+                sliderBlueprint().HeadSelected && sliderBlueprint().SelectedNodes.Count == 1);
+
+            // Drag the NODE handle by one 45° increment; the head must ride along.
+            AddStep("press on node0 handle", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.PressButton(MouseButton.Left); });
+            AddStep("drag 45° right", () => dragStepRight(45));
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("head rode along +45", () =>
+                placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(EditorAngleMapping.NormalizeDeg(origHead + 45)));
+            AddAssert("node0 absolute moved +45", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[0].RotationOffset);
+            }, () => Is.EqualTo(EditorAngleMapping.NormalizeDeg(origNode0Abs + 45)));
+            AddAssert("unselected node1 kept absolute angle", () =>
+            {
+                var s = placedObject<SliderBody>()!;
+                return EditorAngleMapping.NormalizeDeg(s.AngleDeg + s.Path.ControlPoints[1].RotationOffset);
+            }, () => Is.EqualTo(origNode1Abs));
+        }
+
+        [Test]
         public void TestDraggingHeadDoesNotRecreateDrawable()
         {
             waitForComposer();
