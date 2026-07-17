@@ -227,13 +227,12 @@ its parent `*Note` type.
 
 ### Slider
 
-Sliders are catch-timed at the head. A Slider **is a duration object only when its span is positive** —
-when EndTime is greater than StartTime. A Slider has a head and zero or more children; a **node** is
-either the head or a child. When its span is positive, its body is the set of line segments connecting
-the head to the first child, and each child to the next, and each segment is judged in the **hold**
-family under the standard duration rules. A Slider whose span is zero — it has no children, or every
-child coincides with the head (TimeOffset 0) — is **not** a duration object: it is a **zero-length
-Slider**, judged solely by its catch-timed head (Perfect or Miss).
+Sliders are catch-timed at the head. A Slider has a head and zero or more children; a **node** is either
+the head or a child. **Every node yields exactly one Judgement**, so a Slider's Judgement count always
+equals its node count: the head's Judgement is catch-timed (Perfect or Miss), and each child's is the
+duration judgement of the body segment ending at that child, judged in the **hold** family. The body is
+the set of line segments connecting the head to the first child, and each child to the next. A
+head-only Slider — no children — is judged by its head alone.
 
 #### Timing
 
@@ -256,9 +255,12 @@ apply to the node. The Slam is still judged independently as its own hit object.
 | Bad              | 50%        |
 | Miss             | 0%         |
 
-The duration rules apply only when the Slider's span is positive. A zero-length Slider (no children, or
-every child coincident with the head) is not a duration object: it has no duration judgement, and its
-final Judgement is its head's — Perfect or Miss.
+A body segment may be **zero-length** — its child sits at the same time as the preceding node
+(TimeOffset 0), giving the segment a duration of 0. Such a segment computes no activation proportion;
+the Final-judgement rule for a duration shorter than the head reference's largest non-Miss window
+resolves its child straight from the head reference — the best Judgement if that reference was hit, a
+Miss if it was missed. The child is still judged, so the one-Judgement-per-node relationship holds even
+for zero-length segments.
 
 A Slider body has a grace period of 200 ms, equal to the Slider head's late Perfect extent.
 
