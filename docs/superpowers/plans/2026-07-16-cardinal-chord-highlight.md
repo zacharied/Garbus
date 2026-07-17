@@ -825,7 +825,9 @@ git commit -m "feat: draw yellow connector under coincident cardinal chords"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `Garbus.Game.Tests/Editor/TestSceneChordHighlightEditor.cs`. It reuses the placement harness pattern from `TestSceneComposePlacement` (same `ComposePlacementHarness`).
+Create `Garbus.Game.Tests/Editor/TestSceneChordHighlightEditor.cs`. `TestSceneComposePlacement`'s harness
+is a **private nested class**, so this file embeds its own copy of the same DI harness (a private nested
+class) rather than referencing it.
 
 ```csharp
 using System.Linq;
@@ -836,17 +838,20 @@ using Garbus.Game.Edit.Drawables;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
+using osu.Framework.Allocation;
+using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
 
 namespace Garbus.Game.Tests.Editor
 {
     [TestFixture]
     public partial class TestSceneChordHighlightEditor : GarbusTestScene
     {
-        private ComposePlacementHarness harness = null!;
+        private ChordEditorHarness harness = null!;
         private EditorChart editorChart = null!;
 
         private GarbusEditorPlayfield playfield => harness.Composer.Playfield;
@@ -857,7 +862,7 @@ namespace Garbus.Game.Tests.Editor
             var chart = new GarbusChart();
             chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
             editorChart = new EditorChart(chart);
-            Child = harness = new ComposePlacementHarness(editorChart) { RelativeSizeAxes = Axes.Both };
+            Child = harness = new ChordEditorHarness(editorChart) { RelativeSizeAxes = Axes.Both };
         });
 
         private void waitForComposer() => AddUntilStep("wait for composer", () => harness.Composer?.IsLoaded == true);
@@ -900,6 +905,54 @@ namespace Garbus.Game.Tests.Editor
 
             AddUntilStep("a back to white", () => drawableFor(a).Colour.Equals((ColourInfo)Colour4.White));
             AddUntilStep("b white", () => drawableFor(b).Colour.Equals((ColourInfo)Colour4.White));
+        }
+
+        // Self-contained copy of TestSceneComposePlacement's DI harness (that one is private/nested).
+        // Caches the deps the composer tree resolves, wires the composer subtree to the EditorClock, and
+        // hosts the real GarbusHitObjectComposer.
+        private partial class ChordEditorHarness : Container
+        {
+            private readonly EditorChart editorChart;
+            private DependencyContainer dependencies = null!;
+
+            public GarbusHitObjectComposer Composer { get; private set; } = null!;
+
+            public ChordEditorHarness(EditorChart editorChart)
+            {
+                this.editorChart = editorChart;
+            }
+
+            protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+            {
+                dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
+                var beatDivisor = new BindableBeatDivisor(4);
+                var editorClock = new EditorClock(editorChart.ControlPointInfo, 60000, beatDivisor);
+                editorClock.ChangeSource(new TrackVirtual(60000));
+
+                dependencies.Cache(editorChart);
+                dependencies.Cache(editorClock);
+                dependencies.Cache(beatDivisor);
+
+                return dependencies;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                Child = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Clock = dependencies.Get<EditorClock>(),
+                        Child = Composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                    },
+                };
+                AddInternal(dependencies.Get<EditorClock>());
+            }
         }
     }
 }
