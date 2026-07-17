@@ -1850,6 +1850,21 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDeletingHeadOfMinimalSliderRemovesIt()
+        {
+            waitForComposer();
+            placeDiagonalSlider();  // head + exactly 1 control point
+            selectSliderOnLine();
+
+            AddStep("select only the head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddAssert("head selected, no node", () =>
+                sliderBlueprint().HeadSelected && sliderBlueprint().SelectedNodes.Count == 0);
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+            AddAssert("slider removed (not left empty-path)", () => placedObject<SliderBody>(), () => Is.Null);
+        }
+
+        [Test]
         public void TestUndoRestoresPromotedHead()
         {
             waitForComposer();

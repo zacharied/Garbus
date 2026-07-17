@@ -652,8 +652,10 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         var controlPoints = HitObject.Path.ControlPoints;
 
-        // Head + every remaining control point selected → nothing survives → remove the slider.
-        if (selectedNodes.Count >= controlPoints.Count)
+        // Head selected → after dropping the selected nodes, promotion consumes one more survivor (the new
+        // first control point). So the guard is `Count - 1`, not `Count`: at most one control point may
+        // survive the node-drop and still be safely promoted away without leaving an empty path.
+        if (selectedNodes.Count >= controlPoints.Count - 1)
         {
             changeHandler?.BeginChange();
             editorChart.Remove(HitObject);
