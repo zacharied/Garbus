@@ -4,9 +4,9 @@
 
 Let the editor author and edit a slider whose path has **zero control points** — a slider that is
 just its head. This is the deferred *Forward-compatibility: 0 control points* case from the
-[zero-duration slider design](2026-07-16-zero-duration-sliders-design.md), which pinned the
-`≥1 control point` floor to exactly two clauses precisely so this follow-up would be a two-line
-relaxation.
+[zero-duration slider design](2026-07-16-zero-duration-sliders-design.md). Because that work already
+made the model tolerate an empty path, the remaining change is small: a dedicated placement gesture
+(`Ctrl`+left-click) plus a gameplay display circle.
 
 A head-only slider is a single hit at an arbitrary angle on one side (`SliderBody.AngleDeg` /
 `Side`), with `Duration == 0` and `EndTime == StartTime`. In gameplay it must **display** — a circle
@@ -22,13 +22,17 @@ is explicitly **out of scope**.
   but judgement stays exactly as it is today (`DrawableSliderHead.CheckForResult` auto-`ApplyMaxResult`;
   `DrawableSliderBody` resolves `IgnoreHit` once the head has judged). No new head hit-testing, no
   head hit window, no head press requirement.
-- **The commit gesture is plain left+right.** Left-click sets the head (body start + angle), a
-  right-click with no nodes added commits it as a head-only slider. (Chosen over adding a guard
-  against the "left-click then right-click to cancel" case — there is no cancel gesture today and
-  this matches the format contract.)
-- **The ordering invariant is unaffected.** Dropping the floor removes only the `Count > 0`
-  requirement; times must still be non-decreasing with at most one zero-length link in a row. Those
-  rules never apply to an empty offset list, so nothing about ordering changes.
+- **The placement gesture is `Ctrl` + left-click.** With the slider tool active and no placement in
+  progress, `Ctrl`+left-click drops a head-only slider directly (head angle/time snapped to the
+  cursor, committed in one click). A plain left-click still begins a normal multi-click slider, and a
+  **right-click with no nodes added still cancels** (does *not* commit a head-only slider). This keeps
+  the "start a slider, right-click to back out" gesture intact and makes head-only creation explicit,
+  so it can never happen by accident (including the tool-switch auto-commit path, see below).
+- **The ordering invariant is unaffected**, and `GarbusSliderPath.AreTimesValid` needs **no change**.
+  Its `Count > 0` clause only ever rejects an *empty* offset list, and no head-only path is validated
+  against an empty list: node-drag has no handle to grab, T-insert always adds a node (making the
+  prospective count ≥ 1), and placement commit does not route through `AreTimesValid`. Times must
+  still be non-decreasing with at most one zero-length link in a row wherever they do apply.
 - **Normal sliders are untouched.** The gameplay head circle renders only in the single-node
   (head-only) case; multi-node sliders keep their existing body-line visual with no added head cap.
 
@@ -48,15 +52,19 @@ The model and several edit paths already tolerate zero control points:
 - `GarbusChartSerializer` round-trips an empty control-point list as `[]` in both directions.
 - Timeline strip already renders a `Duration == 0` object as a dot.
 
-## The three floors + one uncertain consequence
+## The placement floor + one uncertain consequence
 
-Authoring is blocked by exactly the two clauses the prior work isolated (three call sites):
+Only **placement** blocks a head-only slider, at one clause:
 
-1. `GarbusSliderPath.AreTimesValid` — `AreTimesOrdered(offsets) && offsets.Count > 0`. The
-   `Count > 0` clause gates **node-drag** (`timeShiftValid`) and **T-insert** (`insertNodeAtCursor`),
-   both of which route through it.
-2. `SliderPlacementBlueprint.IsValidForPlacement` — `… && HitObject.Path.ControlPoints.Count > 0`.
-3. `SliderPlacementBlueprint` right-click — `EndPlacement(HitObject.Path.ControlPoints.Count > 0)`.
+- `SliderPlacementBlueprint.IsValidForPlacement` — `… && HitObject.Path.ControlPoints.Count > 0`.
+
+This clause must *not* simply be dropped, because a placement is also auto-committed on tool-switch
+(`ComposeBlueprintContainer` calls `EndPlacement(PlacementActive == Active)` when the tool changes,
+and a right-click with no nodes calls `EndPlacement(false)`). Dropping the clause globally would let
+"start a slider, switch tools" silently create a head-only slider. Instead the clause is relaxed
+**only** for the explicit `Ctrl`+left-click gesture, via a one-shot flag (below). The right-click
+path keeps `EndPlacement(HitObject.Path.ControlPoints.Count > 0)` unchanged, so a node-less
+right-click still cancels.
 
 The one **uncertain consequence** once a head-only slider exists: selection reduces to the `head`
 `EditSquarePiece` (no outline path — needs ≥2 vertices — and no per-node handles). The head piece is
@@ -67,26 +75,26 @@ if it fails, the fix is to give the head piece a hit region independent of the p
 
 ## Changes
 
-### 1. Relax `AreTimesValid` (covers node-drag + T-insert)
-
-`Garbus.Game/Objects/Path/GarbusSliderPath.cs` — drop the `&& offsets.Count > 0` clause so
-`AreTimesValid(offsets) => AreTimesOrdered(offsets)`. An empty offset list (a head-only path) is now
-valid. Keep the method as a named wrapper (call-site clarity) rather than deleting it. Update the
-file-header / method doc that currently states "at least one control point (the head alone is not a
-path)".
-
-### 2. Relax placement (commit + validity)
+### 1. `Ctrl`+left-click placement of a head-only slider
 
 `Garbus.Game/Edit/Blueprints/SliderPlacementBlueprint.cs`:
-- `IsValidForPlacement` → drop the `&& HitObject.Path.ControlPoints.Count > 0` clause.
-- Right-click commit → `EndPlacement(true)` (a right-click while `PlacementActive == Active` always
-  commits; the head is already placed).
-- Update the class-doc contract line ("requiring at least one node") to note a head-only slider is
-  now permitted.
+- Add a one-shot `bool committingHeadOnly` field and relax the gate to
+  `IsValidForPlacement => base.IsValidForPlacement && (HitObject.Path.ControlPoints.Count > 0 || committingHeadOnly)`.
+- In `OnMouseDown`, on a **left** button in the `Waiting` state: `BeginPlacement(true)` as today, but
+  if `e.ControlPressed`, also set `committingHeadOnly = true` and `EndPlacement(true)` in the same
+  event — committing the head-only slider in one click (its `AngleDeg`/`StartTime` were already
+  snapped to the cursor by the base `UpdateTimeAndPosition` while `Waiting`).
+- Leave the **right**-click branch as-is: `EndPlacement(HitObject.Path.ControlPoints.Count > 0)` — a
+  node-less right-click still cancels.
+- Update the class-doc contract line ("requiring at least one node") to describe the `Ctrl`+click
+  head-only path.
 
-No format change. `tryAddNode`/preview already use `AreTimesOrdered` and are unaffected.
+`GarbusSliderPath.AreTimesValid` is **not touched** (see the floor section above). No format change;
+`tryAddNode`/preview already use `AreTimesOrdered` and are unaffected. The preview's red "invalid"
+tint for a normal 0-node in-progress slider is preserved (the flag is false until the explicit
+commit).
 
-### 3. Gameplay display circle
+### 2. Gameplay display circle
 
 `Garbus.Game/Objects/Drawables/DrawableSliderBody.cs` — the `updatePath` path currently draws
 nothing when `nodeTimes.Length < 2`. In that single-node case, render the head node as a circle:
@@ -104,7 +112,7 @@ nothing when `nodeTimes.Length < 2`. In that single-node case, render the head n
 Judgement is untouched: `DrawableSliderHead` still auto-passes, and the body still resolves
 `IgnoreHit` after the head judges.
 
-### 4. Editor selection/editing (verify, fix only if needed)
+### 3. Editor selection/editing (verify, fix only if needed)
 
 No planned code change beyond confirming behaviour via tests. Once placement commits a head-only
 slider:
@@ -120,16 +128,17 @@ If the zero-height-parent selection test fails, add the minimal hit-region fix d
 
 ## Tests
 
-- `GarbusSliderPathTest` — `AreTimesValid(new double[] { })` flips from `False` to `True`; the
-  ordering-rejection cases (`{0,0}`, out-of-order) stay `False`. Rename/replace the `EmptyIsNotValid`
-  case accordingly.
-- `TestSceneComposePlacement` — new: slider tool, one left-click on the body, then right-click →
-  a slider commits with `Path.ControlPoints.Count == 0` and `Duration == 0`.
-- `TestSceneComposeSelection` — new: place a head-only slider (helper), click the head dot →
-  it becomes the sole selected object; then Delete removes it; and (separately) `T` at the cursor
-  promotes it to a one-node slider. This is the test that pins the zero-height-parent selection risk.
+- `TestSceneComposePlacement` — new: slider tool, a single `Ctrl`+left-click on the body → a slider
+  commits with `Path.ControlPoints.Count == 0` and `Duration == 0`. Plus a guard test: a plain
+  left-click then a **right**-click (no nodes) commits **nothing** (still cancels), and starting a
+  0-node slider then switching tools commits nothing.
+- `TestSceneComposeSelection` — new: place a head-only slider (helper, via `Ctrl`+left-click), click
+  the head dot → it becomes the sole selected object; then Delete removes it; and (separately) `T` at
+  the cursor promotes it to a one-node slider. This is the test that pins the zero-height-parent
+  selection risk.
 - `TestSceneGameplay` — new: a chart with a head-only slider renders a visible circle (a drawable
   present with non-zero size while in the visible band) and the object still auto-hits (max result).
+- `GarbusSliderPathTest` is **not changed** — `AreTimesValid` is untouched (`EmptyIsNotValid` stays).
 
 ## Out of scope
 
@@ -138,4 +147,5 @@ If the zero-height-parent selection test fails, add the minimal hit-region fix d
   here does not commit us to any particular judgement model.)
 - **A head cap on normal (multi-node) sliders.** The circle is strictly the head-only render path.
 - **Any minimum-duration/tick floor**, format change, or slam-drawable change.
-- **A cancel gesture for placement.** Right-click commits; there is no separate cancel today.
+- **Changing the right-click behaviour.** Right-click still commits a slider that has nodes and
+  cancels one that does not; head-only creation is the separate `Ctrl`+left-click gesture.
