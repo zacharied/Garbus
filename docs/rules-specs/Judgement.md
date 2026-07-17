@@ -227,9 +227,13 @@ its parent `*Note` type.
 
 ### Slider
 
-Sliders have both catch timing and a duration. A Slider has a head and at least one child; its body is
-the set of line segments connecting the head to the first child, and each child to the next. Each line
-segment is its own duration object, judged in the **hold** family.
+Sliders are catch-timed at the head. A Slider **is a duration object only when its span is positive** —
+when EndTime is greater than StartTime. A Slider has a head and zero or more children; a **node** is
+either the head or a child. When its span is positive, its body is the set of line segments connecting
+the head to the first child, and each child to the next, and each segment is judged in the **hold**
+family under the standard duration rules. A Slider whose span is zero — it has no children, or every
+child coincides with the head (TimeOffset 0) — is **not** a duration object: it is a **zero-length
+Slider**, judged solely by its catch-timed head (Perfect or Miss).
 
 #### Timing
 
@@ -239,6 +243,10 @@ failing to catch it by then is a Miss. This 200 ms late extent is the head's lar
 window, used by the Final-judgement rules. Each child's head-style pseudo-judgement uses the same
 200 ms window.
 
+One final rule applies to Slider judgement: if a Slam exists at the same StartTime as a node (head or
+child) and that Slam is not a Miss, the node cannot be a Miss either. Normal judgement rules otherwise
+apply to the node. The Slam is still judged independently as its own hit object.
+
 #### Duration
 
 | Judgement        | Proportion |
@@ -247,6 +255,10 @@ window, used by the Final-judgement rules. Each child's head-style pseudo-judgem
 | Perfect          | 90%        |
 | Bad              | 50%        |
 | Miss             | 0%         |
+
+The duration rules apply only when the Slider's span is positive. A zero-length Slider (no children, or
+every child coincident with the head) is not a duration object: it has no duration judgement, and its
+final Judgement is its head's — Perfect or Miss.
 
 A Slider body has a grace period of 200 ms, equal to the Slider head's late Perfect extent.
 
