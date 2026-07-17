@@ -2,12 +2,13 @@
 // BacHitObject → GarbusHitObject; DrawableHitObject import updated.
 
 using System.Collections.Generic;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
-using Garbus.Game.Objects;
+using Garbus.Game.Objects; // ChordColours, ChordHighlighter
 using osuTK;
 using osuTK.Graphics;
 
@@ -26,6 +27,9 @@ public partial class EditorDrawableCardinalHoldNote : EditorDrawableGarbusHitObj
     // The head sprites (primary visual + ghost twin) are centred on the start line, so their bottom
     // halves hang below this drawable's duration rectangle — track them so hit-testing covers them.
     private readonly List<Drawable> headPieces = new List<Drawable>();
+
+    [Resolved]
+    private ChordHighlighter chords { get; set; } = null!;
 
     public EditorDrawableCardinalHoldNote(CardinalHoldNote hitObject)
         : base(hitObject)
@@ -89,4 +93,12 @@ public partial class EditorDrawableCardinalHoldNote : EditorDrawableGarbusHitObj
     protected override void AddNestedHitObject(DrawableHitObject hitObject) => nestedContainer.Add(hitObject);
 
     protected override void ClearNestedHitObjects() => nestedContainer.Clear(false);
+
+    protected override void Update()
+    {
+        base.Update();
+
+        // Whole-drawable tint covers head + body and the ghost twin.
+        Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
+    }
 }

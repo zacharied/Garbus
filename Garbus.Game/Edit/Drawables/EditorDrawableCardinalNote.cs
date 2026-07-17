@@ -1,6 +1,7 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableCardinalNote.cs).
-// Namespace only change.
+// Namespace only change; adds the same-start-time chord tint (Garbus addition).
 
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using Garbus.Game.Objects;
 using osuTK;
@@ -11,6 +12,9 @@ public partial class EditorDrawableCardinalNote : EditorDrawableGarbusHitObject<
 {
     public const float NOTE_SIZE = 36;
 
+    [Resolved]
+    private ChordHighlighter chords { get; set; } = null!;
+
     public EditorDrawableCardinalNote(CardinalNote hitObject)
         : base(hitObject)
     {
@@ -18,4 +22,12 @@ public partial class EditorDrawableCardinalNote : EditorDrawableGarbusHitObject<
     }
 
     protected override Drawable CreateVisual() => new EditorSpritePiece("square");
+
+    protected override void Update()
+    {
+        base.Update();
+
+        // Set on the whole drawable so the ±360° ghost twin (an InternalChild) inherits the tint.
+        Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
+    }
 }

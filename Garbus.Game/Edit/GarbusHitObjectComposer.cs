@@ -47,6 +47,9 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
     [Cached]
     public readonly Bindable<bool> AutoSeekOnPlacement = new Bindable<bool>(true);
 
+    [Cached]
+    private readonly ChordHighlighter chordHighlighter = new ChordHighlighter();
+
     private static readonly int[] angle_snap_options = { 5, 15, 45, 90 };
 
     private FlipPivotOverlay flipPivotOverlay = null!;
@@ -144,4 +147,31 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
     /// <summary>Enters interactive "flip around angle" mode: the overlay picks a pivot; <paramref name="onCommit"/> receives the chosen pivot angle.</summary>
     public void BeginFlipAroundAngle(Action<int> onCommit) => flipPivotOverlay.Begin(onCommit);
+
+    protected override void LoadComplete()
+    {
+        base.LoadComplete();
+
+        EditorChart.HitObjectAdded += onChartChanged;
+        EditorChart.HitObjectRemoved += onChartChanged;
+        EditorChart.HitObjectUpdated += onChartChanged;
+
+        rebuildChords();
+    }
+
+    private void onChartChanged(GarbusHitObject _) => rebuildChords();
+
+    private void rebuildChords() => chordHighlighter.Rebuild(EditorChart.HitObjects);
+
+    protected override void Dispose(bool isDisposing)
+    {
+        if (EditorChart != null)
+        {
+            EditorChart.HitObjectAdded -= onChartChanged;
+            EditorChart.HitObjectRemoved -= onChartChanged;
+            EditorChart.HitObjectUpdated -= onChartChanged;
+        }
+
+        base.Dispose(isDisposing);
+    }
 }

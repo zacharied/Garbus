@@ -176,6 +176,7 @@ namespace Garbus.Game.Tests.Editor
                 dependencies.Cache(editorChart);
                 dependencies.Cache(editorClock);
                 dependencies.Cache(beatDivisor);
+                dependencies.Cache(new ChordHighlighter());
 
                 return dependencies;
             }
