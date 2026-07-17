@@ -883,6 +883,16 @@ namespace Garbus.Game.Tests.Editor
             return (onGrid ?? candidates[0]).ScreenSpaceDrawQuad.Centre;
         }
 
+        /// <summary>Screen centre of the head handle (EditSquarePiece) that currently sits on the main grid.</summary>
+        private Vector2 headHandleScreen()
+        {
+            var playfieldQuad = playfield.ScreenSpaceDrawQuad;
+            var candidates = sliderBlueprint().ChildrenOfType<Garbus.Game.Edit.Blueprints.Components.EditSquarePiece>()
+                                              .Where(h => h.CpIndex == -1).ToList();
+            var onGrid = candidates.FirstOrDefault(h => playfieldQuad.Contains(h.ScreenSpaceDrawQuad.Centre));
+            return (onGrid ?? candidates[0]).ScreenSpaceDrawQuad.Centre;
+        }
+
         private SliderSelectionBlueprint sliderBlueprint() => composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
 
         /// <summary>A flip context-menu item by its exact label, or null (requires a selected blueprint hovered).</summary>
@@ -1133,6 +1143,101 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("deselect all", () => editorChart.SelectedHitObjects.Clear());
             AddAssert("node selection cleared", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestClickingHeadOnUnselectedSliderSelectsWholeSlider()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+
+            AddStep("click the head position", () =>
+            {
+                var (headScreen, _) = sliderEndsScreen();
+                input.MoveMouseTo(headScreen);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("whole slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("head not selected", () => sliderBlueprint().HeadSelected, () => Is.False);
+        }
+
+        [Test]
+        public void TestClickingHeadOnSelectedSliderSelectsHead()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click the head handle", () =>
+            {
+                input.MoveMouseTo(headHandleScreen());
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("head selected", () => sliderBlueprint().HeadSelected, () => Is.True);
+            AddAssert("no control-point node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestCtrlClickTogglesHeadWithNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click head", () =>
+            {
+                input.MoveMouseTo(headHandleScreen());
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("head + node both selected", () =>
+                sliderBlueprint().HeadSelected && sliderBlueprint().SelectedNodes.Count == 1);
+
+            AddStep("ctrl+click head again", () =>
+            {
+                input.MoveMouseTo(headHandleScreen());
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("head toggled off, node stays", () =>
+                !sliderBlueprint().HeadSelected && sliderBlueprint().SelectedNodes.Count == 1);
+        }
+
+        [Test]
+        public void TestClickingLineClearsHeadSelection()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click head handle", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddAssert("head selected", () => sliderBlueprint().HeadSelected, () => Is.True);
+
+            AddStep("click the line", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("head selection cleared", () => sliderBlueprint().HeadSelected, () => Is.False);
+        }
+
+        [Test]
+        public void TestDeselectingSliderClearsHeadSelection()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            selectSliderOnLine();
+
+            AddStep("click head handle", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+            AddAssert("head selected", () => sliderBlueprint().HeadSelected, () => Is.True);
+
+            AddStep("deselect all", () => editorChart.SelectedHitObjects.Clear());
+            AddAssert("head selection cleared", () => sliderBlueprint().HeadSelected, () => Is.False);
         }
 
         [Test]

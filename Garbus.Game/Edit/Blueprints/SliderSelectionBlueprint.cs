@@ -76,6 +76,14 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     internal IReadOnlyCollection<GarbusPathControlPoint> SelectedNodes => selectedNodes;
 
+    // The implicit head node (offset 0 = slider StartTime/AngleDeg). Selectable alongside control points
+    // but has no GarbusPathControlPoint, so it is a plain flag rather than a set member. Sentinel index -1.
+    private const int head_index = -1;
+
+    private bool headSelected;
+
+    internal bool HeadSelected => headSelected;
+
     private InputManager inputManager = null!;
 
     public SliderSelectionBlueprint(SliderBody slider)
@@ -98,6 +106,11 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                 Height = EditorDrawableCardinalNote.NOTE_SIZE,
                 Anchor = Anchor.BottomCentre,
                 Origin = Anchor.Centre,
+                CpIndex = head_index,
+                SelectRequested = (index, ctrl) => selectNode(index, ctrl),
+                DragStarted = () => changeHandler?.BeginChange(),
+                Dragging = (index, pos) => dragNode(index, pos),
+                DragEnded = () => changeHandler?.EndChange(),
             },
             nodeHandles = new Container<NodeDragPiece> { RelativeSizeAxes = Axes.Both },
         };
@@ -176,6 +189,8 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         // Drop references orphaned by undo/redo restoring a fresh control-point list.
         selectedNodes.RemoveWhere(n => !controlPoints.Contains(n));
+
+        head.NodeSelected = headSelected;
 
         updateOutline(pxPerDeg, bodyGridDeg, duration);
     }
@@ -342,29 +357,44 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         return GarbusSliderPath.AreTimesValid(offsets);
     }
 
-    /// <summary>Left-click selection of a node: plain click selects only it; Ctrl toggles it in the set.</summary>
+    /// <summary>Left-click selection of a node (or the head, index -1): plain click selects only it; Ctrl
+    /// toggles it in the combined head+nodes selection; plain-clicking something already in a multi-selection
+    /// keeps the group so a drag moves it all.</summary>
     private void selectNode(int index, bool ctrl)
     {
         var controlPoints = HitObject.Path.ControlPoints;
-        if (index >= controlPoints.Count)
-            return;
 
-        var cp = controlPoints[index];
+        bool isHead = index == head_index;
+        GarbusPathControlPoint? cp = null;
+
+        if (!isHead)
+        {
+            if (index >= controlPoints.Count)
+                return;
+
+            cp = controlPoints[index];
+        }
+
+        bool alreadySelected = isHead ? headSelected : selectedNodes.Contains(cp!);
 
         if (ctrl)
         {
-            if (!selectedNodes.Add(cp))
-                selectedNodes.Remove(cp);
+            if (isHead)
+                headSelected = !headSelected;
+            else if (!selectedNodes.Add(cp!))
+                selectedNodes.Remove(cp!);
             return;
         }
 
-        // plain click on a node already in a multi-selection keeps the group (so a drag moves it all);
-        // otherwise reduce to just this node.
-        if (selectedNodes.Contains(cp))
+        // plain click on something already in a multi-selection keeps the whole group (so a drag moves it all);
+        // otherwise reduce to just this handle.
+        if (alreadySelected)
             return;
 
         selectedNodes.Clear();
-        selectedNodes.Add(cp);
+        headSelected = isHead;
+        if (!isHead)
+            selectedNodes.Add(cp!);
     }
 
     protected override bool OnKeyDown(KeyDownEvent e)
@@ -471,6 +501,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     {
         base.OnDeselected();
         selectedNodes.Clear();
+        headSelected = false;
     }
 
     protected override bool OnClick(ClickEvent e)
@@ -478,7 +509,10 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         // A click that reached the blueprint body (not consumed by a node handle) clears node selection but
         // leaves the whole-slider selection to BlueprintContainer's own click handling.
         if (e.Button == MouseButton.Left)
+        {
             selectedNodes.Clear();
+            headSelected = false;
+        }
 
         return base.OnClick(e);
     }
