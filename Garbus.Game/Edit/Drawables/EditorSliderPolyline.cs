@@ -2,7 +2,8 @@
 // and the selection outline (SliderSelectionBlueprint), so both trace the exact same swept geometry.
 // Each link is subdivided and its angle run through SliderSweep (matching gameplay's DrawableSliderBody);
 // time stays linear. Space: x = centreX + Direction * angleOffsetDeg * pxPerDeg, y = drawHeight * (1 - timeOffset/duration)
-// (EditorAngleMapping.Direction reflects the angle axis in the reversed view).
+// (EditorAngleMapping.Direction reflects the angle axis in the reversed view). A zero-duration path pins
+// every node to the bottom line (y = drawHeight) instead of dividing by zero.
 
 using System.Collections.Generic;
 using Garbus.Game.Objects;
