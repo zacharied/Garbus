@@ -696,8 +696,16 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     public override bool HandleQuickDeletion()
     {
-        // Shift+RightClick over a node handle deletes just that node; over the line, fall through (return
-        // false) so SelectionHandler removes the whole slider. Any wrap-copy handle for a node counts.
+        // Shift+RightClick over the head handle deletes (promotes) the head; over a node handle deletes just
+        // that node; over the line, fall through (return false) so SelectionHandler removes the whole slider.
+        if (head.IsHovered)
+        {
+            headSelected = true;
+            selectedNodes.Clear();
+            removeSelection();
+            return true;
+        }
+
         var controlPoints = HitObject.Path.ControlPoints;
 
         foreach (var handle in nodeHandles)

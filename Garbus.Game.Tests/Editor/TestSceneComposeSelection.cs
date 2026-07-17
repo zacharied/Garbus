@@ -1930,6 +1930,42 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("whole slider removed", () => placedObject<SliderBody>() == null);
         }
 
+        [Test]
+        public void TestQuickDeleteHeadHandlePromotesFirstNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+            selectSliderOnLine();
+
+            AddStep("select head", () => { input.MoveMouseTo(headHandleScreen()); input.Click(MouseButton.Left); });
+
+            AddStep("shift+right-click the head handle", () =>
+            {
+                input.MoveMouseTo(headHandleScreen());
+                input.PressKey(Key.LShift);
+                input.Click(MouseButton.Right);
+                input.ReleaseKey(Key.LShift);
+            });
+
+            AddAssert("head promoted (one node left)", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestSliderStillSelectableViaSelectionPointAfterHeadInteractive()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+
+            AddStep("select slider via selection point", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("whole slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("head not selected (first click selects whole slider)", () => sliderBlueprint().HeadSelected, () => Is.False);
+        }
+
         // ------------------------------------------------------------------
         // Flip: node-aware reflection primitive + "Flip selection" menu item.
         // ------------------------------------------------------------------
