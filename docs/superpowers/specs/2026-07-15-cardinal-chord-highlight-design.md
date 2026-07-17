@@ -17,7 +17,9 @@ coincidence is obvious:
   `ShoulderHoldNote`, sliders, and slams are excluded (they are not routed to the cardinal lanes and are
   not part of this feature). A `CardinalNote` and a `CardinalHoldNote` at the same StartTime *do* form a
   chord together.
-- **Match rule:** exact `StartTime` equality. No tolerance window (chart times are integer ms).
+- **Match rule:** exact `StartTime` equality. `StartTime` is a `double` (ms), but two notes authored on
+  the same beat run through the same beat-snap computation and land on a bit-identical value, so exact
+  equality is the right match and no tolerance window is needed.
 - **Group size:** any size 2–4 (up to N/E/S/W). Both the coloring and the connector handle 3 and 4.
 - **Connector shape:** a single closed polygon connecting the members in **angular order** around the
   ring — 2 members → a straight segment, 3 → a triangle, 4 → a quadrilateral. Never per-pair "mesh",
