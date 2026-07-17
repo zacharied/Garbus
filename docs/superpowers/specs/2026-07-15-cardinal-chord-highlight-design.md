@@ -20,12 +20,16 @@ coincidence is obvious:
 - **Match rule:** exact `StartTime` equality. `StartTime` is a `double` (ms), but two notes authored on
   the same beat run through the same beat-snap computation and land on a bit-identical value, so exact
   equality is the right match and no tolerance window is needed.
-- **Group size:** any size 2–4 (up to N/E/S/W). Both the coloring and the connector handle 3 and 4.
+- **Group size:** any size `n ≥ 2`. Do **not** assume a 4-direction cap: `AngleDeg` is a free integer
+  (`IHasMutableAngle`) and `Direction` is only derived from it for lane routing, so a chord can hold many
+  members at arbitrary angles (7+ is expected). The grouping, coloring, and connector must all work for
+  arbitrary `n`.
 - **Connector shape:** a single closed polygon connecting the members in **angular order** around the
-  ring — 2 members → a straight segment, 3 → a triangle, 4 → a quadrilateral. Never per-pair "mesh",
-  never an arc. Because all members share a StartTime they are **co-radial** (same distance from centre
-  at any instant), so the polygon is inscribed in the circle of the current radius; its vertices are the
-  members' angles and it grows outward as the notes travel.
+  ring — 2 → a straight segment, 3 → a triangle, and in general an `n`-gon. Never per-pair "mesh", never
+  an arc. Because all members share a StartTime they are **co-radial** (same distance from centre at any
+  instant), so the polygon is inscribed in the circle of the current radius; its vertices are the
+  members' angles (sorted) and it grows outward as the notes travel. Sorting by angle guarantees a
+  simple, non-self-intersecting polygon for any `n`.
 - **Connector style (defaults, tweakable in code):** colour yellow, line thickness ~2px, alpha ~0.35.
 - **Placement:** `ChordIndex` lives in `Garbus.Game/Objects/`. Gameplay builds and caches one instance
   via DI; the editor rebuilds it on chart mutation.
@@ -81,10 +85,13 @@ fixed chart):
 
 ### 3. `ChordConnectorOverlay` — gameplay only
 
-A new drawable (`Garbus.Game/UI/ChordConnectorOverlay.cs`) added to `Ring`, drawn **above the lanes**
-(all four cardinal lanes share the same polar centre and full size, so positions are directly comparable
-across lanes; a connector spanning lanes must live above them, in the ring). **Not** a hit object — a
-single overlay, so no synthetic objects enter the chart / serializer / scoring / editor.
+A new drawable (`Garbus.Game/UI/ChordConnectorOverlay.cs`) added to `Ring`, drawn **below all hit
+objects** — behind both the ring's own `HitObjectContainer` (paths) and the lane container, so the notes
+always render on top of the connector. In `Ring`'s child list it sits ahead of `HitObjectContainer`
+(e.g. just after `PlayfieldRadialLines`). All cardinal lanes share the same polar centre and full size,
+so member positions are directly comparable across lanes; a connector spanning lanes must live in the
+ring, not inside a lane. **Not** a hit object — a single overlay, so no synthetic objects enter the
+chart / serializer / scoring / editor.
 
 **Geometry is derived from chord data, never from live note positions.** Because all members of a chord
 share a StartTime they are **co-radial**: the shared radius is `ring.ProgressAtTime(StartTime)` and each
@@ -129,7 +136,8 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
 ## Edge cases
 
 - **Single note at a time:** not in any bucket → white, no connector. (Unchanged behaviour.)
-- **3 or 4 coincident:** all yellow; connector is a triangle/quad in angular order.
+- **3+ coincident (arbitrary `n`):** all yellow; connector is an `n`-gon in angular order (7+ members
+  supported).
 - **Stacked same angle** (e.g. a `CardinalNote` and `CardinalHoldNote` at the same time *and* same
   angle): both yellow; the polygon has a zero-length edge there — degenerate and invisible, no special
   handling needed.
@@ -150,7 +158,7 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
   - Two cardinal notes at the same StartTime → both `IsInChord`; one group of 2.
   - A `CardinalNote` + `CardinalHoldNote` at the same StartTime → grouped together.
   - A single cardinal note → not in a chord.
-  - 3 and 4 coincident → one group of the right size.
+  - Arbitrary `n` coincident (e.g. 3 and 7, at arbitrary angles) → one group of the right size.
   - A `ShoulderNote`/slider at the same StartTime as a cardinal note → excluded (does not join the
     group, does not itself become a member).
   - Distinct StartTimes → no group.
