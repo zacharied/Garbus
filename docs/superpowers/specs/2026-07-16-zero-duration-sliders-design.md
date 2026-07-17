@@ -17,7 +17,12 @@ round-trips control points faithfully with no duration validation.
 
 - **Gate relaxation is uniform** across all three editor authoring paths (placement commit,
   node-drag, T-insert). No asymmetry where one path allows the shape and another forbids it.
-- **The "at least one control point" requirement stays** — a slider still needs a head + ≥1 node.
+- **The "at least one control point" requirement stays for now** — a slider still needs a head +
+  ≥1 node. This is deliberately retained but is expected to be relaxed later (see
+  *Forward-compatibility* below): a head-only slider would be a **single-hit** object (the head is
+  the one hit), whereas requiring a child forces every slider to be hit twice (head press + child
+  catch). Keeping the floor now avoids the head-only degenerate (invisible, unselectable, auto-hit)
+  until the gameplay/selection support for it exists.
 - **The ordering invariant stays** — times non-decreasing, at most one zero-length link in a row.
   The only newly-permitted shape is head + a single node at `TimeOffset 0`.
 - **Editor representation is a true zero-height horizontal line** pinned at the object's
@@ -75,6 +80,34 @@ division), so the rubber-band already previews the horizontal line — only the 
   horizontal line, and its outline/handle render (no NaN).
 - `EditorSliderPolylineTest` — a `Build` case at `duration == 0` asserting all node y's sit at the
   bottom line and no `NaN` leaks.
+
+## Forward-compatibility: 0 control points (future single-hit sliders)
+
+A head-only slider (zero control points) is a valid future goal: a single-hit slider caught once,
+instead of head + child. It is **out of scope now** but the current work must not design against it.
+
+What relaxing to 0 nodes will take later — kept small and symmetric with this change:
+
+- **The floor is a single clause in exactly two spots**, mirroring the duration relaxation, so
+  dropping it is a two-line change: `AreTimesValid`'s `offsets.Count > 0`, and placement's
+  `HitObject.Path.ControlPoints.Count > 0` (both `IsValidForPlacement` and the `EndPlacement`
+  commit argument). Keep these as the *only* enforcement of the floor — do not scatter new
+  `Count > 0` assumptions through the render or edit paths.
+- **The zero-duration render path must degrade without crashing at a single node.**
+  `EditorSliderPolyline.Build` with 0 control points already emits a single vertex (no link, no
+  line) rather than throwing; the `SmoothPath` simply draws nothing. Preserve that — the new
+  duration-`0` branch must not introduce a `≥1 link` assumption.
+
+What 0-node support will *additionally* require (the reason it is deferred, not the reason to
+design around it):
+
+- **Head-based hit-testing/selection.** With 0 nodes the outline and node handles are both empty,
+  and selection is path-precise (`ReceivePositionalInputAt` reports only outline paths + node
+  handles, per `SliderSelectionBlueprint`'s class doc), so a head-only slider would be
+  unselectable. It will need the head marker itself to be a hit-test/selection target.
+- **A head visual + real head judgement in gameplay.** `DrawableSliderBody` draws no path for a
+  single node, and `DrawableSliderHead` is a judgement stub (auto-`ApplyMaxResult`, no visual). A
+  single-hit slider needs the head to render and to be genuinely judged.
 
 ## Out of scope
 
