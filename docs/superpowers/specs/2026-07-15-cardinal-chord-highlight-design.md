@@ -97,24 +97,31 @@ chart / serializer / scoring / editor.
 share a StartTime they are **co-radial**: the shared radius is `ring.ProgressAtTime(StartTime)` and each
 vertex is `polar(memberAngle, radius)`. This is computed from the `ChordIndex` group's static
 angle+time data, so the connector keeps its **full shape (all original vertices)** regardless of which
-members have already been hit and despawned — dissolving the "a note despawns before reaching the ring"
-concern. (`ProgressAtTime` clamps at the ring, so after StartTime the vertices sit pinned at the ring
-radius during the notes' hit/miss fade.)
+members have already despawned during scroll-in — dissolving the "a note despawns before reaching the
+ring" concern.
 
-**Visibility per group is stateless, checked each frame:** draw the group's polygon **iff at least one
-of its members is currently represented by an alive drawable** in its cardinal lane. A `DrawableHitObject`
-stays alive until it `Expire()`s — i.e. through its entire hit/miss fade-out — so the connector appears
-when the first member spawns and stays, at full shape, until the **last** member has fully despawned.
-No subscriptions or counters: each frame, for each group, ask the lanes' alive objects whether any
-member's `HitObject` is present.
+**Full-opacity visibility is presence-driven, checked each frame:** the group's polygon is held at full
+opacity **iff at least one of its members is represented by a drawable that is both alive AND still
+unjudged (`ArmedState.Idle`)** in its cardinal lane. The instant the chord reaches the ring and is judged
+(Hit/Miss), the polygon is **frozen at its last shape and fades out in place** over `CONNECTOR_FADE_OUT`
+(200 ms). It does **not** keep tracking `ProgressAtTime` through the note's post-judgement fade-out (which
+would balloon the polygon out past the ring). The connector therefore appears when the first member spawns
+and fades away just after the chord is judged, never lingering through the full note fade.
+
+Presence transitions drive the fade with no subscriptions or counters — a per-start-time `shownStartTimes`
+set fires the transform exactly once per edge:
+- **not-present → present** (first spawn, or a rewind un-judging the chord): cancel any pending fade and
+  snap to full opacity.
+- **present → judged/despawned**: leave the frozen geometry in place and `FadeOut`.
 
 Each frame, for every chord group:
-- Determine presence: is any member's `HitObject` currently an alive drawable in a cardinal lane? If not,
-  draw nothing for this group.
-- Otherwise compute `radius = ring.ProgressAtTime(StartTime)` and draw one thin, semi-transparent yellow
+- Determine presence: is any member's `HitObject` an alive, unjudged drawable in a cardinal lane?
+- If present, compute `radius = ring.ProgressAtTime(StartTime)` and draw one thin, semi-transparent yellow
   polygon whose vertices are `polar(memberAngle, radius)` for **every** member of the group, ordered by
   angle and closed into a loop (a 2-vertex "loop" is just the single segment). The polygon grows outward
-  as the radius grows.
+  as the radius grows while scrolling in.
+- If not present, the polygon is left frozen at its last shape and its fade-out (started on the transition)
+  plays out.
 
 Depends on: the `ChordIndex` (which groups exist and their member angles/StartTime), the ring's
 `GarbusScrollingHitObjectContainer` (shared radius via `ProgressAtTime`), and read-only access to the
@@ -128,7 +135,7 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
         ┌─────────────────┼──────────────────────────┐
         ▼                 ▼                           ▼
   gameplay drawables  editor drawables         ChordConnectorOverlay (gameplay)
-  tint whole note     recolor on chart          per-frame: if any member alive →
+  tint whole note     recolor on chart          per-frame: if any member alive & unjudged →
   on PrepareForUse    change                    radius = ProgressAtTime(StartTime),
                                                  vertices = all member angles → polygon
 ```
@@ -142,11 +149,12 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
   angle): both yellow; the polygon has a zero-length edge there — degenerate and invisible, no special
   handling needed.
 - **Members hit/missed independently / at different times:** the connector keeps its full shape (all
-  original vertices, computed from chord data) for as long as **any** member's drawable is still alive,
-  then disappears once the last one despawns. It never degrades to a partial polygon mid-chord. Coloring
-  on each member is unchanged (miss fades that member red as today).
-- **A member hit early / despawns before the ring:** handled — geometry is from `ProgressAtTime`, not
-  the departed drawable, so its vertex stays until the whole chord is gone.
+  original vertices, computed from chord data) at full opacity for as long as **any** member is still
+  alive AND unjudged, then freezes and fades out over 200 ms once the last unjudged member is judged (or
+  despawns). It never degrades to a partial polygon mid-chord, and it does not linger at full opacity
+  through the post-judgement fade-out. Coloring on each member is unchanged (miss fades that member red).
+- **A member despawns before the ring during scroll-in:** handled — geometry is from `ProgressAtTime`,
+  not the departed drawable, so its vertex stays as long as another member is still alive and unjudged.
 - **Editor live edits:** moving a note onto another's time colours both; moving it off returns the
   loner to white. Rebuild-on-change covers add, remove, and StartTime edits.
 - **Pooled reuse (gameplay):** `PrepareForUse` must set the tint explicitly to yellow *or* white so a
@@ -168,8 +176,10 @@ chart hit objects ──► ChordIndex (buckets by StartTime, size ≥ 2)
 - **Gameplay (headless visual scene, manual clock):**
   - A coincident pair renders yellow (head + hold body for a hold) and the connector overlay produces a
     segment between them at the expected radius (`ProgressAtTime(StartTime)`).
-  - The connector keeps its full shape while at least one member is alive, including after one member has
-    been hit/despawned, and only disappears once every member has despawned.
+  - The connector keeps its full shape at full opacity while at least one member is alive and unjudged,
+    including after another member has despawned during scroll-in. Once the chord is judged it fades out
+    (still present but below full opacity a little into the fade) and is fully gone well before the notes'
+    1000 ms miss fade ends — proving it fades rather than snapping or lingering.
 
 ## Non-goals / YAGNI
 
