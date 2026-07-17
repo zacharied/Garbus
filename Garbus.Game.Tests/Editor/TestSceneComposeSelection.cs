@@ -1084,6 +1084,53 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestClickingGhostBandCloneOfHeadSelectsIt()
+        {
+            waitForComposer();
+
+            // Head near the left seam (grid 20°, absolute 110°); the head's raw copy sits in the left ghost band,
+            // its k=+1 clone lands in the right main grid — so more than one head handle is visible.
+            AddStep("add seam-adjacent slider + park clock", () =>
+            {
+                var path = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 10 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 110, // grid 20
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            AddStep("select slider via selection point", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddAssert("multiple head handles exist", () =>
+                sliderBlueprint().ChildrenOfType<Garbus.Game.Edit.Blueprints.Components.EditSquarePiece>().Count(h => h.CpIndex == -1),
+                () => Is.GreaterThan(1));
+
+            AddStep("click a non-primary head copy", () =>
+            {
+                var clone = sliderBlueprint().ChildrenOfType<Garbus.Game.Edit.Blueprints.Components.EditSquarePiece>()
+                                             .First(h => h.CpIndex == -1 && h.WrapK != 0);
+                input.MoveMouseTo(clone.ScreenSpaceDrawQuad.Centre);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("head selected via the clone", () => sliderBlueprint().HeadSelected, () => Is.True);
+        }
+
+        [Test]
         public void TestCtrlClickTogglesNodesInSelection()
         {
             waitForComposer();

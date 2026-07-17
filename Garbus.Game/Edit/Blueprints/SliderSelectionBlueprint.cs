@@ -54,6 +54,9 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     private Container outlineContainer = null!;
     private Container<NodeDragPiece> nodeHandles = null!;
+    private Container<EditSquarePiece> headHandles = null!;
+
+    // The primary (WrapK == 0) head copy, used for the selection anchor points. Reassigned each frame.
     private EditSquarePiece head = null!;
 
     // Outline paths are buffered drawables — pooled/reused (never new'd per frame), one per visible wrap copy.
@@ -104,18 +107,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         {
             // behind the head marker and node handles so the dots/handles stay clickable on top.
             outlineContainer = new Container { RelativeSizeAxes = Axes.Both, Colour = yellow },
-            head = new EditSquarePiece
-            {
-                RelativeSizeAxes = Axes.X,
-                Height = EditorDrawableCardinalNote.NOTE_SIZE,
-                Anchor = Anchor.BottomCentre,
-                Origin = Anchor.Centre,
-                CpIndex = head_index,
-                SelectRequested = (index, ctrl) => selectNode(index, ctrl),
-                DragStarted = () => beginNodeDrag(head_index),
-                Dragging = (_, pos) => dragNode(pos),
-                DragEnded = () => endNodeDrag(),
-            },
+            headHandles = new Container<EditSquarePiece> { RelativeSizeAxes = Axes.Both },
             nodeHandles = new Container<NodeDragPiece> { RelativeSizeAxes = Axes.Both },
         };
     }
@@ -191,10 +183,43 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             }
         }
 
+        // Head handles: one per visible wrap copy (offset 0), mirroring the node handles.
+        while (headHandles.Count > wrapCopiesBuffer.Count)
+            headHandles.Remove(headHandles[^1], true);
+
+        while (headHandles.Count < wrapCopiesBuffer.Count)
+        {
+            headHandles.Add(new EditSquarePiece
+            {
+                RelativeSizeAxes = Axes.X,
+                Height = EditorDrawableCardinalNote.NOTE_SIZE,
+                Origin = Anchor.Centre,
+                CpIndex = head_index,
+                SelectRequested = (index, ctrl) => selectNode(index, ctrl),
+                DragStarted = () => beginNodeDrag(head_index),
+                Dragging = (_, pos) => dragNode(pos),
+                DragEnded = () => endNodeDrag(),
+            });
+        }
+
+        for (int hi = 0; hi < wrapCopiesBuffer.Count; hi++)
+        {
+            int k = wrapCopiesBuffer[hi];
+            var hh = headHandles[hi];
+            hh.WrapK = k;
+            hh.Position = new Vector2(
+                DrawWidth / 2 + (EditorAngleMapping.GridOffset(0) - k * 360) * pxPerDeg,
+                DrawHeight);
+            hh.NodeSelected = headSelected;
+            head = hh.WrapK == 0 ? hh : head;
+        }
+
+        // Fall back to the first head handle if no primary (WrapK 0) copy is visible.
+        if (head == null || !headHandles.Contains(head))
+            head = headHandles.Count > 0 ? headHandles[0] : null!;
+
         // Drop references orphaned by undo/redo restoring a fresh control-point list.
         selectedNodes.RemoveWhere(n => !controlPoints.Contains(n));
-
-        head.NodeSelected = headSelected;
 
         updateOutline(pxPerDeg, bodyGridDeg, duration);
     }
@@ -263,8 +288,11 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                 return true;
         }
 
-        if (head.ReceivePositionalInputAt(screenSpacePos))
-            return true;
+        foreach (var handle in headHandles)
+        {
+            if (handle.ReceivePositionalInputAt(screenSpacePos))
+                return true;
+        }
 
         foreach (var handle in nodeHandles)
         {
@@ -698,7 +726,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     {
         // Shift+RightClick over the head handle deletes (promotes) the head; over a node handle deletes just
         // that node; over the line, fall through (return false) so SelectionHandler removes the whole slider.
-        if (head.IsHovered)
+        if (headHandles.Any(h => h.IsHovered))
         {
             headSelected = true;
             selectedNodes.Clear();
@@ -725,7 +753,10 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     public override Quad SelectionQuad =>
         primaryOutline != null && primaryOutline.Vertices.Count >= 2 ? primaryOutline.ScreenSpaceDrawQuad : ScreenSpaceDrawQuad;
 
-    public override Vector2 ScreenSpaceSelectionPoint => head.ScreenSpaceDrawQuad.Centre;
+    public override Vector2 ScreenSpaceSelectionPoint =>
+        head?.ScreenSpaceDrawQuad.Centre ?? ScreenSpaceDrawQuad.Centre;
+
+    private Vector2 headScreen() => head?.ScreenSpaceDrawQuad.Centre ?? ScreenSpaceDrawQuad.Centre;
 
     /// <summary>Screen-space centre of the final (latest-time) node handle's primary (raw) copy;
     /// the head when there are no nodes, or the first available handle if the primary isn't visible.</summary>
@@ -735,7 +766,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         {
             var controlPoints = HitObject.Path.ControlPoints;
             if (controlPoints.Count == 0)
-                return head.ScreenSpaceDrawQuad.Centre;
+                return headScreen();
 
             int finalIndex = controlPoints.Count - 1;
             NodeDragPiece? chosen = null;
@@ -751,7 +782,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                 chosen ??= handle;
             }
 
-            return chosen?.ScreenSpaceDrawQuad.Centre ?? head.ScreenSpaceDrawQuad.Centre;
+            return chosen?.ScreenSpaceDrawQuad.Centre ?? headScreen();
         }
     }
 }
