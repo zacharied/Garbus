@@ -770,6 +770,34 @@ namespace Garbus.Game.Tests.Editor
             return (headScreen, nodeScreen);
         }
 
+        /// <summary>Places a head-only slider (zero control points) via Ctrl+left-click, then selects the select tool.</summary>
+        private void placeHeadOnlySlider()
+        {
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("ctrl+left-click to place head-only", () =>
+            {
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("head-only slider placed",
+                () => placedObject<SliderBody>()?.Path.ControlPoints.Count, () => Is.EqualTo(0));
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+        }
+
+        /// <summary>Screen position of a head-only slider's head (its angle column, at StartTime).</summary>
+        private Vector2 headScreen()
+        {
+            var slider = placedObject<SliderBody>()!;
+            var container = playfield.HitObjectContainer;
+
+            Vector2 p = container.ScreenSpacePositionAtTime(slider.StartTime);
+            p.X = container.ToScreenSpace(new Vector2(EditorAngleMapping.ToX(slider.AngleDeg) * container.DrawWidth, 0)).X;
+            return p;
+        }
+
         /// <summary>The single-node slider's one control point.</summary>
         private GarbusPathControlPoint firstControlPoint() => placedObject<SliderBody>()!.Path.ControlPoints[0];
 
@@ -1089,6 +1117,67 @@ namespace Garbus.Game.Tests.Editor
             });
             AddAssert("zero-duration slider selected on its line",
                 () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestHeadOnlySliderSelectableOnHead()
+        {
+            waitForComposer();
+            placeHeadOnlySlider();
+
+            AddStep("click the head", () =>
+            {
+                input.MoveMouseTo(headScreen());
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("head-only slider selected",
+                () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestHeadOnlySliderDeletable()
+        {
+            waitForComposer();
+            placeHeadOnlySlider();
+
+            AddStep("click the head", () =>
+            {
+                input.MoveMouseTo(headScreen());
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddStep("press Delete", () => input.Key(Key.Delete));
+            AddAssert("slider removed", () => placedObject<SliderBody>() == null);
+        }
+
+        [Test]
+        public void TestTPromotesHeadOnlyToOneNode()
+        {
+            waitForComposer();
+            placeHeadOnlySlider();
+
+            AddStep("click the head", () =>
+            {
+                input.MoveMouseTo(headScreen());
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            // Move the cursor to a LATER time and a different angle, then press T to insert the first node.
+            AddStep("move cursor later + new angle", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                var container = playfield.HitObjectContainer;
+                var screen = container.ScreenSpacePositionAtTime(slider.StartTime + 250);
+                screen.X = positionAtAngle(315).X;
+                input.MoveMouseTo(screen);
+            });
+            AddStep("press T", () => input.Key(Key.T));
+            AddAssert("promoted to one node",
+                () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+            AddAssert("node later than head",
+                () => placedObject<SliderBody>()!.Path.ControlPoints[0].TimeOffset, () => Is.GreaterThan(0.0));
         }
 
         [Test]
