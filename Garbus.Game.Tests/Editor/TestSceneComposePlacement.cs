@@ -293,18 +293,21 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
-        public void TestPlaceSliderZeroDurationDoesNotCommit()
+        public void TestPlaceSliderZeroDurationCommits()
         {
             waitForComposer();
             AddStep("select slider tool", () => input.Key(Key.Number8));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
-            // the only node sits at the head's time (offset 0): ordered, but total duration is 0.
+            // the only node sits at the head's time (offset 0): a zero-duration constant-radius arc.
             AddStep("move to node at head time", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
             AddStep("click node", () => input.Click(MouseButton.Left));
             AddStep("right click to commit", () => input.Click(MouseButton.Right));
 
-            AddAssert("no slider placed (duration 0)", () => placedObject<SliderBody>() == null);
+            AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+            AddAssert("one control point at head time",
+                () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
+            AddAssert("zero duration", () => placedObject<SliderBody>()!.Duration, () => Is.EqualTo(0.0));
         }
 
         // ------------------------------------------------------------------

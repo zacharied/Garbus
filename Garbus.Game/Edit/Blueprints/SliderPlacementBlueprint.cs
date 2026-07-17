@@ -41,7 +41,7 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
     private double cursorTime;
 
     protected override bool IsValidForPlacement =>
-        base.IsValidForPlacement && HitObject.Path.ControlPoints.Count > 0 && HitObject.Duration > 0;
+        base.IsValidForPlacement && HitObject.Path.ControlPoints.Count > 0;
 
     public SliderPlacementBlueprint()
         : base(new SliderBody
@@ -106,8 +106,8 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
         var previous = controlPoints.Count > 0 ? controlPoints[^1] : null;
 
         // Reject unless the prospective path stays ordered: non-decreasing, with at most one
-        // zero-length link in a row (a single horizontal arc). The duration > 0 half is deferred to
-        // IsValidForPlacement so a leading zero-arc can still be built up node by node.
+        // zero-length link in a row (a single horizontal arc). A zero total duration is allowed (a
+        // constant-radius arc at a single instant), so only the ordering rule is enforced here.
         var prospective = new List<double>(controlPoints.Count + 1);
         foreach (var cp in controlPoints)
             prospective.Add(cp.TimeOffset);
