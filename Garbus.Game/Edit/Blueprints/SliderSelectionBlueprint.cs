@@ -115,14 +115,6 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         var controlPoints = HitObject.Path.ControlPoints;
 
         double duration = HitObject.Duration;
-        if (duration <= 0)
-        {
-            while (nodeHandles.Count > 0)
-                nodeHandles.Remove(nodeHandles[^1], true);
-
-            clearOutline();
-            return;
-        }
 
         float pxPerDeg = HitObjectContainer.DrawWidth / EditorAngleMapping.TOTAL_DEGREES;
         float bodyGridDeg = EditorAngleMapping.ToGridDegrees(HitObject.AngleDeg);
@@ -160,7 +152,8 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         for (int i = 0; i < controlPoints.Count; i++)
         {
             var cp = controlPoints[i];
-            float y = DrawHeight * (float)(1 - cp.TimeOffset / duration);
+            // duration 0 pins every node to the bottom line (the StartTime / judgement line).
+            float y = duration > 0 ? DrawHeight * (float)(1 - cp.TimeOffset / duration) : DrawHeight;
             bool selected = selectedNodes.Contains(cp);
 
             foreach (int k in wrapCopiesBuffer)
@@ -221,13 +214,6 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
         for (int i = used; i < outlinePool.Count; i++)
             outlinePool[i].ClearVertices();
-    }
-
-    private void clearOutline()
-    {
-        primaryOutline = null;
-        foreach (var path in outlinePool)
-            path.ClearVertices();
     }
 
     private SmoothPath poolOutline(int index)

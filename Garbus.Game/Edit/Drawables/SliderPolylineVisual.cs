@@ -151,11 +151,9 @@ public partial class SliderPolylineVisual : CompositeDrawable
 
     private void buildGeometry(float pxPerDeg, List<Vector2> polyline, List<Vector2> nodes)
     {
-        double duration = slider.Duration;
-        if (duration <= 0)
-            return;
-
-        EditorSliderPolyline.Build(slider.Path.ControlPoints, pxPerDeg, DrawWidth / 2, DrawHeight, duration, polyline, nodes);
+        // Duration may be 0 (a constant-radius arc at a single instant); EditorSliderPolyline.Build pins
+        // every node to the bottom line in that case rather than dividing by zero.
+        EditorSliderPolyline.Build(slider.Path.ControlPoints, pxPerDeg, DrawWidth / 2, DrawHeight, slider.Duration, polyline, nodes);
     }
 
     private List<int> computeWrapCopies()

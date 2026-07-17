@@ -739,6 +739,21 @@ namespace Garbus.Game.Tests.Editor
             AddStep("switch to select tool", () => input.Key(Key.Number1));
         }
 
+        /// <summary>Places a zero-duration slider: head and one node at the SAME time (yFrac), different angle.</summary>
+        private void placeZeroDurationSlider()
+        {
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("click body", () => input.Click(MouseButton.Left));
+            // node at the SAME yFrac → same snapped time (offset 0), different angle → a horizontal arc.
+            AddStep("move to node at head time", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
+            AddStep("click node", () => input.Click(MouseButton.Left));
+            AddStep("right click to commit", () => input.Click(MouseButton.Right));
+            AddAssert("zero-duration slider placed", () => placedObject<SliderBody>()?.Duration, () => Is.EqualTo(0.0));
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+        }
+
         /// <summary>Screen positions of a single-node slider's head and its node.</summary>
         private (Vector2 head, Vector2 node) sliderEndsScreen()
         {
@@ -1056,6 +1071,24 @@ namespace Garbus.Game.Tests.Editor
                 input.Click(MouseButton.Left);
             });
             AddAssert("slider selected on-line", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestZeroDurationSliderSelectableOnItsLine()
+        {
+            waitForComposer();
+            placeZeroDurationSlider();
+
+            // head and node share a time (the horizontal line), so both sliderEndsScreen points sit at the
+            // same y; their midpoint lies on the rendered outline.
+            AddStep("click the horizontal line", () =>
+            {
+                var (headScreen, nodeScreen) = sliderEndsScreen();
+                input.MoveMouseTo((headScreen + nodeScreen) / 2);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("zero-duration slider selected on its line",
+                () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
         }
 
         [Test]
