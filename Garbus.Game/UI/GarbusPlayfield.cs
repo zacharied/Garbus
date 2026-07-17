@@ -3,6 +3,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 
 using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using Garbus.Game.Core;
@@ -31,6 +32,9 @@ public partial class GarbusPlayfield : Playfield
 
     [Cached]
     private AnalogInputManager analogInputManager { get; set; } = new AnalogInputManager();
+
+    [Cached]
+    private ChordHighlighter chordHighlighter { get; set; } = new ChordHighlighter();
 
     public GarbusPlayfield()
     {
@@ -61,10 +65,15 @@ public partial class GarbusPlayfield : Playfield
     public override bool Remove(DrawableHitObject h) => ring.Remove(h);
 
     /// <summary>
-    /// Hand the full set of chart hit objects to the warning-indicator display so it can telegraph
-    /// approaching slider heads and SlamCentered objects. Call once after adding drawables.
+    /// Hand the full set of chart hit objects to the warning-indicator display (approaching heads/slams)
+    /// and rebuild the chord highlight index. Call once after adding drawables.
     /// </summary>
-    public void SetHitObjects(IEnumerable<GarbusHitObject> hitObjects) => warningIndicators.SetHitObjects(hitObjects);
+    public void SetHitObjects(IEnumerable<GarbusHitObject> hitObjects)
+    {
+        var list = hitObjects.ToList();
+        warningIndicators.SetHitObjects(list);
+        chordHighlighter.Rebuild(list);
+    }
 
     /// <summary>The warning-indicator display (GAR-3). Exposed for wiring and tests.</summary>
     public WarningIndicatorDisplay WarningIndicators => warningIndicators;

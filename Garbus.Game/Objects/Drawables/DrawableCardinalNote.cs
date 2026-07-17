@@ -7,6 +7,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Objects; // ChordColours, ChordHighlighter
 using osuTK;
 using osuTK.Graphics;
 
@@ -15,6 +16,9 @@ namespace Garbus.Game.Objects.Drawables
     public partial class DrawableCardinalNote : DrawableNote<CardinalNote>
     {
         private readonly Sprite sprite;
+
+        [Resolved]
+        private ChordHighlighter chords { get; set; } = null!;
 
         public DrawableCardinalNote(CardinalNote hitObject)
             : base(hitObject)
@@ -39,6 +43,10 @@ namespace Garbus.Game.Objects.Drawables
 
         protected override void PrepareForUse()
         {
+            // Pooled/reused drawables must set an explicit colour every time (yellow if this note shares its
+            // start time with another cardinal note, else reset to white).
+            Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
+
             // Apply note spawn effect
             sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
         }

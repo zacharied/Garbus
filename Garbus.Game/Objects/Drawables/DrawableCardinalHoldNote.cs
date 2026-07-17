@@ -10,6 +10,7 @@ using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Objects; // ChordColours, ChordHighlighter
 using Garbus.Game.Utils;
 using osuTK;
 using osuTK.Graphics;
@@ -30,6 +31,9 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
 
     private readonly Sprite headSprite;
     private readonly SmoothPath body;
+
+    [Resolved]
+    private ChordHighlighter chords { get; set; } = null!;
 
     public DrawableCardinalHoldNote(CardinalHoldNote hitObject)
         : base(hitObject)
@@ -61,6 +65,8 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
     protected override void PrepareForUse()
     {
         base.PrepareForUse();
+
+        Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
 
         headSprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
         body.FadeInFromZero(100, Easing.In);
