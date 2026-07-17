@@ -272,8 +272,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         bool changed = false;
 
         // Time: shift every moved node by the grabbed node's delta, but only if the whole path stays
-        // non-decreasing (at most one zero-length link in a row) with total duration > 0. All-or-nothing
-        // per event (no partial move).
+        // non-decreasing (at most one zero-length link in a row). All-or-nothing per event (no partial move).
         if (result.Time is double proposedTime)
         {
             double deltaTime = (proposedTime - HitObject.StartTime) - grabbed.TimeOffset;
@@ -310,7 +309,8 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     /// <summary>
     /// True if shifting every node in <paramref name="moved"/> by <paramref name="deltaTime"/> leaves the
     /// full path valid: non-decreasing times, at most one zero-length link in a row (a single horizontal
-    /// arc), and total duration &gt; 0 (the head sits at offset 0).
+    /// arc), and at least one control point. A zero total duration is allowed (a constant-radius arc at a
+    /// single instant), so a drag may collapse the whole path onto the head's time.
     /// </summary>
     private static bool timeShiftValid(IReadOnlyList<GarbusPathControlPoint> controlPoints, ICollection<GarbusPathControlPoint> moved, double deltaTime)
     {
@@ -421,9 +421,9 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             insertIndex++;
 
         // Validate the path the insertion would produce: non-decreasing, at most one zero-length link
-        // in a row, duration > 0. This permits a single horizontal arc (inserting at an existing node's
-        // time, or at time 0 after the head) while still rejecting a backwards time, a 3-node stack, or
-        // a duration-0 path.
+        // in a row, at least one node. This permits a single horizontal arc (inserting at an existing
+        // node's time, or at time 0 after the head) — including one that collapses the path to zero total
+        // duration — while still rejecting a backwards time or a 3-node stack.
         var prospective = new List<double>(controlPoints.Count + 1);
         for (int i = 0; i < controlPoints.Count; i++)
             prospective.Add(controlPoints[i].TimeOffset);

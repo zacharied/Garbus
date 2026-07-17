@@ -111,6 +111,12 @@ design around it):
 
 ## Out of scope
 
-- Gameplay catch model (already landed: zero-record tracker → hit).
+- Gameplay catch model (already landed: zero-record tracker → hit). Note this grant is keyed on the
+  tracker ending with zero records, not on the window being provably sub-frame, so it also covers the
+  rare case where a one-off frame drop skips a *normal* (positive-width) child's catch window entirely
+  — that child is granted rather than missed. This is an intentional, fairer-to-the-player call (no
+  frame was offered to act on) and, given Garbus dropped `FrameStabilityContainer`, there is no clamp
+  that would guarantee a sample; tightening it to a sub-frame check is possible later if precision ever
+  matters.
 - Any minimum-duration or snap-tick floor — duration exactly `0` is permitted.
 - Slam gameplay drawables (still editor-only concepts; unaffected).
