@@ -310,6 +310,50 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("zero duration", () => placedObject<SliderBody>()!.Duration, () => Is.EqualTo(0.0));
         }
 
+        [Test]
+        public void TestCtrlClickPlacesHeadOnlySlider()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("ctrl+left-click", () =>
+            {
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+
+            AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+            AddAssert("zero control points",
+                () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(0));
+            AddAssert("zero duration", () => placedObject<SliderBody>()!.Duration, () => Is.EqualTo(0.0));
+            AddAssert("head at 270", () => placedObject<SliderBody>()!.AngleDeg, () => Is.EqualTo(270));
+        }
+
+        [Test]
+        public void TestPlainRightClickDoesNotPlaceHeadOnly()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("plain left-click (start)", () => input.Click(MouseButton.Left));
+            AddStep("right-click with no nodes", () => input.Click(MouseButton.Right));
+
+            AddAssert("no slider placed", () => placedObject<SliderBody>() == null);
+        }
+
+        [Test]
+        public void TestToolSwitchDoesNotCommitHeadOnly()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("plain left-click (start)", () => input.Click(MouseButton.Left));
+            AddStep("switch to select tool (auto-commit path)", () => input.Key(Key.Number1));
+
+            AddAssert("no slider placed", () => placedObject<SliderBody>() == null);
+        }
+
         // ------------------------------------------------------------------
         // placed-object query helpers
         // ------------------------------------------------------------------

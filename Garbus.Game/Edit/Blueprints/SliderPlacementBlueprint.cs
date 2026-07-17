@@ -26,6 +26,9 @@ namespace Garbus.Game.Edit.Blueprints;
 /// left click appends a control-point node at the snapped cursor (which must be later in time than the
 /// previous node), and a right click commits — requiring at least one node, per the format's contract.
 /// A rubber-band segment previews the next node at the cursor.
+///
+/// A <c>Ctrl</c>+left-click on the first click instead commits a head-only slider (zero control points)
+/// immediately, without entering the multi-click flow.
 /// </summary>
 internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<SliderBody>
 {
@@ -40,8 +43,12 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
     private int cursorAngleDeg;
     private double cursorTime;
 
+    // Set only by the Ctrl+left-click head-only path (below), so that path is the ONLY one which treats
+    // a node-less path as committable. Right-click and the tool-switch auto-commit still require ≥1 node.
+    private bool committingHeadOnly;
+
     protected override bool IsValidForPlacement =>
-        base.IsValidForPlacement && HitObject.Path.ControlPoints.Count > 0;
+        base.IsValidForPlacement && (HitObject.Path.ControlPoints.Count > 0 || committingHeadOnly);
 
     public SliderPlacementBlueprint()
         : base(new SliderBody
@@ -84,7 +91,19 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
         {
             case MouseButton.Left:
                 if (PlacementActive == PlacementState.Waiting)
+                {
                     BeginPlacement(true);
+
+                    // Ctrl+left-click drops a head-only slider (zero control points) in one click. The
+                    // head's angle/time were already snapped to the cursor while Waiting, so commit
+                    // immediately. The one-shot flag makes this the only path that accepts a node-less
+                    // path, so a plain right-click or a tool-switch auto-commit cannot create one.
+                    if (e.ControlPressed)
+                    {
+                        committingHeadOnly = true;
+                        EndPlacement(true);
+                    }
+                }
                 else
                     tryAddNode();
                 return true;
