@@ -2,6 +2,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
 using Garbus.Resources;
 using osu.Framework.Allocation;
+using osu.Framework.Development;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.IO.Stores;
@@ -47,7 +48,13 @@ namespace Garbus.Game
             // Roughly halves output latency on Windows (needed for editor hitsound feedback to sit on
             // the beat); the chart clock's platform offset auto-recalibrates when this changes. The
             // framework falls back to the normal output path when the device can't do WASAPI.
-            LocalConfig.BindWith(GarbusSetting.UseExperimentalWasapi, Audio.UseExperimentalWasapi);
+            //
+            // Skip this under headless NUnit runs. The framework forces the "No sound" BASS device in
+            // tests, but that guard does NOT cover the WASAPI path — enabling WASAPI opens the real
+            // default output device (device -1) and makes the whole test suite audible. Leaving the
+            // toggle unbound keeps Audio.UseExperimentalWasapi at its silent framework default.
+            if (!DebugUtils.IsNUnitRunning)
+                LocalConfig.BindWith(GarbusSetting.UseExperimentalWasapi, Audio.UseExperimentalWasapi);
 
             // Reduced master volume, pinned on every startup until the Phase 5 settings screen exposes
             // volume control (the framework would otherwise persist whatever value was last set).
