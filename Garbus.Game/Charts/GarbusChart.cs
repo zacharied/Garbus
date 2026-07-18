@@ -2,6 +2,7 @@
 // through Charts/Format (versioned JSON), replacing osu's Beatmap/WorkingBeatmap/converter pipeline.
 
 using System.Collections.Generic;
+using Garbus.Game.Charts.Design;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Objects;
 
@@ -15,6 +16,8 @@ public class GarbusChart
     public double? PreviewTime { get; set; }
 
     public ControlPointInfo ControlPointInfo { get; init; } = new ControlPointInfo();
+
+    public DesignPointInfo DesignPointInfo { get; init; } = new DesignPointInfo();
 
     public List<GarbusHitObject> HitObjects { get; init; } = new List<GarbusHitObject>();
 
