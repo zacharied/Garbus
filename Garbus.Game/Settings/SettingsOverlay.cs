@@ -3,6 +3,7 @@ using System.Globalization;
 using Garbus.Game.Configuration;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -29,6 +30,13 @@ namespace Garbus.Game.Settings
         private GarbusConfigManager config { get; set; } = null!;
 
         private Container panel = null!;
+
+        // Guards the two-way position<->gain sync from feeding back on itself. Value changes are
+        // processed synchronously on the update thread, so a single shared flag is sufficient.
+        private bool syncingVolume;
+
+        // Teardown for the volume-row subscriptions to the long-lived AudioManager bindables.
+        private Action? volumeCleanup;
 
         public SettingsOverlay()
         {
@@ -66,14 +74,52 @@ namespace Garbus.Game.Settings
                                 Font = FontUsage.Default.With(size: 28),
                                 Colour = Color4.White,
                             },
-                            new SettingsSlider("Master volume", audio.Volume, percent),
-                            new SettingsSlider("Music volume", audio.VolumeTrack, percent),
-                            new SettingsSlider("Hitsound volume", audio.VolumeSample, percent),
+                            createVolumeRow("Master volume", audio.Volume),
+                            createVolumeRow("Music volume", audio.VolumeTrack),
+                            createVolumeRow("Hitsound volume", audio.VolumeSample),
                             new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), speed),
                         },
                     },
                 },
             };
+        }
+
+        /// <summary>
+        /// Builds a volume row whose slider position runs through <see cref="VolumeCurve"/> before it
+        /// reaches the actual <paramref name="gain"/> bindable, so the usable low end is spread across
+        /// more of the slider. The readout shows the slider position, not the raw gain.
+        /// </summary>
+        private SettingsSlider createVolumeRow(string label, BindableNumber<double> gain)
+        {
+            var position = new BindableDouble(VolumeCurve.ToPosition(gain.Value)) { MinValue = 0, MaxValue = 1 };
+
+            void onPositionChanged(ValueChangedEvent<double> e)
+            {
+                if (syncingVolume) return;
+
+                syncingVolume = true;
+                gain.Value = VolumeCurve.ToGain(e.NewValue);
+                syncingVolume = false;
+            }
+
+            void onGainChanged(ValueChangedEvent<double> e)
+            {
+                if (syncingVolume) return;
+
+                syncingVolume = true;
+                position.Value = VolumeCurve.ToPosition(e.NewValue);
+                syncingVolume = false;
+            }
+
+            position.ValueChanged += onPositionChanged;
+            gain.ValueChanged += onGainChanged;
+            volumeCleanup += () =>
+            {
+                position.ValueChanged -= onPositionChanged;
+                gain.ValueChanged -= onGainChanged;
+            };
+
+            return new SettingsSlider(label, position, percent);
         }
 
         private static string percent(double v) => $"{Math.Round(v * 100)}%";
@@ -98,6 +144,12 @@ namespace Garbus.Game.Settings
                 Hide();
 
             return true;
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            volumeCleanup?.Invoke();
+            base.Dispose(isDisposing);
         }
     }
 }
