@@ -31,10 +31,6 @@ namespace Garbus.Game.Settings
 
         private Container panel = null!;
 
-        // Guards the two-way position<->gain sync from feeding back on itself. Value changes are
-        // processed synchronously on the update thread, so a single shared flag is sufficient.
-        private bool syncingVolume;
-
         // Teardown for the volume-row subscriptions to the long-lived AudioManager bindables.
         private Action? volumeCleanup;
 
@@ -93,22 +89,26 @@ namespace Garbus.Game.Settings
         {
             var position = new BindableDouble(VolumeCurve.ToPosition(gain.Value)) { MinValue = 0, MaxValue = 1 };
 
+            // Per-row guard so the two-way position<->gain sync can't feed back on itself. Kept local
+            // to this row so the three rows stay fully independent even if they ever become coupled.
+            bool syncing = false;
+
             void onPositionChanged(ValueChangedEvent<double> e)
             {
-                if (syncingVolume) return;
+                if (syncing) return;
 
-                syncingVolume = true;
+                syncing = true;
                 gain.Value = VolumeCurve.ToGain(e.NewValue);
-                syncingVolume = false;
+                syncing = false;
             }
 
             void onGainChanged(ValueChangedEvent<double> e)
             {
-                if (syncingVolume) return;
+                if (syncing) return;
 
-                syncingVolume = true;
+                syncing = true;
                 position.Value = VolumeCurve.ToPosition(e.NewValue);
-                syncingVolume = false;
+                syncing = false;
             }
 
             position.ValueChanged += onPositionChanged;

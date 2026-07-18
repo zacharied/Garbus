@@ -41,5 +41,16 @@ namespace Garbus.Game.Tests
             // The whole point: at a given slider position, actual gain sits below the linear value.
             Assert.That(VolumeCurve.ToGain(0.5), Is.LessThan(0.5));
         }
+
+        [Test]
+        public void NonPositiveAndTinyInputsStayFiniteAndNonNegative()
+        {
+            // Guards against Math.Pow returning NaN for a negative base with a fractional exponent.
+            Assert.That(VolumeCurve.ToGain(-0.1), Is.EqualTo(0));
+            Assert.That(VolumeCurve.ToPosition(-0.1), Is.EqualTo(0));
+
+            Assert.That(double.IsNaN(VolumeCurve.ToGain(1e-12)), Is.False);
+            Assert.That(VolumeCurve.ToGain(1e-12), Is.GreaterThanOrEqualTo(0));
+        }
     }
 }
