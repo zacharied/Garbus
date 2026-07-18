@@ -41,6 +41,7 @@ namespace Garbus.Game.Screens
         private Track track = null!;
         private MasterGameplayClockContainer gameplayClock = null!;
         private GarbusPlayfield playfield = null!;
+        private DesignOverlay designOverlay = null!;
 
         private GarbusChart chart = null!;
         private double chartEndTime;
@@ -150,11 +151,24 @@ namespace Garbus.Game.Screens
                 },
                 gameplayClock = new MasterGameplayClockContainer(track, StartTime)
                 {
-                    Child = new GarbusInputManager
+                    // The overlay must live inside the gameplay-clock subtree so it reads gameplay
+                    // time (GameplayClockContainer sets Content.Clock), not the ambient wall clock.
+                    Child = new Container
                     {
-                        Child = playfield = new GarbusPlayfield
+                        RelativeSizeAxes = Axes.Both,
+                        Children = new Drawable[]
                         {
-                            Size = Vector2.One,
+                            new GarbusInputManager
+                            {
+                                Child = playfield = new GarbusPlayfield
+                                {
+                                    Size = Vector2.One,
+                                },
+                            },
+                            designOverlay = new DesignOverlay(chart)
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                            },
                         },
                     },
                 },
