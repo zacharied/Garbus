@@ -164,29 +164,32 @@ namespace Garbus.Game.Screens.SongSelect
         {
             stopPreview();
 
+            Track? track;
+
             try
             {
-                var track = card.GetTrack(audio);
-                if (track == null)
-                    return;
-
-                var drawableTrack = new DrawableTrack(track) { Looping = true };
-                drawableTrack.Seek(card.PreviewTime ?? 0);
-                drawableTrack.Volume.Value = 0;
-
-                previewTrack = drawableTrack;
-                // Must be parented before VolumeTo — the transform needs the hierarchy's clock
-                // (see osu.Game's MusicController.changeTrack: AddInternal, then VolumeTo).
-                AddInternal(drawableTrack);
-
-                drawableTrack.Start();
-                drawableTrack.VolumeTo(1, preview_fade);
+                track = card.GetTrack(audio);
             }
             catch (Exception)
             {
                 // A missing/undecodable audio file just means no preview — selection still works.
-                previewTrack = null;
+                track = null;
             }
+
+            if (track == null)
+                return;
+
+            var drawableTrack = new DrawableTrack(track) { Looping = true };
+            drawableTrack.Seek(card.PreviewTime ?? 0);
+            drawableTrack.Volume.Value = 0;
+
+            previewTrack = drawableTrack;
+            // Must be parented before VolumeTo — the transform needs the hierarchy's clock
+            // (see osu.Game's MusicController.changeTrack: AddInternal, then VolumeTo).
+            AddInternal(drawableTrack);
+
+            drawableTrack.Start();
+            drawableTrack.VolumeTo(1, preview_fade);
         }
 
         private void stopPreview()
@@ -209,10 +212,13 @@ namespace Garbus.Game.Screens.SongSelect
             if (SelectedChart == null)
                 return;
 
+            var track = SelectedChart.GetTrack(audio);
+            if (track == null)
+                return; // selected chart's audio is missing/undecodable — unplayable; do not launch (never fall back to another chart)
+
             stopPreview();
 
             var chart = SelectedChart.LoadChart();
-            var track = SelectedChart.GetTrack(audio);
             this.Push(new PlayScreen(chart, track));
         }
 
