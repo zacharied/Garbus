@@ -207,7 +207,14 @@ zero height).
 
 ### Phase 5 — game chrome
 
-- [ ] Song select (bespoke, simple)
+- [x] Song select (bespoke) — `Screens/SongSelect/`: unions bundled resource charts (via
+      `ChartStore.GetAvailableCharts`) + an AppData `charts/` folder (`DirectoryChartSource`, recursive
+      scan), grouped by folder into `SongGroup`s behind an `IChartSource`/`ChartCard`/`ChartLibrary`
+      model. A view toggle switches grouped-by-title ↔ flat-by-level (persisted in
+      `GarbusSetting.SongSelectGrouped`); looping audio preview on selection (`DrawableTrack` fade);
+      launches the existing `PlayScreen(chart, track)` (guards a missing-audio chart so it never
+      silently falls back to the bundled default). Main-menu Play now pushes song select. Deferred:
+      background rendering, search box, configurable songs dir, editor default-save into the library.
 - [ ] Settings screen: audio device, volumes, offset calibration (port osu's suggested-offset idea),
       key bindings
 - [ ] Results screen
