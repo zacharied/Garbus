@@ -22,6 +22,9 @@ namespace Garbus.Game.Configuration
         /// <summary>Show red timing-change lines in the timeline strip.</summary>
         EditorShowTimingChanges,
 
+        /// <summary>Show translucent design-point regions in the timeline strip.</summary>
+        EditorShowDesignRegions,
+
         /// <summary>Show beat tick lines in the timeline strip.</summary>
         EditorShowTicks,
 

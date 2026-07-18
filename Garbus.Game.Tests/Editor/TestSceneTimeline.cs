@@ -287,6 +287,8 @@ namespace Garbus.Game.Tests.Editor
                 dependencies.CacheAs(chartFile);
                 // Cache ControlPointInfo directly so child timeline components can resolve it.
                 dependencies.CacheAs(EditorChart.ControlPointInfo);
+                // Cache DesignPointInfo so the TimelineDesignRegionDisplay layer can resolve it.
+                dependencies.CacheAs(EditorChart.DesignPointInfo);
 
                 return dependencies;
             }

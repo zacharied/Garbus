@@ -424,6 +424,7 @@ namespace Garbus.Game.Edit.Screens
             {
                 new ToggleMenuItem("Show Beat Ticks", config.GetBindable<bool>(GarbusSetting.EditorShowTicks)),
                 new ToggleMenuItem("Show Timing Changes", config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges)),
+                new ToggleMenuItem("Show Design Regions", config.GetBindable<bool>(GarbusSetting.EditorShowDesignRegions)),
                 new ToggleMenuItem("Auto-Seek on Placement", config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement)),
             };
         }

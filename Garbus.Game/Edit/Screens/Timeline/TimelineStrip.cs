@@ -45,12 +45,14 @@ namespace Garbus.Game.Edit.Screens.Timeline
 
         private WaveformGraph waveform = null!;
         private TimelineTickDisplay ticks = null!;
+        private TimelineDesignRegionDisplay designRegions = null!;
         private TimelineTimingChangeDisplay timingChanges = null!;
         private TimelineObjectMarkers objectMarkers = null!;
 
         // Stored as fields so the bindables are not garbage-collected after load() returns.
         private Bindable<bool>? showTicksBindable;
         private Bindable<bool>? showTimingChangesBindable;
+        private Bindable<bool>? showDesignRegionsBindable;
         private Bindable<double>? waveformOpacityBindable;
 
         private double lastScrollPosition;
@@ -81,10 +83,12 @@ namespace Garbus.Game.Edit.Screens.Timeline
             waveformOpacityBindable = config.GetBindable<double>(GarbusSetting.EditorWaveformOpacity);
             showTicksBindable = config.GetBindable<bool>(GarbusSetting.EditorShowTicks);
             showTimingChangesBindable = config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges);
+            showDesignRegionsBindable = config.GetBindable<bool>(GarbusSetting.EditorShowDesignRegions);
 
             var waveformOpacity = waveformOpacityBindable;
             var showTicks = showTicksBindable;
             var showTimingChanges = showTimingChangesBindable;
+            var showDesignRegions = showDesignRegionsBindable;
 
             // Waveform layer — bottom. Populated later via editorClock.TrackChanged → updateWaveform.
 
@@ -100,6 +104,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
                     Waveform = null, // populated below if track has waveform
                 },
                 ticks = new TimelineTickDisplay(),
+                designRegions = new TimelineDesignRegionDisplay(),
                 timingChanges = new TimelineTimingChangeDisplay(),
                 objectMarkers = new TimelineObjectMarkers(),
             });
@@ -118,6 +123,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
             waveformOpacity.BindValueChanged(e => waveform.Alpha = (float)e.NewValue, true);
             showTicks.BindValueChanged(e => ticks.Alpha = e.NewValue ? 1 : 0, true);
             showTimingChanges.BindValueChanged(e => timingChanges.Alpha = e.NewValue ? 1 : 0, true);
+            showDesignRegions.BindValueChanged(e => designRegions.Alpha = e.NewValue ? 1 : 0, true);
 
             // Try to load waveform from track file.
             editorClock.TrackChanged += updateWaveform;

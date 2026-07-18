@@ -240,5 +240,31 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("text reverted", () =>
                 editor.EditorChart.DesignPointInfo.DesignPoints.OfType<TutorialMessage>().First().Text == "New message");
         }
+
+        [Test]
+        public void TestTimelineRegionSpansTrackFraction()
+        {
+            setupEditor();
+            switchToDesignTab();
+
+            AddUntilStep("list present", () => editor.ChildrenOfType<DesignPointList>().Any());
+            addPointAt(4000); // start 4000, end 6000 (default 2000ms span)
+
+            // The editor's default (no-audio) track is a TrackVirtual(60000), so TrackLength == 60000.
+            // Expected fractions: X = 4000/60000 ≈ 0.0667, Width = 2000/60000 ≈ 0.0333.
+            AddUntilStep("region box matches the point", () =>
+            {
+                var display = editor.ChildrenOfType<DesignTab>().First()
+                    .ChildrenOfType<TimelineDesignRegionDisplay>().FirstOrDefault();
+                if (display == null) return false;
+
+                var box = display.ChildrenOfType<osu.Framework.Graphics.Shapes.Box>()
+                    .FirstOrDefault(b => b.Alpha > 0);
+                if (box == null) return false;
+
+                return Math.Abs(box.X - 4000f / 60000f) < 0.005f
+                       && Math.Abs(box.Width - 2000f / 60000f) < 0.005f;
+            });
+        }
     }
 }

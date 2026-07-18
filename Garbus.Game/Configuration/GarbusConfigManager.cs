@@ -20,6 +20,7 @@ namespace Garbus.Game.Configuration
 
             // Editor view defaults.
             SetDefault(GarbusSetting.EditorShowTimingChanges, true);
+            SetDefault(GarbusSetting.EditorShowDesignRegions, true);
             SetDefault(GarbusSetting.EditorShowTicks, true);
             SetDefault(GarbusSetting.EditorWaveformOpacity, 0.25, 0.0, 1.0);
             SetDefault(GarbusSetting.EditorAutoSeekOnPlacement, true);
