@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using Garbus.Game.Charts.Design;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Core;
 using Garbus.Game.Objects;
@@ -119,6 +120,19 @@ public static class GarbusChartSerializer
             OmitFirstBarLine = t.OmitFirstBarLine,
         }).ToList(),
         HitObjects = chart.HitObjects.Select(toDto).ToList(),
+        DesignPoints = chart.DesignPointInfo.DesignPoints.Select(toDto).ToList(),
+    };
+
+    private static DesignPointDto toDto(DesignPoint point) => point switch
+    {
+        TutorialMessage tm => new TutorialMessageDto { StartTime = tm.StartTime, EndTime = tm.EndTime, Text = tm.Text },
+        _ => throw new ArgumentOutOfRangeException(nameof(point), point.GetType().Name, "design point type has no chart format representation")
+    };
+
+    private static DesignPoint fromDto(DesignPointDto dto) => dto switch
+    {
+        TutorialMessageDto tm => new TutorialMessage { StartTime = tm.StartTime, EndTime = tm.EndTime, Text = tm.Text },
+        _ => throw new ArgumentOutOfRangeException(nameof(dto), dto.GetType().Name, "unknown design point dto type")
     };
 
     private static HitObjectDto toDto(GarbusHitObject hitObject)
@@ -182,6 +196,9 @@ public static class GarbusChartSerializer
                 OmitFirstBarLine = timing.OmitFirstBarLine,
             });
         }
+
+        foreach (var designPoint in dto.DesignPoints)
+            chart.DesignPointInfo.Add(fromDto(designPoint));
 
         return chart;
     }

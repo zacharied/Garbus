@@ -23,6 +23,8 @@ public class ChartFileDto
     public List<TimingPointDto> TimingPoints { get; set; } = new List<TimingPointDto>();
 
     public List<HitObjectDto> HitObjects { get; set; } = new List<HitObjectDto>();
+
+    public List<DesignPointDto> DesignPoints { get; set; } = new List<DesignPointDto>();
 }
 
 public class ChartMetadataDto
@@ -115,4 +117,17 @@ public class SlamEdgeDto : HitObjectDto
     public int AngleDeg { get; set; }
     public string Side { get; set; } = string.Empty;
     public string Direction { get; set; } = string.Empty;
+}
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(TutorialMessageDto), "tutorial-message")]
+public abstract class DesignPointDto
+{
+    public double StartTime { get; set; }
+    public double EndTime { get; set; }
+}
+
+public class TutorialMessageDto : DesignPointDto
+{
+    public string Text { get; set; } = string.Empty;
 }

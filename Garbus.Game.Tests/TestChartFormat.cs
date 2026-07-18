@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Garbus.Game.Charts;
+using Garbus.Game.Charts.Design;
 using Garbus.Game.Charts.Format;
 using Garbus.Game.Core;
 using Garbus.Game.Objects;
@@ -119,6 +120,34 @@ namespace Garbus.Game.Tests
             Assert.That(hold.StartTime, Is.EqualTo(1000));
             Assert.That(hold.Duration, Is.EqualTo(750));
             Assert.That(hold.Side, Is.EqualTo(HorizontalDirection.Right));
+        }
+
+        [Test]
+        public void TestDesignPointsRoundtrip()
+        {
+            var chart = new GarbusChart();
+            chart.DesignPointInfo.Add(new TutorialMessage { StartTime = 1000, EndTime = 3000, Text = "Welcome!" });
+            chart.DesignPointInfo.Add(new TutorialMessage { StartTime = 5000, EndTime = 6000, Text = "Press the buttons" });
+
+            var decoded = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(chart));
+
+            Assert.That(decoded.DesignPointInfo.DesignPoints, Has.Count.EqualTo(2));
+            var first = (TutorialMessage)decoded.DesignPointInfo.DesignPoints[0];
+            Assert.That(first.StartTime, Is.EqualTo(1000));
+            Assert.That(first.EndTime, Is.EqualTo(3000));
+            Assert.That(first.Text, Is.EqualTo("Welcome!"));
+            var second = (TutorialMessage)decoded.DesignPointInfo.DesignPoints[1];
+            Assert.That(second.Text, Is.EqualTo("Press the buttons"));
+        }
+
+        [Test]
+        public void TestChartWithoutDesignPointsDecodesEmpty()
+        {
+            var chart = new GarbusChart();
+
+            var decoded = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(chart));
+
+            Assert.That(decoded.DesignPointInfo.DesignPoints, Is.Empty);
         }
 
         private static void assertChartsEqual(GarbusChart expected, GarbusChart actual)
