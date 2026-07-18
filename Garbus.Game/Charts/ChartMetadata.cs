@@ -48,4 +48,11 @@ public class ChartMetadata
     /// The chart's difficulty gradation relative to the other charts for its song.
     /// </summary>
     public Difficulty Difficulty { get; set; } = Difficulty.Novice;
+
+    /// <summary>
+    /// The chart name to show in UI: the explicit <see cref="ChartName"/> when the charter has set
+    /// one, otherwise the <see cref="Difficulty"/>'s name as a fallback.
+    /// </summary>
+    public string GetDisplayedChartName()
+        => string.IsNullOrEmpty(ChartName) ? Difficulty.ToString() : ChartName;
 }

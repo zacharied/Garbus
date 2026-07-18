@@ -336,8 +336,8 @@ namespace Garbus.Game.Tests.Editor
         {
             AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
 
-            AddAssert("shows unsaved-with-metadata text (chart pre-saved by SetUp)", () =>
-                editor.ChildrenOfType<ChartTitleDisplay>().Single().Text.ToString() == " [Lv??]");
+            AddAssert("empty ChartName falls back to difficulty name (chart pre-saved by SetUp)", () =>
+                editor.ChildrenOfType<ChartTitleDisplay>().Single().Text.ToString() == " [Novice Lv??]");
 
             AddStep("set title/chartname/level", () =>
             {

@@ -1,4 +1,5 @@
-// Top-bar label showing "$Title [$ChartName Lv$Level]". Polls ChartFile/EditorChart each frame
+// Top-bar label showing "$Title [$ChartName Lv$Level]", where the bracket name falls back to the
+// difficulty when ChartName is unset (ChartMetadata.GetDisplayedChartName). Polls ChartFile/EditorChart each frame
 // (matches ResourcesSection's convention) since FilePath/metadata can change from Setup or a
 // File → Save at any time, with no dedicated change event for either.
 
@@ -47,9 +48,8 @@ namespace Garbus.Game.Edit.Screens
 
             var meta = editorChart.Metadata;
             string levelText = meta.Level == 0 ? "??" : meta.Level.ToString();
-            string bracket = string.IsNullOrEmpty(meta.ChartName) ? $"[Lv{levelText}]" : $"[{meta.ChartName} Lv{levelText}]";
 
-            Text = $"{meta.Title} {bracket}";
+            Text = $"{meta.Title} [{meta.GetDisplayedChartName()} Lv{levelText}]";
             Colour = normal_colour;
         }
     }
