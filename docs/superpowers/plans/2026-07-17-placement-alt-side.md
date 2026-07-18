@@ -83,9 +83,16 @@ closing `}`, still inside the class body):
             AddStep("click node", () => input.Click(MouseButton.Left));
             AddStep("right click to commit", () => input.Click(MouseButton.Right));
             AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
             AddAssert("slider Side locked Right despite alt release mid-drag", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
         }
 ```
+
+(Discovered during execution: without `settleWith` + switching back to the select tool, the freshly
+spawned next-placement blueprint spins on stale mouse state during test teardown and throws a `NaN`
+position exception — every other slider-placement helper in this file already does this cleanup for
+that reason.)
 
 - [ ] **Step 2: Run the tests to verify they fail**
 

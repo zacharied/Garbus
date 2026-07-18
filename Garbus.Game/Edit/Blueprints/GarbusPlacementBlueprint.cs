@@ -8,6 +8,7 @@
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;
+using Garbus.Game.Core;
 using Garbus.Game.Edit.Compose;
 using Garbus.Game.Objects;
 using osuTK;
@@ -51,6 +52,15 @@ internal abstract partial class GarbusPlacementBlueprint<T> : HitObjectPlacement
 
         if (PlacementActive == PlacementState.Waiting && result is GarbusSnapResult garbus)
             HitObject.AngleDeg = garbus.AngleDeg;
+
+        // Alt during placement picks the Right side; locked in once the first click moves
+        // PlacementActive past Waiting, so it can't be nudged mid-drag by releasing/re-pressing Alt.
+        if (PlacementActive == PlacementState.Waiting && HitObject is IHasSide hasSide)
+        {
+            hasSide.Side = GetContainingInputManager()?.CurrentState.Keyboard.AltPressed == true
+                ? HorizontalDirection.Right
+                : HorizontalDirection.Left;
+        }
 
         return result;
     }

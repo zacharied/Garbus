@@ -1582,6 +1582,45 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestAltDuringPlacementSetsSlamSideRight()
+        {
+            waitForComposer();
+
+            AddStep("select slam-centered tool", () => input.Key(Key.Number6));
+            AddStep("hold alt", () => input.PressKey(Key.LAlt));
+            AddStep("move to angle", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("click to place", () => input.Click(MouseButton.Left));
+            AddStep("release alt", () => input.ReleaseKey(Key.LAlt));
+            AddAssert("slam centered placed Right", () => placedObject<GarbusSlamCentered>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+            settleWith(() => placedObject<GarbusSlamCentered>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("move to angle without alt", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
+            AddStep("click to place", () => input.Click(MouseButton.Left));
+            AddAssert("slam edge placed Left (no alt)", () => placedObject<GarbusSlamEdge>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
+        }
+
+        [Test]
+        public void TestAltLockedInAtSliderHeadPlacement()
+        {
+            waitForComposer();
+
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("hold alt", () => input.PressKey(Key.LAlt));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
+            AddStep("click body (head)", () => input.Click(MouseButton.Left));
+            AddStep("release alt", () => input.ReleaseKey(Key.LAlt));
+            AddStep("move to node without alt", () => input.MoveMouseTo(positionAtAngle(0, 0.4f)));
+            AddStep("click node", () => input.Click(MouseButton.Left));
+            AddStep("right click to commit", () => input.Click(MouseButton.Right));
+            AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            AddAssert("slider Side locked Right despite alt release mid-drag", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
+        }
+
+        [Test]
         public void TestSideContextMenuAbsentForNote()
         {
             waitForComposer();
