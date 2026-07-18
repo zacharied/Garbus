@@ -1,7 +1,6 @@
 // A single clickable row in the song-select list: the chart's display name + level, highlighted
 // when selected. Group headers reuse this with a bolder style.
 
-using System;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;

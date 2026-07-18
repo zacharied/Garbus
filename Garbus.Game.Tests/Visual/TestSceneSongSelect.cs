@@ -2,15 +2,22 @@
 // flips grouping (and persists), selecting a chart drives the audio preview, and launching pushes a
 // PlayScreen for the chosen chart.
 
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Garbus.Game.Charts;
+using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
 using Garbus.Game.Screens;
 using Garbus.Game.Screens.SongSelect;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
+using osu.Framework.Platform;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
+using osuTK.Input;
 
 namespace Garbus.Game.Tests.Visual
 {
@@ -20,14 +27,49 @@ namespace Garbus.Game.Tests.Visual
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
 
+        [Resolved]
+        private Storage storage { get; set; } = null!;
+
+        private ManualInputManager input = null!;
         private ScreenStack stack = null!;
         private SongSelectScreen songSelect = null!;
 
         [SetUpSteps]
         public void SetUpSteps()
         {
+            // The bundled resource chart ("test track") is the only chart guaranteed to exist. The
+            // arrow-key navigation test needs at least two to prove index movement, so seed a couple
+            // of directory-backed charts the screen's own DirectoryChartSource will pick up before it
+            // scans (this step runs — and completes its synchronous file IO — before the "push song
+            // select" step below constructs the screen and triggers its BDL scan). Titled "ZZ ..." so
+            // they sort (OrdinalIgnoreCase) after "test track" and never become the first/selected
+            // group in the other tests below (which assume the bundled chart is first). Their audio
+            // files don't exist on disk, which is fine — Select()/startPreview already swallow that;
+            // only Launch() would care, and no test launches one of these seeded charts.
+            AddStep("seed extra charts", () =>
+            {
+                string root = storage.GetStorageForDirectory("charts").GetFullPath(string.Empty);
+
+                for (int i = 1; i <= 2; i++)
+                {
+                    string dir = Path.Combine(root, $"zz-extra-song-{i}");
+                    Directory.CreateDirectory(dir);
+                    string path = Path.Combine(dir, "chart.garbus");
+
+                    if (!File.Exists(path))
+                    {
+                        var chart = new GarbusChart { Metadata = { Title = $"ZZ Extra Song {i}", Artist = "Test", Level = i, AudioFile = "missing.ogg" } };
+                        File.WriteAllText(path, GarbusChartSerializer.Encode(chart));
+                    }
+                }
+            });
+
             AddStep("push song select", () =>
-                Child = stack = new ScreenStack(songSelect = new SongSelectScreen()) { RelativeSizeAxes = Axes.Both });
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Child = stack = new ScreenStack(songSelect = new SongSelectScreen()) { RelativeSizeAxes = Axes.Both },
+                });
             AddUntilStep("loaded", () => songSelect.IsLoaded && songSelect.Groups != null);
         }
 
@@ -56,6 +98,55 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
             AddAssert("play screen has the selected chart", () =>
                 ((PlayScreen)stack.CurrentScreen).Chart != null);
+        }
+
+        [Test]
+        public void TestHighlightPersistsAcrossViewToggle()
+        {
+            ChartCard? selected = null;
+
+            AddStep("select first chart", () =>
+            {
+                selected = songSelect.Groups.SelectMany(g => g.Charts).First();
+                songSelect.Select(selected);
+            });
+
+            AddStep("toggle to flat view", () => songSelect.Grouped = false);
+
+            // ChartRow doesn't expose which ChartCard it renders, so correspondence to the still-selected
+            // card is established via the row<->SelectedChart sync invariant (Select()/rebuild() only ever
+            // mark the row registered for SelectedChart): assert both that exactly one row is highlighted
+            // and that SelectedChart itself didn't change across the toggle.
+            AddAssert("selection unchanged", () => songSelect.SelectedChart == selected);
+            AddAssert("exactly one row is selected", () =>
+                this.ChildrenOfType<ChartRow>().Count(r => r.Selected) == 1);
+
+            AddStep("toggle back to grouped view", () => songSelect.Grouped = true);
+
+            AddAssert("selection still unchanged", () => songSelect.SelectedChart == selected);
+            AddAssert("still exactly one row selected", () =>
+                this.ChildrenOfType<ChartRow>().Count(r => r.Selected) == 1);
+        }
+
+        [Test]
+        public void TestArrowKeysMoveSelection()
+        {
+            IReadOnlyList<ChartCard> ordered = null!;
+
+            AddStep("go flat (deterministic single-list order)", () => songSelect.Grouped = false);
+            AddStep("capture flat order + select first", () =>
+            {
+                ordered = songSelect.Groups.SelectMany(g => g.Charts).OrderBy(c => c.Level).ToList();
+                songSelect.Select(ordered[0]);
+            });
+
+            AddAssert("at least two charts to navigate between", () => ordered.Count >= 2);
+
+            AddStep("press down", () => input.Key(Key.Down));
+            AddAssert("selection advanced to second card", () => songSelect.SelectedChart == ordered[1]);
+
+            AddStep("press up", () => input.Key(Key.Up));
+            AddAssert("selection moved back to first card", () => songSelect.SelectedChart == ordered[0]);
         }
     }
 }

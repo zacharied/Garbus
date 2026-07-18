@@ -36,6 +36,7 @@ namespace Garbus.Game.Screens.SongSelect
 
         private FillFlowContainer list = null!;
         private readonly Dictionary<ChartCard, ChartRow> rows = new Dictionary<ChartCard, ChartRow>();
+        private readonly List<ChartCard> orderedCards = new List<ChartCard>();
 
         private readonly Bindable<bool> grouped = new Bindable<bool>(true);
 
@@ -118,6 +119,7 @@ namespace Garbus.Game.Screens.SongSelect
             viewButton.Text = grouped.Value ? "View: Grouped" : "View: Flat";
             list.Clear();
             rows.Clear();
+            orderedCards.Clear();
 
             if (grouped.Value)
             {
@@ -130,7 +132,10 @@ namespace Garbus.Game.Screens.SongSelect
             }
             else
             {
-                foreach (var card in library.AllCharts())
+                // Reuse the cached Groups' card instances (not library.AllCharts(), which would
+                // re-enumerate the sources into brand-new ChartCard instances) so reference-keyed
+                // selection/row lookup stays stable across a grouped<->flat toggle.
+                foreach (var card in Groups.SelectMany(g => g.Charts).OrderBy(c => c.Level))
                     addRow(card);
             }
 
@@ -143,6 +148,7 @@ namespace Garbus.Game.Screens.SongSelect
         {
             var row = new ChartRow(card.DisplayName, card.Level) { Action = () => Select(card) };
             rows[card] = row;
+            orderedCards.Add(card);
             list.Add(row);
         }
 
@@ -212,9 +218,20 @@ namespace Garbus.Game.Screens.SongSelect
             if (SelectedChart == null)
                 return;
 
-            var track = SelectedChart.GetTrack(audio);
+            Track? track;
+
+            try
+            {
+                track = SelectedChart.GetTrack(audio);
+            }
+            catch (Exception)
+            {
+                // Corrupt/undecodable audio — unplayable; don't launch (never fall back to another chart).
+                return;
+            }
+
             if (track == null)
-                return; // selected chart's audio is missing/undecodable — unplayable; do not launch (never fall back to another chart)
+                return; // selected chart's audio is missing — unplayable; do not launch (never fall back to another chart)
 
             stopPreview();
 
@@ -237,9 +254,30 @@ namespace Garbus.Game.Screens.SongSelect
                 case Key.Escape:
                     this.Exit();
                     return true;
+
+                case Key.Down:
+                case Key.Up:
+                    moveSelection(e.Key == Key.Down);
+                    return true;
             }
 
             return base.OnKeyDown(e);
+        }
+
+        /// <summary>Moves the current selection one row forward (down) or backward (up) in the
+        /// current view order. No-op if the list is empty.</summary>
+        private void moveSelection(bool forward)
+        {
+            if (orderedCards.Count == 0)
+                return;
+
+            int currentIndex = SelectedChart == null ? -1 : orderedCards.IndexOf(SelectedChart);
+
+            int newIndex = forward
+                ? (currentIndex == -1 ? 0 : Math.Min(currentIndex + 1, orderedCards.Count - 1))
+                : (currentIndex == -1 ? orderedCards.Count - 1 : Math.Max(currentIndex - 1, 0));
+
+            Select(orderedCards[newIndex]);
         }
 
         public override void OnResuming(ScreenTransitionEvent e)
@@ -247,6 +285,13 @@ namespace Garbus.Game.Screens.SongSelect
             base.OnResuming(e);
             // Returning from play: rescan (new charts may exist) and resume the preview.
             Groups = library.Scan();
+
+            // The rescan produced brand-new ChartCard instances; re-resolve the stale pre-rescan
+            // selection by its stable Locator so it re-highlights (and clears if it no longer exists).
+            SelectedChart = SelectedChart == null
+                ? null
+                : Groups.SelectMany(g => g.Charts).FirstOrDefault(c => c.Locator == SelectedChart.Locator);
+
             rebuild();
             if (SelectedChart != null)
                 startPreview(SelectedChart);
@@ -260,7 +305,14 @@ namespace Garbus.Game.Screens.SongSelect
 
         protected override void Dispose(bool isDisposing)
         {
-            stopPreview();
+            // Not the animated stopPreview() fade: Dispose can run on the async disposal thread (e.g.
+            // during test-scene teardown), and VolumeTo mutates a Transform, which requires the update
+            // thread. Nothing needs to be heard/seen once the whole screen is being torn down, so just
+            // stop the track directly; the still-parented drawable gets disposed by the normal
+            // CompositeDrawable.Dispose() child cascade below.
+            previewTrack?.Stop();
+            previewTrack = null;
+
             directorySource?.Dispose();
             base.Dispose(isDisposing);
         }
