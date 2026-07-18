@@ -5,6 +5,7 @@ namespace Garbus.Game.Edit.Screens
         Setup,
         Compose,
         Timing,
+        Design,
         Verify,
     }
 }

@@ -106,6 +106,7 @@ namespace Garbus.Game.Edit.Screens
         private ComposeTab composeTab = null!;
         private SetupTab setupTab = null!;
         private TimingTab timingTab = null!;
+        private DesignTab designTab = null!;
         private VerifyTab verifyTab = null!;
 
         private Container tabContainer = null!;
@@ -204,6 +205,7 @@ namespace Garbus.Game.Edit.Screens
                 setupTab = new SetupTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 composeTab = new ComposeTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 timingTab = new TimingTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+                designTab = new DesignTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 verifyTab = new VerifyTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
             };
 
@@ -225,6 +227,7 @@ namespace Garbus.Game.Edit.Screens
             setupTab.State.Value = activeTab == EditorTab.Setup ? Visibility.Visible : Visibility.Hidden;
             composeTab.State.Value = activeTab == EditorTab.Compose ? Visibility.Visible : Visibility.Hidden;
             timingTab.State.Value = activeTab == EditorTab.Timing ? Visibility.Visible : Visibility.Hidden;
+            designTab.State.Value = activeTab == EditorTab.Design ? Visibility.Visible : Visibility.Hidden;
             verifyTab.State.Value = activeTab == EditorTab.Verify ? Visibility.Visible : Visibility.Hidden;
         }
 
