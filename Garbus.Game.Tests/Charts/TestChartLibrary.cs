@@ -144,5 +144,44 @@ namespace Garbus.Game.Tests.Charts
                 Directory.Delete(root, true);
             }
         }
+
+        private static void writeDiskChart(string dir, string file, string title, int level)
+        {
+            Directory.CreateDirectory(dir);
+            var chart = new GarbusChart { Metadata = { Title = title, Artist = "A", Level = level, AudioFile = "song.ogg" } };
+            File.WriteAllText(Path.Combine(dir, file), GarbusChartSerializer.Encode(chart));
+        }
+
+        [Test]
+        public void TestDirectorySourceGroupsByFolder()
+        {
+            string root = Directory.CreateTempSubdirectory("garbus-dir-").FullName;
+            try
+            {
+                writeDiskChart(Path.Combine(root, "song-a"), "easy.garbus", "Song A", 2);
+                writeDiskChart(Path.Combine(root, "song-a"), "hard.garbus", "Song A", 7);
+                writeDiskChart(Path.Combine(root, "song-b"), "normal.garbus", "Song B", 4);
+
+                using var source = new DirectoryChartSource(root);
+                var groups = new ChartLibrary(source).Scan();
+
+                Assert.That(groups.Count, Is.EqualTo(2));
+                Assert.That(groups.Single(g => g.Title == "Song A").Charts.Count, Is.EqualTo(2));
+
+                var loaded = source.Enumerate().First().LoadChart();
+                Assert.That(loaded, Is.Not.Null);
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        [Test]
+        public void TestDirectorySourceEmptyWhenRootMissing()
+        {
+            using var source = new DirectoryChartSource(Path.Combine(Path.GetTempPath(), "garbus-does-not-exist-" + System.Guid.NewGuid()));
+            Assert.That(source.Enumerate().ToList(), Is.Empty);
+        }
     }
 }
