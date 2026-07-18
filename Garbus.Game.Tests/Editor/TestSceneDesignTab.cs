@@ -158,5 +158,87 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("clock seeked back near 5000", () =>
                 Math.Abs(editor.ChildrenOfType<EditorClock>().First().CurrentTime - 5000) < 100);
         }
+
+        private DesignPointSettings designSettings() => editor.ChildrenOfType<DesignPointSettings>().First();
+
+        private void addPointAt(double time) => AddStep($"add point at {time}", () =>
+        {
+            editor.ChildrenOfType<EditorClock>().First().Seek(time);
+            input.MoveMouseTo(designButton("Add"));
+            input.Click(osuTK.Input.MouseButton.Left);
+        });
+
+        [Test]
+        public void TestSettingsEditStartEndText()
+        {
+            setupEditor();
+            switchToDesignTab();
+
+            AddUntilStep("list present", () => editor.ChildrenOfType<DesignPointList>().Any());
+            addPointAt(4000);
+            AddUntilStep("settings present + selected", () =>
+                editor.ChildrenOfType<DesignPointSettings>().Any() &&
+                designSettings().SelectedPoint.Value != null);
+
+            AddStep("set start 2500", () => designSettings().SetStartAndCommit(2500));
+            AddStep("set end 5500", () => designSettings().SetEndAndCommit(5500));
+            AddStep("set text", () => designSettings().SetTextAndCommit("Hello world"));
+
+            AddAssert("model updated", () =>
+            {
+                var p = editor.EditorChart.DesignPointInfo.DesignPoints.OfType<TutorialMessage>().First();
+                return Math.Abs(p.StartTime - 2500) < 0.01 && Math.Abs(p.EndTime - 5500) < 0.01 && p.Text == "Hello world";
+            });
+        }
+
+        [Test]
+        public void TestStartNowButtonUsesClockTime()
+        {
+            setupEditor();
+            switchToDesignTab();
+
+            AddUntilStep("list present", () => editor.ChildrenOfType<DesignPointList>().Any());
+            addPointAt(4000);
+            AddUntilStep("settings present", () => editor.ChildrenOfType<DesignPointSettings>().Any());
+
+            AddStep("seek to 1234", () => editor.ChildrenOfType<EditorClock>().First().Seek(1234));
+            AddStep("really click start Now", () =>
+            {
+                var button = designSettings().ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
+                    .First(b => b.Name == "start-now");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddAssert("start moved to ~1234", () =>
+                Math.Abs(editor.EditorChart.DesignPointInfo.DesignPoints.First().StartTime - 1234) < 1);
+        }
+
+        [Test]
+        public void TestSettingsEditIsUndoable()
+        {
+            setupEditor();
+            switchToDesignTab();
+
+            GarbusChartChangeHandler handler = null!;
+            AddUntilStep("get change handler", () =>
+            {
+                if (!editor.IsLoaded) return false;
+                handler = editor.ChangeHandlerForTests;
+                return true;
+            });
+
+            AddUntilStep("list present", () => editor.ChildrenOfType<DesignPointList>().Any());
+            addPointAt(4000);
+            AddUntilStep("settings present", () => editor.ChildrenOfType<DesignPointSettings>().Any());
+
+            AddStep("set text to Foo", () => designSettings().SetTextAndCommit("Foo"));
+            AddAssert("text is Foo", () =>
+                editor.EditorChart.DesignPointInfo.DesignPoints.OfType<TutorialMessage>().First().Text == "Foo");
+
+            AddStep("undo", () => handler.Undo());
+            AddAssert("text reverted", () =>
+                editor.EditorChart.DesignPointInfo.DesignPoints.OfType<TutorialMessage>().First().Text == "New message");
+        }
     }
 }

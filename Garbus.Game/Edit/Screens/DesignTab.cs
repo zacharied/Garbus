@@ -20,6 +20,7 @@ namespace Garbus.Game.Edit.Screens
 
         private TimelineStrip timelineStrip = null!;
         private DesignPointList designPointList = null!;
+        private DesignPointSettings designPointSettings = null!;
 
         public DesignTab()
         {
@@ -72,8 +73,16 @@ namespace Garbus.Game.Edit.Screens
                             {
                                 // Left: list of design points.
                                 designPointList = new DesignPointList { RelativeSizeAxes = Axes.Both },
-                                // Right: scrollable DesignPointSettings (Task 6).
-                                new Container { RelativeSizeAxes = Axes.Both },
+                                // Right: editable details for the selected design point.
+                                new BasicScrollContainer
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                    ScrollbarOverlapsContent = false,
+                                    Child = designPointSettings = new DesignPointSettings
+                                    {
+                                        RelativeSizeAxes = Axes.X,
+                                    },
+                                },
                             },
                         },
                     },
@@ -81,6 +90,7 @@ namespace Garbus.Game.Edit.Screens
             };
 
             selectedPoint.BindTo(designPointList.SelectedPoint);
+            designPointSettings.SelectedPoint.BindTo(selectedPoint);
         }
     }
 }
