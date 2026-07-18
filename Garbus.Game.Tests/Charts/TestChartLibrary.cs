@@ -2,12 +2,17 @@
 // concrete sources. Plain NUnit — no game host.
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Garbus.Game.Charts;
+using Garbus.Game.Charts.Format;
 using Garbus.Game.Screens.SongSelect;
 using NUnit.Framework;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.IO.Stores;
 
 namespace Garbus.Game.Tests.Charts
 {
@@ -72,6 +77,72 @@ namespace Garbus.Game.Tests.Charts
                 card("a", "Song A", "x", 3)));
 
             Assert.That(lib.AllCharts().Select(c => c.Level), Is.EqualTo(new[] { 1, 3, 5 }));
+        }
+
+        // Writes a chart's JSON into <root>/Charts/<name> so a ChartStore over <root> can find it.
+        private static void writeResourceChart(string root, string name, string title, int level)
+        {
+            var chart = new GarbusChart { Metadata = { Title = title, Artist = "A", Level = level, AudioFile = "song.ogg" } };
+            string full = Path.Combine(root, "Charts", name);
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            File.WriteAllText(full, GarbusChartSerializer.Encode(chart));
+        }
+
+        // osu-framework's StorageBackedResourceStore.GetAvailableResources() is
+        // storage.GetDirectories("").SelectMany(d => storage.GetFiles(d)) — it only sees files exactly
+        // one level inside a directory exactly one level from its root, so it can never report a root-level
+        // file (like "flat.garbus") alongside a two-levels-deep one (like "set/easy.garbus") at once. Real
+        // bundled resources go through DllResourceStore instead, whose GetAvailableResources() enumerates
+        // the assembly's manifest resource names directly and has no such depth limit. This stub models
+        // that (full recursive, real file I/O) so the test exercises ChartStore/ResourceChartSource's own
+        // grouping logic rather than the unrelated upstream enumeration bug.
+        private class RecursiveDirectoryResourceStore : IResourceStore<byte[]>
+        {
+            private readonly string root;
+            public RecursiveDirectoryResourceStore(string root) => this.root = root;
+
+            public byte[] Get(string name) => File.ReadAllBytes(Path.Combine(root, name));
+
+            public Task<byte[]> GetAsync(string name, CancellationToken cancellationToken = default) =>
+                File.ReadAllBytesAsync(Path.Combine(root, name), cancellationToken);
+
+            public Stream GetStream(string name) => File.OpenRead(Path.Combine(root, name));
+
+            public IEnumerable<string> GetAvailableResources() =>
+                Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                         .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/'));
+
+            public void Dispose() { }
+        }
+
+        [Test]
+        public void TestResourceSourceEnumeratesAndGroups()
+        {
+            string root = Directory.CreateTempSubdirectory("garbus-res-").FullName;
+            try
+            {
+                writeResourceChart(root, "flat.garbus", "Flat Song", 3);
+                writeResourceChart(root, "set/easy.garbus", "Set Song", 2);
+                writeResourceChart(root, "set/hard.garbus", "Set Song", 8);
+
+                var store = new ChartStore(new RecursiveDirectoryResourceStore(root));
+                var source = new ResourceChartSource(store, null!);
+
+                var cards = source.Enumerate().ToList();
+                Assert.That(cards.Count, Is.EqualTo(3));
+
+                var groups = new ChartLibrary(source).Scan();
+                Assert.That(groups.Count, Is.EqualTo(2)); // flat song + set song
+                Assert.That(groups.Single(g => g.Title == "Set Song").Charts.Count, Is.EqualTo(2));
+
+                // Full load applies defaults (nested objects/hit windows) without throwing.
+                var loaded = cards.First().LoadChart();
+                Assert.That(loaded, Is.Not.Null);
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
         }
     }
 }

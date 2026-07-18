@@ -1,0 +1,69 @@
+// Song-select source over the bundled .garbus resources (read-only). Track audio for these charts
+// lives in the game's Tracks/ resource namespace, resolved through the DI ITrackStore.
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Garbus.Game.Charts;
+using osu.Framework.Audio;
+using osu.Framework.Audio.Track;
+using osu.Framework.Logging;
+
+namespace Garbus.Game.Screens.SongSelect
+{
+    public class ResourceChartSource : IChartSource
+    {
+        private readonly ChartStore charts;
+        private readonly ITrackStore trackStore;
+
+        public ResourceChartSource(ChartStore charts, ITrackStore trackStore)
+        {
+            this.charts = charts;
+            this.trackStore = trackStore;
+        }
+
+        public IEnumerable<ChartCard> Enumerate()
+        {
+            foreach (string name in charts.GetAvailableCharts())
+            {
+                ChartCard? card = null;
+                try
+                {
+                    var chart = charts.Get(name);
+                    string? subfolder = Path.GetDirectoryName(name);
+                    string groupKey = string.IsNullOrEmpty(subfolder) ? "res:" + name : "res:" + subfolder;
+
+                    card = new ChartCard
+                    {
+                        Source = this,
+                        Locator = name,
+                        GroupKey = groupKey,
+                        Title = chart.Metadata.Title,
+                        Artist = chart.Metadata.Artist,
+                        ChartName = chart.Metadata.ChartName,
+                        Level = chart.Metadata.Level,
+                        PreviewTime = chart.PreviewTime,
+                        AudioFile = chart.Metadata.AudioFile,
+                    };
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Skipping unreadable bundled chart \"{name}\": {ex.Message}", level: LogLevel.Important);
+                }
+
+                if (card != null)
+                    yield return card;
+            }
+        }
+
+        public GarbusChart LoadChart(ChartCard card)
+        {
+            var chart = charts.Get(card.Locator);
+            chart.ApplyDefaults();
+            return chart;
+        }
+
+        public Track GetTrack(ChartCard card, AudioManager audio) => trackStore.Get(card.AudioFile);
+    }
+}

@@ -1,7 +1,10 @@
 // Loads .garbus charts from the game's resource stores (replacing osu's WorkingBeatmap/realm chart
 // management — deliberately minimal until song select arrives in Phase 5).
 
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using osu.Framework.IO.Stores;
 using Garbus.Game.Charts.Format;
 
@@ -30,4 +33,12 @@ public class ChartStore
 
         return GarbusChartSerializer.Decode(stream);
     }
+
+    /// <summary>
+    /// Names of every bundled <c>.garbus</c> resource (namespace-relative, e.g.
+    /// <c>"test-chart.garbus"</c> or <c>"set/easy.garbus"</c>).
+    /// </summary>
+    public IEnumerable<string> GetAvailableCharts() =>
+        store.GetAvailableResources()
+             .Where(n => n.EndsWith(".garbus", StringComparison.OrdinalIgnoreCase));
 }
