@@ -8,6 +8,7 @@ using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Dialogs;
 using Garbus.Game.Objects;
 using Garbus.Game.Screens;
+using Garbus.Game.Screens.SongSelect;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Graphics;
@@ -74,10 +75,10 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
-        public void TestPlayButtonPushesPlayScreen()
+        public void TestPlayButtonPushesSongSelect()
         {
             AddStep("click play", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "Play").TriggerClick());
-            AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
+            AddUntilStep("song select pushed", () => stack.CurrentScreen is SongSelectScreen);
         }
 
         // Helper: resolve the current editor and add a CardinalNote to mark it dirty.

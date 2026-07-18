@@ -41,5 +41,10 @@ namespace Garbus.Game.Configuration
         /// Dialogs start here on next open; persisted across sessions.
         /// </summary>
         EditorLastFileDirectory,
+
+        // --- Song select ---
+
+        /// <summary>Whether song select groups charts by song (true) or lists every chart flat (false).</summary>
+        SongSelectGrouped,
     }
 }

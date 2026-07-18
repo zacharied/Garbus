@@ -99,7 +99,8 @@ namespace Garbus.Game.Screens
 
         /// <summary>
         /// Creates a <see cref="PlayScreen"/> pre-loaded with the given chart and track, starting
-        /// at the specified time. Used by the editor's Test mode (F5 / Test button).
+        /// at the specified time. Used by song select (startTime 0) and the editor's Test mode
+        /// (F5 / Test button, non-zero startTime).
         /// </summary>
         /// <param name="chart">A deep-cloned chart (no shared references with the editor).</param>
         /// <param name="track">A fresh track instance (never the editor's own track).</param>

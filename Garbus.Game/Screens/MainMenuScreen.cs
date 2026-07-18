@@ -5,6 +5,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Dialogs;
+using Garbus.Game.Screens.SongSelect;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -85,7 +86,7 @@ namespace Garbus.Game.Screens
 
         private void onPlay()
         {
-            this.Push(new PlayScreen());
+            this.Push(new SongSelectScreen());
         }
 
         private void onNewChart()
