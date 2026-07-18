@@ -32,7 +32,13 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     /// </summary>
     private readonly HashSet<DrawableHitObject> layoutComputed = new HashSet<DrawableHitObject>();
 
-    private GarbusScrollingInfo scrollingInfo { get; set; } = new GarbusScrollingInfo();
+    [Resolved(CanBeNull = true)]
+    private GarbusScrollingInfo? scrollingInfo { get; set; }
+
+    private readonly GarbusScrollingInfo fallbackScrollingInfo = new GarbusScrollingInfo();
+
+    /// <summary>The visible time range currently in effect (ms). Exposed for tests.</summary>
+    internal double CurrentTimeRange => timeRange.Value;
 
     // Responds to changes in the layout. When the layout changes, all hit object states must be recomputed.
     private readonly LayoutValue layoutCache = new LayoutValue(Invalidation.RequiredParentSizeToFit | Invalidation.DrawInfo);
@@ -47,8 +53,10 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     [BackgroundDependencyLoader]
     private void load()
     {
-        timeRange.BindTo(scrollingInfo.TimeRange);
-        algorithm.BindTo(scrollingInfo.Algorithm);
+        var info = scrollingInfo ?? fallbackScrollingInfo;
+
+        timeRange.BindTo(info.TimeRange);
+        algorithm.BindTo(info.Algorithm);
 
         timeRange.ValueChanged += _ => layoutCache.Invalidate();
         algorithm.ValueChanged += _ => layoutCache.Invalidate();

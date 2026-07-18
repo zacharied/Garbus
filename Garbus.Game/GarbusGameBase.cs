@@ -1,7 +1,10 @@
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
+using Garbus.Game.Gameplay.UI.Scrolling;
+using Garbus.Game.Settings;
 using Garbus.Resources;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Development;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -22,6 +25,8 @@ namespace Garbus.Game
         protected GarbusConfigManager LocalConfig { get; private set; } = null!;
 
         private DependencyContainer dependencies = null!;
+
+        private Bindable<double> scrollSpeed = null!;
 
         protected GarbusGameBase()
         {
@@ -44,6 +49,13 @@ namespace Garbus.Game
             dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
             dependencies.Cache(new ChartStore(Resources));
 
+            // Scroll speed -> gameplay TimeRange. Cached here so the gameplay scrolling container
+            // resolves a config-driven GarbusScrollingInfo. Speed 10 reproduces the historical 700 ms.
+            var scrollingInfo = new GarbusScrollingInfo();
+            scrollSpeed = LocalConfig.GetBindable<double>(GarbusSetting.ScrollSpeed);
+            scrollSpeed.BindValueChanged(v => scrollingInfo.TimeRange.Value = ScrollSpeedMapping.ToTimeRange(v.NewValue), true);
+            dependencies.Cache(scrollingInfo);
+
             // Low-latency audio: drive the framework's experimental WASAPI output from a config toggle.
             // Roughly halves output latency on Windows (needed for editor hitsound feedback to sit on
             // the beat); the chart clock's platform offset auto-recalibrates when this changes. The
@@ -55,10 +67,6 @@ namespace Garbus.Game
             // toggle unbound keeps Audio.UseExperimentalWasapi at its silent framework default.
             if (!DebugUtils.IsNUnitRunning)
                 LocalConfig.BindWith(GarbusSetting.UseExperimentalWasapi, Audio.UseExperimentalWasapi);
-
-            // Reduced master volume, pinned on every startup until the Phase 5 settings screen exposes
-            // volume control (the framework would otherwise persist whatever value was last set).
-            Audio.Volume.Value = 0.01;
         }
 
         protected override void Dispose(bool isDisposing)
