@@ -490,6 +490,65 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDraggingNodeTowardSeamDoesNotStealOtherNode()
+        {
+            // User repro: a slider head at 315° with two child nodes both at rotation offset 0, successive
+            // beats apart. Dragging the LATER child toward the left seam made the EARLIER child "steal" the
+            // drag and jump to the seam. Root cause: each NodeDragPiece's CpIndex is reassigned every frame
+            // by slot order (control-point × visible-wrap-copy). The visible wrap-copy count jumps 1→2 the
+            // moment the dragged node nears the seam, which shifts the physical handle being dragged onto an
+            // earlier control point — so dragNode moves the wrong node. The drag must stay bound to the
+            // grabbed node for its whole lifetime, so the other node must never move.
+            waitForComposer();
+
+            AddStep("add 315° slider with two offset-0 nodes + park clock", () =>
+            {
+                var path = new BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 0 },
+                    new GarbusPathControlPoint { TimeOffset = 600, RotationOffset = 0 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 315,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+            AddStep("select slider via head", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddStep("press mouse on the LATER node (index 1) handle", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressButton(MouseButton.Left);
+            });
+            AddAssert("only node 1 grabbed", () =>
+                sliderBlueprint().SelectedNodes.SingleOrDefault(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[1]));
+
+            // March the cursor left, from 315° all the way to the left seam (~ −225° of grid), which drives
+            // the dragged node into the ghost band and flips the wrap-copy count 1→2 mid-drag.
+            AddRepeatStep("drag 9° left", () => dragStepRight(-9), 26);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("dragged node (1) followed the cursor toward the seam",
+                () => placedObject<SliderBody>()!.Path.ControlPoints[1].RotationOffset, () => Is.LessThan(-90));
+            AddAssert("other node (0) never moved",
+                () => placedObject<SliderBody>()!.Path.ControlPoints[0].RotationOffset, () => Is.EqualTo(0));
+        }
+
+        [Test]
         public void TestOutOfBoundsSliderDoesNotStealToolboxInput()
         {
             // A slider that wraps past 360° draws outline wrap-copies whose ends spill past the playfield's
