@@ -1,4 +1,5 @@
 ﻿using Garbus.Game.Screens;
+using Garbus.Game.Settings;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Screens;
@@ -12,9 +13,11 @@ namespace Garbus.Game
         [BackgroundDependencyLoader]
         private void load()
         {
-            // Add your top-level game components here.
-            // A screen stack and sample screen has been provided for convenience, but you can replace it if you don't want to use screens.
-            Child = screenStack = new ScreenStack { RelativeSizeAxes = Axes.Both };
+            Children = new Drawable[]
+            {
+                screenStack = new ScreenStack { RelativeSizeAxes = Axes.Both },
+                new GlobalSettingsContainer(screenStack) { RelativeSizeAxes = Axes.Both },
+            };
         }
 
         protected override void LoadComplete()

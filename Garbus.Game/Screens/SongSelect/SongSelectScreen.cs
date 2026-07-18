@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
+using Garbus.Game.Screens;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
@@ -26,7 +27,7 @@ using osuTK.Input;
 
 namespace Garbus.Game.Screens.SongSelect
 {
-    public partial class SongSelectScreen : Screen
+    public partial class SongSelectScreen : Screen, IAllowSettings
     {
         private const int preview_fade = 200;
 

@@ -17,7 +17,7 @@ using osuTK.Graphics;
 
 namespace Garbus.Game.Screens
 {
-    public partial class MainMenuScreen : Screen
+    public partial class MainMenuScreen : Screen, IAllowSettings
     {
         private Container dialogOverlay = null!;
 
