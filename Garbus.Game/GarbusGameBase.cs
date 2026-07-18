@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
 using Garbus.Game.Gameplay.UI.Scrolling;
@@ -5,6 +6,7 @@ using Garbus.Game.Settings;
 using Garbus.Resources;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Configuration;
 using osu.Framework.Development;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -40,6 +42,14 @@ namespace Garbus.Game
 
         protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent) =>
             dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
+        // Fresh-install volume default: 25% master. This is applied as a config *default*, so a value
+        // the user has since saved to framework.ini still wins — it only affects first run.
+        protected override IDictionary<FrameworkSetting, object> GetFrameworkConfigDefaults() =>
+            new Dictionary<FrameworkSetting, object>
+            {
+                { FrameworkSetting.VolumeUniversal, 0.25 },
+            };
 
         [BackgroundDependencyLoader]
         private void load(Storage storage)

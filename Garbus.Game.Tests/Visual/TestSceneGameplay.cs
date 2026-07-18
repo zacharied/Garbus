@@ -43,11 +43,18 @@ namespace Garbus.Game.Tests.Visual
         [Resolved]
         private ISampleStore samples { get; set; } = null!;
 
+        [Resolved]
+        private Gameplay.UI.Scrolling.GarbusScrollingInfo scrollingInfo { get; set; } = null!;
+
         [SetUpSteps]
         public void SetUpSteps()
         {
             AddStep("create playfield with test chart", () =>
             {
+                // Pin the scroll TimeRange so the polar geometry assertions below stay independent of
+                // the user-facing scroll-speed default (which GarbusGameBase drives into this bindable).
+                scrollingInfo.TimeRange.Value = 700;
+
                 manualClock = new ManualClock { Rate = 1 };
 
                 var chart = GarbusTestChartGenerator.GenerateChart();

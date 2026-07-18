@@ -9,7 +9,7 @@ namespace Garbus.Game.Settings
     {
         public const double MIN_SPEED = 1;
         public const double MAX_SPEED = 20;
-        public const double DEFAULT_SPEED = 10;
+        public const double DEFAULT_SPEED = 4;
 
         // TimeRange = BASELINE / speed, so speed 10 -> 700 ms, 20 -> 350 ms, 1 -> 7000 ms.
         private const double baseline = 7000.0;
