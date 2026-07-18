@@ -46,5 +46,10 @@ namespace Garbus.Game.Configuration
 
         /// <summary>Whether song select groups charts by song (true) or lists every chart flat (false).</summary>
         SongSelectGrouped,
+
+        // --- Gameplay ---
+
+        /// <summary>Scroll speed (higher = faster). Maps to gameplay TimeRange via ScrollSpeedMapping.</summary>
+        ScrollSpeed,
     }
 }

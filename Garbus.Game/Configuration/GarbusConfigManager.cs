@@ -1,3 +1,4 @@
+using Garbus.Game.Settings;
 using osu.Framework.Configuration;
 using osu.Framework.Platform;
 
@@ -27,6 +28,9 @@ namespace Garbus.Game.Configuration
 
             // Song select.
             SetDefault(GarbusSetting.SongSelectGrouped, true);
+
+            // Gameplay.
+            SetDefault(GarbusSetting.ScrollSpeed, ScrollSpeedMapping.DEFAULT_SPEED, ScrollSpeedMapping.MIN_SPEED, ScrollSpeedMapping.MAX_SPEED);
         }
     }
 }
