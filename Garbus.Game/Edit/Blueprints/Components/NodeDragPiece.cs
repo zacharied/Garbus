@@ -15,8 +15,11 @@ namespace Garbus.Game.Edit.Blueprints.Components;
 /// <summary>A draggable circle handle over a slider control-point node. Fills solid when its node is selected.</summary>
 internal partial class NodeDragPiece : CompositeDrawable
 {
-    public Action? DragStarted { get; init; }
-    public Action<int, Vector2>? Dragging { get; init; }
+    /// <summary>Invoked on drag start with the control-point index this handle stands over at that instant —
+    /// captured once so the drag stays bound to that node even as <see cref="CpIndex"/> is reshuffled by
+    /// later wrap-copy changes.</summary>
+    public Action<int>? DragStarted { get; init; }
+    public Action<Vector2>? Dragging { get; init; }
     public Action? DragEnded { get; init; }
 
     /// <summary>Invoked on left mouse-down with (control-point index, Ctrl-pressed) so the blueprint can update node selection.</summary>
@@ -79,14 +82,14 @@ internal partial class NodeDragPiece : CompositeDrawable
 
     protected override bool OnDragStart(DragStartEvent e)
     {
-        DragStarted?.Invoke();
+        DragStarted?.Invoke(CpIndex);
         return true;
     }
 
     protected override void OnDrag(DragEvent e)
     {
         base.OnDrag(e);
-        Dragging?.Invoke(CpIndex, e.ScreenSpaceMousePosition);
+        Dragging?.Invoke(e.ScreenSpaceMousePosition);
     }
 
     protected override void OnDragEnd(DragEndEvent e)

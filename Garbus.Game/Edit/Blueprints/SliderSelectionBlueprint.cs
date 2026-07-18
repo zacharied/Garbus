@@ -68,6 +68,12 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
     // stable control-point references. Not part of EditorChart.SelectedHitObjects / undo / clipboard.
     private readonly HashSet<GarbusPathControlPoint> selectedNodes = new HashSet<GarbusPathControlPoint>();
 
+    // The control point currently being dragged, captured by stable reference at drag start. NodeDragPiece
+    // identifies its node by CpIndex — a slot-order value reassigned every frame — so as the wrap-copy count
+    // shifts mid-drag (e.g. the node crossing the seam), the dragged handle's CpIndex can jump to a different
+    // control point. Binding the drag to a fixed reference keeps it on the grabbed node the whole time.
+    private GarbusPathControlPoint? draggedNode;
+
     internal IReadOnlyCollection<GarbusPathControlPoint> SelectedNodes => selectedNodes;
 
     private InputManager inputManager = null!;
@@ -142,9 +148,9 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             nodeHandles.Add(new NodeDragPiece
             {
                 SelectRequested = (index, ctrl) => selectNode(index, ctrl),
-                DragStarted = () => changeHandler?.BeginChange(),
-                Dragging = (index, pos) => dragNode(index, pos),
-                DragEnded = () => changeHandler?.EndChange(),
+                DragStarted = index => beginNodeDrag(index),
+                Dragging = pos => dragNode(pos),
+                DragEnded = () => endNodeDrag(),
             });
         }
 
@@ -250,16 +256,30 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
         return false;
     }
 
-    private void dragNode(int index, Vector2 screenSpacePosition)
+    /// <summary>Captures the grabbed control point by stable reference (the index is still trustworthy at
+    /// drag start — no wrap-copy reshuffle has happened yet) and opens the change transaction.</summary>
+    private void beginNodeDrag(int index)
     {
-        if (composer == null || editorChart == null)
+        var controlPoints = HitObject.Path.ControlPoints;
+        draggedNode = index < controlPoints.Count ? controlPoints[index] : null;
+        changeHandler?.BeginChange();
+    }
+
+    private void endNodeDrag()
+    {
+        draggedNode = null;
+        changeHandler?.EndChange();
+    }
+
+    private void dragNode(Vector2 screenSpacePosition)
+    {
+        if (composer == null || editorChart == null || draggedNode is not { } grabbed)
             return;
 
         var controlPoints = HitObject.Path.ControlPoints;
-        if (index >= controlPoints.Count)
+        if (!controlPoints.Contains(grabbed))
             return;
 
-        var grabbed = controlPoints[index];
         var result = composer.FindSnappedAngleTimeAndPosition(screenSpacePosition);
 
         // The moved set: the whole node selection when the grabbed node is part of it, else just the grabbed node.
