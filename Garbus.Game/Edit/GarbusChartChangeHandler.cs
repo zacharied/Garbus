@@ -128,6 +128,13 @@ namespace Garbus.Game.Edit
                     OmitFirstBarLine = tp.OmitFirstBarLine,
                 });
             }
+
+            // --- DesignPointInfo ---
+            // Rebuild design points from the decoded target. The decoded points are fresh instances
+            // (deep-cloned through the serializer), so adding them directly is safe.
+            editorChart.DesignPointInfo.Clear();
+            foreach (var designPoint in targetChart.DesignPointInfo.DesignPoints)
+                editorChart.DesignPointInfo.Add(designPoint);
         }
     }
 }

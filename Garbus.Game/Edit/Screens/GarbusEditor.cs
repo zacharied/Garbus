@@ -144,6 +144,9 @@ namespace Garbus.Game.Edit.Screens
             // Cache ControlPointInfo directly so timeline components (TimelineTickDisplay,
             // TimelineTimingChangeDisplay) can resolve it without going through EditorChart.
             dependencies.CacheAs(EditorChart.ControlPointInfo);
+            // Cache DesignPointInfo directly so the Design tab components and the timeline region
+            // display can resolve it without going through EditorChart.
+            dependencies.CacheAs(EditorChart.DesignPointInfo);
 
             return dependencies;
         }

@@ -38,6 +38,7 @@ namespace Garbus.Game.Edit
         public IReadOnlyList<GarbusHitObject> HitObjects => hitObjects;
 
         public Charts.Timing.ControlPointInfo ControlPointInfo => Chart.ControlPointInfo;
+        public Charts.Design.DesignPointInfo DesignPointInfo => Chart.DesignPointInfo;
         public ChartMetadata Metadata => Chart.Metadata;
 
         // Direct alias to Chart.HitObjects — no shadow copy. All mutations go to the same list

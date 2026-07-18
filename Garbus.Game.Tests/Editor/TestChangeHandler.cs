@@ -4,6 +4,7 @@
 
 using System.Linq;
 using Garbus.Game.Charts;
+using Garbus.Game.Charts.Design;
 using Garbus.Game.Edit;
 using Garbus.Game.Objects;
 using NUnit.Framework;
@@ -93,6 +94,28 @@ namespace Garbus.Game.Tests.Editor
             Assert.That(chart.HitObjects, Is.Empty);
             Assert.That(chart.Chart.HitObjects, Is.Empty,
                 "Chart.HitObjects must stay in sync with editorChart.HitObjects after undo");
+        }
+
+        [Test]
+        public void TestUndoRedoDesignPoint()
+        {
+            chart.BeginChange();
+            chart.DesignPointInfo.Add(new TutorialMessage { StartTime = 1000, EndTime = 3000, Text = "hi" });
+            chart.SaveState();
+            chart.EndChange();
+
+            Assert.That(chart.DesignPointInfo.DesignPoints, Has.Count.EqualTo(1));
+            Assert.That(handler.CanUndo.Value, Is.True);
+
+            handler.Undo();
+            Assert.That(chart.DesignPointInfo.DesignPoints, Is.Empty);
+
+            handler.Redo();
+            Assert.That(chart.DesignPointInfo.DesignPoints, Has.Count.EqualTo(1));
+            var tm = (TutorialMessage)chart.DesignPointInfo.DesignPoints[0];
+            Assert.That(tm.StartTime, Is.EqualTo(1000));
+            Assert.That(tm.EndTime, Is.EqualTo(3000));
+            Assert.That(tm.Text, Is.EqualTo("hi"));
         }
 
         [Test]
