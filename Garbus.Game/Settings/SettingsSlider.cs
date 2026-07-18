@@ -73,7 +73,17 @@ namespace Garbus.Game.Settings
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            current.BindValueChanged(v => valueText.Text = format(v.NewValue), true);
+            current.BindValueChanged(updateValueText, true);
+        }
+
+        private void updateValueText(ValueChangedEvent<double> v) => valueText.Text = format(v.NewValue);
+
+        protected override void Dispose(bool isDisposing)
+        {
+            if (current != null)
+                current.ValueChanged -= updateValueText;
+
+            base.Dispose(isDisposing);
         }
     }
 }
