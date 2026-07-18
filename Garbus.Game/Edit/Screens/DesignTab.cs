@@ -4,6 +4,7 @@
 // task and the details pane in the DesignPointSettings task.
 
 using Garbus.Game.Charts.Design;
+using Garbus.Game.Edit.Screens.Design;
 using Garbus.Game.Edit.Screens.Timeline;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -18,6 +19,7 @@ namespace Garbus.Game.Edit.Screens
         private readonly Bindable<DesignPoint?> selectedPoint = new Bindable<DesignPoint?>();
 
         private TimelineStrip timelineStrip = null!;
+        private DesignPointList designPointList = null!;
 
         public DesignTab()
         {
@@ -68,8 +70,8 @@ namespace Garbus.Game.Edit.Screens
                         {
                             new Drawable[]
                             {
-                                // Left: DesignPointList (Task 5).
-                                new Container { RelativeSizeAxes = Axes.Both },
+                                // Left: list of design points.
+                                designPointList = new DesignPointList { RelativeSizeAxes = Axes.Both },
                                 // Right: scrollable DesignPointSettings (Task 6).
                                 new Container { RelativeSizeAxes = Axes.Both },
                             },
@@ -77,6 +79,8 @@ namespace Garbus.Game.Edit.Screens
                     },
                 },
             };
+
+            selectedPoint.BindTo(designPointList.SelectedPoint);
         }
     }
 }
