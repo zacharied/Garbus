@@ -91,7 +91,7 @@ namespace Garbus.Game.Screens.SongSelect
                 },
                 new SpriteText
                 {
-                    Padding = new MarginPadding { Top = 16, Left = 40 },
+                    Padding = new MarginPadding { Top = 16, Left = 64 },
                     Text = "Select a chart",
                     Font = FontUsage.Default.With(size: 28),
                 },

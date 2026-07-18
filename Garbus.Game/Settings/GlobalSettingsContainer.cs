@@ -86,7 +86,7 @@ namespace Garbus.Game.Settings
 
         protected override bool OnJoystickPress(JoystickPressEvent e)
         {
-            if (e.Button == toggle_button)
+            if (e.Button == toggle_button && screenStack.CurrentScreen is IAllowSettings)
             {
                 toggle();
                 return true;

@@ -80,8 +80,7 @@ namespace Garbus.Game.Settings
 
         protected override void Dispose(bool isDisposing)
         {
-            if (current != null)
-                current.ValueChanged -= updateValueText;
+            current.ValueChanged -= updateValueText;
 
             base.Dispose(isDisposing);
         }
