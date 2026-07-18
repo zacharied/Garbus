@@ -56,5 +56,27 @@ namespace Garbus.Game.Tests.Visual
             AddStep("seek after window (5000)", () => manualClock.CurrentTime = 5000);
             AddUntilStep("hidden after", () => !overlay.MessageVisibleForTests && overlay.DimAlphaForTests == 0);
         }
+
+        [Test]
+        public void TestNewlineEscapeRendersAsRealLineBreak()
+        {
+            AddStep("author message with \\n escape", () =>
+            {
+                var chart = new GarbusChart();
+                chart.DesignPointInfo.Add(new TutorialMessage { StartTime = 2000, EndTime = 4000, Text = "line1\\nline2" });
+
+                Child = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Clock = new FramedClock(manualClock),
+                    Child = overlay = new DesignOverlay(chart) { RelativeSizeAxes = Axes.Both },
+                };
+            });
+            AddUntilStep("overlay loaded", () => overlay.IsLoaded);
+
+            AddStep("seek into window (3000)", () => manualClock.CurrentTime = 3000);
+            AddUntilStep("rendered text has a real newline", () =>
+                overlay.MessageVisibleForTests && overlay.MessageTextForTests == "line1\nline2");
+        }
     }
 }

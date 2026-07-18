@@ -215,3 +215,24 @@ tutorial windows while charting) and is the cheap, idiomatic scoping.
   tint), drawn below the timing lines. A thinner near-bottom band is a possible later refinement.
 - **End-time invalid input** (`EndTime ≤ StartTime`) is rejected-and-restored in v1; a
   clamp-to-`StartTime+ε` alternative can be revisited.
+
+## Addendum — multiline tutorial messages (newline-escape convention)
+
+osu-framework's `TextBox` cannot hold newlines: its private char filter rejects every
+`char.IsControl` character (so `\n` can neither be typed nor `InsertString`-ed, and the public
+`CanAddCharacter` override can't bypass it), `Enter` commits + releases focus, and the text
+layout is a horizontal fill flow with no vertical wrapping. A true in-place multiline *editable*
+box means reimplementing that widget — out of scope for a tutorial-message field.
+
+Instead, author line breaks with an escape convention:
+
+- **Storage**: `TutorialMessage.Text` holds the raw authored string, including literal `\n`
+  (backslash + `n`) two-character sequences. No model/format change.
+- **Editing**: the settings `messageBox` stays a single-line `BasicTextBox`; its placeholder and
+  a dimmed hint label advertise the `\n` convention.
+- **Rendering**: `TutorialMessage.Render(raw)` translates the literal `\n` sequence to a real
+  newline. `DesignOverlay` renders through it before assigning the `TextFlowContainer` (which
+  honors `\n`), tracking the raw text for the per-frame change guard and the rendered text for
+  display. Only `\n` is translated — no `\t`, `\`, or `\r\n` (v1 convenience, not a grammar).
+- **Tests**: `TutorialMessage.Render` unit tests (translates `\n`, leaves other backslashes
+  untouched); a `DesignOverlay` test that an authored `\n` renders as a real line break.

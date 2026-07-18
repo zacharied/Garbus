@@ -67,7 +67,13 @@ namespace Garbus.Game.Edit.Screens.Design
                     {
                         RelativeSizeAxes = Axes.X,
                         Height = 30,
-                        PlaceholderText = "Message text",
+                        PlaceholderText = @"Message text (use \n for a line break)",
+                    },
+                    new SpriteText
+                    {
+                        Text = @"Tip: type \n where you want a line break.",
+                        Font = FontUsage.Default.With(size: 14),
+                        Colour = new Colour4(180, 180, 180, 255),
                     },
                 },
             };

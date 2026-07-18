@@ -71,6 +71,19 @@ namespace Garbus.Game.Tests.Charts
         }
 
         [Test]
+        public void TestRenderTranslatesNewlineEscapes()
+        {
+            Assert.That(TutorialMessage.Render("line1\\nline2"), Is.EqualTo("line1\nline2"));
+        }
+
+        [Test]
+        public void TestRenderLeavesOtherBackslashesUntouched()
+        {
+            // Only the two-char \n sequence is translated; a lone backslash or \t passes through.
+            Assert.That(TutorialMessage.Render("a\\tb\\c"), Is.EqualTo("a\\tb\\c"));
+        }
+
+        [Test]
         public void TestRemoveAndClearRaiseEvent()
         {
             var info = new DesignPointInfo();

@@ -17,5 +17,12 @@ namespace Garbus.Game.Charts.Design
             get => TextBindable.Value;
             set => TextBindable.Value = value;
         }
+
+        /// <summary>
+        /// Translates the authoring newline convention into display text: the literal two-character
+        /// sequence <c>\n</c> (backslash + n) becomes a real line break. Other backslashes pass
+        /// through untouched — this is a v1 convenience, not a full escape grammar.
+        /// </summary>
+        public static string Render(string raw) => raw.Replace("\\n", "\n");
     }
 }

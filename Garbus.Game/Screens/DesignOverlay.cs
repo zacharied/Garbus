@@ -23,9 +23,11 @@ namespace Garbus.Game.Screens
         private Box dim = null!;
         private TextFlowContainer message = null!;
 
-        // TextFlowContainer.Text is write-only, so track the displayed text ourselves (for the
-        // change guard and the test seam).
-        private string currentText = string.Empty;
+        // TextFlowContainer.Text is write-only, so track the text ourselves. currentRaw is the
+        // authored string (used as the change guard); currentRendered is what we actually display
+        // after translating \n escapes (the test seam).
+        private string currentRaw = string.Empty;
+        private string currentRendered = string.Empty;
 
         public DesignOverlay(GarbusChart chart)
         {
@@ -67,10 +69,11 @@ namespace Garbus.Game.Screens
             {
                 dim.Alpha = TutorialMessage.OVERLAY_OPACITY;
                 message.Alpha = 1;
-                if (currentText != active.Text)
+                if (currentRaw != active.Text)
                 {
-                    currentText = active.Text;
-                    message.Text = currentText;
+                    currentRaw = active.Text;
+                    currentRendered = TutorialMessage.Render(active.Text);
+                    message.Text = currentRendered;
                 }
             }
             else
@@ -90,7 +93,7 @@ namespace Garbus.Game.Screens
         /// <summary>Test seam: whether the message text is currently shown.</summary>
         public bool MessageVisibleForTests => message.Alpha > 0;
 
-        /// <summary>Test seam: the currently displayed message text.</summary>
-        public string MessageTextForTests => currentText;
+        /// <summary>Test seam: the currently displayed message text (after \n-escape translation).</summary>
+        public string MessageTextForTests => currentRendered;
     }
 }
