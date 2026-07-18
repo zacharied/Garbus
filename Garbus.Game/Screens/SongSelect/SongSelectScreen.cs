@@ -52,6 +52,12 @@ namespace Garbus.Game.Screens.SongSelect
         /// <summary>The currently selected chart, or null before any selection. Exposed for tests.</summary>
         public ChartCard? SelectedChart { get; private set; }
 
+        /// <summary>The currently-playing preview track, or null if none. Exposed for tests (so a
+        /// test can capture the instance and assert on it directly, since <see cref="previewTrack"/>
+        /// itself is cleared synchronously as soon as a stop is requested, independent of whether the
+        /// underlying track has actually stopped).</summary>
+        public ITrack? PreviewTrack => previewTrack;
+
         /// <summary>Whether the list is grouped by song (true) or flat by level (false).</summary>
         public bool Grouped
         {
@@ -213,6 +219,23 @@ namespace Garbus.Game.Screens.SongSelect
             });
         }
 
+        /// <summary>Stops the preview without the animated fade. Screen transitions (launching into
+        /// PlayScreen, exiting this screen) suspend/expire this screen synchronously right after the
+        /// call that triggers them returns, which stops this screen's drawables from receiving further
+        /// Update calls — the animated stopPreview()'s fade-then-Stop() would never get to run its
+        /// OnComplete, leaving the track playing forever. Must be used instead of stopPreview() from
+        /// any such transition.</summary>
+        private void stopPreviewImmediately()
+        {
+            var track = previewTrack;
+            previewTrack = null;
+            if (track == null)
+                return;
+
+            track.Stop();
+            RemoveInternal(track, true);
+        }
+
         /// <summary>Loads the selected chart + a fresh gameplay track and pushes the play screen.</summary>
         public void Launch()
         {
@@ -234,7 +257,7 @@ namespace Garbus.Game.Screens.SongSelect
             if (track == null)
                 return; // selected chart's audio is missing — unplayable; do not launch (never fall back to another chart)
 
-            stopPreview();
+            stopPreviewImmediately();
 
             var chart = SelectedChart.LoadChart();
             this.Push(new PlayScreen(chart, track));
@@ -300,7 +323,7 @@ namespace Garbus.Game.Screens.SongSelect
 
         public override bool OnExiting(ScreenExitEvent e)
         {
-            stopPreview();
+            stopPreviewImmediately();
             return base.OnExiting(e);
         }
 

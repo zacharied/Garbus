@@ -12,6 +12,7 @@ using Garbus.Game.Screens;
 using Garbus.Game.Screens.SongSelect;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
 using osu.Framework.Platform;
 using osu.Framework.Screens;
@@ -98,6 +99,29 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
             AddAssert("play screen has the selected chart", () =>
                 ((PlayScreen)stack.CurrentScreen).Chart != null);
+        }
+
+        [Test]
+        public void TestLaunchStopsPreviewTrack()
+        {
+            ITrack? preview = null;
+
+            AddStep("select first chart", () => songSelect.Select(songSelect.Groups.SelectMany(g => g.Charts).First()));
+            AddUntilStep("preview playing", () => songSelect.PreviewTrack?.IsRunning == true);
+
+            // Capture the actual track instance before Launch() clears SongSelectScreen.PreviewTrack —
+            // that field is nulled synchronously the moment a stop is requested, regardless of whether
+            // the underlying track ever actually stops, so it can't be used to observe the real bug.
+            AddStep("capture preview track", () => preview = songSelect.PreviewTrack);
+
+            AddStep("launch", () => songSelect.Launch());
+            AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
+
+            // Regression: SongSelectScreen is suspended (and stops updating) synchronously as part of
+            // Push(), which happens right after Launch() kicks off the animated fade-then-stop. The
+            // fade's OnComplete (which calls Track.Stop()) never gets to run, so the preview keeps
+            // playing forever underneath PlayScreen.
+            AddUntilStep("captured preview track stopped", () => preview?.IsRunning == false);
         }
 
         [Test]
