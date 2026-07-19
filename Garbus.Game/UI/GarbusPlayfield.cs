@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Objects;
@@ -35,6 +36,12 @@ public partial class GarbusPlayfield : Playfield
 
     [Cached]
     private ChordHighlighter chordHighlighter { get; set; } = new ChordHighlighter();
+
+    /// <summary>
+    /// The current combo, surfaced for the centre <see cref="ComboDisplay"/> to bind to. Driven by the
+    /// screen that owns scoring (<see cref="Screens.PlayScreen"/>), which pushes the value each frame.
+    /// </summary>
+    public BindableInt Combo { get; } = new BindableInt();
 
     public GarbusPlayfield()
     {

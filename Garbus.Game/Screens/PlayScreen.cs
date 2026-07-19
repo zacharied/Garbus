@@ -271,6 +271,9 @@ namespace Garbus.Game.Screens
 
             scoreText.Text = $"score: {totalScore:N0}";
             comboText.Text = $"combo: {combo}x   (best {highestCombo}x)";
+
+            // Feed the centre-of-circle combo counter (drawn beneath the hit objects).
+            playfield.Combo.Value = combo;
             accuracyText.Text = $"accuracy: {(accuracyMax > 0 ? accuracyEarned / accuracyMax : 1):P2}";
 
             if (!resultsShown && gameplayClock.CurrentTime > chartEndTime + results_grace)

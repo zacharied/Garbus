@@ -359,6 +359,24 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestComboDisplayShowsCurrentComboAtCentre()
+        {
+            AddStep("set combo to 12", () => playfield.Combo.Value = 12);
+            AddUntilStep("centre shows 12", () => comboDisplay()?.Text.ToString() == "12");
+            AddAssert("centre visible", () => comboDisplay()?.Alpha > 0);
+            AddAssert("centred in ring", () =>
+            {
+                var display = comboDisplay()!;
+                return display.Anchor == Anchor.Centre && display.Origin == Anchor.Centre;
+            });
+
+            AddStep("reset combo to 0", () => playfield.Combo.Value = 0);
+            AddUntilStep("centre hidden at 0", () => comboDisplay()?.Alpha == 0);
+        }
+
+        private ComboDisplay? comboDisplay() => playfield.ChildrenOfType<ComboDisplay>().SingleOrDefault();
+
+        [Test]
         public void TestHitSampleResolves()
         {
             AddAssert("soft-hitnormal sample resolves", () => samples.Get(@"Gameplay/soft-hitnormal") != null);

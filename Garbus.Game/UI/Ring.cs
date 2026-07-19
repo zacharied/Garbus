@@ -60,10 +60,12 @@ public partial class Ring : Playfield
             AddNested(lane);
         }
 
-        // Back-to-front: radial spokes, chord connectors (under all notes), cross-lane paths, the lanes, the ring.
+        // Back-to-front: radial spokes, chord connectors (under all notes), the centre combo counter
+        // (drawn beneath every note), cross-lane paths, the lanes, the ring.
         AddRangeInternal([
             new PlayfieldRadialLines(),
             new ChordConnectorOverlay(),
+            new ComboDisplay(),
             HitObjectContainer,
             laneContainer,
             new Arc(0, 2 * MathF.PI)
