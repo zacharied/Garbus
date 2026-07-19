@@ -67,15 +67,7 @@ namespace Garbus.Game
             scrollSpeed.BindValueChanged(v => scrollingInfo.TimeRange.Value = ScrollSpeedMapping.ToTimeRange(v.NewValue), true);
             dependencies.Cache(scrollingInfo);
 
-            // Low-latency audio: drive the framework's experimental WASAPI output from a config toggle.
-            // Roughly halves output latency on Windows (needed for editor hitsound feedback to sit on
-            // the beat); the chart clock's platform offset auto-recalibrates when this changes. The
-            // framework falls back to the normal output path when the device can't do WASAPI.
-            //
-            // Skip this under headless NUnit runs. The framework forces the "No sound" BASS device in
-            // tests, but that guard does NOT cover the WASAPI path — enabling WASAPI opens the real
-            // default output device (device -1) and makes the whole test suite audible. Leaving the
-            // toggle unbound keeps Audio.UseExperimentalWasapi at its silent framework default.
+            // Prevent audio output in unit tests.
             if (!DebugUtils.IsNUnitRunning)
                 LocalConfig.BindWith(GarbusSetting.UseExperimentalWasapi, Audio.UseExperimentalWasapi);
 
