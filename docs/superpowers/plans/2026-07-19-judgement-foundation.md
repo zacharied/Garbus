@@ -1456,7 +1456,7 @@ asymmetric `(Early, Late)` ranges (`HitWindowRange`) with an early-only Miss win
 keyed off `HitWindows.LateEligibilityEdge`, notes carry `CardinalNoteHitWindows` /
 `ShoulderNoteHitWindows` (hold heads share the parent instance), and note-lock is the spec's
 oldest-eligible-containing rule (no force-missing — `GarbusOrderedHitPolicy`). Holds/sliders/slams
-carry interim mappings only; their spec alig nment is the hold/slider/slam cycles (see
+carry interim mappings only; their spec alignment is the hold/slider/slam cycles (see
 `docs/superpowers/specs/2026-07-19-judgement-foundation-design.md`).
 ```
 
