@@ -25,6 +25,7 @@ namespace Garbus.Game.Tests
             Assert.That(windows.ResultFor(-200), Is.EqualTo(HitResult.Miss));
             Assert.That(windows.ResultFor(-201), Is.EqualTo(HitResult.None));
             Assert.That(windows.LateEligibilityEdge, Is.EqualTo(110));
+            Assert.That(windows.EarliestInteractionEdge, Is.EqualTo(200));
             Assert.That(windows.IsHitResultAllowed(HitResult.Bad), Is.False);
         }
 
@@ -42,6 +43,7 @@ namespace Garbus.Game.Tests
             Assert.That(windows.ResultFor(-151), Is.EqualTo(HitResult.Miss));
             Assert.That(windows.ResultFor(-200), Is.EqualTo(HitResult.Miss));
             Assert.That(windows.LateEligibilityEdge, Is.EqualTo(150));
+            Assert.That(windows.EarliestInteractionEdge, Is.EqualTo(200));
             Assert.That(windows.IsHitResultAllowed(HitResult.Bad), Is.False);
         }
 
@@ -80,6 +82,12 @@ namespace Garbus.Game.Tests
             Assert.That(slam.HitWindows, Is.SameAs(HitWindows.Empty));
             Assert.That(slam.MaximumJudgementOffset, Is.EqualTo(200));
             Assert.That(slam.Judgement.MaxResult, Is.EqualTo(HitResult.Perfect));
+        }
+
+        [Test]
+        public void EmptyWindowsHaveNoEarliestInteractionEdge()
+        {
+            Assert.That(HitWindows.Empty.EarliestInteractionEdge, Is.EqualTo(0));
         }
     }
 }

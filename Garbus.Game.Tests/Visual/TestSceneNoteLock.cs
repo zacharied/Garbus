@@ -142,5 +142,31 @@ namespace Garbus.Game.Tests.Visual
             AddStep("step past the edge", () => manualClock.CurrentTime = 2115);
             AddUntilStep("auto-missed past the edge", () => note(2000).Result?.Type == HitResult.Miss);
         }
+
+        [Test]
+        public void TestEarlyMissReleasesVetoForNewerNote()
+        {
+            createPlayfield(
+                new CardinalNote { StartTime = 2000, AngleDeg = 90 },
+                new CardinalNote { StartTime = 2150, AngleDeg = 90 });
+
+            // -150 on the older note: early-only Miss window -> judged Miss immediately. The newer
+            // note (offset -300) is outside all its windows and must be untouched.
+            seekTo(1850);
+            pressNorth();
+
+            AddUntilStep("older note judged early", () => note(2000).Judged);
+            AddAssert("older note early-missed", () => note(2000).Result?.Type == HitResult.Miss);
+            AddAssert("newer note untouched", () => !note(2150).Judged);
+
+            // 2050 would be inside the older note's Perfect window (offset +50) were it still
+            // eligible — the early-miss judgement must have released the veto, so the press falls
+            // to the newer note (offset -100 -> Near).
+            seekTo(2050);
+            pressNorth();
+
+            AddUntilStep("newer note judged", () => note(2150).Judged);
+            AddAssert("newer note hit (Near)", () => note(2150).Result?.Type == HitResult.Near);
+        }
     }
 }
