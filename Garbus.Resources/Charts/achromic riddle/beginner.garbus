@@ -1,0 +1,2450 @@
+﻿{
+    "version":  1,
+    "metadata":  {
+                     "title":  "Achromic Riddle",
+                     "artist":  "Nego_tiator",
+                     "charter":  "Necoji",
+                     "chartName":  "",
+                     "romanisedTitle":  "",
+                     "romanisedArtist":  "",
+                     "source":  "DEEMO II",
+                     "tags":  "",
+                     "audioFile":  "achromic riddle.ogg",
+                     "backgroundFile":  "achromic riddle.png",
+                     "level":  2,
+                     "difficulty":  "Novice"
+                 },
+    "previewTime":  null,
+    "timingPoints":  [
+                         {
+                             "time":  2789,
+                             "beatLength":  342.85714285714283,
+                             "timeSignature":  4,
+                             "omitFirstBarLine":  false
+                         }
+                     ],
+    "hitObjects":  [
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  8274.714285714286
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  9646.142857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  11017.571428571428
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  12389
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  13760.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  15131.857142857141
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  16503.285714285714
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  17189
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  17874.714285714283
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  19246.142857142855
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  19931.85714285714
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  20617.571428571428
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  21989
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  22674.714285714283
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  23360.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  24046.142857142855
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571413,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142862,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1028.5714285714275,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1542.8571428571413,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1714.2857142857138,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1885.7142857142862,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2228.5714285714275,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2742.8571428571413,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3257.1428571428587,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4457.142857142855,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "InOutQuad"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4971.4285714285725,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  24731.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  514.2857142857138,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142862,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  857.1428571428587,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1200,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1371.4285714285725,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1542.857142857145,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1885.7142857142862,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2399.9999999999964,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2914.2857142857138,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3599.9999999999964,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3942.8571428571413,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4114.285714285714,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4285.714285714286,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4628.571428571431,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  30560.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571413,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142862,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1028.5714285714275,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1542.8571428571413,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1714.2857142857138,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1885.7142857142862,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2228.5714285714275,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2742.8571428571413,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3257.1428571428587,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3942.857142857145,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "InOutQuad"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4285.71428571429,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4457.142857142855,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4628.5714285714275,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4800,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4971.4285714285725,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  5314.285714285717,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  5485.71428571429,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  35703.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  514.2857142857138,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142862,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  857.1428571428587,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1200,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1371.4285714285725,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1542.857142857145,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1885.7142857142862,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2399.9999999999964,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2914.2857142857138,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3599.9999999999964,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3942.8571428571413,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4114.285714285714,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4285.714285714286,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  5142.857142857145,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  41531.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  46331.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  46674.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  47017.57142857143
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  47703.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  48046.142857142855
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  15,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  48389
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  15,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  49074.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  49417.57142857143
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  49760.428571428565
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  50103.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  315,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  50446.142857142855
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  50789
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  51131.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  51817.57142857143
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  150,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  52160.428571428565
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  135,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  52503.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  53189
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  53531.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  53874.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  54560.428571428565
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  54560.428571428565
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  54903.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  55246.142857142855
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  55588.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  55931.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  55931.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  56274.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  315,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  56617.57142857143
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  56960.428571428565
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  57303.28571428571
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  57646.142857142855
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  57988.99999999999
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  58674.71428571428
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  59017.57142857143
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  59360.428571428565
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  60046.142857142855
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  60388.99999999999
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  60731.85714285714
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  61417.57142857143
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  61760.428571428565
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  62103.28571428571
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  62788.99999999999
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  63131.85714285714
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  63474.71428571428
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  64160.428571428565
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  64503.28571428571
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  64846.142857142855
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  65874.71428571429
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  65874.71428571429
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  66560.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  66560.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  67246.14285714286
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  67246.14285714286
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  67931.85714285713
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  67931.85714285713
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  74103.28571428571
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  74446.14285714286
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  74789
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  75474.71428571428
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  75817.57142857142
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  76160.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  76846.14285714286
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  77189
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  77531.85714285713
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  78217.57142857142
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  78560.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  78903.28571428571
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  1371.4285714285652,
+                           "time":  79589
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  1371.4285714285652,
+                           "time":  80960.42857142857
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  1371.4285714285797,
+                           "time":  82331.85714285713
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  1371.4285714285652,
+                           "time":  83703.28571428571
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  1371.4285714285797,
+                           "time":  85074.71428571428
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  1371.4285714285652,
+                           "time":  86446.14285714286
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  90,
+                           "duration":  2742.857142857145,
+                           "time":  87817.57142857142
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  1371.4285714285652,
+                           "time":  89189
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  93303.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  93646.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  93817.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  171.4285714285652,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142899,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 }
+                                             ],
+                           "time":  94160.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  190,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  94931.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  200,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  95017.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  95103.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  220,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  514.2857142857101,
+                                                     "rotationOffset":  10,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 }
+                                             ],
+                           "time":  95189
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  215,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  95703.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  96046.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  96217.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  315,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  96389
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  96560.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 },
+                                                 {
+                                                     "timeOffset":  857.1428571428551,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 }
+                                             ],
+                           "time":  96903.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  97931.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  514.2857142857247,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  97931.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571304,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  98789
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  135,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  99303.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  150,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  99646.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  99731.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  99817.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  99903.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571304,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  99989
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  100417.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  100503.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  100589
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  150,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  100674.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  150,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  101103.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  101189
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  101274.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  240,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  101360.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  270,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  101446.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  255,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  101531.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  270,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142899,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1028.5714285714348,
+                                                     "rotationOffset":  -90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1371.4285714285797,
+                                                     "rotationOffset":  -90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  101531.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142899,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1028.5714285714203,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1371.4285714285652,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  102903.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  104274.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  104617.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  104788.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  171.4285714285652,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142899,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 }
+                                             ],
+                           "time":  105131.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  350,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  105903.2857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  340,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  105988.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  106074.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  320,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  514.2857142857101,
+                                                     "rotationOffset":  -10,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 }
+                                             ],
+                           "time":  106160.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  325,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  106674.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  107017.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  107188.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  107360.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  107531.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 },
+                                                 {
+                                                     "timeOffset":  857.1428571428551,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 }
+                                             ],
+                           "time":  107874.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  108903.2857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  514.2857142857247,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  108903.2857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571304,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  109760.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  45,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  110274.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  30,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  110617.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  15,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  110703.2857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  110788.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  110874.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571304,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  110960.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  111388.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  111474.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  15,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  111560.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  30,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  111646.14285714284
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  30,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  112074.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  112160.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  112246.14285714284
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  300,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  112331.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  270,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  112417.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  285,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  112503.2857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  270,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142899,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1028.5714285714348,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1371.4285714285797,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  112503.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.85714285714494,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142899,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1028.5714285714348,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1371.4285714285797,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  113874.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  115246.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  115760.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  116103.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  116446.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  342.8571428571304,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  685.7142857142753,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  116446.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  240,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117217.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  255,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117303.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  270,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117388.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  285,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117474.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  300,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117560.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  315,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117646.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117731.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117817.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  117903.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  117988.99999999999
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  123474.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  123817.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  124160.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  124417.57142857142
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  124846.14285714286
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  125189
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  125531.85714285714
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  125789
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  126217.57142857142
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  126560.42857142857
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  126903.28571428571
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  127160.42857142857
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  127588.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  127931.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  128274.71428571428
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  128531.85714285713
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  128788.99999999999
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  128788.99999999999
+                       }
+                   ],
+    "designPoints":  [
+
+                     ]
+}

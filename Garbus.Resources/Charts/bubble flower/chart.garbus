@@ -1,0 +1,1730 @@
+﻿{
+    "version":  1,
+    "metadata":  {
+                     "title":  "",
+                     "artist":  "",
+                     "charter":  "",
+                     "chartName":  "",
+                     "romanisedTitle":  "",
+                     "romanisedArtist":  "",
+                     "source":  "",
+                     "tags":  "",
+                     "audioFile":  "bubble flower.ogg",
+                     "backgroundFile":  "",
+                     "level":  7,
+                     "difficulty":  "Advanced"
+                 },
+    "previewTime":  null,
+    "timingPoints":  [
+                         {
+                             "time":  1282,
+                             "beatLength":  312.5,
+                             "timeSignature":  4,
+                             "omitFirstBarLine":  false
+                         }
+                     ],
+    "hitObjects":  [
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  1282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  1750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  2219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  2532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  3000.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  3469.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  3782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  4250.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  4719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  5032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  5500.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  5969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  6282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  6750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  7219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  7532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  8000.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  8469.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  8782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  9250.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  9719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  10032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  10500.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  10969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  11282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  11750.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  312.5,
+                           "time":  12219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  12532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  13000.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  312.5,
+                           "time":  13469.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  13782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  14250.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  312.5,
+                           "time":  14719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  15032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  15500.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  15969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  15969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  21282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  21282
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  468.75,
+                           "time":  21750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  21750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  22532
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  22766.375
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  23000.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  468.75,
+                           "time":  23000.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  150,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  23157
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  120,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  23391.375
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  105,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  23625.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  23782
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  23782
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  468.75,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  468.75,
+                                                     "rotationOffset":  25,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  625,
+                                                     "rotationOffset":  25,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  625,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  24250.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  468.75,
+                           "time":  24250.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  25032
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  135,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  156.25,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  156.25,
+                                                     "rotationOffset":  20,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  25188.25
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  468.75,
+                           "time":  25500.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  25657
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  25891.375
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  255,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  26125.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  26282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  26750.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  468.75,
+                           "time":  26750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  27532
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  468.75,
+                           "time":  28000.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  28782
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  15,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  28782
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  28938.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  29094.5
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  29250.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  468.75,
+                           "time":  29250.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  315,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  -15,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  29563.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  2500,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3593.75,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3750,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3984.375,
+                                                     "rotationOffset":  -45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  5000,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  7500,
+                                                     "rotationOffset":  225,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  10000,
+                                                     "rotationOffset":  405,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  12500,
+                                                     "rotationOffset":  270,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 }
+                                             ],
+                           "time":  41282
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  2500,
+                                                     "rotationOffset":  -90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3593.75,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 },
+                                                 {
+                                                     "timeOffset":  5000,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  7500,
+                                                     "rotationOffset":  -180,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  10000,
+                                                     "rotationOffset":  -360,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  12500,
+                                                     "rotationOffset":  -270,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  15000,
+                                                     "rotationOffset":  -360,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 },
+                                                 {
+                                                     "timeOffset":  17812.5,
+                                                     "rotationOffset":  -450,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 }
+                                             ],
+                           "time":  41282
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  54016.375
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  54250.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  54485.125
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  54719.5
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  54875.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  468.75,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  625,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1093.75,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1250,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4062.5,
+                                                     "rotationOffset":  180,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 }
+                                             ],
+                           "time":  55032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  60188.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  60344.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  60500.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  60657
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  60813.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  285,
+                           "time":  60969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  255,
+                           "time":  61125.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  468.75,
+                           "time":  61282
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  468.75,
+                           "time":  61750.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  468.75,
+                           "time":  62219.5
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  90,
+                           "duration":  468.75,
+                           "time":  62688.25
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  468.75,
+                           "time":  63157
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  63625.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  63938.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  64407
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  64719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  65032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  65032
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71282
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  185,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71360.125
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  190,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71438.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71516.375
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  200,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71594.5
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  205,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71672.625
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71750.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  215,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71828.875
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  220,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71907
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  215,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  71985.125
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72063.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  205,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72141.375
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  200,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72219.5
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72297.625
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  190,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72375.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  185,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72453.875
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  72532
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  312.5,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  468.75,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  937.5,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1250,
+                                                     "rotationOffset":  -30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1406.25,
+                                                     "rotationOffset":  -60,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1562.5,
+                                                     "rotationOffset":  -90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1718.75,
+                                                     "rotationOffset":  -120,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2187.5,
+                                                     "rotationOffset":  -120,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2500,
+                                                     "rotationOffset":  -180,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2812.5,
+                                                     "rotationOffset":  -90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "Out"
+                                                 }
+                                             ],
+                           "time":  81282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  81282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  81750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  82532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  83000.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  83782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  84250.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  312.5,
+                           "time":  84407
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  312.5,
+                           "time":  84719.5
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  312.5,
+                           "time":  85032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  85344.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  85500.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  85813.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  86125.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  86125.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  86907
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  312.5,
+                                                     "rotationOffset":  0,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  625,
+                                                     "rotationOffset":  45,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  86907
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  87219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  101282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  101282
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  90,
+                           "duration":  416.66666666665697,
+                           "time":  101802.83333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  102532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  75,
+                           "time":  102740.33333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  105,
+                           "time":  102844.5
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  416.66666666665697,
+                           "time":  103052.83333333334
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  312.5,
+                           "time":  103469.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  103782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  104407
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  104719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  105032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  105032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  300,
+                           "time":  105344.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  240,
+                           "time":  105552.83333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  300,
+                           "time":  105865.33333333334
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  416.66666666665697,
+                           "time":  106177.83333333334
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  312.5,
+                           "time":  106907
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  90,
+                           "duration":  312.5,
+                           "time":  107219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  107532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  75,
+                           "time":  107740.33333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  105,
+                           "time":  107844.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  108052.83333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  108469.5
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  937.5,
+                           "time":  108782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  109094.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  109719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  105,
+                           "time":  109927.83333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  75,
+                           "time":  110032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  110240.33333333334
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  270,
+                           "duration":  312.5,
+                           "time":  110552.83333333334
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  90,
+                           "duration":  312.5,
+                           "time":  110865.33333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  111177.83333333334
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  111282
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "time":  121282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  121594.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "time":  121750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  122063.25
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "time":  122219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  122532
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "time":  122688.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  123000.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  240,
+                           "side":  "Left",
+                           "time":  123157
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  123625.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "time":  123782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  124094.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "time":  124250.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  124563.25
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "time":  124719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  125032
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  315,
+                           "side":  "Right",
+                           "time":  125188.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  125500.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  300,
+                           "side":  "Right",
+                           "time":  125657
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  125969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  126125.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  270,
+                           "side":  "Left",
+                           "time":  126282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  126594.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  255,
+                           "side":  "Left",
+                           "time":  126750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  127063.25
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  240,
+                           "side":  "Left",
+                           "time":  127219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  127532
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "time":  127688.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  128000.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "time":  128157
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  128625.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  270,
+                           "side":  "Right",
+                           "time":  128782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  129094.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  285,
+                           "side":  "Right",
+                           "time":  129250.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  129563.25
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  300,
+                           "side":  "Right",
+                           "time":  129719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  130032
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  315,
+                           "side":  "Right",
+                           "time":  130188.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  130500.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  330,
+                           "side":  "Right",
+                           "time":  130657
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  130969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  131125.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "time":  131282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  60,
+                           "time":  131594.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  30,
+                           "time":  131594.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  195,
+                           "side":  "Left",
+                           "time":  131750.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  30,
+                           "time":  132063.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  60,
+                           "time":  132063.25
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  210,
+                           "side":  "Left",
+                           "time":  132219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  60,
+                           "time":  132532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  30,
+                           "time":  132532
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "time":  132688.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  30,
+                           "time":  133000.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  60,
+                           "time":  133000.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  240,
+                           "side":  "Left",
+                           "time":  133157
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  133625.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "time":  133782
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  195,
+                           "time":  134094.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  165,
+                           "time":  134094.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  15,
+                           "side":  "Right",
+                           "time":  134250.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  195,
+                           "time":  134563.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  165,
+                           "time":  134563.25
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  30,
+                           "side":  "Right",
+                           "time":  134719.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  195,
+                           "time":  135032
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  165,
+                           "time":  135032
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  45,
+                           "side":  "Right",
+                           "time":  135188.25
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  165,
+                           "time":  135500.75
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  195,
+                           "time":  135500.75
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  60,
+                           "side":  "Right",
+                           "time":  135657
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  195,
+                           "time":  135969.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  165,
+                           "time":  135969.5
+                       },
+                       {
+                           "type":  "slamCentered",
+                           "angleDeg":  90,
+                           "side":  "Right",
+                           "time":  136125.75
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  90,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  625,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1250,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  137532
+                       }
+                   ]
+}
