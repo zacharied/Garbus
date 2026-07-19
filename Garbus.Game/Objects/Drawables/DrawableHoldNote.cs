@@ -128,9 +128,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         holdPresses = Math.Max(0, holdPresses - 1);
     }
 
-    public override void MissForcefully()
-    {
-    }
+    public override bool PressJudged => Head.Judged;
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {

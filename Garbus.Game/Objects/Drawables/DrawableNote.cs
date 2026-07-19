@@ -19,11 +19,7 @@ public abstract partial class DrawableNote<T> : DrawableGarbusHitObject<T>, IKey
     {
     }
 
-    /// <summary>
-    /// Forces this object to be missed, disregarding <see cref="CheckForResult"/>. Used by the lane's
-    /// hit policy to note-lock earlier objects when a later one is hit.
-    /// </summary>
-    public virtual void MissForcefully() => ApplyMinResult();
+    public virtual bool PressJudged => Judged;
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
