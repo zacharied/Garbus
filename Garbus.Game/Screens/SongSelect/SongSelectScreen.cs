@@ -17,6 +17,7 @@ using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using osu.Framework.Platform;
@@ -66,15 +67,15 @@ namespace Garbus.Game.Screens.SongSelect
         }
 
         [BackgroundDependencyLoader]
-        private void load(Storage storage, ChartStore charts, ITrackStore resourceTracks, AudioManager audio, GarbusConfigManager config)
+        private void load(Storage storage, ChartStore charts, ITrackStore resourceTracks, AudioManager audio, GarbusConfigManager config, GameHost host, TextureStore textures)
         {
             this.audio = audio;
 
             config.BindWith(GarbusSetting.SongSelectGrouped, grouped);
 
-            var resourceSource = new ResourceChartSource(charts, resourceTracks);
+            var resourceSource = new ResourceChartSource(charts, resourceTracks, textures);
             string songsRoot = storage.GetStorageForDirectory("charts").GetFullPath(string.Empty);
-            directorySource = new DirectoryChartSource(songsRoot);
+            directorySource = new DirectoryChartSource(songsRoot, host);
             library = new ChartLibrary(directorySource, resourceSource);
             Groups = library.Scan();
 
@@ -83,37 +84,65 @@ namespace Garbus.Game.Screens.SongSelect
             InternalChildren = new Drawable[]
             {
                 new Box { RelativeSizeAxes = Axes.Both, Colour = new Color4(18, 18, 26, 255) },
-                new BasicScrollContainer
+                new GridContainer
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Top = 56, Bottom = 12, Horizontal = 40 },
-                    Child = list = new FillFlowContainer
+                    ColumnDimensions = new[]
                     {
-                        RelativeSizeAxes = Axes.X,
-                        AutoSizeAxes = Axes.Y,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(0, 3),
+                        new Dimension(),
+                        new Dimension(GridSizeMode.Absolute, 380),
+                    },
+                    Content = new[]
+                    {
+                        new Drawable[]
+                        {
+                            new Container
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                                Children = new Drawable[]
+                                {
+                                    new BasicScrollContainer
+                                    {
+                                        RelativeSizeAxes = Axes.Both,
+                                        Padding = new MarginPadding { Top = 56, Bottom = 12, Horizontal = 40 },
+                                        Child = list = new FillFlowContainer
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            AutoSizeAxes = Axes.Y,
+                                            Direction = FillDirection.Vertical,
+                                            Spacing = new Vector2(0, 3),
+                                        },
+                                    },
+                                    new SpriteText
+                                    {
+                                        Padding = new MarginPadding { Top = 16, Left = 64 },
+                                        Text = "Select a chart",
+                                        Font = FontUsage.Default.With(size: 28),
+                                    },
+                                    new BasicButton
+                                    {
+                                        Anchor = Anchor.TopRight,
+                                        Origin = Anchor.TopRight,
+                                        Margin = new MarginPadding { Top = 14, Right = 40 },
+                                        Size = new Vector2(160, 30),
+                                        Text = "View: …",
+                                        Action = () => grouped.Value = !grouped.Value,
+                                    }.With(b => viewButton = b),
+                                },
+                            },
+                            detailPanel = new ChartDetailPanel
+                            {
+                                RelativeSizeAxes = Axes.Both,
+                                LaunchRequested = Launch,
+                            },
+                        },
                     },
                 },
-                new SpriteText
-                {
-                    Padding = new MarginPadding { Top = 16, Left = 64 },
-                    Text = "Select a chart",
-                    Font = FontUsage.Default.With(size: 28),
-                },
-                new BasicButton
-                {
-                    Anchor = Anchor.TopRight,
-                    Origin = Anchor.TopRight,
-                    Margin = new MarginPadding { Top = 14, Right = 40 },
-                    Size = new Vector2(160, 30),
-                    Text = "View: …",
-                    Action = () => grouped.Value = !grouped.Value,
-                }.With(b => viewButton = b),
             };
         }
 
         private BasicButton viewButton = null!;
+        private ChartDetailPanel detailPanel = null!;
 
         protected override void LoadComplete()
         {
@@ -169,6 +198,8 @@ namespace Garbus.Game.Screens.SongSelect
 
             if (rows.TryGetValue(card, out var row))
                 row.Selected = true;
+
+            detailPanel.Show(card, card.Source.GetBackground(card));
 
             startPreview(card);
         }
@@ -317,6 +348,7 @@ namespace Garbus.Game.Screens.SongSelect
                 : Groups.SelectMany(g => g.Charts).FirstOrDefault(c => c.Locator == SelectedChart.Locator);
 
             rebuild();
+            detailPanel.Show(SelectedChart, SelectedChart == null ? null : SelectedChart.Source.GetBackground(SelectedChart));
             if (SelectedChart != null)
                 startPreview(SelectedChart);
         }

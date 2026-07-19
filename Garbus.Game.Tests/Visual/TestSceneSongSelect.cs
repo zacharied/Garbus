@@ -14,6 +14,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Platform;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
@@ -171,6 +172,40 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("press up", () => input.Key(Key.Up));
             AddAssert("selection moved back to first card", () => songSelect.SelectedChart == ordered[0]);
+        }
+
+        [Test]
+        public void TestSelectPopulatesDetailPanel()
+        {
+            ChartCard? first = null;
+
+            AddStep("select first chart", () =>
+            {
+                first = songSelect.Groups.SelectMany(g => g.Charts).First();
+                songSelect.Select(first);
+            });
+
+            AddAssert("panel shows selected card", () =>
+                this.ChildrenOfType<ChartDetailPanel>().Single().DisplayedCard == first);
+
+            // The bundled chart has no background file → the placeholder path.
+            AddAssert("panel shows placeholder (no background)", () =>
+                !this.ChildrenOfType<ChartDetailPanel>().Single().HasBackground);
+        }
+
+        [Test]
+        public void TestPlayButtonLaunches()
+        {
+            AddStep("select first chart", () => songSelect.Select(songSelect.Groups.SelectMany(g => g.Charts).First()));
+
+            AddStep("click play button", () =>
+            {
+                var button = this.ChildrenOfType<BasicButton>().Single(b => b.Text.ToString() == "Press X to play!");
+                input.MoveMouseTo(button);
+                input.Click(osuTK.Input.MouseButton.Left);
+            });
+
+            AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
         }
     }
 }
