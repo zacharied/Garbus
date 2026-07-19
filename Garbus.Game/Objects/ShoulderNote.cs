@@ -3,7 +3,9 @@
 using System;
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;
+using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
+using Garbus.Game.Objects.Judgement;
 
 namespace Garbus.Game.Objects;
 
@@ -28,4 +30,6 @@ public partial class ShoulderNote : Note, IHasCardinalDirection, IHasAngle
         : CardinalDirection.East;
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.ShoulderNote;
+
+    protected override HitWindows CreateHitWindows() => new ShoulderNoteHitWindows();
 }
