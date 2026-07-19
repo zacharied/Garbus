@@ -10,11 +10,13 @@ using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
 using Garbus.Game.Screens;
 using Garbus.Game.Screens.SongSelect;
+using Garbus.Resources;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
@@ -39,28 +41,33 @@ namespace Garbus.Game.Tests.Visual
         [SetUpSteps]
         public void SetUpSteps()
         {
-            // The bundled resource chart ("test track") is the only chart guaranteed to exist. The
-            // arrow-key navigation test needs at least two to prove index movement, so seed a couple
-            // of directory-backed charts the screen's own DirectoryChartSource will pick up before it
-            // scans (this step runs — and completes its synchronous file IO — before the "push song
-            // select" step below constructs the screen and triggers its BDL scan). Titled "ZZ ..." so
-            // they sort (OrdinalIgnoreCase) after "test track" and never become the first/selected
-            // group in the other tests below (which assume the bundled chart is first). Their audio
-            // files don't exist on disk, which is fine — Select()/startPreview already swallow that;
-            // only Launch() would care, and no test launches one of these seeded charts.
+            // The bundled resource chart ("test track") is hidden from song select (it's a developer
+            // fixture — see ResourceChartSource), so every chart the screen shows here is one of these
+            // seeded directory-backed charts (the screen's own DirectoryChartSource picks them up).
+            // This step runs — and completes its synchronous file IO — before the "push song select"
+            // step below constructs the screen and triggers its BDL scan. Real playable audio (the
+            // embedded test-track.ogg) is written beside each chart so the launch/preview tests have a
+            // launchable chart to select.
             AddStep("seed extra charts", () =>
             {
                 string root = storage.GetStorageForDirectory("charts").GetFullPath(string.Empty);
 
+                using var resources = new DllResourceStore(typeof(GarbusResources).Assembly);
+                byte[] track = resources.Get("Tracks/test-track.ogg");
+
                 for (int i = 1; i <= 2; i++)
                 {
-                    string dir = Path.Combine(root, $"zz-extra-song-{i}");
+                    string dir = Path.Combine(root, $"song-{i}");
                     Directory.CreateDirectory(dir);
-                    string path = Path.Combine(dir, "chart.garbus");
 
+                    string audioPath = Path.Combine(dir, "test-track.ogg");
+                    if (!File.Exists(audioPath))
+                        File.WriteAllBytes(audioPath, track);
+
+                    string path = Path.Combine(dir, "chart.garbus");
                     if (!File.Exists(path))
                     {
-                        var chart = new GarbusChart { Metadata = { Title = $"ZZ Extra Song {i}", Artist = "Test", Level = i, AudioFile = "missing.ogg" } };
+                        var chart = new GarbusChart { Metadata = { Title = $"Song {i}", Artist = "Test", Level = i, AudioFile = "test-track.ogg" } };
                         File.WriteAllText(path, GarbusChartSerializer.Encode(chart));
                     }
                 }
@@ -76,10 +83,12 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
-        public void TestBundledChartAppears()
+        public void TestChartsAppear()
         {
-            // The bundled test-chart.garbus must show up as at least one card.
+            // The seeded library charts show up; the bundled "test track" fixture is hidden.
             AddAssert("has at least one chart", () => songSelect.Groups.SelectMany(g => g.Charts).Any());
+            AddAssert("test track hidden", () =>
+                songSelect.Groups.SelectMany(g => g.Charts).All(c => c.Title != "test track"));
         }
 
         [Test]

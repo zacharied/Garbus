@@ -30,6 +30,11 @@ namespace Garbus.Game.Screens.SongSelect
         {
             foreach (string name in charts.GetAvailableCharts())
             {
+                // The bundled test chart is a developer fixture (PlayScreen's default / test harness),
+                // not a real song. Keep it decodable via ChartStore but hide it from song select.
+                if (string.Equals(name, PlayScreen.DEFAULT_CHART, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 ChartCard? card = null;
                 try
                 {
