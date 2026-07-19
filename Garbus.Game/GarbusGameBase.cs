@@ -10,6 +10,7 @@ using osu.Framework.Configuration;
 using osu.Framework.Development;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 using osuTK;
@@ -77,6 +78,9 @@ namespace Garbus.Game
             // toggle unbound keeps Audio.UseExperimentalWasapi at its silent framework default.
             if (!DebugUtils.IsNUnitRunning)
                 LocalConfig.BindWith(GarbusSetting.UseExperimentalWasapi, Audio.UseExperimentalWasapi);
+
+            // Custom font setup.
+            initialiseFonts();
         }
 
         protected override void Dispose(bool isDisposing)
@@ -84,6 +88,42 @@ namespace Garbus.Game
             base.Dispose(isDisposing);
 
             LocalConfig?.Dispose(); // performs a final save of any changed settings.
+        }
+
+        private void initialiseFonts()
+        {
+            AddFont(Resources, @"Fonts/Torus/Torus-Regular");
+            AddFont(Resources, @"Fonts/Torus/Torus-Light");
+            AddFont(Resources, @"Fonts/Torus/Torus-SemiBold");
+            AddFont(Resources, @"Fonts/Torus/Torus-Bold");
+
+            AddFont(Resources, @"Fonts/Torus-Alternate/Torus-Alternate-Regular");
+            AddFont(Resources, @"Fonts/Torus-Alternate/Torus-Alternate-Light");
+            AddFont(Resources, @"Fonts/Torus-Alternate/Torus-Alternate-SemiBold");
+            AddFont(Resources, @"Fonts/Torus-Alternate/Torus-Alternate-Bold");
+
+            AddFont(Resources, @"Fonts/Inter/Inter-Regular");
+            AddFont(Resources, @"Fonts/Inter/Inter-RegularItalic");
+            AddFont(Resources, @"Fonts/Inter/Inter-Light");
+            AddFont(Resources, @"Fonts/Inter/Inter-LightItalic");
+            AddFont(Resources, @"Fonts/Inter/Inter-SemiBold");
+            AddFont(Resources, @"Fonts/Inter/Inter-SemiBoldItalic");
+            AddFont(Resources, @"Fonts/Inter/Inter-Bold");
+            AddFont(Resources, @"Fonts/Inter/Inter-BoldItalic");
+
+            AddFont(Resources, @"Fonts/Noto/Noto-Basic");
+            AddFont(Resources, @"Fonts/Noto/Noto-Bopomofo");
+            AddFont(Resources, @"Fonts/Noto/Noto-CJK-Basic");
+            AddFont(Resources, @"Fonts/Noto/Noto-CJK-Compatibility");
+            AddFont(Resources, @"Fonts/Noto/Noto-Hangul");
+            AddFont(Resources, @"Fonts/Noto/Noto-Thai");
+
+            AddFont(Resources, @"Fonts/Venera/Venera-Light");
+            AddFont(Resources, @"Fonts/Venera/Venera-Bold");
+            AddFont(Resources, @"Fonts/Venera/Venera-Black");
+
+            // TODO
+//            Fonts.AddStore(new OsuIcon.OsuIconStore(Textures));
         }
     }
 }
