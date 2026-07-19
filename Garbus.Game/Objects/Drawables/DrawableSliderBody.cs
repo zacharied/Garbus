@@ -311,6 +311,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             }
 
             updateTipBox(caught && hasTip, tip);
+
+            updateBodyVisual(caught);
         }
         else
         {
@@ -322,6 +324,13 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             bodyPaths[i].Vertices = Array.Empty<Vector2>();
         for (int i = escapeIndex; i < escapePaths.Count; i++)
             escapePaths[i].Vertices = Array.Empty<Vector2>();
+    }
+
+    private void updateBodyVisual(bool caught)
+    {
+        Alpha = Time.Current < HitObject.StartTime || caught
+            ? 1f
+            : 0.4f;
     }
 
     /// <summary>
