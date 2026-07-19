@@ -6,9 +6,12 @@ using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
 using osu.Framework.Utils;
+using osuTK.Input;
 
 namespace Garbus.Game.Tests.Visual
 {
@@ -22,11 +25,16 @@ namespace Garbus.Game.Tests.Visual
         private GarbusConfigManager config { get; set; } = null!;
 
         private SettingsOverlay overlay = null!;
+        private ManualInputManager manual = null!;
 
         [SetUpSteps]
         public void SetUpSteps()
         {
-            AddStep("create overlay", () => Child = overlay = new SettingsOverlay());
+            AddStep("create overlay", () => Child = manual = new ManualInputManager
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = overlay = new SettingsOverlay(),
+            });
         }
 
         [Test]
@@ -80,6 +88,29 @@ namespace Garbus.Game.Tests.Visual
             AddStep("set speed 15", () => config.SetValue(GarbusSetting.ScrollSpeed, 15.0));
             AddAssert("last slider tracks speed", () =>
                 overlay.ChildrenOfType<BasicSliderBar<double>>().ElementAt(3).Current.Value == 15.0);
+        }
+
+        [Test]
+        public void TestControlsButtonShowsRebindPanel()
+        {
+            AddStep("show", () => overlay.Show());
+            AddAssert("no controls panel yet", () => !overlay.ChildrenOfType<ControlsPanel>().Any());
+
+            AddStep("click Controls", () =>
+            {
+                var controls = overlay.ChildrenOfType<SpriteText>().First(t => t.Text.ToString() == "Controls…");
+                manual.MoveMouseTo(controls);
+                manual.Click(MouseButton.Left);
+            });
+            AddUntilStep("controls panel visible", () => overlay.ChildrenOfType<ControlsPanel>().Any());
+
+            AddStep("click Back", () =>
+            {
+                var back = overlay.ChildrenOfType<SpriteText>().First(t => t.Text.ToString() == "‹ Back");
+                manual.MoveMouseTo(back);
+                manual.Click(MouseButton.Left);
+            });
+            AddUntilStep("controls panel gone", () => !overlay.ChildrenOfType<ControlsPanel>().Any());
         }
     }
 }

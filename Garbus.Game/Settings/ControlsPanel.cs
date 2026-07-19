@@ -26,6 +26,7 @@ namespace Garbus.Game.Settings
 
             RelativeSizeAxes = Axes.X;
             AutoSizeAxes = Axes.Y;
+            Padding = new MarginPadding(20);
         }
 
         [BackgroundDependencyLoader]

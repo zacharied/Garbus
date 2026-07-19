@@ -1,5 +1,6 @@
 using System;
 using Garbus.Game.Configuration;
+using Garbus.Game.Input;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Bindables;
@@ -28,7 +29,12 @@ namespace Garbus.Game.Settings
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
 
+        [Resolved]
+        private KeyBindingStore keyBindings { get; set; } = null!;
+
         private Container panel = null!;
+        private FillFlowContainer settingsView = null!;
+        private ControlsPanel? controlsView;
 
         // Teardown for the volume-row subscriptions to the long-lived AudioManager bindables.
         private Action? volumeCleanup;
@@ -54,7 +60,7 @@ namespace Garbus.Game.Settings
                         RelativeSizeAxes = Axes.Both,
                         Colour = new Color4(20, 20, 28, 240),
                     },
-                    new FillFlowContainer
+                    settingsView = new FillFlowContainer
                     {
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,
@@ -73,6 +79,7 @@ namespace Garbus.Game.Settings
                             createVolumeRow("Music volume", audio.VolumeTrack),
                             createVolumeRow("Hitsound volume", audio.VolumeSample),
                             new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
+                            new ControlsButton(showControls),
                         },
                     },
                 },
@@ -123,8 +130,63 @@ namespace Garbus.Game.Settings
 
         private static string percent(double v) => $"{Math.Round(v * 100)}%";
 
+        private void showControls()
+        {
+            settingsView.Hide();
+
+            controlsView?.Expire();
+            panel.Add(controlsView = new ControlsPanel(keyBindings, showSettings));
+        }
+
+        private void showSettings()
+        {
+            controlsView?.Expire();
+            controlsView = null;
+            settingsView.Show();
+        }
+
+        // A labelled row that opens the controls sub-view.
+        private partial class ControlsButton : CompositeDrawable
+        {
+            private readonly Action onClick;
+
+            public ControlsButton(Action onClick)
+            {
+                this.onClick = onClick;
+                RelativeSizeAxes = Axes.X;
+                Height = 30;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                InternalChildren = new Drawable[]
+                {
+                    new Box { RelativeSizeAxes = Axes.Both, Colour = new Color4(60, 60, 78, 255) },
+                    new SpriteText
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Padding = new MarginPadding { Left = 8 },
+                        Text = "Controls…",
+                        Font = FontUsage.Default.With(size: 18),
+                        Colour = Color4.White,
+                    },
+                };
+            }
+
+            protected override bool OnClick(ClickEvent e)
+            {
+                onClick();
+                return true;
+            }
+        }
+
         protected override void PopIn()
         {
+            // Always open on the settings view, never the controls sub-view.
+            showSettings();
+
             panel.MoveToX(-panel_width).MoveToX(0, 500, Easing.OutQuint);
             this.FadeIn(300, Easing.OutQuint);
         }
