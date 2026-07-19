@@ -1,9 +1,10 @@
-// Replaces BigAssCircle's RulesetInputManager<BigAssCircleAction> (osu.Game's ruleset input plumbing —
-// realm-backed bindings and replay handling — is deliberately not vendored). A plain framework
-// KeyBindingContainer over GarbusAction with hardcoded defaults; config-backed rebinding arrives with
-// the Phase 5 settings screen.
+// Replaces BigAssCircle's RulesetInputManager<BigAssCircleAction>. A plain framework
+// KeyBindingContainer over GarbusAction. Defaults live in the shared DefaultBindings map so the
+// KeyBindingStore can overlay per-action overrides on the same source of truth.
 
 using System.Collections.Generic;
+using System.Linq;
+using osu.Framework.Allocation;
 using osu.Framework.Input.Bindings;
 
 namespace Garbus.Game.Input
@@ -16,38 +17,43 @@ namespace Garbus.Game.Input
             RelativeSizeAxes = osu.Framework.Graphics.Axes.Both;
         }
 
-        public override IEnumerable<IKeyBinding> DefaultKeyBindings => new[]
+        // One physical button per action. The d-pad drives the "…1" actions and the physically-matching
+        // face button drives "…2"; each direction sits at its matching on-screen position. The controller
+        // is opened as an SDL gamepad, so face buttons arrive as X=Joystick1, A=Joystick2, B=Joystick3,
+        // Y=Joystick4 and the d-pad as JoystickHat1*.
+        public static readonly IReadOnlyDictionary<GarbusAction, InputKey> DefaultBindings = new Dictionary<GarbusAction, InputKey>
         {
-            // Gamepad — verbatim from BigAssCircleRuleset.GetDefaultKeyBindings:
-            // two gamepad buttons per direction, each bound to its own action: the d-pad button drives
-            // the "…1" action and the physically-matching face button drives the "…2" action.
-            //
-            // Each cardinal direction sits at its matching on-screen position: an action is drawn at
-            // (cosθ, -sinθ) where θ = direction.ToRadians(), so East = right, North = up, West = left,
-            // South = down. Each physical button maps to the direction at that same screen position.
-            //
-            // The controller is opened as an SDL gamepad, so face buttons arrive as
-            // X=Joystick1, A=Joystick2, B=Joystick3, Y=Joystick4 and the d-pad as JoystickHat1*.
-
             // Screen up -> North  (D-pad Up = N1, Y = N2)
-            new KeyBinding(InputKey.JoystickHat1Up, GarbusAction.ButtonN1),
-            new KeyBinding(InputKey.Joystick4, GarbusAction.ButtonN2),
+            { GarbusAction.ButtonN1, InputKey.JoystickHat1Up },
+            { GarbusAction.ButtonN2, InputKey.Joystick4 },
 
             // Screen right -> East  (D-pad Right = E1, B = E2)
-            new KeyBinding(InputKey.JoystickHat1Right, GarbusAction.ButtonE1),
-            new KeyBinding(InputKey.Joystick3, GarbusAction.ButtonE2),
+            { GarbusAction.ButtonE1, InputKey.JoystickHat1Right },
+            { GarbusAction.ButtonE2, InputKey.Joystick3 },
 
             // Screen down -> South  (D-pad Down = S1, A = S2)
-            new KeyBinding(InputKey.JoystickHat1Down, GarbusAction.ButtonS1),
-            new KeyBinding(InputKey.Joystick2, GarbusAction.ButtonS2),
+            { GarbusAction.ButtonS1, InputKey.JoystickHat1Down },
+            { GarbusAction.ButtonS2, InputKey.Joystick2 },
 
             // Screen left -> West  (D-pad Left = W1, X = W2)
-            new KeyBinding(InputKey.JoystickHat1Left, GarbusAction.ButtonW1),
-            new KeyBinding(InputKey.Joystick1, GarbusAction.ButtonW2),
+            { GarbusAction.ButtonW1, InputKey.JoystickHat1Left },
+            { GarbusAction.ButtonW2, InputKey.Joystick1 },
 
             // Left and right shoulder buttons
-            new KeyBinding(InputKey.Joystick5, GarbusAction.ButtonL),
-            new KeyBinding(InputKey.Joystick6, GarbusAction.ButtonR),
+            { GarbusAction.ButtonL, InputKey.Joystick5 },
+            { GarbusAction.ButtonR, InputKey.Joystick6 },
         };
+
+        public override IEnumerable<IKeyBinding> DefaultKeyBindings =>
+            DefaultBindings.Select(b => new KeyBinding(b.Value, b.Key)).ToArray();
+
+        // Assigned from the cached KeyBindingStore when one is present; otherwise the base class falls
+        // back to DefaultKeyBindings. canBeNull keeps bare-constructed test instances working.
+        [BackgroundDependencyLoader(true)]
+        private void load(KeyBindingStore store)
+        {
+            if (store != null)
+                KeyBindings = store.GetKeyBindings().ToList();
+        }
     }
 }
