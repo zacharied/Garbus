@@ -20,9 +20,9 @@ public partial class ComboDisplay : SpriteText
     {
         Anchor = Anchor.Centre;
         Origin = Anchor.Centre;
-        Font = new FontUsage("Noto-Basic").With(size: 100);
-        Colour = Color4.White;
-        Alpha = 0;
+        Font = new FontUsage("Inter-Bold").With(size: 96);
+        Colour = Color4.WhiteSmoke;
+        Alpha = 0.4f;
 
         combo.BindTo(playfield.Combo);
         combo.BindValueChanged(onComboChanged, true);
