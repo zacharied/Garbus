@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Garbus.Game.Charts;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Graphics.Textures;
 
 namespace Garbus.Game.Screens.SongSelect
 {
@@ -18,5 +19,8 @@ namespace Garbus.Game.Screens.SongSelect
 
         /// <summary>A fresh <see cref="Track"/> for the card's audio. Caller owns/disposes it.</summary>
         Track GetTrack(ChartCard card, AudioManager audio);
+
+        /// <summary>The card's background image, or null when it has none / can't be loaded (→ placeholder).</summary>
+        Texture? GetBackground(ChartCard card);
     }
 }

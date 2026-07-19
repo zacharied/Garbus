@@ -9,6 +9,7 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Format;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
@@ -18,9 +19,15 @@ namespace Garbus.Game.Screens.SongSelect
     public class DirectoryChartSource : IChartSource, IDisposable
     {
         private readonly string rootDirectory;
+        private readonly GameHost? host;
         private readonly Dictionary<string, ITrackStore> trackStores = new Dictionary<string, ITrackStore>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, TextureStore> textureStores = new Dictionary<string, TextureStore>(StringComparer.OrdinalIgnoreCase);
 
-        public DirectoryChartSource(string rootDirectory) => this.rootDirectory = rootDirectory;
+        public DirectoryChartSource(string rootDirectory, GameHost? host = null)
+        {
+            this.rootDirectory = rootDirectory;
+            this.host = host;
+        }
 
         public IEnumerable<ChartCard> Enumerate()
         {
@@ -44,6 +51,7 @@ namespace Garbus.Game.Screens.SongSelect
                         Level = chart.Metadata.Level,
                         PreviewTime = chart.PreviewTime,
                         AudioFile = chart.Metadata.AudioFile,
+                        BackgroundFile = chart.Metadata.BackgroundFile,
                     };
                 }
                 catch (Exception ex)
@@ -76,11 +84,31 @@ namespace Garbus.Game.Screens.SongSelect
             return store.Get(card.AudioFile);
         }
 
+        public Texture? GetBackground(ChartCard card)
+        {
+            if (host == null || string.IsNullOrEmpty(card.BackgroundFile))
+                return null;
+
+            string dir = Path.GetDirectoryName(card.Locator)!;
+
+            if (!textureStores.TryGetValue(dir, out var store))
+            {
+                store = new TextureStore(host.Renderer, host.CreateTextureLoaderStore(new StorageBackedResourceStore(new NativeStorage(dir))));
+                textureStores[dir] = store;
+            }
+
+            return store.Get(card.BackgroundFile);
+        }
+
         public void Dispose()
         {
             foreach (var store in trackStores.Values)
                 (store as IDisposable)?.Dispose();
             trackStores.Clear();
+
+            foreach (var store in textureStores.Values)
+                store.Dispose();
+            textureStores.Clear();
         }
     }
 }

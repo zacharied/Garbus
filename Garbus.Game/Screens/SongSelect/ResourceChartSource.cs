@@ -8,6 +8,7 @@ using System.Linq;
 using Garbus.Game.Charts;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Logging;
 
 namespace Garbus.Game.Screens.SongSelect
@@ -16,11 +17,13 @@ namespace Garbus.Game.Screens.SongSelect
     {
         private readonly ChartStore charts;
         private readonly ITrackStore trackStore;
+        private readonly TextureStore? textures;
 
-        public ResourceChartSource(ChartStore charts, ITrackStore trackStore)
+        public ResourceChartSource(ChartStore charts, ITrackStore trackStore, TextureStore? textures = null)
         {
             this.charts = charts;
             this.trackStore = trackStore;
+            this.textures = textures;
         }
 
         public IEnumerable<ChartCard> Enumerate()
@@ -45,6 +48,7 @@ namespace Garbus.Game.Screens.SongSelect
                         Level = chart.Metadata.Level,
                         PreviewTime = chart.PreviewTime,
                         AudioFile = chart.Metadata.AudioFile,
+                        BackgroundFile = chart.Metadata.BackgroundFile,
                     };
                 }
                 catch (Exception ex)
@@ -65,5 +69,13 @@ namespace Garbus.Game.Screens.SongSelect
         }
 
         public Track GetTrack(ChartCard card, AudioManager audio) => trackStore.Get(card.AudioFile);
+
+        public Texture? GetBackground(ChartCard card)
+        {
+            if (textures == null || string.IsNullOrEmpty(card.BackgroundFile))
+                return null;
+
+            return textures.Get(card.BackgroundFile);
+        }
     }
 }

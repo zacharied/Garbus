@@ -12,6 +12,7 @@ using Garbus.Game.Screens.SongSelect;
 using NUnit.Framework;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 
 namespace Garbus.Game.Tests.Charts
@@ -27,6 +28,7 @@ namespace Garbus.Game.Tests.Charts
             public IEnumerable<ChartCard> Enumerate() => cards;
             public GarbusChart LoadChart(ChartCard card) => new GarbusChart();
             public Track GetTrack(ChartCard card, AudioManager audio) => null!;
+            public Texture? GetBackground(ChartCard card) => null;
         }
 
         private ChartCard card(string group, string title, string artist, int level)
@@ -182,6 +184,37 @@ namespace Garbus.Game.Tests.Charts
         {
             using var source = new DirectoryChartSource(Path.Combine(Path.GetTempPath(), "garbus-does-not-exist-" + System.Guid.NewGuid()));
             Assert.That(source.Enumerate().ToList(), Is.Empty);
+        }
+
+        [Test]
+        public void TestDirectorySourcePopulatesBackgroundFile()
+        {
+            string root = Directory.CreateTempSubdirectory("garbus-bg-").FullName;
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(root, "song-bg"));
+                var chart = new GarbusChart { Metadata = { Title = "BG Song", Artist = "A", Level = 3, AudioFile = "song.ogg", BackgroundFile = "bg.jpg" } };
+                File.WriteAllText(Path.Combine(root, "song-bg", "chart.garbus"), GarbusChartSerializer.Encode(chart));
+
+                using var source = new DirectoryChartSource(root);
+                var card = source.Enumerate().Single();
+
+                Assert.That(card.BackgroundFile, Is.EqualTo("bg.jpg"));
+                // No GameHost supplied → no texture store → null (placeholder path).
+                Assert.That(source.GetBackground(card), Is.Null);
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        [Test]
+        public void TestResourceSourceBackgroundNullWhenEmpty()
+        {
+            var card = new ChartCard { Source = null!, Locator = "x", GroupKey = "g", BackgroundFile = string.Empty };
+            var source = new ResourceChartSource(null!, null!); // textures default null
+            Assert.That(source.GetBackground(card), Is.Null);
         }
     }
 }

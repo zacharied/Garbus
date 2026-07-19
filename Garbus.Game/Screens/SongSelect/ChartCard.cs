@@ -25,6 +25,9 @@ namespace Garbus.Game.Screens.SongSelect
         public double? PreviewTime { get; init; }
         public string AudioFile { get; init; } = string.Empty;
 
+        /// <summary>The background image beside the chart (full filename); empty when none.</summary>
+        public string BackgroundFile { get; init; } = string.Empty;
+
         /// <summary>Title, plus the chart (difficulty) name in brackets when present.</summary>
         public string DisplayName => string.IsNullOrEmpty(ChartName) ? Title : $"{Title} [{ChartName}]";
 
