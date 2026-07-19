@@ -15,6 +15,8 @@ public partial class ComboDisplay : SpriteText
 {
     private readonly BindableInt combo = new BindableInt();
 
+    private const float display_alpha = 0.6f;
+
     [BackgroundDependencyLoader]
     private void load(GarbusPlayfield playfield)
     {
@@ -22,7 +24,7 @@ public partial class ComboDisplay : SpriteText
         Origin = Anchor.Centre;
         Font = new FontUsage("Inter-Bold").With(size: 96);
         Colour = Color4.WhiteSmoke;
-        Alpha = 0.4f;
+        Alpha = 0;
 
         combo.BindTo(playfield.Combo);
         combo.BindValueChanged(onComboChanged, true);
@@ -31,6 +33,6 @@ public partial class ComboDisplay : SpriteText
     private void onComboChanged(ValueChangedEvent<int> c)
     {
         Text = c.NewValue.ToString();
-        Alpha = c.NewValue > 0 ? 1 : 0;
+        Alpha = c.NewValue > 0 ? display_alpha : 0;
     }
 }
