@@ -1701,6 +1701,30 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestShiftDuringPlacementSetsSlamEdgeDirectionAnticlockwise()
+        {
+            waitForComposer();
+
+            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("hold shift", () => input.PressKey(Key.LShift));
+            AddStep("move to angle", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("click to place", () => input.Click(MouseButton.Left));
+            AddStep("release shift", () => input.ReleaseKey(Key.LShift));
+            AddAssert("slam edge placed Anticlockwise", () => placedObject<GarbusSlamEdge>()!.Direction, () => Is.EqualTo(RotationalDirection.Anticlockwise));
+        }
+
+        [Test]
+        public void TestNoShiftDuringPlacementKeepsSlamEdgeDirectionClockwise()
+        {
+            waitForComposer();
+
+            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("move to angle without shift", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
+            AddStep("click to place", () => input.Click(MouseButton.Left));
+            AddAssert("slam edge placed Clockwise (no shift)", () => placedObject<GarbusSlamEdge>()!.Direction, () => Is.EqualTo(RotationalDirection.Clockwise));
+        }
+
+        [Test]
         public void TestSideContextMenuAbsentForNote()
         {
             waitForComposer();

@@ -62,6 +62,14 @@ internal abstract partial class GarbusPlacementBlueprint<T> : HitObjectPlacement
                 : HorizontalDirection.Left;
         }
 
+        // Shift during placement picks Anticlockwise for slam edges, mirroring the Alt/Side handling above.
+        if (PlacementActive == PlacementState.Waiting && HitObject is GarbusSlamEdge slamEdge)
+        {
+            slamEdge.Direction = GetContainingInputManager()?.CurrentState.Keyboard.ShiftPressed == true
+                ? RotationalDirection.Anticlockwise
+                : RotationalDirection.Clockwise;
+        }
+
         return result;
     }
 
