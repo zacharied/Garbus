@@ -895,6 +895,29 @@ namespace Garbus.Game.Tests.Editor
 
         private SliderSelectionBlueprint sliderBlueprint() => composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
 
+        /// <summary>The i-th slider in add order (used when several sliders coexist).</summary>
+        private SliderBody sliderAt(int i) => editorChart.HitObjects.OfType<SliderBody>().ElementAt(i);
+
+        /// <summary>Screen position of a specific slider's head (its angle column, at StartTime).</summary>
+        private Vector2 headScreenFor(SliderBody slider)
+        {
+            var container = playfield.HitObjectContainer;
+            Vector2 p = container.ScreenSpacePositionAtTime(slider.StartTime);
+            p.X = container.ToScreenSpace(new Vector2(EditorAngleMapping.ToX(slider.AngleDeg) * container.DrawWidth, 0)).X;
+            return p;
+        }
+
+        /// <summary>Screen centre of a specific slider's on-grid head handle (EditSquarePiece).</summary>
+        private Vector2 headHandleScreenFor(SliderBody slider)
+        {
+            var playfieldQuad = playfield.ScreenSpaceDrawQuad;
+            var blueprint = composer.ChildrenOfType<SliderSelectionBlueprint>().Single(b => b.Item == slider);
+            var candidates = blueprint.ChildrenOfType<Garbus.Game.Edit.Blueprints.Components.EditSquarePiece>()
+                                      .Where(h => h.CpIndex == -1).ToList();
+            var onGrid = candidates.FirstOrDefault(h => playfieldQuad.Contains(h.ScreenSpaceDrawQuad.Centre));
+            return (onGrid ?? candidates[0]).ScreenSpaceDrawQuad.Centre;
+        }
+
         /// <summary>A flip context-menu item by its exact label, or null (requires a selected blueprint hovered).</summary>
         private GarbusMenuItem? flipMenuItem(string text)
         {
@@ -1414,6 +1437,63 @@ namespace Garbus.Game.Tests.Editor
                 () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
             AddAssert("node later than head",
                 () => placedObject<SliderBody>()!.Path.ControlPoints[0].TimeOffset, () => Is.GreaterThan(0.0));
+        }
+
+        [Test]
+        public void TestDraggingOneOfSeveralSelectedHeadOnlySlidersMovesAll()
+        {
+            // Bug: a head-only slider (zero control points) treats its head handle as a node-drag target, so
+            // dragging one of several selected head-only sliders moved ONLY that one — its head handle
+            // consumed the drag before the whole-selection group move could fire. A head-only slider must be
+            // ineligible for head-node selection so the drag flows through the group move and all move together.
+            waitForComposer();
+
+            AddStep("add two head-only sliders + park clock", () =>
+            {
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000, AngleDeg = 180, Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint>() },
+                });
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000, AngleDeg = 270, Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint>() },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("two slider drawables exist", () => composer.HitObjects.Count() == 2);
+            settleWith(() => 2000);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            AddStep("ctrl+click first head", () =>
+            {
+                input.MoveMouseTo(headScreenFor(sliderAt(0)));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddStep("ctrl+click second head", () =>
+            {
+                input.MoveMouseTo(headScreenFor(sliderAt(1)));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both sliders selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(2));
+
+            AddStep("press on first slider's head handle", () =>
+            {
+                input.MoveMouseTo(headHandleScreenFor(sliderAt(0)));
+                input.PressButton(MouseButton.Left);
+            });
+            AddStep("drag one 45° increment right", () => input.MoveMouseTo(
+                input.CurrentState.Mouse.Position + new Vector2(playfield.ScreenSpaceDrawQuad.Width * 45f / EditorAngleMapping.TOTAL_DEGREES, 0)));
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("first slider rotated +45 (180→225)", () => sliderAt(0).AngleDeg, () => Is.EqualTo(225));
+            AddAssert("second slider rotated +45 (270→315)", () => sliderAt(1).AngleDeg, () => Is.EqualTo(315));
         }
 
         [Test]

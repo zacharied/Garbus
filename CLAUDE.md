@@ -132,6 +132,14 @@ classes:
   selection. Delete (via `IKeyBindingHandler<PlatformAction>`, which sees the action before
   `SelectionHandler`) and `HandleQuickDeletion` (Shift+RightClick) remove nodes; emptying the path
   removes the slider. Pinned by the node tests in `TestSceneComposeSelection`.
+- **A head-only slider (zero control points) is ineligible for head-node selection** — its head *is* the
+  whole object, so the head handle sets `EditSquarePiece.InteractionEnabled = false` (in `Update`, gated on
+  `controlPoints.Count > 0`) and declines mouse-down/drag, letting the click/drag flow to
+  `BlueprintContainer` for whole-object select + group move (like dragging a body slider by its outline).
+  Without this, a selected head-only slider's handle consumed the drag (once selected,
+  `ShouldBeConsideredForInput` turns handle input on), so dragging one of several selected head-only
+  sliders moved only that one. The handle still hit-tests, keeping the slider selectable. Pinned by
+  `TestDraggingOneOfSeveralSelectedHeadOnlySlidersMovesAll`.
 - **The compose judgement line is raised `GarbusEditorPlayfield.JUDGEMENT_LINE_OFFSET` (40px) above the
   playfield bottom**, leaving a "hit zone" the objects scroll into after passing it (`StartTime` <
   `EditorTime`). Every time-scrolling layer keys its trailing edge (= the judgement line) off its own

@@ -31,6 +31,11 @@ internal partial class EditSquarePiece : CompositeDrawable
     /// <summary>The wrap-copy this handle stands on (0 = raw/primary copy, non-zero = a ghost-band clone).</summary>
     public int WrapK { get; set; }
 
+    /// <summary>When false, the handle declines mouse-down/drag (falls through to base) so the event bubbles
+    /// to the blueprint container — used for a head-only slider's head, which is the whole object, not an
+    /// independent node target. Still hit-testable (keeps the slider selectable and part of a group move).</summary>
+    public bool InteractionEnabled { get; set; } = true;
+
     private readonly Box fill;
 
     private bool nodeSelected;
@@ -68,7 +73,7 @@ internal partial class EditSquarePiece : CompositeDrawable
 
     protected override bool OnMouseDown(MouseDownEvent e)
     {
-        if (e.Button != MouseButton.Left || SelectRequested == null)
+        if (e.Button != MouseButton.Left || SelectRequested == null || !InteractionEnabled)
             return base.OnMouseDown(e);
 
         SelectRequested.Invoke(CpIndex, e.ControlPressed);
@@ -77,7 +82,7 @@ internal partial class EditSquarePiece : CompositeDrawable
 
     protected override bool OnDragStart(DragStartEvent e)
     {
-        if (DragStarted == null)
+        if (DragStarted == null || !InteractionEnabled)
             return base.OnDragStart(e);
 
         DragStarted.Invoke();

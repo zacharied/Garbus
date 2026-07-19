@@ -202,11 +202,19 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             });
         }
 
+        // A head-only slider (no control points) IS its head — the head is not an independent node target,
+        // so its handle declines input and the click/drag flows through to the whole-object select + group
+        // move (like dragging a body slider by its outline). It still hit-tests, keeping the slider selectable.
+        bool headIsNodeTarget = controlPoints.Count > 0;
+        if (!headIsNodeTarget)
+            headSelected = false;
+
         for (int hi = 0; hi < wrapCopiesBuffer.Count; hi++)
         {
             int k = wrapCopiesBuffer[hi];
             var hh = headHandles[hi];
             hh.WrapK = k;
+            hh.InteractionEnabled = headIsNodeTarget;
             hh.Position = new Vector2(
                 DrawWidth / 2 + (EditorAngleMapping.GridOffset(0) - k * 360) * pxPerDeg,
                 DrawHeight);
