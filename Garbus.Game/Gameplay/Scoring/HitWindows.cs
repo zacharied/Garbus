@@ -90,7 +90,7 @@ namespace Garbus.Game.Gameplay.Scoring
         /// <returns>The lowest allowed successful <see cref="HitResult"/>.</returns>
         protected HitResult LowestSuccessfulHitResult()
         {
-            for (var result = HitResult.Meh; result <= HitResult.Perfect; ++result)
+            for (var result = HitResult.Bad; result <= HitResult.CriticalPerfect; ++result)
             {
                 if (IsHitResultAllowed(result))
                     return result;
@@ -105,7 +105,7 @@ namespace Garbus.Game.Gameplay.Scoring
         /// </summary>
         public IEnumerable<(HitResult result, HitWindowRange window)> GetAllAvailableWindows()
         {
-            for (var result = HitResult.Miss; result <= HitResult.Perfect; ++result)
+            for (var result = HitResult.Miss; result <= HitResult.CriticalPerfect; ++result)
             {
                 if (IsHitResultAllowed(result))
                     yield return (result, WindowFor(result));
@@ -124,7 +124,7 @@ namespace Garbus.Game.Gameplay.Scoring
         /// if no window contains the offset — the input does not interact with the object.</returns>
         public HitResult ResultFor(double timeOffset)
         {
-            for (var result = HitResult.Perfect; result >= HitResult.Miss; --result)
+            for (var result = HitResult.CriticalPerfect; result >= HitResult.Miss; --result)
             {
                 if (IsHitResultAllowed(result) && WindowFor(result).Contains(timeOffset))
                     return result;

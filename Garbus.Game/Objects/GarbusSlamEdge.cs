@@ -3,6 +3,7 @@
 
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;
+using Garbus.Game.Objects.Judgement;
 
 namespace Garbus.Game.Objects;
 
@@ -13,4 +14,6 @@ public class GarbusSlamEdge : GarbusHitObject, IHasMutableAngle, IHasSide
     public RotationalDirection Direction = RotationalDirection.Clockwise;
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.SlamEdge;
+
+    public override Gameplay.Judgements.Judgement CreateJudgement() => new PerfectJudgement();
 }

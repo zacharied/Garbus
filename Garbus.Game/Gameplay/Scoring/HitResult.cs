@@ -1,8 +1,10 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Rulesets/Scoring/HitResult.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: LegacyComboIncrease and SliderTailHit removed (no legacy scores, no osu sliders),
-// EnumMember serialization attributes dropped (own chart format handles serialization).
+// Adapted for Garbus: osu's members are replaced by the Garbus judgement ladder
+// (docs/rules-specs/Judgement.md) — one shared ordinal ladder whose subsets form the note, hold and
+// early-permissive families. Ticks, bonuses, ComboBreak and the family-specific osu grades are gone;
+// the Ignore pair remains for unscored expiry judgements (the slider body).
 
 using System;
 using System.Collections.Generic;
@@ -21,103 +23,57 @@ namespace Garbus.Game.Gameplay.Scoring
         /// Indicates that the object has not been judged yet.
         /// </summary>
         [Description(@"")]
-        [Order(13)]
+        [Order(5)]
         None,
 
         /// <summary>
-        /// Indicates that the object has been judged as a miss.
+        /// The object was missed — by its windows elapsing with no qualifying input, or by an
+        /// early-miss press. Shared by every judgement family.
         /// </summary>
-        /// <remarks>
-        /// This miss window should determine how early a hit can be before it is considered for judgement (as opposed to being ignored as
-        /// "too far in the future"). It should also define when a forced miss should be triggered (as a result of no user input in time).
-        /// </remarks>
         [Description(@"Miss")]
-        [Order(5)]
+        [Order(4)]
         Miss,
 
-        [Description(@"Meh")]
-        [Order(4)]
-        Meh,
-
-        [Description(@"OK")]
+        /// <summary>
+        /// The hold-family intermediate judgement (hold tails, slider children).
+        /// </summary>
+        [Description(@"Bad")]
         [Order(3)]
-        Ok,
-
-        [Description(@"Good")]
-        [Order(2)]
-        Good,
-
-        [Description(@"Great")]
-        [Order(1)]
-        Great,
+        Bad,
 
         /// <summary>
-        /// This is an optional timing window tighter than <see cref="Great"/>.
+        /// The note- and early-permissive-family intermediate judgement.
+        /// </summary>
+        [Description(@"Near")]
+        [Order(2)]
+        Near,
+
+        /// <summary>
+        /// Shared by every judgement family; the best result for catch-timed and early-permissive
+        /// objects, whose families have no Critical Perfect.
         /// </summary>
         [Description(@"Perfect")]
-        [Order(0)]
+        [Order(1)]
         Perfect,
 
         /// <summary>
-        /// Indicates small tick miss.
+        /// The best judgement of the note and hold families.
         /// </summary>
-        [Order(11)]
-        SmallTickMiss,
-
-        /// <summary>
-        /// Indicates a small tick hit.
-        /// </summary>
-        [Description(@"S Tick")]
-        [Order(7)]
-        SmallTickHit,
-
-        /// <summary>
-        /// Indicates a large tick miss.
-        /// </summary>
-        [Order(10)]
-        LargeTickMiss,
-
-        /// <summary>
-        /// Indicates a large tick hit.
-        /// </summary>
-        [Description(@"L Tick")]
-        [Order(6)]
-        LargeTickHit,
-
-        /// <summary>
-        /// Indicates a small bonus.
-        /// </summary>
-        [Description("S Bonus")]
-        [Order(9)]
-        SmallBonus,
-
-        /// <summary>
-        /// Indicates a large bonus.
-        /// </summary>
-        [Description("L Bonus")]
-        [Order(8)]
-        LargeBonus,
+        [Description(@"Critical Perfect")]
+        [Order(0)]
+        CriticalPerfect,
 
         /// <summary>
         /// Indicates a miss that should be ignored for scoring purposes.
         /// </summary>
-        [Order(12)]
+        [Order(6)]
         IgnoreMiss,
 
         /// <summary>
         /// Indicates a hit that should be ignored for scoring purposes.
         /// </summary>
-        [Order(14)]
+        [Order(7)]
         IgnoreHit,
-
-        /// <summary>
-        /// Indicates that a combo break should occur, but does not otherwise affect score.
-        /// </summary>
-        /// <remarks>
-        /// May be paired with <see cref="IgnoreHit"/>.
-        /// </remarks>
-        [Order(15)]
-        ComboBreak,
     }
 
     public static class HitResultExtensions
@@ -137,93 +93,21 @@ namespace Garbus.Game.Gameplay.Scoring
             => AffectsCombo(result) && !IsHit(result);
 
         /// <summary>
-        /// Whether a <see cref="HitResult"/> increases or breaks the combo.
+        /// Whether a <see cref="HitResult"/> increases or breaks the combo: every basic non-Miss
+        /// result increases it, Miss breaks it, the Ignore pair does neither.
         /// </summary>
         public static bool AffectsCombo(this HitResult result)
-        {
-            switch (result)
-            {
-                case HitResult.Miss:
-                case HitResult.Meh:
-                case HitResult.Ok:
-                case HitResult.Good:
-                case HitResult.Great:
-                case HitResult.Perfect:
-                case HitResult.LargeTickHit:
-                case HitResult.LargeTickMiss:
-                case HitResult.ComboBreak:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
+            => result >= HitResult.Miss && result <= HitResult.CriticalPerfect;
 
         /// <summary>
         /// Whether a <see cref="HitResult"/> affects the accuracy portion of the score.
         /// </summary>
-        public static bool AffectsAccuracy(this HitResult result)
-        {
-            switch (result)
-            {
-                // ComboBreak is a special type that only affects combo. It cannot be considered as basic, tick, bonus, or accuracy-affecting.
-                case HitResult.ComboBreak:
-                    return false;
-
-                default:
-                    return IsScorable(result) && !IsBonus(result);
-            }
-        }
+        public static bool AffectsAccuracy(this HitResult result) => IsScorable(result);
 
         /// <summary>
-        /// Whether a <see cref="HitResult"/> is a non-tick and non-bonus result.
+        /// Whether a <see cref="HitResult"/> is a basic (scorable, non-ignore) result.
         /// </summary>
-        public static bool IsBasic(this HitResult result)
-        {
-            switch (result)
-            {
-                // ComboBreak is a special type that only affects combo. It cannot be considered as basic, tick, bonus, or accuracy-affecting.
-                case HitResult.ComboBreak:
-                    return false;
-
-                default:
-                    return IsScorable(result) && !IsTick(result) && !IsBonus(result);
-            }
-        }
-
-        /// <summary>
-        /// Whether a <see cref="HitResult"/> should be counted as a tick.
-        /// </summary>
-        public static bool IsTick(this HitResult result)
-        {
-            switch (result)
-            {
-                case HitResult.LargeTickHit:
-                case HitResult.LargeTickMiss:
-                case HitResult.SmallTickHit:
-                case HitResult.SmallTickMiss:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-
-        /// <summary>
-        /// Whether a <see cref="HitResult"/> should be counted as bonus score.
-        /// </summary>
-        public static bool IsBonus(this HitResult result)
-        {
-            switch (result)
-            {
-                case HitResult.SmallBonus:
-                case HitResult.LargeBonus:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
+        public static bool IsBasic(this HitResult result) => IsScorable(result);
 
         /// <summary>
         /// Whether a <see cref="HitResult"/> represents a miss of any type.
@@ -232,20 +116,7 @@ namespace Garbus.Game.Gameplay.Scoring
         /// Of note, both <see cref="IsMiss"/> and <see cref="IsHit"/> return <see langword="false"/> for <see cref="HitResult.None"/>.
         /// </remarks>
         public static bool IsMiss(this HitResult result)
-        {
-            switch (result)
-            {
-                case HitResult.IgnoreMiss:
-                case HitResult.Miss:
-                case HitResult.SmallTickMiss:
-                case HitResult.LargeTickMiss:
-                case HitResult.ComboBreak:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
+            => result is HitResult.Miss or HitResult.IgnoreMiss;
 
         /// <summary>
         /// Whether a <see cref="HitResult"/> represents a successful hit.
@@ -258,11 +129,8 @@ namespace Garbus.Game.Gameplay.Scoring
             switch (result)
             {
                 case HitResult.None:
-                case HitResult.IgnoreMiss:
                 case HitResult.Miss:
-                case HitResult.SmallTickMiss:
-                case HitResult.LargeTickMiss:
-                case HitResult.ComboBreak:
+                case HitResult.IgnoreMiss:
                     return false;
 
                 default:
@@ -274,21 +142,10 @@ namespace Garbus.Game.Gameplay.Scoring
         /// Whether a <see cref="HitResult"/> is scorable.
         /// </summary>
         public static bool IsScorable(this HitResult result)
-        {
-            switch (result)
-            {
-                // ComboBreak is its own type that affects score via combo.
-                case HitResult.ComboBreak:
-                    return true;
-
-                default:
-                    // Note that IgnoreHit and IgnoreMiss are excluded as they do not affect score.
-                    return result >= HitResult.Miss && result < HitResult.IgnoreMiss;
-            }
-        }
+            => result >= HitResult.Miss && result < HitResult.IgnoreMiss;
 
         /// <summary>
-        /// An array of all scorable <see cref="HitResult"/>s.
+        /// An array of all <see cref="HitResult"/>s.
         /// </summary>
         public static readonly HitResult[] ALL_TYPES = Enum.GetValues<HitResult>().ToArray();
 
@@ -314,8 +171,6 @@ namespace Garbus.Game.Gameplay.Scoring
         /// <summary>
         /// Ordered index of a <see cref="HitResult"/>. Used for consistent order when displaying hit results to the user.
         /// </summary>
-        /// <param name="result">The <see cref="HitResult"/> to get the index of.</param>
-        /// <returns>The index of <paramref name="result"/>.</returns>
         public static int GetIndexForOrderedDisplay(this HitResult result) => order.IndexOf(result);
 
         public static void ValidateHitResultPair(HitResult maxResult, HitResult minResult)
@@ -326,20 +181,8 @@ namespace Garbus.Game.Gameplay.Scoring
             if (minResult == HitResult.None || IsHit(minResult))
                 throw new ArgumentOutOfRangeException(nameof(minResult), $"{minResult} is not a valid minimum judgement result.");
 
-            if (maxResult == HitResult.IgnoreHit && minResult is not (HitResult.IgnoreMiss or HitResult.ComboBreak))
+            if (maxResult == HitResult.IgnoreHit && minResult != HitResult.IgnoreMiss)
                 throw new ArgumentOutOfRangeException(nameof(minResult), $"{minResult} is not a valid minimum result for a {maxResult} judgement.");
-
-            if (maxResult.IsBonus() && minResult != HitResult.IgnoreMiss)
-                throw new ArgumentOutOfRangeException(nameof(minResult), $"{HitResult.IgnoreMiss} is the only valid minimum result for a {maxResult} judgement.");
-
-            if (minResult == HitResult.IgnoreMiss)
-                return;
-
-            if (maxResult == HitResult.LargeTickHit && minResult != HitResult.LargeTickMiss)
-                throw new ArgumentOutOfRangeException(nameof(minResult), $"{HitResult.LargeTickMiss} is the only valid minimum result for a {maxResult} judgement.");
-
-            if (maxResult == HitResult.SmallTickHit && minResult != HitResult.SmallTickMiss)
-                throw new ArgumentOutOfRangeException(nameof(minResult), $"{HitResult.SmallTickMiss} is the only valid minimum result for a {maxResult} judgement.");
 
             if (maxResult.IsBasic() && minResult != HitResult.Miss)
                 throw new ArgumentOutOfRangeException(nameof(minResult), $"{HitResult.Miss} is the only valid minimum result for a {maxResult} judgement.");

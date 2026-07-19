@@ -158,7 +158,7 @@ namespace Garbus.Game.Tests.Visual
             playThrough(1900);
 
             // The first cardinal note (2000ms, 90° → North) should judge as a hit on the Up press —
-            // 100ms early falls inside the Ok window of the default hit windows.
+            // 100ms early falls inside the Near window.
             AddStep("press north", () => input.PressJoystickButton(JoystickButton.Hat1Up));
             AddStep("release north", () => input.ReleaseJoystickButton(JoystickButton.Hat1Up));
 
@@ -182,7 +182,7 @@ namespace Garbus.Game.Tests.Visual
 
             // Seek into the note's hit window and press its bound direction key — same mechanics as
             // TestCardinalNoteHitByButtonPress (walk the clock forward in sub-lifetime increments via
-            // playThrough, then press 100ms early so the offset lands inside the Ok window), but
+            // playThrough, then press 100ms early so the offset lands inside the Near window), but
             // generalised over whichever direction the located note happens to be (rather than
             // assuming North).
             AddUntilStep("play through to note", () =>

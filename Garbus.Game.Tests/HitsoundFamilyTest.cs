@@ -14,39 +14,39 @@ namespace Garbus.Game.Tests
         [Test]
         public void SingleTopEntryResolvesEveryHitJudgement()
         {
-            var perfect = sample("perfect");
-            var family = HitsoundFamily.Single(perfect); // keyed at Perfect
+            var best = sample("best");
+            var family = HitsoundFamily.Single(best); // keyed at CriticalPerfect
 
-            Assert.That(family.Resolve(HitResult.Perfect), Is.EqualTo(perfect));
-            Assert.That(family.Resolve(HitResult.Great), Is.EqualTo(perfect));
-            Assert.That(family.Resolve(HitResult.Meh), Is.EqualTo(perfect));
+            Assert.That(family.Resolve(HitResult.CriticalPerfect), Is.EqualTo(best));
+            Assert.That(family.Resolve(HitResult.Perfect), Is.EqualTo(best));
+            Assert.That(family.Resolve(HitResult.Bad), Is.EqualTo(best));
         }
 
         [Test]
         public void MidLadderEntryIsReachedFromBothSides()
         {
-            var good = sample("good");
-            var family = new HitsoundFamily { [HitResult.Good] = good };
+            var near = sample("near");
+            var family = new HitsoundFamily { [HitResult.Near] = near };
 
-            // worse-than-Good earned -> walk up to Good
-            Assert.That(family.Resolve(HitResult.Meh), Is.EqualTo(good));
-            // better-than-Good earned, nothing better defined -> fall down to Good
-            Assert.That(family.Resolve(HitResult.Perfect), Is.EqualTo(good));
+            // worse-than-Near earned -> walk up to Near
+            Assert.That(family.Resolve(HitResult.Bad), Is.EqualTo(near));
+            // better-than-Near earned, nothing better defined -> fall down to Near
+            Assert.That(family.Resolve(HitResult.CriticalPerfect), Is.EqualTo(near));
         }
 
         [Test]
         public void BetterSideIsPreferredOverWorseSide()
         {
-            var perfect = sample("perfect");
-            var meh = sample("meh");
+            var best = sample("best");
+            var bad = sample("bad");
             var family = new HitsoundFamily
             {
-                [HitResult.Perfect] = perfect,
-                [HitResult.Meh] = meh,
+                [HitResult.CriticalPerfect] = best,
+                [HitResult.Bad] = bad,
             };
 
-            // Good is between the two; better-first prefers Perfect.
-            Assert.That(family.Resolve(HitResult.Good), Is.EqualTo(perfect));
+            // Perfect is between the two; better-first prefers CriticalPerfect.
+            Assert.That(family.Resolve(HitResult.Perfect), Is.EqualTo(best));
         }
 
         [Test]
@@ -62,8 +62,8 @@ namespace Garbus.Game.Tests
             var a = sample("a");
             var family = new HitsoundFamily
             {
+                [HitResult.CriticalPerfect] = a,
                 [HitResult.Perfect] = a,
-                [HitResult.Great] = a,
             };
 
             Assert.That(family.AllSamples, Is.EquivalentTo(new[] { a }));
@@ -78,7 +78,7 @@ namespace Garbus.Game.Tests
             var expected = HitsoundFamilies.CardinalNote.AllSamples.ToArray();
 
             Assert.That(note.Samples, Is.EquivalentTo(expected));
-            Assert.That(note.Hitsounds.Resolve(HitResult.Meh), Is.Not.Null);
+            Assert.That(note.Hitsounds.Resolve(HitResult.Bad), Is.Not.Null);
         }
     }
 }

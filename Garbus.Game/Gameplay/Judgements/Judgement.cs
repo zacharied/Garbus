@@ -1,7 +1,7 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Rulesets/Judgements/Judgement.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: namespaces only.
+// Adapted for Garbus: namespaces only. MaxResult defaults to CriticalPerfect; tick/bonus branches removed.
 
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Scoring;
@@ -22,7 +22,7 @@ namespace Garbus.Game.Gameplay.Judgements
         /// <summary>
         /// The maximum <see cref="HitResult"/> that can be achieved.
         /// </summary>
-        public virtual HitResult MaxResult => HitResult.Perfect;
+        public virtual HitResult MaxResult => HitResult.CriticalPerfect;
 
         /// <summary>
         /// The minimum <see cref="HitResult"/> that can be achieved - the inverse of <see cref="MaxResult"/>.
@@ -36,16 +36,8 @@ namespace Garbus.Game.Gameplay.Judgements
             {
                 switch (MaxResult)
                 {
-                    case HitResult.SmallBonus:
-                    case HitResult.LargeBonus:
                     case HitResult.IgnoreHit:
                         return HitResult.IgnoreMiss;
-
-                    case HitResult.SmallTickHit:
-                        return HitResult.SmallTickMiss;
-
-                    case HitResult.LargeTickHit:
-                        return HitResult.LargeTickMiss;
 
                     default:
                         return HitResult.Miss;
@@ -70,41 +62,20 @@ namespace Garbus.Game.Gameplay.Judgements
                 default:
                     return 0;
 
-                case HitResult.SmallTickHit:
-                    return DEFAULT_MAX_HEALTH_INCREASE * 0.5;
-
-                case HitResult.SmallTickMiss:
-                    return -DEFAULT_MAX_HEALTH_INCREASE * 0.5;
-
-                case HitResult.LargeTickHit:
-                    return DEFAULT_MAX_HEALTH_INCREASE;
-
-                case HitResult.LargeTickMiss:
-                    return -DEFAULT_MAX_HEALTH_INCREASE;
-
                 case HitResult.Miss:
                     return -DEFAULT_MAX_HEALTH_INCREASE * 2;
 
-                case HitResult.Meh:
-                    return DEFAULT_MAX_HEALTH_INCREASE * 0.05;
-
-                case HitResult.Ok:
+                case HitResult.Bad:
                     return DEFAULT_MAX_HEALTH_INCREASE * 0.5;
 
-                case HitResult.Good:
+                case HitResult.Near:
                     return DEFAULT_MAX_HEALTH_INCREASE * 0.75;
 
-                case HitResult.Great:
-                    return DEFAULT_MAX_HEALTH_INCREASE;
-
                 case HitResult.Perfect:
-                    return DEFAULT_MAX_HEALTH_INCREASE * 1.05;
-
-                case HitResult.SmallBonus:
-                    return DEFAULT_MAX_HEALTH_INCREASE * 0.5;
-
-                case HitResult.LargeBonus:
                     return DEFAULT_MAX_HEALTH_INCREASE;
+
+                case HitResult.CriticalPerfect:
+                    return DEFAULT_MAX_HEALTH_INCREASE * 1.05;
             }
         }
 
