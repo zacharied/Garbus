@@ -6,6 +6,7 @@
 // means "no window on that side" (the note-family Miss window is early-only), and hittability keys
 // off LateEligibilityEdge (the late extent of the latest non-Miss window), not the Miss window.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -149,6 +150,23 @@ namespace Garbus.Game.Gameplay.Scoring
             {
                 var lowest = LowestSuccessfulHitResult();
                 return lowest == HitResult.None ? 0 : WindowFor(lowest).Late;
+            }
+        }
+
+        /// <summary>
+        /// The largest early extent among the allowed windows: how long before an object's time an
+        /// input can first interact with it (for note-family windows, the early-miss extent).
+        /// </summary>
+        public double EarliestInteractionEdge
+        {
+            get
+            {
+                double edge = 0;
+
+                foreach (var (_, window) in GetAllAvailableWindows())
+                    edge = Math.Max(edge, window.Early);
+
+                return edge;
             }
         }
 

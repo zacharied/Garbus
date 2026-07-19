@@ -43,7 +43,8 @@ public abstract partial class DrawableNote<T> : DrawableGarbusHitObject<T>, IKey
         if (e.Action.ToButtonInput() != HitObject.ButtonInput)
             return false;
 
-        // Note lock: only the earliest un-judged object in this lane may be hit.
+        // Note lock: the press belongs to the oldest eligible object in this lane whose window
+        // contains it — an older containing object vetoes this one (GarbusOrderedHitPolicy).
         if (CheckHittable?.Invoke(this, Time.Current) == false)
             return false;
 
