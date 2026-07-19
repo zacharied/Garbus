@@ -75,7 +75,7 @@ namespace Garbus.Game.Screens.SongSelect
             if (textures == null || string.IsNullOrEmpty(card.BackgroundFile))
                 return null;
 
-            return textures.Get(card.BackgroundFile);
+            return textures.Get($"Jackets/{card.BackgroundFile}");
         }
     }
 }
