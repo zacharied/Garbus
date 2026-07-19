@@ -1,21 +1,24 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/BacOrderedHitPolicy.cs).
 // BacOrderedHitPolicy → GarbusOrderedHitPolicy. Original carries the ppy template MIT header:
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Adapted for Garbus: rewritten from mania's ordered policy to the Garbus judgement spec's
+// note-lock (docs/rules-specs/Judgement.md) — oldest-eligible resolution, no force-missing.
 
-using System.Collections.Generic;
-using osu.Framework.Extensions.IEnumerableExtensions;
-using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Objects.Drawables;
 
 namespace Garbus.Game.UI;
 
 /// <summary>
-/// Ensures that only the most recent <see cref="Objects.GarbusHitObject"/> in a single <see cref="Lane"/> is
-/// hittable — the "note lock". Mirrors mania's <c>OrderedHitPolicy</c>, but because each <see cref="Lane"/>
-/// owns its own <see cref="HitObjectContainer"/>, the policy only ever sees that lane's objects. Note lock
-/// is therefore lane-independent: hitting (or missing) a north note never locks out an east note.
+/// The spec's note-lock: an input interacts with the <b>oldest eligible object in the lane whose
+/// window contains it</b>. <see cref="IsHittable"/> vetoes a candidate when an older, press-unjudged
+/// object's window also contains the press; combined with notes declining presses their own window
+/// doesn't contain (<c>ResultFor == None</c> applies nothing), exactly one object accepts any press
+/// regardless of input-queue order. Objects leave eligibility only by being judged (including via an
+/// early-miss press) or by their own late window elapsing — hitting a later object never affects an
+/// earlier one.
 /// </summary>
 public class GarbusOrderedHitPolicy
 {
@@ -27,39 +30,23 @@ public class GarbusOrderedHitPolicy
     }
 
     /// <summary>
-    /// Determines whether a <see cref="DrawableHitObject"/> can be hit at a point in time. Only the most
-    /// recent object in the lane can be hit; an earlier object's window cannot extend past the next one.
+    /// Determines whether a <see cref="DrawableHitObject"/> may accept a press at a point in time.
     /// </summary>
     public bool IsHittable(DrawableHitObject hitObject, double time)
     {
-        var nextObject = hitObjectContainer.AliveObjects.GetNext(hitObject);
-        return nextObject == null || time < nextObject.HitObject.StartTime;
-    }
-
-    /// <summary>
-    /// Handles an object being hit, force-missing every earlier un-judged object in the same lane so a
-    /// skipped note cannot be hit after a later one.
-    /// </summary>
-    public void HandleHit(DrawableHitObject hitObject)
-    {
-        foreach (var obj in enumerateHitObjectsUpTo(hitObject.HitObject.StartTime))
-        {
-            if (obj.Judged)
-                continue;
-
-            if (obj is IHittableNote note)
-                note.MissForcefully();
-        }
-    }
-
-    private IEnumerable<DrawableHitObject> enumerateHitObjectsUpTo(double targetTime)
-    {
+        // AliveObjects is ordered by start time (ascending).
         foreach (var obj in hitObjectContainer.AliveObjects)
         {
-            if (obj.HitObject.GetEndTime() >= targetTime)
-                yield break;
+            if (obj.HitObject.StartTime >= hitObject.HitObject.StartTime)
+                return true; // no older candidates remain
 
-            yield return obj;
+            if (obj is not IHittableNote older || older.PressJudged)
+                continue;
+
+            if (obj.HitObject.HitWindows.ResultFor(time - obj.HitObject.StartTime) != HitResult.None)
+                return false; // the press belongs to this older object
         }
+
+        return true;
     }
 }

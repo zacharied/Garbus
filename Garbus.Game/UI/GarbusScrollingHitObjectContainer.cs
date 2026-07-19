@@ -198,8 +198,10 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     {
         double computedStartTime = computeDisplayStartTime(entry);
 
-        // always load the hitobject before its first judgement offset
-        entry.LifetimeStart = Math.Min(entry.HitObject.StartTime - entry.HitObject.MaximumJudgementOffset, computedStartTime);
+        // The hit object must be alive for its whole interactable range: from its earliest
+        // interaction (e.g. the early-miss window) through its late eligibility edge.
+        double interactionLead = Math.Max(entry.HitObject.MaximumJudgementOffset, entry.HitObject.HitWindows?.EarliestInteractionEdge ?? 0);
+        entry.LifetimeStart = Math.Min(entry.HitObject.StartTime - interactionLead, computedStartTime);
 
         // This is likely not entirely correct, but sets a sane expectation of the ending lifetime.
         // A more correct lifetime will be overwritten after a DrawableHitObject is assigned via DrawableHitObject.updateState.

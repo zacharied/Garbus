@@ -1,0 +1,63 @@
+using Garbus.Game.Gameplay.Scoring;
+using NUnit.Framework;
+
+namespace Garbus.Game.Tests
+{
+    [TestFixture]
+    public class HitWindowsTest
+    {
+        /// <summary>
+        /// A minimal asymmetric window set: Perfect ±50, Near ±100, Miss early-only 200.
+        /// </summary>
+        private class TestWindows : HitWindows
+        {
+            public override bool IsHitResultAllowed(HitResult result)
+                => result is HitResult.Perfect or HitResult.Near or HitResult.Miss;
+
+            public override HitWindowRange WindowFor(HitResult result) => result switch
+            {
+                HitResult.Perfect => HitWindowRange.Symmetric(50),
+                HitResult.Near => HitWindowRange.Symmetric(100),
+                HitResult.Miss => new HitWindowRange(200, 0),
+                _ => default,
+            };
+        }
+
+        [Test]
+        public void ResultForIsSignAwareAndNested()
+        {
+            var windows = new TestWindows();
+
+            Assert.That(windows.ResultFor(0), Is.EqualTo(HitResult.Perfect));
+            Assert.That(windows.ResultFor(50), Is.EqualTo(HitResult.Perfect));
+            Assert.That(windows.ResultFor(-50), Is.EqualTo(HitResult.Perfect));
+            Assert.That(windows.ResultFor(51), Is.EqualTo(HitResult.Near));
+            Assert.That(windows.ResultFor(100), Is.EqualTo(HitResult.Near));
+            Assert.That(windows.ResultFor(-100), Is.EqualTo(HitResult.Near));
+        }
+
+        [Test]
+        public void EarlyOnlyMissWindowHasNoLateSide()
+        {
+            var windows = new TestWindows();
+
+            // Early side: outside Near (100) but inside the early-miss extent (200) -> Miss.
+            Assert.That(windows.ResultFor(-101), Is.EqualTo(HitResult.Miss));
+            Assert.That(windows.ResultFor(-200), Is.EqualTo(HitResult.Miss));
+            // Beyond the early-miss extent -> no interaction at all.
+            Assert.That(windows.ResultFor(-201), Is.EqualTo(HitResult.None));
+            // Late side: past Near there is NO Miss window -> no interaction.
+            Assert.That(windows.ResultFor(101), Is.EqualTo(HitResult.None));
+        }
+
+        [Test]
+        public void LateEligibilityEdgeIsLatestNonMissLateExtent()
+        {
+            var windows = new TestWindows();
+
+            Assert.That(windows.LateEligibilityEdge, Is.EqualTo(100));
+            Assert.That(windows.CanBeHit(100), Is.True);
+            Assert.That(windows.CanBeHit(101), Is.False);
+        }
+    }
+}

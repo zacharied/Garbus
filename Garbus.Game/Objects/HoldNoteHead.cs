@@ -1,6 +1,7 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/HoldNoteHead.cs).
 
 using Garbus.Game.Gameplay.Audio;
+using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
 
 namespace Garbus.Game.Objects;
@@ -26,4 +27,6 @@ public class HoldNoteHead<TParent> : Note, IHasAngle
     public override GarbusButtonInput ButtonInput => Parent.ButtonInput;
 
     public override HitsoundFamily Hitsounds => Parent.Hitsounds;
+
+    protected override HitWindows CreateHitWindows() => Parent.HitWindows;
 }

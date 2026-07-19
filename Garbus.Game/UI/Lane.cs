@@ -3,7 +3,6 @@
 
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
-using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Objects.Drawables;
@@ -60,30 +59,11 @@ public partial class Lane : Playfield
         ]);
     }
 
-    protected override void LoadComplete()
-    {
-        base.LoadComplete();
-        NewResult += onNewResult;
-    }
-
     protected override void OnNewDrawableHitObject(DrawableHitObject drawableHitObject)
     {
         base.OnNewDrawableHitObject(drawableHitObject);
 
         if (drawableHitObject is IHittableNote note)
             note.CheckHittable = hitPolicy.IsHittable;
-    }
-
-    private void onNewResult(DrawableHitObject judgedObject, JudgementResult result)
-    {
-        if (result.IsHit)
-            hitPolicy.HandleHit(judgedObject);
-    }
-
-    protected override void Dispose(bool isDisposing)
-    {
-        // Must happen before children are disposed in the base call.
-        NewResult -= onNewResult;
-        base.Dispose(isDisposing);
     }
 }

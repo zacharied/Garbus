@@ -19,11 +19,7 @@ public abstract partial class DrawableNote<T> : DrawableGarbusHitObject<T>, IKey
     {
     }
 
-    /// <summary>
-    /// Forces this object to be missed, disregarding <see cref="CheckForResult"/>. Used by the lane's
-    /// hit policy to note-lock earlier objects when a later one is hit.
-    /// </summary>
-    public virtual void MissForcefully() => ApplyMinResult();
+    public virtual bool PressJudged => Judged;
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
@@ -47,7 +43,8 @@ public abstract partial class DrawableNote<T> : DrawableGarbusHitObject<T>, IKey
         if (e.Action.ToButtonInput() != HitObject.ButtonInput)
             return false;
 
-        // Note lock: only the earliest un-judged object in this lane may be hit.
+        // Note lock: the press belongs to the oldest eligible object in this lane whose window
+        // contains it — an older containing object vetoes this one (GarbusOrderedHitPolicy).
         if (CheckHittable?.Invoke(this, Time.Current) == false)
             return false;
 

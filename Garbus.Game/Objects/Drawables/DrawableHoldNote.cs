@@ -128,16 +128,14 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         holdPresses = Math.Max(0, holdPresses - 1);
     }
 
-    public override void MissForcefully()
-    {
-    }
+    public override bool PressJudged => Head.Judged;
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
         if (!Head.Judged)
             return;
 
-        bool headCarries = HitObject.Duration < Head.HitObject.HitWindows.WindowFor(HitResult.Miss);
+        bool headCarries = HitObject.Duration < Head.HitObject.HitWindows.LateEligibilityEdge;
 
         if (headCarries && !Head.IsHit)
         {
@@ -168,11 +166,9 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
 
     private static HitResult resultFor(double fraction)
     {
-        if (fraction >= 0.99) return HitResult.Perfect;
-        if (fraction >= 0.90) return HitResult.Great;
-        if (fraction >= 0.80) return HitResult.Good;
-        if (fraction >= 0.65) return HitResult.Ok;
-        if (fraction >= 0.50) return HitResult.Meh;
+        if (fraction >= 1.0) return HitResult.CriticalPerfect;
+        if (fraction >= 0.95) return HitResult.Perfect;
+        if (fraction >= 0.60) return HitResult.Bad;
 
         return HitResult.Miss;
     }

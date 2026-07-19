@@ -29,7 +29,7 @@ namespace Garbus.Game.Gameplay.Audio
         /// <summary>
         /// Builds a family with a single member, keyed at the type's best judgement by default.
         /// </summary>
-        public static HitsoundFamily Single(GarbusHitSample sample, HitResult key = HitResult.Perfect)
+        public static HitsoundFamily Single(GarbusHitSample sample, HitResult key = HitResult.CriticalPerfect)
             => new HitsoundFamily { [key] = sample };
 
         /// <summary>

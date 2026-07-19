@@ -153,6 +153,15 @@ classes:
   clock — so editor-time-relative behaviour (e.g. the hit zone at time 0 mapping to negative times)
   can't be reproduced in tests.
 
+**Judgement foundation (first alignment cycle against `docs/rules-specs/Judgement.md`):** `HitResult`
+is the Garbus ladder (`Miss < Bad < Near < Perfect < CriticalPerfect` + the Ignore pair), windows are
+asymmetric `(Early, Late)` ranges (`HitWindowRange`) with an early-only Miss window and hittability
+keyed off `HitWindows.LateEligibilityEdge`, notes carry `CardinalNoteHitWindows` /
+`ShoulderNoteHitWindows` (hold heads share the parent instance), and note-lock is the spec's
+oldest-eligible-containing rule (no force-missing — `GarbusOrderedHitPolicy`). Holds/sliders/slams
+carry interim mappings only; their spec alignment is the hold/slider/slam cycles (see
+`docs/superpowers/specs/2026-07-19-judgement-foundation-design.md`).
+
 ## Current state (Phase 3 complete)
 
 Phase 3 additions — the native chart format:

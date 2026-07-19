@@ -3,6 +3,7 @@
 
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;
+using Garbus.Game.Objects.Judgement;
 
 namespace Garbus.Game.Objects;
 
@@ -12,4 +13,10 @@ public class GarbusSlamCentered : GarbusHitObject, IHasMutableAngle, IHasSide
     public HorizontalDirection Side { get; set; } = HorizontalDirection.Left;
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.SlamCentered;
+
+    public override Gameplay.Judgements.Judgement CreateJudgement() => new PerfectJudgement();
+
+    // Interim lifetime headroom matching the drawable's ±200ms first-cut window (the slam cycle
+    // replaces both with real early-permissive windows including the late Near extent).
+    public override double MaximumJudgementOffset => 200;
 }

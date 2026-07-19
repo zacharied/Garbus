@@ -135,20 +135,20 @@ namespace Garbus.Game.Gameplay.Objects
 
         /// <summary>
         /// Creates the <see cref="Scoring.HitWindows"/> for this <see cref="HitObject"/>.
-        /// This can be null to indicate that the <see cref="HitObject"/> has no <see cref="Scoring.HitWindows"/> and timing errors should not be displayed to the user.
+        /// Defaults to <see cref="Scoring.HitWindows.Empty"/> — objects without a timed button input have no windows.
         /// <para>
         /// This will only be invoked if <see cref="HitWindows"/> hasn't been set externally.
         /// </para>
         /// </summary>
-        protected virtual HitWindows CreateHitWindows() => new DefaultHitWindows();
+        protected virtual HitWindows CreateHitWindows() => HitWindows.Empty;
 
         /// <summary>
         /// The maximum offset from the end time of <see cref="HitObject"/> at which this <see cref="HitObject"/> can be judged.
         /// <para>
-        /// Defaults to the miss window.
+        /// Defaults to the late eligibility edge of the hit windows.
         /// </para>
         /// </summary>
-        public virtual double MaximumJudgementOffset => HitWindows?.WindowFor(HitResult.Miss) ?? 0;
+        public virtual double MaximumJudgementOffset => HitWindows?.LateEligibilityEdge ?? 0;
 
         public override string ToString() => $"{GetType().ReadableName()} @ {StartTime}";
     }

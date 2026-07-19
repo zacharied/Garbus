@@ -13,13 +13,14 @@ namespace Garbus.Game.Objects.Drawables;
 public interface IHittableNote
 {
     /// <summary>
-    /// Note-lock gate installed by the owning lane: only the earliest un-judged object may be hit.
+    /// Note-lock gate installed by the owning lane: vetoes a press that belongs to an older
+    /// eligible object in the lane.
     /// </summary>
     Func<DrawableHitObject, double, bool>? CheckHittable { get; set; }
 
     /// <summary>
-    /// Forces this object to be missed, disregarding its own result check. Used by the lane's hit policy
-    /// to note-lock earlier objects when a later one is hit.
+    /// Whether this note's note-locked press has been judged — the head, for holds. Once true the
+    /// object no longer competes for presses (its tail may still be pending).
     /// </summary>
-    void MissForcefully();
+    bool PressJudged { get; }
 }

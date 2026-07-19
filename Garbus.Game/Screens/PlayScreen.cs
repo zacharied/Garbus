@@ -329,15 +329,10 @@ namespace Garbus.Game.Screens
 
         private static long scoreFor(HitResult result) => result switch
         {
-            HitResult.Perfect => 320,
-            HitResult.Great => 300,
-            HitResult.Good => 200,
-            HitResult.Ok => 100,
-            HitResult.Meh => 50,
-            HitResult.LargeTickHit => 30,
-            HitResult.SmallTickHit => 10,
-            HitResult.SmallBonus => 10,
-            HitResult.LargeBonus => 50,
+            HitResult.CriticalPerfect => 320,
+            HitResult.Perfect => 300,
+            HitResult.Near => 200,
+            HitResult.Bad => 100,
             _ => 0,
         };
 

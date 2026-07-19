@@ -5,7 +5,9 @@ using System.Threading;
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Objects.Types;
+using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
+using Garbus.Game.Objects.Judgement;
 
 namespace Garbus.Game.Objects;
 
@@ -54,4 +56,6 @@ public class CardinalHoldNote : Note, IHasCardinalDirection, IHasMutableAngle, I
     }
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.CardinalHoldNote;
+
+    protected override HitWindows CreateHitWindows() => new CardinalNoteHitWindows();
 }
