@@ -1,7 +1,7 @@
 # Judgement foundation — design
 
 Date: 2026-07-19
-Status: approved
+Status: implemented
 
 ## Context
 
