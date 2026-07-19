@@ -15,6 +15,7 @@
 //   HitObjectPlacementBlueprint.AutoSeekOnPlacement via GarbusHitObjectComposer.AutoSeekOnPlacement.
 
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
@@ -33,6 +34,11 @@ namespace Garbus.Game.Edit.Screens
 
         private GarbusHitObjectComposer composer = null!;
         private TimelineStrip timelineStrip = null!;
+
+        // Stored as a field so the config bound copy is not garbage-collected after load() returns —
+        // GetBindable's copy is held by the config only via a weak reference, so a local variable would
+        // be collected and the menu toggle would stop propagating until an editor reload.
+        private Bindable<bool>? autoSeekOnPlacement;
 
         [BackgroundDependencyLoader]
         private void load(GarbusConfigManager config)
@@ -103,8 +109,8 @@ namespace Garbus.Game.Edit.Screens
             };
 
             // AutoSeekOnPlacement config → composer.
-            var autoSeek = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
-            autoSeek.BindValueChanged(e => composer.AutoSeekOnPlacement.Value = e.NewValue, true);
+            autoSeekOnPlacement = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
+            autoSeekOnPlacement.BindValueChanged(e => composer.AutoSeekOnPlacement.Value = e.NewValue, true);
         }
 
         // Vertical zoom stack: "+" on top half, "–" on bottom half.
