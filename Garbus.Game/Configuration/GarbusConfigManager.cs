@@ -31,7 +31,7 @@ namespace Garbus.Game.Configuration
             SetDefault(GarbusSetting.SongSelectGrouped, true);
 
             // Gameplay.
-            SetDefault(GarbusSetting.ScrollSpeed, ScrollSpeedMapping.DEFAULT_SPEED, ScrollSpeedMapping.MIN_SPEED, ScrollSpeedMapping.MAX_SPEED);
+            SetDefault(GarbusSetting.ScrollSpeed, ScrollSpeedMapping.DEFAULT_SPEED, ScrollSpeedMapping.MIN_SPEED, ScrollSpeedMapping.MAX_SPEED, ScrollSpeedMapping.PRECISION);
         }
     }
 }

@@ -20,9 +20,11 @@ using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.Scoring;
+using Garbus.Game.Configuration;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
 using Garbus.Game.Objects.Drawables;
+using Garbus.Game.Settings;
 using Garbus.Game.Timing;
 using Garbus.Game.UI;
 using osuTK;
@@ -119,7 +121,7 @@ namespace Garbus.Game.Screens
         }
 
         [BackgroundDependencyLoader]
-        private void load(ITrackStore tracks, ChartStore charts)
+        private void load(ITrackStore tracks, ChartStore charts, GarbusConfigManager config)
         {
             if (injectedChart != null && injectedTrack != null)
             {
@@ -217,6 +219,18 @@ namespace Garbus.Game.Screens
                             TextAnchor = Anchor.TopCentre,
                         },
                     },
+                },
+                // Live scroll-speed control at the bottom-right. Bound to the same config value the
+                // settings overlay uses, which flows into gameplay TimeRange (GarbusGameBase), so
+                // dragging it retunes scroll speed in real time.
+                new Container
+                {
+                    Anchor = Anchor.BottomRight,
+                    Origin = Anchor.BottomRight,
+                    AutoSizeAxes = Axes.Y,
+                    Width = 260,
+                    Margin = new MarginPadding(20),
+                    Child = new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
                 },
             };
 

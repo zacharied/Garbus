@@ -30,5 +30,14 @@ namespace Garbus.Game.Tests.Visual
             AddStep("speed 20", () => config.SetValue(GarbusSetting.ScrollSpeed, 20.0));
             AddAssert("timerange 350ms", () => Precision.AlmostEquals(container.CurrentTimeRange, 350, 0.001));
         }
+
+        [Test]
+        public void TestConfigSnapsToTenths()
+        {
+            AddStep("set 4.04", () => config.SetValue(GarbusSetting.ScrollSpeed, 4.04));
+            AddAssert("snaps down to 4.0", () => Precision.AlmostEquals(config.Get<double>(GarbusSetting.ScrollSpeed), 4.0, 1e-6));
+            AddStep("set 4.06", () => config.SetValue(GarbusSetting.ScrollSpeed, 4.06));
+            AddAssert("snaps up to 4.1", () => Precision.AlmostEquals(config.Get<double>(GarbusSetting.ScrollSpeed), 4.1, 1e-6));
+        }
     }
 }

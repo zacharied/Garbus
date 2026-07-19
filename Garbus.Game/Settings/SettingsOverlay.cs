@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using Garbus.Game.Configuration;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -73,7 +72,7 @@ namespace Garbus.Game.Settings
                             createVolumeRow("Master volume", audio.Volume),
                             createVolumeRow("Music volume", audio.VolumeTrack),
                             createVolumeRow("Hitsound volume", audio.VolumeSample),
-                            new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), speed),
+                            new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
                         },
                     },
                 },
@@ -123,7 +122,6 @@ namespace Garbus.Game.Settings
         }
 
         private static string percent(double v) => $"{Math.Round(v * 100)}%";
-        private static string speed(double v) => Math.Round(v).ToString(CultureInfo.InvariantCulture);
 
         protected override void PopIn()
         {

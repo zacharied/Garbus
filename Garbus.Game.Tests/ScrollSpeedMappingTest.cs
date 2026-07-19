@@ -18,5 +18,13 @@ namespace Garbus.Game.Tests
             Assert.That(ScrollSpeedMapping.ToTimeRange(20), Is.LessThan(ScrollSpeedMapping.ToTimeRange(10)));
             Assert.That(ScrollSpeedMapping.ToTimeRange(1), Is.GreaterThan(ScrollSpeedMapping.ToTimeRange(10)));
         }
+
+        [Test]
+        public void FormatSpeedShowsOneDecimal()
+        {
+            Assert.That(ScrollSpeedMapping.FormatSpeed(4), Is.EqualTo("4.0"));
+            Assert.That(ScrollSpeedMapping.FormatSpeed(12.5), Is.EqualTo("12.5"));
+            Assert.That(ScrollSpeedMapping.FormatSpeed(10), Is.EqualTo("10.0"));
+        }
     }
 }
