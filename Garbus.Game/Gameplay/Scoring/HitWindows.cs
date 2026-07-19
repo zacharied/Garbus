@@ -1,23 +1,48 @@
 // Vendored from osu.Game (https://github.com/ppy/osu) — osu.Game/Rulesets/Scoring/HitWindows.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: SetDifficulty removed — hit windows are fixed, there is no per-chart difficulty.
+// Adapted for Garbus: SetDifficulty removed (windows are fixed), and windows are asymmetric
+// (early, late) ranges per docs/rules-specs/Judgement.md — ResultFor is sign-aware, a zero side
+// means "no window on that side" (the note-family Miss window is early-only), and hittability keys
+// off LateEligibilityEdge (the late extent of the latest non-Miss window), not the Miss window.
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Garbus.Game.Gameplay.Scoring
 {
+    /// <summary>
+    /// An asymmetric timing window: how far before (<see cref="Early"/>) and after (<see cref="Late"/>)
+    /// an object's time an input still falls within the window. Both bounds are inclusive. A zero side
+    /// means the window does not extend to that side.
+    /// </summary>
+    public readonly struct HitWindowRange
+    {
+        public double Early { get; }
+        public double Late { get; }
+
+        public HitWindowRange(double early, double late)
+        {
+            Early = early;
+            Late = late;
+        }
+
+        public static HitWindowRange Symmetric(double extent) => new HitWindowRange(extent, extent);
+
+        /// <summary>
+        /// Whether a signed time offset (negative = early) falls inside this window.
+        /// </summary>
+        public bool Contains(double timeOffset) => timeOffset < 0 ? -timeOffset <= Early : timeOffset <= Late;
+    }
+
     /// <summary>
     /// A structure containing timing data for hit window based gameplay.
     /// </summary>
     public abstract class HitWindows
     {
         /// <summary>
-        /// An empty <see cref="HitWindows"/> with only <see cref="HitResult.Miss"/> and <see cref="HitResult.Perfect"/>.
-        /// No time values are provided (meaning instantaneous hit or miss).
+        /// An empty <see cref="HitWindows"/> whose windows are all zero-width. Used by objects that
+        /// have no timed button input.
         /// </summary>
         public static HitWindows Empty { get; } = new EmptyHitWindows();
 
@@ -29,10 +54,34 @@ namespace Garbus.Game.Gameplay.Scoring
         [Conditional("DEBUG")]
         private void ensureValidHitWindows()
         {
-            var availableWindows = GetAllAvailableWindows().ToList();
-            Debug.Assert(availableWindows.Any(r => r.result == HitResult.Miss), $"{nameof(GetAllAvailableWindows)} should always contain {nameof(HitResult.Miss)}");
-            Debug.Assert(availableWindows.Any(r => r.result != HitResult.Miss),
-                $"{nameof(GetAllAvailableWindows)} should always contain at least one result type other than {nameof(HitResult.Miss)}.");
+            bool anyMiss = false;
+            bool anyNonMiss = false;
+
+            // Windows must nest: walking worst -> best, each present side must shrink or stay equal.
+            // A zero side is "absent" (e.g. the early-only Miss window has Late == 0) and exempt.
+            double lastEarly = double.PositiveInfinity;
+            double lastLate = double.PositiveInfinity;
+
+            foreach (var (result, window) in GetAllAvailableWindows())
+            {
+                anyMiss |= result == HitResult.Miss;
+                anyNonMiss |= result != HitResult.Miss;
+
+                if (window.Early > 0)
+                {
+                    Debug.Assert(window.Early <= lastEarly, $"{GetType().Name}: early extents must not grow toward better judgements.");
+                    lastEarly = window.Early;
+                }
+
+                if (window.Late > 0)
+                {
+                    Debug.Assert(window.Late <= lastLate, $"{GetType().Name}: late extents must not grow toward better judgements.");
+                    lastLate = window.Late;
+                }
+            }
+
+            Debug.Assert(anyMiss, $"{nameof(GetAllAvailableWindows)} should always contain {nameof(HitResult.Miss)}");
+            Debug.Assert(anyNonMiss, $"{nameof(GetAllAvailableWindows)} should always contain at least one result type other than {nameof(HitResult.Miss)}.");
         }
 
         /// <summary>
@@ -51,9 +100,10 @@ namespace Garbus.Game.Gameplay.Scoring
         }
 
         /// <summary>
-        /// Retrieves a mapping of <see cref="HitResult"/>s to their timing windows for all allowed <see cref="HitResult"/>s.
+        /// Retrieves a mapping of <see cref="HitResult"/>s to their timing windows for all allowed
+        /// <see cref="HitResult"/>s, worst (Miss) first.
         /// </summary>
-        public IEnumerable<(HitResult result, double length)> GetAllAvailableWindows()
+        public IEnumerable<(HitResult result, HitWindowRange window)> GetAllAvailableWindows()
         {
             for (var result = HitResult.Miss; result <= HitResult.Perfect; ++result)
             {
@@ -65,22 +115,18 @@ namespace Garbus.Game.Gameplay.Scoring
         /// <summary>
         /// Check whether it is possible to achieve the provided <see cref="HitResult"/>.
         /// </summary>
-        /// <param name="result">The result type to check.</param>
-        /// <returns>Whether the <see cref="HitResult"/> can be achieved.</returns>
         public virtual bool IsHitResultAllowed(HitResult result) => true;
 
         /// <summary>
-        /// Retrieves the <see cref="HitResult"/> for a time offset.
+        /// Retrieves the <see cref="HitResult"/> for a signed time offset (negative = early).
         /// </summary>
-        /// <param name="timeOffset">The time offset.</param>
-        /// <returns>The hit result, or <see cref="HitResult.None"/> if <paramref name="timeOffset"/> doesn't result in a judgement.</returns>
+        /// <returns>The innermost (best) containing window's result, or <see cref="HitResult.None"/>
+        /// if no window contains the offset — the input does not interact with the object.</returns>
         public HitResult ResultFor(double timeOffset)
         {
-            timeOffset = Math.Abs(timeOffset);
-
             for (var result = HitResult.Perfect; result >= HitResult.Miss; --result)
             {
-                if (IsHitResultAllowed(result) && timeOffset <= WindowFor(result))
+                if (IsHitResultAllowed(result) && WindowFor(result).Contains(timeOffset))
                     return result;
             }
 
@@ -88,26 +134,35 @@ namespace Garbus.Game.Gameplay.Scoring
         }
 
         /// <summary>
-        /// Retrieves the hit window for a <see cref="HitResult"/>.
-        /// This is the number of +/- milliseconds allowed for the requested result (so the actual hittable range is double this).
+        /// Retrieves the (early, late) hit window for a <see cref="HitResult"/>.
         /// </summary>
-        /// <param name="result">The expected <see cref="HitResult"/>.</param>
-        /// <returns>One half of the hit window for <paramref name="result"/>.</returns>
-        public abstract double WindowFor(HitResult result);
+        public abstract HitWindowRange WindowFor(HitResult result);
 
         /// <summary>
-        /// Given a time offset, whether the <see cref="Objects.HitObject"/> can ever be hit in the future with a non-<see cref="HitResult.Miss"/> result.
-        /// This happens if <paramref name="timeOffset"/> is less than what is required for <see cref="LowestSuccessfulHitResult"/>.
+        /// The late extent of the latest non-Miss window: how long after an object's time it stays
+        /// hittable. Once this elapses the object is Missed automatically — there is no late Miss
+        /// window (see the judgement spec).
         /// </summary>
-        /// <param name="timeOffset">The time offset.</param>
-        /// <returns>Whether the <see cref="Objects.HitObject"/> can be hit at any point in the future from this time offset.</returns>
-        public bool CanBeHit(double timeOffset) => timeOffset <= WindowFor(LowestSuccessfulHitResult());
+        public double LateEligibilityEdge
+        {
+            get
+            {
+                var lowest = LowestSuccessfulHitResult();
+                return lowest == HitResult.None ? 0 : WindowFor(lowest).Late;
+            }
+        }
+
+        /// <summary>
+        /// Given a time offset, whether the <see cref="Objects.HitObject"/> can ever be hit in the
+        /// future with a non-<see cref="HitResult.Miss"/> result.
+        /// </summary>
+        public bool CanBeHit(double timeOffset) => timeOffset <= LateEligibilityEdge;
 
         private class EmptyHitWindows : HitWindows
         {
             public override bool IsHitResultAllowed(HitResult result) => true;
 
-            public override double WindowFor(HitResult result) => 0;
+            public override HitWindowRange WindowFor(HitResult result) => default;
         }
     }
 }

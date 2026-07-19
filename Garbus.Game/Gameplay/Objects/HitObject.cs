@@ -145,10 +145,10 @@ namespace Garbus.Game.Gameplay.Objects
         /// <summary>
         /// The maximum offset from the end time of <see cref="HitObject"/> at which this <see cref="HitObject"/> can be judged.
         /// <para>
-        /// Defaults to the miss window.
+        /// Defaults to the late eligibility edge of the hit windows.
         /// </para>
         /// </summary>
-        public virtual double MaximumJudgementOffset => HitWindows?.WindowFor(HitResult.Miss) ?? 0;
+        public virtual double MaximumJudgementOffset => HitWindows?.LateEligibilityEdge ?? 0;
 
         public override string ToString() => $"{GetType().ReadableName()} @ {StartTime}";
     }

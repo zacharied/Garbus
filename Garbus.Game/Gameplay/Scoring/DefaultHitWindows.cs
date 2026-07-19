@@ -20,27 +20,27 @@ namespace Garbus.Game.Gameplay.Scoring
         private const double meh_window = 136;
         private const double miss_window = 173;
 
-        public override double WindowFor(HitResult result)
+        public override HitWindowRange WindowFor(HitResult result)
         {
             switch (result)
             {
                 case HitResult.Perfect:
-                    return perfect_window;
+                    return HitWindowRange.Symmetric(perfect_window);
 
                 case HitResult.Great:
-                    return great_window;
+                    return HitWindowRange.Symmetric(great_window);
 
                 case HitResult.Good:
-                    return good_window;
+                    return HitWindowRange.Symmetric(good_window);
 
                 case HitResult.Ok:
-                    return ok_window;
+                    return HitWindowRange.Symmetric(ok_window);
 
                 case HitResult.Meh:
-                    return meh_window;
+                    return HitWindowRange.Symmetric(meh_window);
 
                 case HitResult.Miss:
-                    return miss_window;
+                    return HitWindowRange.Symmetric(miss_window);
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(result), result, null);

@@ -137,7 +137,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         if (!Head.Judged)
             return;
 
-        bool headCarries = HitObject.Duration < Head.HitObject.HitWindows.WindowFor(HitResult.Miss);
+        bool headCarries = HitObject.Duration < Head.HitObject.HitWindows.LateEligibilityEdge;
 
         if (headCarries && !Head.IsHit)
         {
