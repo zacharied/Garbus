@@ -47,13 +47,19 @@ namespace Garbus.Game.Input
         public override IEnumerable<IKeyBinding> DefaultKeyBindings =>
             DefaultBindings.Select(b => new KeyBinding(b.Value, b.Key)).ToArray();
 
-        // Assigned from the cached KeyBindingStore when one is present; otherwise the base class falls
-        // back to DefaultKeyBindings. canBeNull keeps bare-constructed test instances working.
-        [BackgroundDependencyLoader(true)]
-        private void load(KeyBindingStore store)
+        // Resolved when a store is cached (the running game / a test that provides one); null otherwise,
+        // so bare-constructed test instances fall back to DefaultKeyBindings.
+        [Resolved(canBeNull: true)]
+        private KeyBindingStore? store { get; set; }
+
+        /// <summary>The bindings actually in effect: the store's overrides when one is cached, else defaults.</summary>
+        public IEnumerable<IKeyBinding> ActiveKeyBindings => KeyBindings ?? DefaultKeyBindings;
+
+        // The base class calls this from LoadComplete (and would otherwise reset KeyBindings to the
+        // defaults). Pull from the store when present so persisted rebinds take effect.
+        protected override void ReloadMappings()
         {
-            if (store != null)
-                KeyBindings = store.GetKeyBindings().ToList();
+            KeyBindings = store?.GetKeyBindings().ToList() ?? DefaultKeyBindings;
         }
     }
 }

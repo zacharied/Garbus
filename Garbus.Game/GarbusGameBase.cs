@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
 using Garbus.Game.Gameplay.UI.Scrolling;
+using Garbus.Game.Input;
 using Garbus.Game.Settings;
 using Garbus.Resources;
 using osu.Framework.Allocation;
@@ -59,6 +60,7 @@ namespace Garbus.Game
 
             dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
             dependencies.Cache(new ChartStore(Resources));
+            dependencies.Cache(new KeyBindingStore(storage));
 
             // Scroll speed -> gameplay TimeRange. Cached here so the gameplay scrolling container
             // resolves a config-driven GarbusScrollingInfo. Speed 10 reproduces the historical 700 ms.
