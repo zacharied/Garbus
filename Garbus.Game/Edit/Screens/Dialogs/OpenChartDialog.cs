@@ -14,13 +14,13 @@ using osuTK.Graphics;
 namespace Garbus.Game.Edit.Screens.Dialogs
 {
     /// <summary>
-    /// Modal overlay that shows a BasicFileSelector filtered to .garbus files.
+    /// Modal overlay that shows a GarbusFileSelector filtered to .garbus files.
     /// Calls the <c>onFileSelected</c> callback with the chosen absolute path and hides itself.
     /// </summary>
     public partial class OpenChartDialog : VisibilityContainer
     {
         private readonly Action<string> onFileSelected;
-        private BasicFileSelector fileSelector = null!;
+        private GarbusFileSelector fileSelector = null!;
 
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
@@ -43,7 +43,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
                 Alpha = 0.6f,
             });
 
-            fileSelector = new BasicFileSelector(LastFileDirectory.Get(config), validFileExtensions: new[] { ".garbus" })
+            fileSelector = new GarbusFileSelector(LastFileDirectory.Get(config), validFileExtensions: new[] { ".garbus" })
             {
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
