@@ -33,6 +33,12 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
     private const float arc_half_width_deg = 45f; // 90° total span across the ring.
     private const double fade_ms = 150;
 
+    // While revealed the glow "breathes": its alpha pulses between breathe_min_alpha and full at
+    // ~2.7 cycles/sec (one full in+out per breathe_period_ms). The final disappearance is still the
+    // plain FadeOut on the hide edge, so it vanishes at exactly the same time as before.
+    private const double breathe_period_ms = 1000d / 2.7d;
+    private const float breathe_min_alpha = 0.35f;
+
     private WarningIndicatorSchedule? schedule;
 
     private readonly Dictionary<HorizontalDirection, SideArc> sideArcs = new();
@@ -124,18 +130,39 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
                 }
 
                 if (s.RevealedAngleDeg == null)
-                    s.Buffer.FadeIn(fade_ms);
+                    startBreathing(s.Buffer);
 
                 s.RevealedAngleDeg = x.AngleDeg;
             }
             else
             {
                 if (s.RevealedAngleDeg != null)
+                {
+                    // Drop the breathing loop, then fade from wherever the pulse currently sits.
+                    s.Buffer.ClearTransforms();
                     s.Buffer.FadeOut(fade_ms);
+                }
 
                 s.RevealedAngleDeg = null;
             }
         }
+    }
+
+    /// <summary>
+    /// Starts the looping fade-in/fade-out "breathe" on a revealed side's buffer. The first half fades in
+    /// from the buffer's current alpha (0 when freshly revealed), so the initial appearance still reads as a
+    /// fade-in; the loop then oscillates between <see cref="breathe_min_alpha"/> and full indefinitely until
+    /// the hide edge clears it.
+    /// </summary>
+    private static void startBreathing(BufferedContainer buffer)
+    {
+        const double half = breathe_period_ms / 2;
+
+        buffer.ClearTransforms();
+        buffer.FadeTo(1f, half, Easing.InOutSine)
+              .Then()
+              .FadeTo(breathe_min_alpha, half, Easing.InOutSine)
+              .Loop();
     }
 
     private sealed class SideArc
