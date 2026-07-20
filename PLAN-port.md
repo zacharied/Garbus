@@ -220,7 +220,10 @@ zero height).
       nearby results stack radially (three-message cap), duration grades omit misleading timing text,
       and rewind removes feedback by exact `JudgementResult` reference. Discrete buttons suppress
       Critical Perfect, show Perfect as white timing direction only, keep Near rank plus direction,
-      and show Miss without timing; holds and sliders suppress Perfect feedback.
+      and show Miss without timing; hold heads use these same discrete-note semantics even though their
+      drawables otherwise opt out. Hold tails and slider children substitute their rounded activation
+      percentage for timing direction (Critical Perfect silent, Perfect percentage-only, Bad rank plus
+      percentage, Miss rank-only); slider-head Perfect remains silent.
 - [x] Cardinal-hold activation debug display — a bottom-left progress bar appears while a cardinal
       hold body is active and mirrors the drawable's credited activation proportion, pressed or not.
 - [ ] Settings screen: audio device, volumes, offset calibration (port osu's suggested-offset idea),

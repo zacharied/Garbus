@@ -224,7 +224,7 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("feedback references result", () => ReferenceEquals(judgementFeedback()!.ActiveMessages.Single().Result, firstResult));
             AddAssert("feedback at north angle", () => judgementFeedback()!.ActiveMessages.Single().AngleDeg == 90);
             AddAssert("feedback rank is near", () => judgementFeedback()!.ActiveMessages.Single().RankText == "NEAR");
-            AddAssert("feedback says early", () => judgementFeedback()!.ActiveMessages.Single().TimingText == "EARLY");
+            AddAssert("feedback says early", () => judgementFeedback()!.ActiveMessages.Single().DetailText == "EARLY");
 
             AddStep("rewind before judgement", () => manualClock.CurrentTime = 1800);
             AddUntilStep("judgement reverted", () => firstCardinal()?.Judged == false);

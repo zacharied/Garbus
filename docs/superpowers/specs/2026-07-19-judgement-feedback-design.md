@@ -20,18 +20,21 @@ input was early or late.
   individual hit-object drawable. A single display can position, stack, expire, and rewind all messages
   consistently.
 - **Every meaningful result.** A result is shown when it is scorable and its drawable has
-  `DisplayResult == true`. This includes meaningful nested results such as slider children and excludes
-  `IgnoreHit`, `IgnoreMiss`, and implementation-only results which opt out of display.
+  `DisplayResult == true`, with a deliberate exception for hold heads. Hold heads are evaluated using
+  the same compact feedback as their corresponding cardinal or shoulder notes even though their
+  invisible nested drawables otherwise opt out. Other implementation-only results remain excluded.
 - **Angle preserves object association.** The message anchor uses the judged object's `IHasAngle`
   angle, following the same polar convention as `GarbusScrollingHitObjectContainer`.
 - **Screen-upright text.** Position encodes angle; glyphs never rotate. Text remains immediately
   readable in the lower and side regions of the playfield.
 - **Compact qualitative content.** Discrete button objects use a deliberately quiet hierarchy:
   Critical Perfect is silent, Perfect shows only `EARLY` or `LATE` in white, and Near keeps its rank
-  plus the timing direction, while Miss shows only its rank. Perfect results from holds and sliders
-  are also silent. Other surfaced results use a rank line plus an optional timing line. Milliseconds
-  are not displayed. An effectively zero timing offset omits the direction line, so an exactly-timed
-  button Perfect is silent.
+  plus the timing direction, while Miss shows only its rank. Duration tails follow the same hierarchy
+  with their rounded credited-activation percentage replacing timing direction: Critical Perfect is
+  silent, Perfect is percentage-only, Bad is rank plus percentage, and Miss is rank-only. Slider-head
+  Perfect remains silent. Other surfaced results use a rank line plus an optional detail line.
+  Milliseconds are not displayed. An effectively zero timing offset omits the direction line, so an
+  exactly-timed button Perfect is silent.
 - **Radial collision stack.** Nearby messages coexist briefly. The newest sits nearest the centre and
   pushes older messages outward instead of replacing them or entering a global queue.
 - **No visible guide.** The inner circle is layout geometry only; it has no stroke or fill.
@@ -45,7 +48,8 @@ the two occupy disjoint radii.
 `Ring` owns the subscription:
 
 1. `Ring.NewResult` forwards a drawable and its `JudgementResult` to the display.
-2. The display filters non-scorable results, `DisplayResult == false`, and objects without `IHasAngle`.
+2. The display filters non-scorable results, `DisplayResult == false` (except hold heads), and objects
+   without `IHasAngle`.
 3. An accepted result creates one feedback message associated with that exact `JudgementResult`
    instance.
 4. `Ring.RevertResult` removes any live message associated with the reverted result.
@@ -87,8 +91,8 @@ timing information:
 - Near: `NEAR` plus `EARLY` or `LATE`;
 - Miss: only `MISS`, without a timing direction.
 
-An effectively-zero Perfect has no direction to show and is therefore silent. Bad and non-button
-results that opt into display retain the general format below, except for the duration Perfect rule.
+An effectively-zero Perfect has no direction to show and is therefore silent. Non-button results that
+opt into display retain the general format below unless they expose duration activation feedback.
 
 The primary line in the general format is the uppercase display name of the result:
 
@@ -108,14 +112,23 @@ Use a very small epsilon only to avoid unstable labels at floating-point zero; d
 perceptual dead zone that hides real timing information. Automatic expiry misses therefore read
 `MISS / LATE`, while an early-miss input reads `MISS / EARLY`.
 
-Duration results do not receive an early/late label, and Perfect results from holds and sliders do not
-create a message at all. Their application time is a frame-level detail at the segment end, while their
-rank describes the proportion successfully held or caught. Presenting that update-frame offset as
-player timing would be misleading. The display-facing API must make this distinction explicit rather
-than infer it from a near-zero offset.
+Duration results do not receive an early/late label. Hold tails and slider children expose the exact
+credited activation proportion used by their duration judgement, including opening grace, and the
+feedback snapshots it as a whole-number percentage. Their compact presentation is:
 
-The existing `DisplayResult == false` decision for hold heads remains authoritative: this design does
-not independently surface an opted-out nested result.
+- Critical Perfect: no message;
+- Perfect: only the activation percentage, rendered in white;
+- Bad: `BAD` plus the activation percentage;
+- Miss: only `MISS`.
+
+Their application time is a frame-level detail at the segment end, while activation is the actual
+quality measurement. Slider heads are catch-timed rather than duration-judged, so their existing
+Perfect suppression remains unchanged.
+
+Hold heads are the exception to `DisplayResult == false`: their nested drawables remain invisible and
+opted out for general result presentation, but the halo surfaces their timing judgement with the same
+compact rules as an ordinary cardinal or shoulder note. The hold parent's later duration judgement
+retains duration semantics and remains independently filtered.
 
 ## 4. Collision stacking
 
@@ -152,10 +165,11 @@ Rank colour is the primary quality cue:
 - Bad: orange;
 - Miss: red.
 
-The smaller early/late line should be quieter than the rank. The words themselves carry the timing
+The smaller detail line should be quieter than the rank. Its text carries the timing or activation
 meaning, so colour is never the only distinction. Exact colours and font sizes are presentation-tuning
-values and may be adjusted in the visual test scene without changing behaviour. The button Perfect
-exception renders its direction in full-opacity white because that direction is the entire message.
+values and may be adjusted in the visual test scene without changing behaviour. Compact Perfect
+feedback renders its direction or activation percentage in full-opacity white because that detail is
+the entire message.
 
 ## 6. Rewind and lifecycle
 
@@ -179,7 +193,10 @@ Add headless coverage for:
 - negative, positive, and effectively-zero timing offsets;
 - early-input Miss versus automatic late Miss;
 - duration results omitting the timing direction;
-- `IgnoreHit`, `IgnoreMiss`, `DisplayResult == false`, and non-angle filtering;
+- duration Critical Perfect silence, percentage-only Perfect, Bad plus rounded activation percentage,
+  and rank-only Miss;
+- `IgnoreHit`, `IgnoreMiss`, ordinary `DisplayResult == false`, and non-angle filtering;
+- cardinal and shoulder hold heads bypassing their drawable opt-out and using discrete-note feedback;
 - nested meaningful results reaching the display through `Ring.NewResult`;
 - nearby-angle stacking, newest-first radial order, three-message cap, and circular seam proximity;
 - expiry closing stack gaps and disposing messages;

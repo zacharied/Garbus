@@ -159,7 +159,8 @@ asymmetric `(Early, Late)` ranges (`HitWindowRange`) with an early-only Miss win
 keyed off `HitWindows.LateEligibilityEdge`, notes carry `CardinalNoteHitWindows` /
 `ShoulderNoteHitWindows` (hold heads share the parent instance), and note-lock is the spec's
 oldest-eligible-containing rule (no force-missing — `GarbusOrderedHitPolicy`). `DurationJudgement`
-applies hold/slider grace, short-duration, end-floor, and ending-grace rules. Slider heads use a
+applies hold/slider grace, short-duration, end-floor, and ending-grace rules. Hold heads use the same
+judgement-feedback presentation as their corresponding cardinal/shoulder notes. Slider heads use a
 late-only 200 ms catch window; children use hold-family segment proportions plus a distinct catch-style
 pseudo-head chain, with same-time/same-side slam floors. Slams use timestamped early-permissive
 `SlamHitWindows` (Perfect ±200 ms, Near late-only through +300 ms).
@@ -167,12 +168,15 @@ pseudo-head chain, with same-time/same-side slam floors. Slams use timestamped e
 **Judgement feedback halo:** `Ring` owns `JudgementFeedbackDisplay` above its hit-object layers. It
 consumes the ring's already-forwarded `NewResult`/`RevertResult` stream, places upright rank +
 early/late messages at each `IHasAngle` direction, and radially stacks nearby results across the angle
-seam. `DrawableHitObject.DisplayResult` controls whether a result surfaces;
+seam. `DrawableHitObject.DisplayResult` controls whether a result surfaces, except that hold heads are
+evaluated with normal cardinal/shoulder-note semantics;
 `DisplayTimingOffset` is false for hold tails and slider children because their frame-time offset is
 not a timing grade. Discrete buttons keep high-accuracy feedback quiet: Critical Perfect is silent,
 Perfect shows only white early/late text, Near keeps its rank plus direction, and Miss is rank-only.
-Perfect results from holds and sliders are silent. Rewind removal keys on the exact `JudgementResult`
-reference so replay may reuse the reset result object safely. See
+Duration tails use the same hierarchy with their rounded credited-activation percentage in place of
+early/late: Critical Perfect is silent, Perfect is percentage-only, Bad is rank plus percentage, and
+Miss is rank-only. Slider-head Perfect remains silent. Rewind removal keys on the exact
+`JudgementResult` reference so replay may reuse the reset result object safely. See
 `docs/superpowers/specs/2026-07-19-judgement-feedback-design.md`.
 
 ## Current state (Phase 3 complete)

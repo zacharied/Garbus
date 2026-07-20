@@ -6,6 +6,7 @@ using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Objects;
+using Garbus.Game.Objects.Drawables;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -48,22 +49,28 @@ public sealed partial class JudgementFeedbackDisplay : CompositeDrawable
     }
 
     /// <summary>
-    /// Shows a result if it is scorable, opted in, and has an angle suitable for polar placement.
+    /// Shows a result if it is scorable, opted in (or belongs to a hold head), and has an angle
+    /// suitable for polar placement.
     /// </summary>
     public bool Show(DrawableHitObject drawable, JudgementResult result)
     {
-        if (!DisplayJudgements.Value || !result.Type.IsScorable() || !drawable.DisplayResult || drawable.HitObject is not IHasAngle angled)
+        bool isHoldNoteHead = drawable.HitObject is IHoldNoteHead;
+
+        if (!DisplayJudgements.Value || !result.Type.IsScorable() ||
+            (!drawable.DisplayResult && !isHoldNoteHead) || drawable.HitObject is not IHasAngle angled)
             return false;
 
         bool compactButtonFeedback = drawable.HitObject is Note && drawable.HitObject is not IHasDuration;
-        bool holdOrSliderFeedback = drawable.HitObject is IHasDuration or SliderHead or SliderChild;
+        var durationDrawable = drawable as IHasActivationProgress;
+        bool compactFeedback = compactButtonFeedback || durationDrawable != null;
 
-        if ((compactButtonFeedback && result.Type == HitResult.CriticalPerfect) ||
-            (holdOrSliderFeedback && result.Type == HitResult.Perfect))
+        if ((compactFeedback && result.Type == HitResult.CriticalPerfect) ||
+            (drawable.HitObject is SliderHead && result.Type == HitResult.Perfect))
             return false;
 
+        double? activationProgress = durationDrawable?.ActivationProgress;
         bool displayTimingOffset = drawable.DisplayTimingOffset && !(compactButtonFeedback && result.Type == HitResult.Miss);
-        var message = new JudgementFeedbackMessage(result, angled.AngleDeg, displayTimingOffset, compactButtonFeedback);
+        var message = new JudgementFeedbackMessage(result, angled.AngleDeg, displayTimingOffset, compactButtonFeedback, activationProgress);
 
         if (!message.HasContent)
         {

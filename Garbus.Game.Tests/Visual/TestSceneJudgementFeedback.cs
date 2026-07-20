@@ -64,10 +64,10 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
     [Test]
     public void TestTimingDirection()
     {
-        AddAssert("negative is early", () => createMessage(HitResult.Perfect, -18, true).TimingText == "EARLY");
-        AddAssert("positive is late", () => createMessage(HitResult.Perfect, 18, true).TimingText == "LATE");
-        AddAssert("zero has no direction", () => createMessage(HitResult.Perfect, 0, true).TimingText == string.Empty);
-        AddAssert("floating point zero has no direction", () => createMessage(HitResult.Perfect, 1e-10, true).TimingText == string.Empty);
+        AddAssert("negative is early", () => createMessage(HitResult.Perfect, -18, true).DetailText == "EARLY");
+        AddAssert("positive is late", () => createMessage(HitResult.Perfect, 18, true).DetailText == "LATE");
+        AddAssert("zero has no direction", () => createMessage(HitResult.Perfect, 0, true).DetailText == string.Empty);
+        AddAssert("floating point zero has no direction", () => createMessage(HitResult.Perfect, 1e-10, true).DetailText == string.Empty);
     }
 
     [Test]
@@ -86,12 +86,12 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
     {
         AddStep("show early perfect", () => show(HitResult.Perfect, -18, 90));
         AddAssert("rank omitted", () => display.ActiveMessages.Single().RankText == string.Empty);
-        AddAssert("early shown", () => display.ActiveMessages.Single().TimingText == "EARLY");
-        AddAssert("timing is white", () => display.ActiveMessages.Single().TimingColour == Color4.White);
+        AddAssert("early shown", () => display.ActiveMessages.Single().DetailText == "EARLY");
+        AddAssert("timing is white", () => display.ActiveMessages.Single().DetailColour == Color4.White);
 
         AddStep("clear", () => display.ClearMessages());
         AddStep("show late perfect", () => show(HitResult.Perfect, 18, 90));
-        AddAssert("late shown alone", () => display.ActiveMessages.Single().RankText == string.Empty && display.ActiveMessages.Single().TimingText == "LATE");
+        AddAssert("late shown alone", () => display.ActiveMessages.Single().RankText == string.Empty && display.ActiveMessages.Single().DetailText == "LATE");
     }
 
     [Test]
@@ -110,7 +110,7 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
     {
         AddStep("show late near", () => show(HitResult.Near, 32, 90));
         AddAssert("near rank retained", () => display.ActiveMessages.Single().RankText == "NEAR");
-        AddAssert("late retained", () => display.ActiveMessages.Single().TimingText == "LATE");
+        AddAssert("late retained", () => display.ActiveMessages.Single().DetailText == "LATE");
     }
 
     [Test]
@@ -118,17 +118,95 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
     {
         AddStep("show early miss", () => show(HitResult.Miss, -150, 90));
         AddAssert("miss rank retained", () => display.ActiveMessages.Single().RankText == "MISS");
-        AddAssert("early omitted", () => display.ActiveMessages.Single().TimingText == string.Empty);
+        AddAssert("early omitted", () => display.ActiveMessages.Single().DetailText == string.Empty);
 
         AddStep("clear", () => display.ClearMessages());
         AddStep("show late miss", () => show(HitResult.Miss, 110, 90));
-        AddAssert("late omitted", () => display.ActiveMessages.Single().TimingText == string.Empty);
+        AddAssert("late omitted", () => display.ActiveMessages.Single().DetailText == string.Empty);
     }
 
     [Test]
-    public void TestHoldAndSliderPerfectsAreSilent()
+    public void TestHoldHeadsUseButtonFeedback()
     {
-        AddAssert("hold perfect rejected", () =>
+        bool cardinalShown = false;
+        bool shoulderShown = false;
+
+        AddStep("show cardinal hold head perfect", () =>
+        {
+            var parent = new CardinalHoldNote
+            {
+                AngleDeg = 90,
+                StartTime = 1000,
+                Duration = 500,
+            };
+            parent.ApplyDefaults();
+
+            var result = new JudgementResult(parent.Head, parent.Head.Judgement) { Type = HitResult.Perfect };
+            result.TimeOffset = -18;
+            var drawable = new DrawableHoldNoteHead<HoldNoteHead<CardinalHoldNote>>(parent.Head);
+
+            cardinalShown = !drawable.DisplayResult && display.Show(drawable, result);
+        });
+        AddAssert("cardinal head bypasses drawable opt-out", () => cardinalShown);
+        AddAssert("cardinal head uses direction-only perfect", () =>
+            display.ActiveMessages.Single().RankText == string.Empty &&
+            display.ActiveMessages.Single().DetailText == "EARLY" &&
+            display.ActiveMessages.Single().DetailColour == Color4.White);
+
+        AddStep("clear", () => display.ClearMessages());
+        AddStep("show shoulder hold head near", () =>
+        {
+            var parent = new ShoulderHoldNote
+            {
+                Side = HorizontalDirection.Right,
+                StartTime = 1000,
+                Duration = 500,
+            };
+            parent.ApplyDefaults();
+
+            var result = new JudgementResult(parent.Head, parent.Head.Judgement) { Type = HitResult.Near };
+            result.TimeOffset = 32;
+            var drawable = new DrawableHoldNoteHead<HoldNoteHead<ShoulderHoldNote>>(parent.Head);
+
+            shoulderShown = !drawable.DisplayResult && display.Show(drawable, result);
+        });
+        AddAssert("shoulder head bypasses drawable opt-out", () => shoulderShown);
+        AddAssert("shoulder head uses ranked button feedback", () =>
+            display.ActiveMessages.Single().RankText == "NEAR" &&
+            display.ActiveMessages.Single().DetailText == "LATE");
+    }
+
+    [Test]
+    public void TestDurationCriticalPerfectsAreSilent()
+    {
+        AddAssert("hold critical perfect rejected", () =>
+        {
+            var hitObject = new CardinalHoldNote
+            {
+                AngleDeg = 90,
+                StartTime = 1000,
+                Duration = 500,
+            };
+            hitObject.ApplyDefaults();
+            var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.CriticalPerfect };
+            return !display.Show(new DrawableCardinalHoldNote(hitObject), result);
+        });
+
+        AddAssert("slider child critical perfect rejected", () =>
+        {
+            var parent = createSliderBody();
+            var hitObject = parent.NestedHitObjects.OfType<SliderChild>().Single();
+            var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.CriticalPerfect };
+            return !display.Show(new DrawableSliderChild(hitObject), result);
+        });
+
+        AddAssert("no duration critical perfect messages", () => display.ActiveMessages.Count == 0);
+    }
+
+    [Test]
+    public void TestDurationPerfectShowsPercentageOnly()
+    {
+        AddStep("show hold perfect", () =>
         {
             var hitObject = new CardinalHoldNote
             {
@@ -138,9 +216,50 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
             };
             hitObject.ApplyDefaults();
             var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.Perfect };
-            return !display.Show(new DrawableCardinalHoldNote(hitObject), result);
+            display.Show(new DrawableCardinalHoldNote(hitObject), result);
         });
 
+        AddAssert("rank omitted", () => display.ActiveMessages.Single().RankText == string.Empty);
+        AddAssert("credited activation shown", () => display.ActiveMessages.Single().DetailText == "22%");
+        AddAssert("percentage is white", () => display.ActiveMessages.Single().DetailColour == Color4.White);
+    }
+
+    [Test]
+    public void TestDurationBadShowsRoundedPercentage()
+    {
+        AddStep("show slider child bad", () =>
+        {
+            var parent = createSliderBody();
+            var hitObject = parent.NestedHitObjects.OfType<SliderChild>().Single();
+            var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.Bad };
+            display.Show(new DrawableSliderChild(hitObject), result);
+        });
+
+        AddAssert("bad rank retained", () => display.ActiveMessages.Single().RankText == "BAD");
+        AddAssert("segment activation shown", () => display.ActiveMessages.Single().DetailText == "40%");
+
+        AddAssert("percentage rounded to integer", () =>
+            createMessage(HitResult.Bad, 0, false, activationProgress: 0.555).DetailText == "56%");
+    }
+
+    [Test]
+    public void TestDurationMissUsesRankOnly()
+    {
+        AddStep("show slider child miss", () =>
+        {
+            var parent = createSliderBody();
+            var hitObject = parent.NestedHitObjects.OfType<SliderChild>().Single();
+            var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.Miss };
+            display.Show(new DrawableSliderChild(hitObject), result);
+        });
+
+        AddAssert("miss rank retained", () => display.ActiveMessages.Single().RankText == "MISS");
+        AddAssert("percentage omitted", () => display.ActiveMessages.Single().DetailText == string.Empty);
+    }
+
+    [Test]
+    public void TestSliderHeadPerfectRemainsSilent()
+    {
         AddAssert("slider head perfect rejected", () =>
         {
             var parent = createSliderBody();
@@ -149,30 +268,22 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
             var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.Perfect };
             return !display.Show(new DrawableSliderHead(hitObject), result);
         });
-
-        AddAssert("slider child perfect rejected", () =>
-        {
-            var parent = createSliderBody();
-            var hitObject = parent.NestedHitObjects.OfType<SliderChild>().Single();
-            var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.Perfect };
-            return !display.Show(new DrawableSliderChild(hitObject), result);
-        });
-
-        AddAssert("no duration perfect messages", () => display.ActiveMessages.Count == 0);
     }
 
     [Test]
-    public void TestDurationMessageOmitsDirection()
+    public void TestDurationDrawablesDeclareActivationSemantics()
     {
-        AddAssert("duration omits direction", () => createMessage(HitResult.Bad, 18, false).TimingText == string.Empty);
-
         AddAssert("hold tail declares duration semantics", () =>
-            !new DrawableCardinalHoldNote(new CardinalHoldNote
+        {
+            var drawable = new DrawableCardinalHoldNote(new CardinalHoldNote
             {
                 AngleDeg = 90,
                 StartTime = 1000,
                 Duration = 500,
-            }).DisplayTimingOffset);
+            });
+
+            return !drawable.DisplayTimingOffset && drawable is IHasActivationProgress;
+        });
 
         AddAssert("slider child declares duration semantics", () =>
         {
@@ -189,7 +300,8 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
             };
 
             parent.ApplyDefaults();
-            return !new DrawableSliderChild(parent.NestedHitObjects.OfType<SliderChild>().Single()).DisplayTimingOffset;
+            var drawable = new DrawableSliderChild(parent.NestedHitObjects.OfType<SliderChild>().Single());
+            return !drawable.DisplayTimingOffset && drawable is IHasActivationProgress;
         });
     }
 
@@ -302,8 +414,8 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
     [Test]
     public void TestMissDirectionUsesSignedOffset()
     {
-        AddAssert("early input miss", () => createMessage(HitResult.Miss, -150, true).TimingText == "EARLY");
-        AddAssert("automatic late miss", () => createMessage(HitResult.Miss, 110, true).TimingText == "LATE");
+        AddAssert("early input miss", () => createMessage(HitResult.Miss, -150, true).DetailText == "EARLY");
+        AddAssert("automatic late miss", () => createMessage(HitResult.Miss, 110, true).DetailText == "LATE");
     }
 
     [Test]
@@ -450,7 +562,11 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
         AddAssert("preview populated", () => display.ActiveMessages.Count > 0);
     }
 
-    private static JudgementFeedbackMessage createMessage(HitResult type, double offset, bool displayTimingOffset)
+    private static JudgementFeedbackMessage createMessage(
+        HitResult type,
+        double offset,
+        bool displayTimingOffset,
+        double? activationProgress = null)
     {
         var hitObject = new CardinalNote
         {
@@ -462,7 +578,7 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
         var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = type };
         result.TimeOffset = offset;
 
-        return new JudgementFeedbackMessage(result, hitObject.AngleDeg, displayTimingOffset);
+        return new JudgementFeedbackMessage(result, hitObject.AngleDeg, displayTimingOffset, activationProgress: activationProgress);
     }
 
     private static (TestDrawable<CardinalNote> Drawable, JudgementResult Result) createResult(

@@ -28,11 +28,11 @@ public sealed partial class JudgementFeedbackMessage : CompositeDrawable
 
     public string RankText { get; }
 
-    public string TimingText { get; }
+    public string DetailText { get; }
 
-    public Color4 TimingColour { get; }
+    public Color4 DetailColour { get; }
 
-    public bool HasContent => RankText.Length > 0 || TimingText.Length > 0;
+    public bool HasContent => RankText.Length > 0 || DetailText.Length > 0;
 
     public int StackIndex { get; internal set; }
 
@@ -42,15 +42,26 @@ public sealed partial class JudgementFeedbackMessage : CompositeDrawable
 
     internal bool IsDisposedForTesting { get; private set; }
 
-    public JudgementFeedbackMessage(JudgementResult result, float angleDeg, bool displayTimingOffset, bool compactButtonFeedback = false)
+    public JudgementFeedbackMessage(
+        JudgementResult result,
+        float angleDeg,
+        bool displayTimingOffset,
+        bool compactButtonFeedback = false,
+        double? activationProgress = null)
     {
         Result = result;
         AngleDeg = normalise(angleDeg);
-        RankText = compactButtonFeedback && result.Type is (HitResult.CriticalPerfect or HitResult.Perfect)
+        bool compactFeedback = compactButtonFeedback || activationProgress.HasValue;
+
+        RankText = compactFeedback && result.Type is (HitResult.CriticalPerfect or HitResult.Perfect)
             ? string.Empty
             : result.Type.GetDescription().ToUpperInvariant();
-        TimingText = timingTextFor(result.TimeOffset, displayTimingOffset);
-        TimingColour = compactButtonFeedback && result.Type == HitResult.Perfect
+        DetailText = compactFeedback && result.Type is (HitResult.CriticalPerfect or HitResult.Miss)
+            ? string.Empty
+            : activationProgress.HasValue
+                ? activationTextFor(activationProgress.Value)
+                : timingTextFor(result.TimeOffset, displayTimingOffset);
+        DetailColour = compactFeedback && result.Type == HitResult.Perfect
             ? Color4.White
             : new Color4(210, 215, 225, 255);
 
@@ -72,16 +83,16 @@ public sealed partial class JudgementFeedbackMessage : CompositeDrawable
             });
         }
 
-        if (TimingText.Length > 0)
+        if (DetailText.Length > 0)
         {
             textChildren.Add(new SpriteText
             {
                 Anchor = Anchor.TopCentre,
                 Origin = Anchor.TopCentre,
-                Text = TimingText,
-                Font = new FontUsage("Inter-Bold").With(size: compactButtonFeedback && result.Type == HitResult.Perfect ? 16 : 12),
-                Colour = TimingColour,
-                Alpha = compactButtonFeedback && result.Type == HitResult.Perfect ? 1 : 0.85f,
+                Text = DetailText,
+                Font = new FontUsage("Inter-Bold").With(size: compactFeedback && result.Type == HitResult.Perfect ? 16 : 12),
+                Colour = DetailColour,
+                Alpha = compactFeedback && result.Type == HitResult.Perfect ? 1 : 0.85f,
             });
         }
 
@@ -136,6 +147,12 @@ public sealed partial class JudgementFeedbackMessage : CompositeDrawable
             return string.Empty;
 
         return offset < 0 ? "EARLY" : "LATE";
+    }
+
+    private static string activationTextFor(double progress)
+    {
+        int percentage = (int)Math.Round(Math.Clamp(progress, 0, 1) * 100, MidpointRounding.AwayFromZero);
+        return $"{percentage}%";
     }
 
     private static float normalise(float angle)

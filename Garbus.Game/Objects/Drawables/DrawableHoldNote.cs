@@ -24,7 +24,7 @@ namespace Garbus.Game.Objects.Drawables;
 /// Shared base for held notes: a nested judgemental head plus a time-accumulated ("catch record") tail,
 /// judged deferred until the head resolves. Subclasses draw the head and body via <see cref="UpdateVisuals"/>.
 /// </summary>
-public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote<THitObject>, ISelfPosition
+public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote<THitObject>, ISelfPosition, IHasActivationProgress
     where THitObject : Note, IHasDuration
     where THead : Note
 {
@@ -64,7 +64,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
             if (HitObject.Duration <= 0)
                 return 1;
 
-            double creditedOpeningGrace = Math.Min(HitObject.Duration, Head.HitObject.HitWindows.LateEligibilityEdge);
+            double creditedOpeningGrace = Math.Min(HitObject.Duration, HitObject.HitWindows.LateEligibilityEdge);
             return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / HitObject.Duration, 0, 1);
         }
     }

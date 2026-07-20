@@ -14,7 +14,7 @@ using osu.Framework.Allocation;
 
 namespace Garbus.Game.Objects.Drawables;
 
-public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelfPosition
+public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelfPosition, IHasActivationProgress
 {
     /// <summary>
     /// A child grades how much of its segment was caught. Its application time at the node is not a
@@ -32,6 +32,23 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     private double activatedAfterOpeningGrace;
     private bool activatedDuringEndGrace;
     private bool? activatedAtSegmentEnd;
+
+    /// <summary>
+    /// The proportion of this segment credited as activated. This is the same activation duration
+    /// passed to <see cref="DurationJudgement.Resolve"/> when the child is judged.
+    /// </summary>
+    public double ActivationProgress
+    {
+        get
+        {
+            double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
+            if (duration <= 0)
+                return 1;
+
+            double creditedOpeningGrace = Math.Min(duration, SliderCatchHitWindows.PERFECT_WINDOW);
+            return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / duration, 0, 1);
+        }
+    }
 
     /// <summary>The catch-style pseudo-judgement at this node; never applied as a real result.</summary>
     public bool? HeadStyleHit { get; private set; }
