@@ -1,0 +1,154 @@
+name: Master release
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/release-master.yml
+
+concurrency:
+  group: master-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Test and package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run tests
+        run: dotnet test Garbus.Game.Tests/Garbus.Game.Tests.csproj --configuration Release
+
+      - name: Publish archives
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf release
+          mkdir -p release
+
+          for rid in win-x64 linux-x64; do
+            package_root="release/${rid}"
+            publish_dir="${package_root}/Garbus"
+
+            dotnet publish Garbus.Desktop/Garbus.Desktop.csproj \
+              --configuration Release \
+              --runtime "${rid}" \
+              --self-contained true \
+              --output "${publish_dir}"
+
+            case "${rid}" in
+              win-x64) launch_command='Garbus.exe' ;;
+              linux-x64) launch_command='./Garbus' ;;
+            esac
+
+            printf '%s\n' \
+              'Garbus master build' \
+              "Commit: ${GITHUB_SHA}" \
+              "Runtime: ${rid}" \
+              "Launch: ${launch_command}" \
+              > "${publish_dir}/BUILD-INFO.txt"
+
+            (
+              cd "${package_root}"
+              zip -9 -r "../Garbus-${rid}.zip" Garbus
+            )
+
+            rm -rf "${package_root}"
+          done
+
+          (
+            cd release
+            sha256sum Garbus-*.zip > SHA256SUMS.txt
+          )
+
+      - name: Upload release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-release
+          path: |
+            release/Garbus-win-x64.zip
+            release/Garbus-linux-x64.zip
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  release:
+    name: Update rolling prerelease
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Download release files
+        uses: actions/download-artifact@v4
+        with:
+          name: master-release
+          path: release
+
+      - name: Prepare release metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          short_sha="${GITHUB_SHA::7}"
+          printf 'title=Latest master build (%s)\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
+          cat > release-notes.md <<EOF
+          Automated playtest build from [\`${GITHUB_SHA}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}).
+
+          This is a development snapshot from \`master\`, not a stable release.
+
+          - Windows x64: \`Garbus-win-x64.zip\`
+          - Linux x64: \`Garbus-linux-x64.zip\`
+          - Download verification: \`SHA256SUMS.txt\`
+          EOF
+
+      - name: Publish rolling prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TITLE: ${{ steps.metadata.outputs.title }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag='latest-master'
+          git tag --force "${tag}" "${GITHUB_SHA}"
+          git push --force origin "refs/tags/${tag}"
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release upload "${tag}" release/* --clobber
+            gh release edit "${tag}" \
+              --title "${RELEASE_TITLE}" \
+              --notes-file release-notes.md \
+              --prerelease \
+              --latest=false
+          else
+            gh release create "${tag}" release/* \
+              --target "${GITHUB_SHA}" \
+              --title "${RELEASE_TITLE}" \
+              --notes-file release-notes.md \
+              --prerelease \
+              --latest=false
+          fi
