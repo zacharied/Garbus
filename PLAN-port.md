@@ -221,6 +221,8 @@ zero height).
       and rewind removes feedback by exact `JudgementResult` reference. Discrete buttons suppress
       Critical Perfect, show Perfect as white timing direction only, keep Near rank plus direction,
       and show Miss without timing; holds and sliders suppress Perfect feedback.
+- [x] Cardinal-hold activation debug display — a bottom-left progress bar appears while a cardinal
+      hold body is active and mirrors the drawable's credited activation proportion, pressed or not.
 - [ ] Settings screen: audio device, volumes, offset calibration (port osu's suggested-offset idea),
       key bindings
 - [ ] Results screen

@@ -171,6 +171,7 @@ namespace Garbus.Game.Screens
                             {
                                 RelativeSizeAxes = Axes.Both,
                             },
+                            new HoldActivationDebugDisplay(playfield),
                         },
                     },
                 },

@@ -40,6 +40,7 @@ namespace Garbus.Game.Tests.Visual
         private ManualClock manualClock = null!;
         private ManualInputManager input = null!;
         private GarbusPlayfield playfield = null!;
+        private HoldActivationDebugDisplay holdActivationDisplay = null!;
 
         [Resolved]
         private ISampleStore samples { get; set; } = null!;
@@ -70,12 +71,16 @@ namespace Garbus.Game.Tests.Visual
                     {
                         RelativeSizeAxes = Axes.Both,
                         Clock = new FramedClock(manualClock),
-                        Child = new GarbusInputManager
+                        Children = new Drawable[]
                         {
-                            Child = playfield = new GarbusPlayfield
+                            new GarbusInputManager
                             {
-                                Size = Vector2.One,
+                                Child = playfield = new GarbusPlayfield
+                                {
+                                    Size = Vector2.One,
+                                },
                             },
+                            holdActivationDisplay = new HoldActivationDebugDisplay(playfield),
                         },
                     },
                 };
@@ -167,6 +172,40 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("later cardinal unjudged", () => playfield.AllHitObjects
                                                                 .OfType<Objects.Drawables.DrawableCardinalNote>()
                                                                 .Count(h => !h.Judged) == 2);
+        }
+
+        [Test]
+        public void TestCardinalHoldActivationDebugDisplay()
+        {
+            Objects.Drawables.DrawableCardinalHoldNote hold = null!;
+
+            AddUntilStep("find west hold", () =>
+            {
+                hold = playfield.AllHitObjects
+                                .OfType<Objects.Drawables.DrawableCardinalHoldNote>()
+                                .SingleOrDefault(h => h.HitObject.StartTime == 6000)!;
+                return hold != null;
+            });
+
+            playThrough(5900);
+            AddAssert("display hidden before hold starts", () => holdActivationDisplay.Alpha, () => Is.Zero);
+
+            playThrough(6100);
+            AddUntilStep("display appears without press", () => holdActivationDisplay.Alpha == 1);
+            AddAssert("display tracks active hold", () => ReferenceEquals(holdActivationDisplay.ActiveHold, hold));
+
+            AddStep("press west", () => input.PressJoystickButton(JoystickButton.Hat1Left));
+            AddAssert("display tracks pressed hold", () => ReferenceEquals(holdActivationDisplay.ActiveHold, hold));
+
+            playThrough(6500);
+            AddAssert("display mirrors half activation", () => holdActivationDisplay.DisplayedProgress,
+                () => Is.EqualTo(0.5).Within(0.02));
+
+            AddStep("release west", () => input.ReleaseJoystickButton(JoystickButton.Hat1Left));
+            AddAssert("display remains after release", () => holdActivationDisplay.Alpha, () => Is.EqualTo(1));
+
+            playThrough(7100);
+            AddUntilStep("display hides after hold ends", () => holdActivationDisplay.Alpha == 0);
         }
 
         [Test]

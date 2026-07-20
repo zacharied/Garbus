@@ -50,6 +50,25 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     /// <summary>Whether the hold's button is currently held.</summary>
     protected bool Holding => holdPresses > 0;
 
+    /// <summary>Whether one or more bindings for this hold are currently pressed.</summary>
+    public bool IsHolding => Holding;
+
+    /// <summary>
+    /// The proportion of the hold duration currently credited as activated. This is the same
+    /// activation duration passed to <see cref="DurationJudgement.Resolve"/> when the tail is judged.
+    /// </summary>
+    public double ActivationProgress
+    {
+        get
+        {
+            if (HitObject.Duration <= 0)
+                return 1;
+
+            double creditedOpeningGrace = Math.Min(HitObject.Duration, Head.HitObject.HitWindows.LateEligibilityEdge);
+            return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / HitObject.Duration, 0, 1);
+        }
+    }
+
     /// <summary>Whether the current time is within the hold body [StartTime, EndTime].</summary>
     protected bool HoldActive => Time.Current >= HitObject.StartTime && Time.Current <= HitObject.EndTime;
 
