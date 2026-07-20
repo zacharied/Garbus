@@ -1,6 +1,8 @@
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Input;
+using Garbus.Game.Gameplay.Scoring;
+using Garbus.Game.Objects.Judgement;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
@@ -16,10 +18,6 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
 
     [Resolved]
     private AnalogInputManager analogInput { get; set; } = null!;
-
-    // Symmetric first-cut window (ms). Replaced by a proper early-permissive HitWindows when the Near
-    // grade lands — see the design's Deferred section.
-    private const double window = 200;
 
     public DrawableSlamCentered(GarbusSlamCentered hitObject)
         : base(hitObject)
@@ -73,16 +71,23 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
-        if (timeOffset < -window)
+        if (timeOffset < -SlamHitWindows.PERFECT_WINDOW)
             return; // early-permissive watch window not open yet
 
-        if (analogInput.StickGestureTrackers[HitObject.Side].FlickedTowards(HitObject.AngleDeg, HitObject.StartTime - window))
+        if (analogInput.StickGestureTrackers[HitObject.Side].TryGetFlickTime(
+                HitObject.AngleDeg,
+                HitObject.StartTime - SlamHitWindows.PERFECT_WINDOW,
+                out double gestureTime))
         {
-            ApplyMaxResult(); // Perfect
-            return;
+            HitResult result = HitObject.HitWindows.ResultFor(gestureTime - HitObject.StartTime);
+            if (result != HitResult.None)
+            {
+                ApplyResult(result);
+                return;
+            }
         }
 
-        if (timeOffset > window)
+        if (timeOffset > SlamHitWindows.LATE_NEAR_WINDOW)
             ApplyMinResult(); // Miss — window elapsed with no flick
     }
 }

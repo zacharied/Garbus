@@ -74,13 +74,13 @@ namespace Garbus.Game.Tests
         }
 
         [Test]
-        public void NonNoteObjectsGetEmptyWindowsAndSlamsKeepLifetimeHeadroom()
+        public void SlamsWireEarlyPermissiveWindows()
         {
             var slam = new GarbusSlamCentered { AngleDeg = 0 };
             slam.ApplyDefaults();
 
-            Assert.That(slam.HitWindows, Is.SameAs(HitWindows.Empty));
-            Assert.That(slam.MaximumJudgementOffset, Is.EqualTo(200));
+            Assert.That(slam.HitWindows, Is.InstanceOf<SlamHitWindows>());
+            Assert.That(slam.MaximumJudgementOffset, Is.EqualTo(300));
             Assert.That(slam.Judgement.MaxResult, Is.EqualTo(HitResult.Perfect));
         }
 

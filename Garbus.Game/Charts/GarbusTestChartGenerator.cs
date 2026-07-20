@@ -110,7 +110,7 @@ public class GarbusTestChartGenerator
                     Duration = 2000,
                     AngleDeg = 270,
                 },
-                // A hold shorter than the head press window: the deferred tail should just inherit the head.
+                // A hold shorter than the head's late window: the tail resolves best-on-head-hit / Miss-on-head-miss.
                 new CardinalHoldNote()
                 {
                     StartTime = 11000,

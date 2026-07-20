@@ -66,7 +66,7 @@ namespace Garbus.Game.Tests
             var t = new StickGestureTracker();
             t.AddSample(0, At(0, 0f));
             t.AddSample(10, At(0, 0.8f));   // crossing at t=10
-            t.AddSample(500, At(0, 0.8f));  // 500 - 350 = 150 > 10, prunes the crossing pair
+            t.AddSample(600, At(0, 0.8f));  // 600 - 550 = 50 > 10, prunes the crossing pair
 
             Assert.That(t.FlickedTowards(0, sinceTime: -1000), Is.False);
         }
@@ -122,6 +122,23 @@ namespace Garbus.Game.Tests
             t.AddSample(10, At(190, 0.8f));   // at edge, 190deg (== -170) -> anticlockwise through 180deg
 
             Assert.That(t.SweptThrough(180, RotationalDirection.Anticlockwise, sinceTime: -1000), Is.True);
+        }
+
+        [Test]
+        public void GestureQueriesExposeDetectionTimestamp()
+        {
+            var flick = new StickGestureTracker();
+            flick.AddSample(120, At(0, 0));
+            flick.AddSample(135, At(0, 0.8f));
+
+            var sweep = new StickGestureTracker();
+            sweep.AddSample(240, At(-20, 0.8f));
+            sweep.AddSample(260, At(20, 0.8f));
+
+            Assert.That(flick.TryGetFlickTime(0, 0, out double flickTime), Is.True);
+            Assert.That(flickTime, Is.EqualTo(135));
+            Assert.That(sweep.TryGetSweepTime(0, RotationalDirection.Anticlockwise, 0, out double sweepTime), Is.True);
+            Assert.That(sweepTime, Is.EqualTo(260));
         }
     }
 }

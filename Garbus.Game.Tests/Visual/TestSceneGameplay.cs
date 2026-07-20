@@ -210,7 +210,7 @@ namespace Garbus.Game.Tests.Visual
         };
 
         [Test]
-        public void HittingASliderChildPlaysExactlyOneFamilyMember()
+        public void HittingASliderChildPlaysExactlyOneHitsound()
         {
             Objects.Drawables.DrawableSliderBody body = null!;
             Objects.Drawables.DrawableSliderChild child = null!;
@@ -258,19 +258,18 @@ namespace Garbus.Game.Tests.Visual
 
             AddUntilStep("child judged", () => child.Judged);
             AddAssert("child is hit", () => child.IsHit);
-            AddAssert("exactly one member played", () => child.SamplesPlayCount, () => Is.EqualTo(1));
+            AddAssert("child plays once", () => child.SamplesPlayCount, () => Is.EqualTo(1));
         }
 
         [Test]
-        public void TestUnsampledCatchWindowGrantsHit()
+        public void TestZeroDurationSliderResolvesFromMissedHead()
         {
             Objects.Drawables.DrawableSliderBody body = null!;
 
             // A slider whose only child sits at TimeOffset 0 (a zero-duration constant-radius arc, as a
             // slam's coincident children also are): its catch window [StartTime, StartTime] has zero
-            // width, so no frame can ever sample it. StartTime 5050 sits off the 200ms playThrough grid,
-            // guaranteeing the window is never landed on → the tracker ends with 0 records. That must be
-            // granted as a hit, not an unavoidable miss.
+            // width, so its duration judgement resolves directly from the head reference. With no input,
+            // both the catch-timed head and the zero-duration child must miss.
             AddStep("add zero-duration slider", () =>
             {
                 var slider = new SliderBody
@@ -303,9 +302,12 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("child judged", () => body.NestedHitObjects
                                                    .OfType<Objects.Drawables.DrawableSliderChild>()
                                                    .All(c => c.Judged));
-            AddAssert("child hit despite no catch records", () => body.NestedHitObjects
-                                                                     .OfType<Objects.Drawables.DrawableSliderChild>()
-                                                                     .All(c => c.IsHit));
+            AddAssert("child inherits missed head", () => body.NestedHitObjects
+                                                               .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                               .All(c => !c.IsHit));
+            AddAssert("missed child stays silent", () => body.NestedHitObjects
+                                                              .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                              .All(c => c.SamplesPlayCount == 0));
         }
 
         [Test]
@@ -340,7 +342,7 @@ namespace Garbus.Game.Tests.Visual
             });
 
             // Walk the clock up to just before StartTime; the head must have emerged and be visible as a
-            // circle (Alpha > 0, non-zero size) BEFORE it reaches the ring and auto-hits.
+            // circle (Alpha > 0, non-zero size) before it reaches the ring.
             AddUntilStep("head circle visible before judgement", () =>
             {
                 manualClock.CurrentTime = Math.Min(5000, manualClock.CurrentTime + 50);
@@ -348,14 +350,19 @@ namespace Garbus.Game.Tests.Visual
                 return circle != null && circle.Alpha > 0 && circle.DrawWidth > 0 && manualClock.CurrentTime >= 5000;
             });
 
-            // Judgement is unchanged: the head still auto-passes once its time arrives.
+            // Catch timing requires real stick input; an untouched head misses after its 200ms late edge.
             playThrough(6000);
             AddUntilStep("head judged", () => body.NestedHitObjects
                                                   .OfType<Objects.Drawables.DrawableSliderHead>()
                                                   .All(h => h.Judged));
-            AddAssert("head hit (max result)", () => body.NestedHitObjects
-                                                         .OfType<Objects.Drawables.DrawableSliderHead>()
-                                                         .All(h => h.IsHit));
+            AddAssert("untouched head missed", () => body.NestedHitObjects
+                                                       .OfType<Objects.Drawables.DrawableSliderHead>()
+                                                       .All(h => !h.IsHit));
+            AddAssert("missed head stays silent", () => body.NestedHitObjects
+                                                            .OfType<Objects.Drawables.DrawableSliderHead>()
+                                                            .All(h => h.SamplesPlayCount == 0));
+            AddUntilStep("body lifetime sentinel judged", () => body.Judged);
+            AddAssert("unscored body stays silent", () => body.SamplesPlayCount, () => Is.Zero);
         }
 
         [Test]

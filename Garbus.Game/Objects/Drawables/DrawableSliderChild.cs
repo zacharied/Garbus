@@ -1,12 +1,16 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableSliderChild.cs).
-// Adapted: the unused [Resolved] IGameplayClock was dropped.
+// Adapted for Garbus: each child is a hold-family duration judgement, while HeadStyleHit is the
+// distinct catch-style pseudo-judgement used only as the next segment's head reference.
 
-using System.Collections.Generic;
-using osu.Framework.Allocation;
+using System;
+using System.Linq;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
 using Garbus.Game.Objects.Judgement;
+using Garbus.Game.UI;
+using osu.Framework.Allocation;
 
 namespace Garbus.Game.Objects.Drawables;
 
@@ -15,11 +19,16 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     [Resolved]
     private AnalogInputManager analogInput { get; set; } = null!;
 
-    // Minimum fraction of the segment window that must be caught to count as a hit.
-    private const double catch_threshold = 0.5;
+    [Resolved]
+    private SlamCoincidenceIndex slamCoincidenceIndex { get; set; } = null!;
 
-    private readonly List<CatchRecord> catchRecords = new();
-    private CatchRecord? currentCatchRecord;
+    private double lastActivationUpdate = double.NaN;
+    private double activatedAfterOpeningGrace;
+    private bool activatedDuringEndGrace;
+    private bool? activatedAtSegmentEnd;
+
+    /// <summary>The catch-style pseudo-judgement at this node; never applied as a real result.</summary>
+    public bool? HeadStyleHit { get; private set; }
 
     public DrawableSliderChild(SliderChild hitObject)
         : base(hitObject)
@@ -29,90 +38,121 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     /// <summary>Number of family members this child has played. Test seam.</summary>
     public int SamplesPlayCount => Samples?.PlayCount ?? 0;
 
+    // Duration children play once when hit; GarbusHitSoundPlayback keeps Miss results silent.
     public override void PlaySamples() => GarbusHitSoundPlayback.Play(Samples, HitObject, Result);
 
     protected internal override JudgementResult CreateResult(Gameplay.Judgements.Judgement judgement)
-    {
-        return new SliderJudgementResult(HitObject, judgement);
-    }
+        => new SliderJudgementResult(HitObject, judgement);
 
     protected override void OnFree()
     {
         base.OnFree();
 
-        catchRecords.Clear();
-        currentCatchRecord = null;
-    }
-
-    protected override void CheckForResult(bool userTriggered, double timeOffset)
-    {
-        if (timeOffset < 0)
-            return;
-
-        double total = 0, caught = 0;
-
-        foreach (var record in catchRecords)
-        {
-            total += record.Duration;
-            if (record.IsCatching)
-                caught += record.Duration;
-        }
-
-        // No records means no frame ever sampled this child's catch window [segmentStart, segmentEnd] —
-        // the segment was shorter than a frame (in the limit, a zero-duration constant-radius arc, as a
-        // slam's coincident children also are). The player was never given a frame on which to catch, so
-        // grant the hit rather than an unavoidable miss. Any segment long enough to sample yields at least
-        // one record (created on the first in-window frame regardless of catch state), so total > 0 there.
-        double fraction = catchRecords.Count == 0 ? 1 : caught / total;
-
-        if (fraction >= catch_threshold)
-            ApplyMaxResult();
-        else
-            ApplyMinResult();
+        lastActivationUpdate = double.NaN;
+        activatedAfterOpeningGrace = 0;
+        activatedDuringEndGrace = false;
+        activatedAtSegmentEnd = null;
+        HeadStyleHit = null;
     }
 
     protected override void Update()
     {
+        updateActivation();
+        updateHeadStyleJudgement();
         base.Update();
-
-        if (Result is null)
-            return;
-
-        updateCatchRecords();
     }
 
-    /// <summary>
-    /// Accumulates the current frame's elapsed time into runs of constant catch state, but only while
-    /// within this child's segment window [previous node, this node]. The drawable is alive well before
-    /// its node, so unclamped accumulation would count time outside the segment.
-    /// </summary>
-    private void updateCatchRecords()
+    protected override void CheckForResult(bool userTriggered, double timeOffset)
+    {
+        if (timeOffset < 0 || HeadStyleHit is null)
+            return;
+
+        bool? referenceWasHit = headReferenceWasHit();
+        if (referenceWasHit is null)
+            return;
+
+        double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
+        double openingGrace = Math.Min(duration, SliderCatchHitWindows.PERFECT_WINDOW);
+
+        HitResult result = DurationJudgement.Resolve(
+            duration,
+            openingGrace + activatedAfterOpeningGrace,
+            SliderCatchHitWindows.PERFECT_WINDOW,
+            referenceWasHit.Value,
+            activatedAtSegmentEnd == true,
+            activatedDuringEndGrace || activatedAtSegmentEnd == true,
+            bestThreshold: 0.95,
+            perfectThreshold: 0.90,
+            badThreshold: 0.50);
+
+        if (result == HitResult.Miss)
+        {
+            bool? coincidentSlamHit = slamCoincidenceIndex.SlamHitAt(HitObject.StartTime, HitObject.Parent.Side);
+            if (coincidentSlamHit is null)
+                return;
+
+            if (coincidentSlamHit.Value)
+                result = HitResult.Bad;
+        }
+
+        ApplyResult(result);
+    }
+
+    private bool? headReferenceWasHit()
+    {
+        var reference = ParentHitObject!.NestedHitObjects
+                                        .Single(d => ReferenceEquals(d.HitObject, HitObject.HeadReference));
+
+        return reference switch
+        {
+            DrawableSliderHead head when head.Judged => head.IsHit,
+            DrawableSliderChild child => child.HeadStyleHit,
+            _ => null,
+        };
+    }
+
+    private void updateHeadStyleJudgement()
+    {
+        if (HeadStyleHit is not null || Time.Current < HitObject.StartTime)
+            return;
+
+        if (isCatchingNode())
+            HeadStyleHit = true;
+        else if (Time.Current > HitObject.StartTime + SliderCatchHitWindows.PERFECT_WINDOW)
+            HeadStyleHit = false;
+    }
+
+    private void updateActivation()
     {
         var body = (DrawableSliderBody)ParentHitObject!;
         double now = Time.Current;
+        double previous = double.IsNaN(lastActivationUpdate) ? now - Time.Elapsed : lastActivationUpdate;
+        lastActivationUpdate = now;
 
         double segmentStart = HitObject.Parent.GetSegmentStartTime(HitObject);
         double segmentEnd = HitObject.StartTime;
-
-        if (now < segmentStart || now > segmentEnd)
+        if (now < segmentStart || previous > segmentEnd)
             return;
 
         bool catching = analogInput.SliderCatchers[HitObject.Parent.Side]
-                                   .IsCatchingAt((int)body.AngleDegAt(now));
+                                   .IsCatchingAt((int)body.AngleDegAt(Math.Min(now, segmentEnd)));
 
-        // Start a new run when the state flips, otherwise extend the current run.
-        if (currentCatchRecord is null || currentCatchRecord.IsCatching != catching)
-        {
-            currentCatchRecord = new CatchRecord(catching, 0);
-            catchRecords.Add(currentCatchRecord);
-        }
+        if (now >= segmentEnd && activatedAtSegmentEnd is null)
+            activatedAtSegmentEnd = catching;
 
-        currentCatchRecord.Duration += Time.Elapsed;
+        if (!catching)
+            return;
+
+        double intervalStart = Math.Max(previous, segmentStart + SliderCatchHitWindows.PERFECT_WINDOW);
+        double intervalEnd = Math.Min(now, segmentEnd);
+        if (intervalEnd > intervalStart)
+            activatedAfterOpeningGrace += intervalEnd - intervalStart;
+
+        double endingGraceStart = Math.Max(segmentStart, segmentEnd - SliderCatchHitWindows.PERFECT_WINDOW);
+        if (now >= endingGraceStart && previous <= segmentEnd)
+            activatedDuringEndGrace = true;
     }
 
-    private class CatchRecord(bool isCatching, double duration)
-    {
-        public bool IsCatching { get; } = isCatching;
-        public double Duration { get; set; } = duration;
-    }
+    private bool isCatchingNode()
+        => analogInput.SliderCatchers[HitObject.Parent.Side].IsCatchingAt(HitObject.AngleDeg);
 }

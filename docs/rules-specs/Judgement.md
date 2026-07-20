@@ -1,5 +1,3 @@
-*The contents of this document differ from the current implementation.*
-
 # Judgement specification
 
 This is the canonical reference for the timing and judgement behaviour of every Garbus hit object. 
@@ -242,9 +240,10 @@ failing to catch it by then is a Miss. This 200 ms late extent is the head's lar
 window, used by the Final-judgement rules. Each child's head-style pseudo-judgement uses the same
 200 ms window.
 
-One final rule applies to Slider judgement: if a Slam exists at the same StartTime as a node (head or
-child) and that Slam is not a Miss, the node cannot be a Miss either. Normal judgement rules otherwise
-apply to the node. The Slam is still judged independently as its own hit object.
+One final rule applies to Slider judgement: if a Slam with the same **Side** exists at the same
+StartTime as a node (head or child) and that Slam is not a Miss, the node cannot be a Miss either.
+Normal judgement rules otherwise apply to the node. The Slam is still judged independently as its own
+hit object.
 
 #### Duration
 

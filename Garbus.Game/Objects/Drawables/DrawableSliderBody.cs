@@ -35,6 +35,12 @@ namespace Garbus.Game.Objects.Drawables;
 /// </summary>
 public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, ISelfPosition
 {
+    // The body carries only an unscored IgnoreHit lifetime sentinel. Slider audio belongs to a caught
+    // head; neither that sentinel nor duration children should emit additional hitsounds.
+    public override void PlaySamples()
+    {
+    }
+
     /// <summary>
     /// Full width of the rendered line, in pixels. Half of this becomes the <see cref="Path.PathRadius"/>.
     /// </summary>

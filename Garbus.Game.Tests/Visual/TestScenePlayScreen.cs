@@ -3,13 +3,19 @@
 // test browser.
 
 using System.Linq;
+using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
+using Garbus.Game.Core;
+using Garbus.Game.Objects;
+using Garbus.Game.Objects.Drawables;
 using Garbus.Game.Screens;
 using Garbus.Game.Settings;
 using Garbus.Game.Timing;
 using Garbus.Game.UI;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Audio.Track;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
@@ -73,6 +79,56 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("clock starts one lead-in before gameplay", () =>
                 this.ChildrenOfType<MasterGameplayClockContainer>().Single().StartTime
                     == -MasterGameplayClockContainer.LEAD_IN_TIME);
+        }
+
+        [Test]
+        public void TestUncaughtSliderHeadDoesNotBuildComboOrPlayAudio()
+        {
+            DrawableSliderBody sliderBody = null!;
+
+            AddStep("replace with isolated slider", () =>
+            {
+                var chart = new GarbusChart
+                {
+                    HitObjects =
+                    {
+                        new SliderBody
+                        {
+                            StartTime = 0,
+                            AngleDeg = 0,
+                            Side = HorizontalDirection.Left,
+                            Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint>() },
+                        },
+                    },
+                };
+                chart.ApplyDefaults();
+
+                Child = new ScreenStack(playScreen = new PlayScreen(chart, new TrackVirtual(10_000)))
+                {
+                    RelativeSizeAxes = Axes.Both,
+                };
+            });
+
+            AddUntilStep("isolated screen loaded", () => playScreen.IsLoaded);
+            AddUntilStep("slider drawable loaded", () =>
+            {
+                sliderBody = this.ChildrenOfType<GarbusPlayfield>().Single().AllHitObjects
+                                 .OfType<DrawableSliderBody>().SingleOrDefault()!;
+                return sliderBody != null;
+            });
+
+            AddStep("seek beyond catch window", () => this.ChildrenOfType<MasterGameplayClockContainer>().Single().Seek(500));
+            AddUntilStep("head missed", () => sliderBody.NestedHitObjects.OfType<DrawableSliderHead>().Single().Judged);
+
+            AddAssert("head result is Miss", () => sliderBody.NestedHitObjects.OfType<DrawableSliderHead>().Single().Result.Type,
+                () => Is.EqualTo(Gameplay.Scoring.HitResult.Miss));
+            AddAssert("head did not increase combo", () => sliderBody.NestedHitObjects.OfType<DrawableSliderHead>().Single().Result.ComboAfterJudgement,
+                () => Is.Zero);
+            AddAssert("playfield combo remains zero", () => this.ChildrenOfType<GarbusPlayfield>().Single().Combo.Value, () => Is.Zero);
+            AddAssert("missed head is silent", () => sliderBody.NestedHitObjects.OfType<DrawableSliderHead>().Single().SamplesPlayCount,
+                () => Is.Zero);
+            AddUntilStep("body sentinel judged", () => sliderBody.Judged);
+            AddAssert("body sentinel is silent", () => sliderBody.SamplesPlayCount, () => Is.Zero);
         }
     }
 }

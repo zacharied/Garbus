@@ -31,6 +31,9 @@ public partial class Ring : Playfield
     private readonly Lane[] cardinalLanes = new Lane[Enum.GetValues<CardinalDirection>().Length];
     private readonly Lane[] shoulderLanes = new Lane[2];
 
+    [Cached]
+    private SlamCoincidenceIndex slamCoincidenceIndex { get; set; } = new SlamCoincidenceIndex();
+
     protected override HitObjectContainer CreateHitObjectContainer() => new GarbusScrollingHitObjectContainer();
 
     public Ring()
@@ -74,6 +77,21 @@ public partial class Ring : Playfield
                 Colour = Colour4.White,
             },
         ]);
+
+        NewResult += (_, result) => slamCoincidenceIndex.Record(result);
+        RevertResult += result => slamCoincidenceIndex.Revert(result);
+    }
+
+    protected override void OnHitObjectAdded(HitObject hitObject)
+    {
+        base.OnHitObjectAdded(hitObject);
+        slamCoincidenceIndex.Add(hitObject);
+    }
+
+    protected override void OnHitObjectRemoved(HitObject hitObject)
+    {
+        base.OnHitObjectRemoved(hitObject);
+        slamCoincidenceIndex.Remove(hitObject);
     }
 
     /// <summary>The ring's own scrolling container (paths live here); also the shared radius source

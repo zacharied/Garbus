@@ -3,6 +3,10 @@
 Date: 2026-07-19
 Status: implemented
 
+Follow-up status (2026-07-19): the hold-tail, slider, and slam cycles deferred by this foundation
+design are now implemented; `docs/rules-specs/Judgement.md` no longer carries an implementation-drift
+banner.
+
 ## Context
 
 `docs/rules-specs/Judgement.md` is the canonical judgement spec, and the implementation currently

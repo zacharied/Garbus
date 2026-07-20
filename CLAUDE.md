@@ -153,14 +153,16 @@ classes:
   clock — so editor-time-relative behaviour (e.g. the hit zone at time 0 mapping to negative times)
   can't be reproduced in tests.
 
-**Judgement foundation (first alignment cycle against `docs/rules-specs/Judgement.md`):** `HitResult`
+**Judgement implementation (`docs/rules-specs/Judgement.md`):** `HitResult`
 is the Garbus ladder (`Miss < Bad < Near < Perfect < CriticalPerfect` + the Ignore pair), windows are
 asymmetric `(Early, Late)` ranges (`HitWindowRange`) with an early-only Miss window and hittability
 keyed off `HitWindows.LateEligibilityEdge`, notes carry `CardinalNoteHitWindows` /
 `ShoulderNoteHitWindows` (hold heads share the parent instance), and note-lock is the spec's
-oldest-eligible-containing rule (no force-missing — `GarbusOrderedHitPolicy`). Holds/sliders/slams
-carry interim mappings only; their spec alignment is the hold/slider/slam cycles (see
-`docs/superpowers/specs/2026-07-19-judgement-foundation-design.md`).
+oldest-eligible-containing rule (no force-missing — `GarbusOrderedHitPolicy`). `DurationJudgement`
+applies hold/slider grace, short-duration, end-floor, and ending-grace rules. Slider heads use a
+late-only 200 ms catch window; children use hold-family segment proportions plus a distinct catch-style
+pseudo-head chain, with same-time/same-side slam floors. Slams use timestamped early-permissive
+`SlamHitWindows` (Perfect ±200 ms, Near late-only through +300 ms).
 
 ## Current state (Phase 3 complete)
 

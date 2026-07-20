@@ -49,18 +49,22 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle, IHasS
 
     protected override void CreateNestedHitObjects(CancellationToken cancellationToken)
     {
-        AddNested(new SliderHead(this)
+        var head = new SliderHead(this)
         {
             StartTime = StartTime,
-        });
+        };
+        AddNested(head);
+
+        GarbusHitObject previousNode = head;
 
         foreach (var controlPoint in Path.ControlPoints)
         {
-            var childHitObject = new SliderChild(this, controlPoint)
+            var childHitObject = new SliderChild(this, controlPoint, previousNode)
             {
                 StartTime = StartTime + controlPoint.TimeOffset,
             };
             AddNested(childHitObject);
+            previousNode = childHitObject;
         }
     }
 

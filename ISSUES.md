@@ -33,6 +33,8 @@
 * ~~can we make a plan to copy over the rest of osu's timing menu?~~ PLANNED — see docs/plan-timing-screen-port.md (4 phases: table upgrade, timing-section completeness incl. time signature + move-group, section-wide object adjustments [needs a design call], tap-timing polish; effect/SV controls deliberately skipped — timing-only model).
 * New graphics for shoulder notes
 * Shoudler note holds
-* Implement judgment from spec
+* ~~Implement judgment from spec~~ IMPLEMENTED — native judgement families/windows + note-lock,
+  hold-tail grace/final rules, slider catch/segment/pseudo-head/slam-coincidence rules, and timestamped
+  early-permissive slam grading now match `docs/rules-specs/Judgement.md`.
 * Implement inputs from spec
 * editor compose: playfield width should be configurable

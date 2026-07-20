@@ -12,11 +12,11 @@ namespace Garbus.Game.Input;
 
 public class StickGestureTracker
 {
-    // Tunable placeholders for the first-cut judgement (see the design doc). Not final values.
+    // Tunable physical-input thresholds. Timing grades live in SlamHitWindows.
     public const float FLICK_THRESHOLD = 0.7f;      // outward radius crossing that counts as a flick
     public const float EDGE_THRESHOLD = 0.7f;       // radius at/beyond which the stick is "at the edge"
     public const float ANGLE_TOLERANCE_DEG = 30f;   // flick angle must be within this of the slam angle
-    public const double SAMPLE_RETENTION_MS = 350;  // buffer horizon; must exceed the full watch span from sinceTime (early-permissive reach + late window, not just the window half-width)
+    public const double SAMPLE_RETENTION_MS = 550;  // exceeds the full -200..+300 early-permissive watch span
 
     private readonly struct Sample
     {
@@ -53,6 +53,10 @@ public class StickGestureTracker
     /// outward with its angle within tolerance of <paramref name="angleDeg"/>.
     /// </summary>
     public bool FlickedTowards(int angleDeg, double sinceTime)
+        => TryGetFlickTime(angleDeg, sinceTime, out _);
+
+    /// <summary>Finds the timestamp of the first qualifying outward flick at or after <paramref name="sinceTime"/>.</summary>
+    public bool TryGetFlickTime(int angleDeg, double sinceTime, out double gestureTime)
     {
         float target = angleDeg * MathF.PI / 180f;
         float tol = ANGLE_TOLERANCE_DEG * MathF.PI / 180f;
@@ -68,9 +72,13 @@ public class StickGestureTracker
                 continue;
 
             if (MathF.Abs(WrapPi(target - cur.Angle)) <= tol)
+            {
+                gestureTime = cur.Time;
                 return true;
+            }
         }
 
+        gestureTime = 0;
         return false;
     }
 
@@ -80,6 +88,10 @@ public class StickGestureTracker
     /// <paramref name="dir"/>.
     /// </summary>
     public bool SweptThrough(int angleDeg, RotationalDirection dir, double sinceTime)
+        => TryGetSweepTime(angleDeg, dir, sinceTime, out _);
+
+    /// <summary>Finds the timestamp of the first qualifying directed sweep at or after <paramref name="sinceTime"/>.</summary>
+    public bool TryGetSweepTime(int angleDeg, RotationalDirection dir, double sinceTime, out double gestureTime)
     {
         float target = angleDeg * MathF.PI / 180f;
         // Increasing angle (atan2(-y, x)) is anticlockwise; Clockwise = 1, Anticlockwise = -1.
@@ -102,9 +114,13 @@ public class StickGestureTracker
                 : d < 0 && t <= 0 && t >= d;
 
             if (crossed)
+            {
+                gestureTime = cur.Time;
                 return true;
+            }
         }
 
+        gestureTime = 0;
         return false;
     }
 

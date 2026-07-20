@@ -5,7 +5,6 @@
 // and shoulder hold drawables share it; subclasses supply only visuals.
 
 using System;
-using System.Collections.Generic;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Bindings;
@@ -16,6 +15,7 @@ using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
+using Garbus.Game.Objects.Judgement;
 using Garbus.Game.UI;
 
 namespace Garbus.Game.Objects.Drawables;
@@ -35,8 +35,10 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     protected DrawableHoldNoteHead<THead> Head => headContainer.Child;
 
     private int holdPresses;
-    private readonly List<CatchRecord> catchRecords = new();
-    private CatchRecord? currentCatchRecord;
+    private double lastActivationUpdate = double.NaN;
+    private double activatedAfterOpeningGrace;
+    private bool activatedDuringEndGrace;
+    private bool? activatedAtEnd;
     private bool headPopPlayed;
 
     /// <summary>Whether the hold's button is currently held.</summary>
@@ -63,12 +65,15 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
 
         holdPresses = 0;
         headPopPlayed = false;
-        catchRecords.Clear();
-        currentCatchRecord = null;
+        lastActivationUpdate = double.NaN;
+        activatedAfterOpeningGrace = 0;
+        activatedDuringEndGrace = false;
+        activatedAtEnd = null;
     }
 
     protected override void Update()
     {
+        updateActivation();
         base.Update();
 
         if (Head.IsHit && !headPopPlayed)
@@ -78,7 +83,6 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         }
 
         UpdateVisuals();
-        updateCatchRecords();
     }
 
     /// <summary>Positions/builds the head and body for the frame. Subclasses draw everything here.</summary>
@@ -89,22 +93,28 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     {
     }
 
-    private void updateCatchRecords()
+    private void updateActivation()
     {
         double now = Time.Current;
+        double previous = double.IsNaN(lastActivationUpdate) ? now - Time.Elapsed : lastActivationUpdate;
+        lastActivationUpdate = now;
 
-        if (now < HitObject.StartTime || now > HitObject.EndTime)
+        if (now >= HitObject.EndTime && activatedAtEnd is null)
+            activatedAtEnd = Holding;
+
+        if (!Holding || now < HitObject.StartTime || previous > HitObject.EndTime)
             return;
 
-        bool caught = holdPresses > 0;
+        double grace = Head.HitObject.HitWindows.LateEligibilityEdge;
+        double intervalStart = Math.Max(previous, HitObject.StartTime + grace);
+        double intervalEnd = Math.Min(now, HitObject.EndTime);
 
-        if (currentCatchRecord is null || currentCatchRecord.IsCatching != caught)
-        {
-            currentCatchRecord = new CatchRecord(caught, 0);
-            catchRecords.Add(currentCatchRecord);
-        }
+        if (intervalEnd > intervalStart)
+            activatedAfterOpeningGrace += intervalEnd - intervalStart;
 
-        currentCatchRecord.Duration += Time.Elapsed;
+        double endingGraceStart = Math.Max(HitObject.StartTime, HitObject.EndTime - grace);
+        if (now >= endingGraceStart && previous <= HitObject.EndTime)
+            activatedDuringEndGrace = true;
     }
 
     public override bool OnPressed(KeyBindingPressEvent<GarbusAction> e)
@@ -135,42 +145,22 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         if (!Head.Judged)
             return;
 
-        bool headCarries = HitObject.Duration < Head.HitObject.HitWindows.LateEligibilityEdge;
-
-        if (headCarries && !Head.IsHit)
-        {
-            ApplyMinResult();
-            return;
-        }
-
         if (timeOffset < 0)
             return;
 
-        double total = 0, caught = 0;
+        double grace = Head.HitObject.HitWindows.LateEligibilityEdge;
+        double creditedOpeningGrace = Math.Min(HitObject.Duration, grace);
 
-        foreach (var record in catchRecords)
-        {
-            total += record.Duration;
-            if (record.IsCatching)
-                caught += record.Duration;
-        }
-
-        double fraction = total > 0 ? caught / total : 1.0;
-        var result = resultFor(fraction);
-
-        if (headCarries)
-            result = (HitResult)Math.Min((int)result, (int)Head.Result.Type);
-
-        ApplyResult(result);
-    }
-
-    private static HitResult resultFor(double fraction)
-    {
-        if (fraction >= 1.0) return HitResult.CriticalPerfect;
-        if (fraction >= 0.95) return HitResult.Perfect;
-        if (fraction >= 0.60) return HitResult.Bad;
-
-        return HitResult.Miss;
+        ApplyResult(DurationJudgement.Resolve(
+            HitObject.Duration,
+            creditedOpeningGrace + activatedAfterOpeningGrace,
+            grace,
+            Head.IsHit,
+            activatedAtEnd == true,
+            activatedDuringEndGrace,
+            bestThreshold: 1,
+            perfectThreshold: 0.95,
+            badThreshold: 0.60));
     }
 
     protected override DrawableHitObject CreateNestedHitObject(HitObject hitObject)
@@ -193,9 +183,4 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         headContainer.Clear(false);
     }
 
-    protected class CatchRecord(bool isCatching, double duration)
-    {
-        public bool IsCatching { get; } = isCatching;
-        public double Duration { get; set; } = duration;
-    }
 }
