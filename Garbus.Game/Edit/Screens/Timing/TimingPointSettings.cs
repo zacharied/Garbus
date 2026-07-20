@@ -88,6 +88,7 @@ namespace Garbus.Game.Edit.Screens.Timing
                         RelativeSizeAxes = Axes.X,
                         Height = 30,
                         PlaceholderText = "0",
+                        CommitOnFocusLost = true,
                     },
 
                     useCurrentTimeButton = new BasicButton
@@ -105,6 +106,7 @@ namespace Garbus.Game.Edit.Screens.Timing
                         RelativeSizeAxes = Axes.X,
                         Height = 30,
                         PlaceholderText = "120",
+                        CommitOnFocusLost = true,
                     },
 
                     // --- Time Signature ---

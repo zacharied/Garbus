@@ -198,6 +198,7 @@ namespace Garbus.Game.Edit.Compose
                             RelativeSizeAxes = Axes.X,
                             Height = 30,
                             PlaceholderText = "Beat divisor",
+                            CommitOnFocusLost = true,
                         },
                         new SpriteText { Text = "Related divisors are added to the presets." },
                     },

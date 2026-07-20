@@ -68,6 +68,7 @@ namespace Garbus.Game.Edit.Screens.Design
                         RelativeSizeAxes = Axes.X,
                         Height = 30,
                         PlaceholderText = @"Message text (use \n for a line break)",
+                        CommitOnFocusLost = true,
                     },
                     new SpriteText
                     {
@@ -82,7 +83,7 @@ namespace Garbus.Game.Edit.Screens.Design
         // A textbox that fills the row with a fixed-width "Now" button inline to its right.
         private Drawable timeRow(out BasicTextBox box, out BasicButton nowButton, string buttonName, Action nowAction)
         {
-            box = new BasicTextBox { RelativeSizeAxes = Axes.Both, PlaceholderText = "0" };
+            box = new BasicTextBox { RelativeSizeAxes = Axes.Both, PlaceholderText = "0", CommitOnFocusLost = true };
             nowButton = new BasicButton
             {
                 Name = buttonName,
