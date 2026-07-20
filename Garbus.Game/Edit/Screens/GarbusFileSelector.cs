@@ -1,23 +1,21 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the osu-framework repository for full licence text.
-// Adapted for Garbus: adds a visible selected state to file rows.
+// Adapted for Garbus: retains basic file-row visuals and adds selected-row highlighting.
 
 using System;
 using System.IO;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
-using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
-using osu.Framework.Localisation;
 using osuTK;
 using osuTK.Graphics;
 
 namespace Garbus.Game.Edit.Screens
 {
-    public partial class GarbusFileSelector : FileSelector
+    public partial class GarbusFileSelector : BasicFileSelector
     {
         internal static readonly Color4 SELECTION_COLOUR = new Color4(70, 90, 140, 255);
 
@@ -26,26 +24,21 @@ namespace Garbus.Game.Edit.Screens
         {
         }
 
-        protected override DirectorySelectorBreadcrumbDisplay CreateBreadcrumb() => new BasicDirectorySelectorBreadcrumbDisplay();
-
-        protected override Drawable CreateHiddenToggleButton() => new BasicButton
+        protected override Drawable CreateHiddenToggleButton()
         {
-            Size = new Vector2(200, 25),
-            Text = "Toggle hidden items",
-            Action = ShowHiddenItems.Toggle,
-        };
+            var button = new BasicButton
+            {
+                Size = new Vector2(200, 25),
+                Action = ShowHiddenItems.Toggle,
+            };
 
-        protected override DirectorySelectorDirectory CreateDirectoryItem(DirectoryInfo directory, LocalisableString? displayName = null) =>
-            new BasicDirectorySelectorDirectory(directory, displayName);
+            ShowHiddenItems.BindValueChanged(showing =>
+                button.Text = showing.NewValue ? "Hide hidden files" : "Show hidden files", true);
 
-        protected override DirectorySelectorDirectory CreateParentDirectoryItem(DirectoryInfo directory) =>
-            new BasicDirectorySelectorParentDirectory(directory);
-
-        protected override ScrollContainer<Drawable> CreateScrollContainer() => new BasicScrollContainer();
+            return button;
+        }
 
         protected override DirectoryListingFile CreateFileItem(FileInfo file) => new FileItem(file);
-
-        protected override void NotifySelectionError() => this.FlashColour(Colour4.Red, 300);
 
         private partial class FileItem : DirectoryListingFile
         {
@@ -82,7 +75,7 @@ namespace Garbus.Game.Edit.Screens
             {
                 get
                 {
-                    switch (File.Extension.ToLowerInvariant())
+                    switch (File.Extension)
                     {
                         case ".ogg":
                         case ".mp3":
@@ -113,7 +106,7 @@ namespace Garbus.Game.Edit.Screens
 
             private void onCurrentFileChanged(ValueChangedEvent<FileInfo> file)
             {
-                bool selected = ReferenceEquals(file.NewValue, File);
+                bool selected = string.Equals(file.NewValue?.FullName, File.FullName, StringComparison.Ordinal);
                 var targetColour = selected ? SELECTION_COLOUR : Color4.Transparent;
 
                 if (selectionInitialised)

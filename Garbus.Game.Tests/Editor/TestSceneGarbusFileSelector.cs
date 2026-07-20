@@ -32,6 +32,7 @@ namespace Garbus.Game.Tests.Editor
         {
             GarbusFileSelector selector = null!;
             ManualInputManager input = null!;
+            BasicButton hiddenToggle = null!;
 
             AddStep("create selector with two files", () =>
             {
@@ -50,6 +51,8 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddUntilStep("file rows loaded", () => fileItems(selector).Count == 2);
+            AddStep("capture hidden toggle", () => hiddenToggle = selector.ChildrenOfType<BasicButton>().Single());
+            AddAssert("toggle offers to show hidden files", () => hiddenToggle.Text.ToString() == "Show hidden files");
             AddAssert("no row initially highlighted", () => fileItems(selector).All(item => !isHighlighted(item)));
 
             AddStep("click first file", () =>
@@ -70,6 +73,17 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("selection highlight moved", () =>
                 !isHighlighted(fileItem(selector, "first.mp3"))
                 && isHighlighted(fileItem(selector, "second.mp3")));
+
+            DirectorySelectorItem selectedRowBeforeRefresh = null!;
+            AddStep("capture selected row", () => selectedRowBeforeRefresh = fileItem(selector, "second.mp3"));
+            AddStep("show hidden files", () => hiddenToggle.TriggerClick());
+            AddUntilStep("file rows rebuilt", () => !ReferenceEquals(selectedRowBeforeRefresh, fileItem(selector, "second.mp3")));
+            AddAssert("toggle offers to hide hidden files", () => hiddenToggle.Text.ToString() == "Hide hidden files");
+            AddUntilStep("selected file remains highlighted", () => isHighlighted(fileItem(selector, "second.mp3")));
+
+            AddStep("hide hidden files", () => hiddenToggle.TriggerClick());
+            AddAssert("toggle offers to show hidden files again", () => hiddenToggle.Text.ToString() == "Show hidden files");
+            AddUntilStep("selected file still highlighted", () => isHighlighted(fileItem(selector, "second.mp3")));
         }
 
         private static System.Collections.Generic.List<DirectorySelectorItem> fileItems(GarbusFileSelector selector) =>
