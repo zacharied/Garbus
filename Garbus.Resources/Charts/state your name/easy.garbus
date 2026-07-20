@@ -10,8 +10,9 @@
                      "source":  "",
                      "tags":  "",
                      "audioFile":  "state your name.ogg",
-                     "backgroundFile":  "",
-                     "level":  5
+                     "backgroundFile":  "state your name.jpg",
+                     "level":  5,
+                     "difficulty":  "Novice"
                  },
     "previewTime":  null,
     "timingPoints":  [
@@ -286,12 +287,12 @@
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  0,
+                           "angleDeg":  180,
                            "time":  21820
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  180,
+                           "angleDeg":  0,
                            "time":  21820
                        },
                        {
@@ -565,12 +566,12 @@
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  90,
+                           "angleDeg":  180,
                            "time":  36220
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  180,
+                           "angleDeg":  90,
                            "time":  36220
                        },
                        {
@@ -625,12 +626,12 @@
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  90,
+                           "angleDeg":  0,
                            "time":  40060
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  0,
+                           "angleDeg":  90,
                            "time":  40060
                        },
                        {
@@ -685,12 +686,12 @@
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  90,
+                           "angleDeg":  0,
                            "time":  43900
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  0,
+                           "angleDeg":  90,
                            "time":  43900
                        },
                        {
@@ -1334,12 +1335,12 @@
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  180,
+                           "angleDeg":  0,
                            "time":  61180
                        },
                        {
                            "type":  "cardinal",
-                           "angleDeg":  0,
+                           "angleDeg":  180,
                            "time":  61180
                        },
                        {
@@ -1681,11 +1682,6 @@
                            "time":  91900
                        },
                        {
-                           "type":  "cardinal",
-                           "angleDeg":  180,
-                           "time":  92860
-                       },
-                       {
                            "type":  "slider",
                            "angleDeg":  0,
                            "side":  "Right",
@@ -1727,6 +1723,11 @@
                                                      "sweepEasing":  "None"
                                                  }
                                              ],
+                           "time":  92860
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
                            "time":  92860
                        },
                        {
@@ -2999,6 +3000,11 @@
                            "time":  128380
                        },
                        {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  131260
+                       },
+                       {
                            "type":  "slider",
                            "angleDeg":  180,
                            "side":  "Left",
@@ -3051,11 +3057,6 @@
                        {
                            "type":  "cardinal",
                            "angleDeg":  0,
-                           "time":  131260
-                       },
-                       {
-                           "type":  "cardinal",
-                           "angleDeg":  0,
                            "time":  132220
                        },
                        {
@@ -3087,6 +3088,434 @@
                            "type":  "cardinal",
                            "angleDeg":  0,
                            "time":  137980
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  960,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1920,
+                                                     "rotationOffset":  90,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2880,
+                                                     "rotationOffset":  180,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  3840,
+                                                     "rotationOffset":  180,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  4800,
+                                                     "rotationOffset":  270,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  5760,
+                                                     "rotationOffset":  270,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  6720,
+                                                     "rotationOffset":  360,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  138940
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  138940
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  139900
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  140860
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  141820
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  142780
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  143740
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  144700
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  145660
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  146620
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  146620
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  147580
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  147580
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  148540
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  148540
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  149500
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  0,
+                           "duration":  480,
+                           "time":  149500
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  150460
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  150460
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  151420
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  151420
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  152380
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  152380
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  152860
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  153100
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  153260
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  153340
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  153580
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  153740
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  345,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  153820
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  154300
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  154300
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  155260
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  155260
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  156220
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  156220
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  270,
+                           "time":  157180
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  157180
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  158140
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  158140
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  90,
+                           "time":  159100
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  159100
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  0,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  159580
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  45,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  159820
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  30,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  159940
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  75,
+                           "side":  "Right",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  160180
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  60,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  160300
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  75,
+                           "side":  "Right",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  160540
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  75,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  160780
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  120,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  161020
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  165,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  0,
+                                                     "rotationOffset":  30,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 }
+                                             ],
+                           "time":  161260
                        }
-                   ]
+                   ],
+    "designPoints":  [
+
+                     ]
 }

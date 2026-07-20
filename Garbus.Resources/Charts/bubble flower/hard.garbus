@@ -1,7 +1,7 @@
 ﻿{
     "version":  1,
     "metadata":  {
-                     "title":  "",
+                     "title":  "Bubble Flower",
                      "artist":  "",
                      "charter":  "",
                      "chartName":  "",
@@ -67,25 +67,64 @@
                            "side":  "Left",
                            "controlPoints":  [
                                                  {
-                                                     "timeOffset":  859.375,
+                                                     "timeOffset":  781.25,
                                                      "rotationOffset":  135,
                                                      "smooth":  false,
                                                      "sweepEasing":  "None"
                                                  },
                                                  {
-                                                     "timeOffset":  1328.125,
+                                                     "timeOffset":  1250,
                                                      "rotationOffset":  225,
                                                      "smooth":  false,
                                                      "sweepEasing":  "None"
                                                  },
                                                  {
-                                                     "timeOffset":  3046.875,
+                                                     "timeOffset":  2968.75,
                                                      "rotationOffset":  135,
                                                      "smooth":  false,
                                                      "sweepEasing":  "In"
                                                  }
                                              ],
-                           "time":  14485.125
+                           "time":  14563.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15657
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15735.125
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15813.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15969.5
                        }
-                   ]
+                   ],
+    "designPoints":  [
+
+                     ]
 }
