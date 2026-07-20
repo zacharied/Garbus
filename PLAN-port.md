@@ -198,6 +198,10 @@ zero height).
 - [x] Bespoke scaffolding: `EditorClock`/transport, timeline strip, beat-snap grid, blueprint
       container, drag-box selection, undo/redo
 - [x] Ported `EditorAngleMapping` + all `Edit/Drawables/` and `Edit/Blueprints/` logic onto it
+- [x] Placement previews layer the matching editor sprite beneath their snap/drag outlines, including
+      live slam side colour and direction
+- [x] Slider placement previews show a side-coloured fading line for normal placement and a dot while
+      Ctrl indicates a head-only placement; active path previews use the same side colour
 - [x] Save/load through the native chart format via `ChartFile` (persistence)
 - [x] Editor tests on framework `TestScene`; `TestSceneEditorIntegration` walks the full authoring loop
       end-to-end (new → place → edit → time → save+decode → undo/redo → clone → verify → tab-switch)

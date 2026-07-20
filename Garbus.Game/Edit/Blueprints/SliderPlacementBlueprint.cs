@@ -1,7 +1,7 @@
 // Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/SliderPlacementBlueprint.cs).
 // BacPath/BacPathControlPoint → GarbusPath/GarbusPathControlPoint; HorizontalDirection from
-// Garbus.Game.Core; OsuColour resolve dropped — the preview colour (osu's colours.Yellow) is inlined as
-// Colour4.Yellow; EditorDrawableCardinalNote from Edit.Drawables; SnapResult/GarbusSnapResult from Edit;
+// Garbus.Game.Core; placement previews use the slider's live side colour; EditorDrawableCardinalNote
+// from Edit.Drawables; SnapResult/GarbusSnapResult from Edit;
 // Composer/HitObject via GarbusPlacementBlueprint. Logic identical.
 
 using System;
@@ -33,6 +33,7 @@ namespace Garbus.Game.Edit.Blueprints;
 internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<SliderBody>
 {
     private readonly Container previewPaths;
+    private readonly SliderPlacementPreview waitingPreview;
     private readonly EditSquarePiece cursorPiece;
 
     // Paths are buffered drawables (each owns a framebuffer sized to its bounds), so they are pooled and
@@ -48,7 +49,8 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
     private bool committingHeadOnly;
 
     protected override bool IsValidForPlacement =>
-        base.IsValidForPlacement && (HitObject.Path.ControlPoints.Count > 0 || committingHeadOnly);
+        base.IsValidForPlacement
+        && (PlacementActive == PlacementState.Waiting || HitObject.Path.ControlPoints.Count > 0 || committingHeadOnly);
 
     public SliderPlacementBlueprint()
         : base(new SliderBody
@@ -62,7 +64,8 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
         {
             // masked to the timeline bounds so preview lines don't spill outside it (they still show in
             // the ghost bands, which lie within the bounds).
-            previewPaths = new Container { RelativeSizeAxes = Axes.Both, Masking = true, Colour = Colour4.Yellow },
+            previewPaths = new Container { RelativeSizeAxes = Axes.Both, Masking = true },
+            waitingPreview = new SliderPlacementPreview(),
             cursorPiece = new EditSquarePiece
             {
                 Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
@@ -80,7 +83,7 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
         if (result.Time is double time)
             cursorTime = time;
 
-        cursorPiece.Position = ToLocalSpace(result.ScreenSpacePosition);
+        waitingPreview.Position = cursorPiece.Position = ToLocalSpace(result.ScreenSpacePosition);
 
         return result;
     }
@@ -153,6 +156,14 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
 
         if (Composer == null)
             return;
+
+        var sideColour = HitObject.Side.ToColour();
+        bool waiting = PlacementActive == PlacementState.Waiting;
+        bool headOnly = GetContainingInputManager()?.CurrentState.Keyboard.ControlPressed == true;
+
+        waitingPreview.Alpha = waiting ? 1 : 0;
+        waitingPreview.SetState(headOnly, sideColour);
+        previewPaths.Colour = sideColour;
 
         var container = Composer.Playfield.HitObjectContainer;
         float pxPerDeg = DrawWidth / EditorAngleMapping.TOTAL_DEGREES;

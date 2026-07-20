@@ -24,6 +24,7 @@ namespace Garbus.Game.Edit.Blueprints;
 internal partial class CardinalHoldNotePlacementBlueprint : GarbusPlacementBlueprint<CardinalHoldNote>
 {
     private readonly Box bodyPiece;
+    private readonly PlacementSpritePreview headSprite;
     private readonly EditSquarePiece headPiece;
     private readonly EditSquarePiece tailPiece;
 
@@ -43,6 +44,7 @@ internal partial class CardinalHoldNotePlacementBlueprint : GarbusPlacementBluep
                 Colour = Colour4.Yellow,
                 Alpha = 0.4f,
             },
+            headSprite = new PlacementSpritePreview(HitObject),
             headPiece = new EditSquarePiece
             {
                 Origin = Anchor.Centre,
@@ -67,6 +69,7 @@ internal partial class CardinalHoldNotePlacementBlueprint : GarbusPlacementBluep
         float x = EditorAngleMapping.ToX(HitObject.AngleDeg) * DrawWidth;
 
         headPiece.Position = new Vector2(x, ToLocalSpace(container.ScreenSpacePositionAtTime(HitObject.StartTime)).Y);
+        headSprite.Position = headPiece.Position;
         tailPiece.Position = new Vector2(x, ToLocalSpace(container.ScreenSpacePositionAtTime(HitObject.EndTime)).Y);
 
         // downward scrolling: the (later) tail sits above the head.

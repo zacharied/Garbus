@@ -27,6 +27,7 @@ internal partial class ShoulderHoldNotePlacementBlueprint : HitObjectPlacementBl
     private GarbusHitObjectComposer? composer { get; set; }
 
     private readonly Box bodyPiece;
+    private readonly PlacementSpritePreview headSprite;
     private readonly EditSquarePiece headPiece;
     private readonly EditSquarePiece tailPiece;
 
@@ -49,6 +50,7 @@ internal partial class ShoulderHoldNotePlacementBlueprint : HitObjectPlacementBl
                 Colour = Color4.MediumPurple,
                 Alpha = 0.4f,
             },
+            headSprite = new PlacementSpritePreview(HitObject),
             headPiece = new EditSquarePiece
             {
                 Origin = Anchor.Centre,
@@ -75,6 +77,7 @@ internal partial class ShoulderHoldNotePlacementBlueprint : HitObjectPlacementBl
         float x = GarbusEditorPlayfield.ShoulderXFraction(HitObject.Side) * DrawWidth;
 
         headPiece.Position = new Vector2(x, ToLocalSpace(container.ScreenSpacePositionAtTime(HitObject.StartTime)).Y);
+        headSprite.Position = headPiece.Position;
         tailPiece.Position = new Vector2(x, ToLocalSpace(container.ScreenSpacePositionAtTime(HitObject.EndTime)).Y);
 
         float bottom = Math.Max(headPiece.Y, tailPiece.Y);

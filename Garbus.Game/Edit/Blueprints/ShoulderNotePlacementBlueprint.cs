@@ -30,6 +30,7 @@ internal partial class ShoulderNotePlacementBlueprint : HitObjectPlacementBluepr
     [Resolved]
     private GarbusHitObjectComposer? composer { get; set; }
 
+    private readonly PlacementSpritePreview sprite;
     private readonly EditSquarePiece piece;
 
     public ShoulderNotePlacementBlueprint()
@@ -37,11 +38,15 @@ internal partial class ShoulderNotePlacementBlueprint : HitObjectPlacementBluepr
     {
         RelativeSizeAxes = Axes.Both;
 
-        InternalChild = piece = new EditSquarePiece
+        InternalChildren = new Drawable[]
         {
-            Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
-            Origin = Anchor.Centre,
-            Colour = Color4.MediumPurple,
+            sprite = new PlacementSpritePreview(HitObject),
+            piece = new EditSquarePiece
+            {
+                Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
+                Origin = Anchor.Centre,
+                Colour = Color4.MediumPurple,
+            },
         };
     }
 
@@ -64,7 +69,7 @@ internal partial class ShoulderNotePlacementBlueprint : HitObjectPlacementBluepr
                     : HorizontalDirection.Right;
             }
 
-            piece.Position = new Vector2(
+            sprite.Position = piece.Position = new Vector2(
                 GarbusEditorPlayfield.ShoulderXFraction(HitObject.Side) * DrawWidth,
                 ToLocalSpace(result.ScreenSpacePosition).Y);
         }

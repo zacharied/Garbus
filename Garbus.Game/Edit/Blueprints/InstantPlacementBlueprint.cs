@@ -20,22 +20,27 @@ namespace Garbus.Game.Edit.Blueprints;
 internal abstract partial class InstantPlacementBlueprint<T> : GarbusPlacementBlueprint<T>
     where T : GarbusHitObject, IHasMutableAngle
 {
+    private readonly PlacementSpritePreview sprite;
     private readonly EditSquarePiece piece;
 
     protected InstantPlacementBlueprint(T hitObject)
         : base(hitObject)
     {
-        InternalChild = piece = new EditSquarePiece
+        InternalChildren = new Drawable[]
         {
-            Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
-            Origin = Anchor.Centre,
+            sprite = new PlacementSpritePreview(hitObject),
+            piece = new EditSquarePiece
+            {
+                Size = new Vector2(EditorDrawableCardinalNote.NOTE_SIZE),
+                Origin = Anchor.Centre,
+            },
         };
     }
 
     public override SnapResult UpdateTimeAndPosition(Vector2 screenSpacePosition, double fallbackTime)
     {
         var result = base.UpdateTimeAndPosition(screenSpacePosition, fallbackTime);
-        piece.Position = ToLocalSpace(result.ScreenSpacePosition);
+        sprite.Position = piece.Position = ToLocalSpace(result.ScreenSpacePosition);
         return result;
     }
 

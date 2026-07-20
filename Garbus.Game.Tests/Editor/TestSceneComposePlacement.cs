@@ -12,6 +12,8 @@ using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Core;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Blueprints;
+using Garbus.Game.Edit.Blueprints.Components;
 using Garbus.Game.Edit.Drawables;
 using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
@@ -68,6 +70,44 @@ namespace Garbus.Game.Tests.Editor
             AddStep("move near south line", () => input.MoveMouseTo(positionAtAngle(264)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("note placed at 270", () => placedObject<CardinalNote>()?.AngleDeg, () => Is.EqualTo(270));
+        }
+
+        [Test]
+        public void TestPlacementPreviewsUseEditorSprites()
+        {
+            waitForComposer();
+
+            for (int tool = 2; tool <= 7; tool++)
+            {
+                int selectedTool = tool;
+                AddStep($"select placement tool {selectedTool}", () => input.Key((Key)((int)Key.Number1 + selectedTool - 1)));
+                AddStep($"move over playfield for tool {selectedTool}", () => input.MoveMouseTo(positionAtAngle(270)));
+                AddUntilStep($"tool {selectedTool} has sprite preview", () => placementSprite() != null);
+            }
+        }
+
+        [Test]
+        public void TestSlamPlacementPreviewReflectsSideAndDirection()
+        {
+            waitForComposer();
+            AddStep("select edge slam tool", () => input.Key(Key.Number7));
+            AddStep("hold alt and shift", () =>
+            {
+                input.PressKey(Key.LAlt);
+                input.PressKey(Key.LShift);
+            });
+            AddStep("move over playfield", () => input.MoveMouseTo(positionAtAngle(270)));
+            AddUntilStep("slam sprite preview loaded", () => placementSprite() != null);
+            AddAssert("preview uses right-side colour", () => placementSprite()!.Colour.Equals(Constants.RightColour));
+            AddAssert("preview points anticlockwise", () => placementSprite()!.Rotation, () => Is.EqualTo(90).Within(0.1f));
+
+            AddStep("release modifiers", () =>
+            {
+                input.ReleaseKey(Key.LShift);
+                input.ReleaseKey(Key.LAlt);
+            });
+            AddAssert("preview returns to left-side colour", () => placementSprite()!.Colour.Equals(Constants.LeftColour));
+            AddAssert("preview points clockwise", () => placementSprite()!.Rotation, () => Is.EqualTo(-90).Within(0.1f));
         }
 
         [Test]
@@ -208,6 +248,43 @@ namespace Garbus.Game.Tests.Editor
                 var cps = placedObject<SliderBody>()!.Path.ControlPoints;
                 return cps.Count < 2 || (cps[0].TimeOffset > 0 && cps[1].TimeOffset > cps[0].TimeOffset);
             });
+        }
+
+        [Test]
+        public void TestSliderWaitingPreviewReflectsGestureAndSide()
+        {
+            waitForComposer();
+            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("move over playfield", () => input.MoveMouseTo(positionAtAngle(270)));
+            AddUntilStep("slider preview loaded", () => sliderWaitingPreview()?.IsLoaded == true);
+            AddAssert("normal gesture shows fading line", () =>
+                sliderWaitingPreview() is { FadingLine.Alpha: 1, HeadOnlyDot.Alpha: 0 } preview
+                && !preview.FadingLine.Colour.HasSingleColour
+                && preview.FadingLine.DrawHeight > 0
+                && preview.FadingLine.Colour.TopLeft.Alpha == 0
+                && preview.FadingLine.Colour.BottomLeft.Alpha == 1);
+            AddAssert("starts with left colour", () => sliderWaitingPreview()!.PreviewColour.Equals(Constants.LeftColour));
+            AddAssert("line draws with left colour", () =>
+                sliderWaitingPreview()!.FadingLine.DrawColourInfo.Colour.BottomLeft.SRGB.Equals((Colour4)Constants.LeftColour));
+            AddAssert("yellow cursor box remains visible", () =>
+                sliderPlacement()!.ChildrenOfType<EditSquarePiece>().Single().Alpha == 1);
+
+            AddStep("hold alt", () => input.PressKey(Key.LAlt));
+            AddAssert("line changes to right colour", () => sliderWaitingPreview()!.PreviewColour.Equals(Constants.RightColour));
+
+            AddStep("hold ctrl", () => input.PressKey(Key.LControl));
+            AddAssert("head-only gesture shows dot", () =>
+                sliderWaitingPreview() is { FadingLine.Alpha: 0, HeadOnlyDot.Alpha: 1 });
+            AddAssert("dot keeps right colour", () => sliderWaitingPreview()!.PreviewColour.Equals(Constants.RightColour));
+            AddAssert("dot draws with right colour", () =>
+                sliderWaitingPreview()!.HeadOnlyDot.DrawColourInfo.Colour.TopLeft.SRGB.Equals((Colour4)Constants.RightColour));
+
+            AddStep("release alt", () => input.ReleaseKey(Key.LAlt));
+            AddAssert("dot returns to left colour", () =>
+                sliderWaitingPreview()!.HeadOnlyDot.DrawColourInfo.Colour.TopLeft.SRGB.Equals((Colour4)Constants.LeftColour));
+            AddAssert("yellow box remains visible with ctrl", () =>
+                sliderPlacement()!.ChildrenOfType<EditSquarePiece>().Single().Alpha == 1);
+            AddStep("release ctrl", () => input.ReleaseKey(Key.LControl));
         }
 
         [Test]
@@ -361,6 +438,15 @@ namespace Garbus.Game.Tests.Editor
         private T? placedObject<T>() where T : GarbusHitObject => editorChart.HitObjects.OfType<T>().FirstOrDefault();
 
         private T? placedObject<T>(int index) where T : GarbusHitObject => editorChart.HitObjects.OfType<T>().ElementAtOrDefault(index);
+
+        private EditorSpritePiece? placementSprite() =>
+            composer.BlueprintContainer.CurrentPlacement?.ChildrenOfType<EditorSpritePiece>().FirstOrDefault();
+
+        private SliderPlacementPreview? sliderWaitingPreview() =>
+            sliderPlacement()?.ChildrenOfType<SliderPlacementPreview>().FirstOrDefault();
+
+        private SliderPlacementBlueprint? sliderPlacement() =>
+            composer.BlueprintContainer.CurrentPlacement as SliderPlacementBlueprint;
 
         /// <summary>The rendered x-fraction (<see cref="Drawable.X"/>, relative-positioned) of the placed
         /// shoulder note's editor drawable for the given side.</summary>
