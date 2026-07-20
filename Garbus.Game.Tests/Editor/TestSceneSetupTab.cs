@@ -19,12 +19,15 @@ using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Compose;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Setup;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
@@ -86,6 +89,51 @@ namespace Garbus.Game.Tests.Editor
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
                 editor.ChildrenOfType<SongMetadataSection>().Any());
+        }
+
+        [Test]
+        public void TestTimingOwnershipUsesTransparentRadioStyle()
+        {
+            setupEditorUnsaved();
+            waitForSetupTab();
+
+            AddUntilStep("timing radio buttons loaded", () =>
+                editor.ChildrenOfType<TimingOwnershipSection>().First()
+                    .ChildrenOfType<EditorRadioButton>().Count() == 2);
+
+            AddAssert("radio backgrounds hidden", () =>
+                editor.ChildrenOfType<TimingOwnershipSection>().First()
+                    .ChildrenOfType<EditorRadioButton>().All(button => button.BackgroundColour.A == 0));
+
+            AddAssert("all radios have white outline", () =>
+                editor.ChildrenOfType<TimingOwnershipSection>().First()
+                    .ChildrenOfType<EditorRadioButton>().All(button =>
+                        button.ChildrenOfType<osu.Framework.Graphics.Sprites.SpriteIcon>().Single().Colour
+                            .Equals((ColourInfo)Colour4.White)));
+
+            AddAssert("unselected label grayed out", () =>
+            {
+                var buttons = editor.ChildrenOfType<TimingOwnershipSection>().First()
+                    .ChildrenOfType<EditorRadioButton>();
+                return buttons.Single(button => button.Button.Label == "Per-chart")
+                           .ChildrenOfType<osu.Framework.Graphics.Sprites.SpriteText>().Single().Colour
+                           .Equals((ColourInfo)Colour4.White)
+                       && !buttons.Single(button => button.Button.Label == "Shared")
+                           .ChildrenOfType<osu.Framework.Graphics.Sprites.SpriteText>().Single().Colour
+                           .Equals((ColourInfo)Colour4.White);
+            });
+
+            AddAssert("selected radio has dot", () =>
+            {
+                var buttons = editor.ChildrenOfType<TimingOwnershipSection>().First()
+                    .ChildrenOfType<EditorRadioButton>();
+                var selectedDot = buttons.Single(button => button.Button.Label == "Per-chart")
+                    .ChildrenOfType<Circle>().Single();
+                return selectedDot.Alpha == 1
+                       && selectedDot.Colour.Equals((ColourInfo)Colour4.FromHex("#0564D0"))
+                       && buttons.Single(button => button.Button.Label == "Shared")
+                           .ChildrenOfType<Circle>().Single().Alpha == 0;
+            });
         }
 
         /// <summary>

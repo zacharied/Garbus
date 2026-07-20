@@ -41,7 +41,23 @@ namespace Garbus.Game.Edit.Compose
             }
         }
 
-        private readonly FlowContainer<EditorRadioButton> buttonContainer;
+        private readonly FillFlowContainer<EditorRadioButton> buttonContainer;
+
+        public FillDirection Direction
+        {
+            get => buttonContainer.Direction;
+            set => buttonContainer.Direction = value;
+        }
+
+        public Vector2 Spacing
+        {
+            get => buttonContainer.Spacing;
+            set => buttonContainer.Spacing = value;
+        }
+
+        public float HorizontalButtonWidth { get; set; } = 120;
+
+        public bool TransparentBackground { get; set; }
 
         public EditorRadioButtonCollection()
         {
@@ -71,7 +87,13 @@ namespace Garbus.Game.Edit.Compose
                     currentlySelected = null;
             };
 
-            buttonContainer.Add(new EditorRadioButton(button));
+            var drawable = new EditorRadioButton(button, TransparentBackground);
+            if (Direction == FillDirection.Horizontal)
+            {
+                drawable.RelativeSizeAxes = Axes.None;
+                drawable.Width = HorizontalButtonWidth;
+            }
+            buttonContainer.Add(drawable);
         }
     }
 
@@ -83,10 +105,14 @@ namespace Garbus.Game.Edit.Compose
         private static readonly Colour4 selected_background_colour = new Colour4(120, 120, 150, 255);
 
         private Drawable icon = null!;
+        private Drawable? selectionDot;
+        private SpriteText label = null!;
+        private readonly bool transparentBackground;
 
-        public EditorRadioButton(RadioButton button)
+        public EditorRadioButton(RadioButton button, bool transparentBackground = false)
         {
             Button = button;
+            this.transparentBackground = transparentBackground;
 
             Text = button.Label;
             Action = button.Select;
@@ -99,7 +125,7 @@ namespace Garbus.Game.Edit.Compose
         {
             base.LoadComplete();
 
-            Add(icon = (Button.CreateIcon?.Invoke() ?? new Circle()).With(b =>
+            Add(icon = (Button.CreateIcon?.Invoke() ?? createDefaultIcon()).With(b =>
             {
                 b.Blending = BlendingParameters.Additive;
                 b.Anchor = Anchor.CentreLeft;
@@ -113,16 +139,50 @@ namespace Garbus.Game.Edit.Compose
             updateSelectionState();
         }
 
+        private Drawable createDefaultIcon()
+        {
+            if (!transparentBackground)
+                return new Circle();
+
+            return new Container
+            {
+                Children = new Drawable[]
+                {
+                    new SpriteIcon
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Icon = FontAwesome.Regular.Circle,
+                        Colour = Colour4.White,
+                    },
+                    selectionDot = new Circle
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        Size = new Vector2(10),
+                        Colour = Colour4.FromHex("#0564D0"),
+                    },
+                },
+            };
+        }
+
         private void updateSelectionState()
         {
             if (!IsLoaded)
                 return;
 
-            BackgroundColour = Button.Selected.Value ? selected_background_colour : default_background_colour;
-            icon.Colour = Button.Selected.Value ? Colour4.White : Colour4.White.Darken(0.5f);
+            BackgroundColour = transparentBackground
+                ? Colour4.Transparent
+                : Button.Selected.Value ? selected_background_colour : default_background_colour;
+            icon.Colour = transparentBackground
+                ? Colour4.White
+                : Button.Selected.Value ? Colour4.White : Colour4.White.Darken(0.5f);
+            if (selectionDot != null)
+                selectionDot.Alpha = Button.Selected.Value ? 1 : 0;
+            if (transparentBackground)
+                label.Colour = Button.Selected.Value ? Colour4.White : Colour4.White.Darken(0.5f);
         }
 
-        protected override SpriteText CreateText() => new SpriteText
+        protected override SpriteText CreateText() => label = new SpriteText
         {
             Depth = -1,
             Origin = Anchor.CentreLeft,

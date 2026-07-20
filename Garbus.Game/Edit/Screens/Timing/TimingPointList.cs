@@ -39,11 +39,16 @@ namespace Garbus.Game.Edit.Screens.Timing
         [Resolved]
         private IEditorChangeHandler changeHandler { get; set; } = null!;
 
+        [Resolved]
+        private EditorSong editorSong { get; set; } = null!;
+
         /// <summary>The currently selected timing control point group (shared with settings panel).</summary>
         public readonly Bindable<ControlPointGroup?> SelectedGroup = new Bindable<ControlPointGroup?>();
 
+        private const float scope_header_height = 46;
         private const float header_height = 24;
 
+        public SpriteText ScopeText { get; private set; } = null!;
         private FillFlowContainer<TimingPointRow> rowContainer = null!;
         private BasicButton addButton = null!;
         private BasicButton deleteButton = null!;
@@ -59,7 +64,39 @@ namespace Garbus.Game.Edit.Screens.Timing
                 new Container
                 {
                     RelativeSizeAxes = Axes.X,
+                    Height = scope_header_height,
+                    Masking = true,
+                    CornerRadius = 4,
+                    Children = new Drawable[]
+                    {
+                        new Box
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Colour = Colour4.FromHex("#263346"),
+                        },
+                        new SpriteIcon
+                        {
+                            Icon = FontAwesome.Solid.InfoCircle,
+                            Size = new Vector2(18),
+                            X = 10,
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                            Colour = Colour4.FromHex("#7DB7FF"),
+                        },
+                        ScopeText = new SpriteText
+                        {
+                            X = 38,
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                            Font = FontUsage.Default.With(size: 13),
+                        },
+                    },
+                },
+                new Container
+                {
+                    RelativeSizeAxes = Axes.X,
                     Height = header_height,
+                    Y = scope_header_height,
                     Children = new Drawable[]
                     {
                         new SpriteText
@@ -80,16 +117,20 @@ namespace Garbus.Game.Edit.Screens.Timing
                         },
                     },
                 },
-                new BasicScrollContainer
+                new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Top = header_height, Bottom = 40 },
-                    Child = rowContainer = new FillFlowContainer<TimingPointRow>
+                    Padding = new MarginPadding { Top = scope_header_height + header_height, Bottom = 40 },
+                    Child = new BasicScrollContainer
                     {
-                        RelativeSizeAxes = Axes.X,
-                        AutoSizeAxes = Axes.Y,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(0, 1),
+                        RelativeSizeAxes = Axes.Both,
+                        Child = rowContainer = new FillFlowContainer<TimingPointRow>
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            AutoSizeAxes = Axes.Y,
+                            Direction = FillDirection.Vertical,
+                            Spacing = new Vector2(0, 1),
+                        },
                     },
                 },
                 new Container
@@ -119,7 +160,16 @@ namespace Garbus.Game.Edit.Screens.Timing
                     }
                 },
             };
+
+            updateScopeText();
+            editorSong.TimingSourceChanged += onTimingSourceChanged;
         }
+
+        private void onTimingSourceChanged() => Schedule(updateScopeText);
+
+        private void updateScopeText() => ScopeText.Text = editorSong.Song.UsesSharedTiming
+            ? "Changes made here will affect all charts in this song."
+            : "Changes made here will affect only this chart.";
 
         protected override void Update()
         {
@@ -317,6 +367,8 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             base.Dispose(isDisposing);
 
+            if (editorSong != null)
+                editorSong.TimingSourceChanged -= onTimingSourceChanged;
             if (editorChart != null)
                 editorChart.ChartChanged -= onChartChanged;
             if (controlPointInfo != null)

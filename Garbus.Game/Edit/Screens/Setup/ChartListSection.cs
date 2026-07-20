@@ -14,6 +14,7 @@ public partial class ChartListSection : FillFlowContainer
 {
     [Resolved] private EditorSong editorSong { get; set; } = null!;
     public Container? OverlayContainer { get; set; }
+    private SpriteText header = null!;
     private FillFlowContainer rows = null!;
     public BasicButton AddButton { get; private set; } = null!;
     public BasicButton RemoveButton { get; private set; } = null!;
@@ -28,28 +29,45 @@ public partial class ChartListSection : FillFlowContainer
         Padding = new MarginPadding { Vertical = 8, Horizontal = 16 };
         Children = new Drawable[]
         {
-            new SpriteText { Text = "Charts", Font = FontUsage.Default.With(size: 20) },
-            new BasicScrollContainer
+            header = new SpriteText { Font = FontUsage.Default.With(size: 20) },
+            new GridContainer
             {
                 RelativeSizeAxes = Axes.X,
                 Height = 210,
-                Child = rows = new FillFlowContainer
+                ColumnDimensions = new[]
                 {
-                    RelativeSizeAxes = Axes.X,
-                    AutoSizeAxes = Axes.Y,
-                    Direction = FillDirection.Vertical,
-                    Spacing = new Vector2(0, 3),
+                    new Dimension(),
+                    new Dimension(GridSizeMode.Absolute, 98),
                 },
-            },
-            new FillFlowContainer
-            {
-                AutoSizeAxes = Axes.Both,
-                Direction = FillDirection.Horizontal,
-                Spacing = new Vector2(8, 0),
-                Children = new Drawable[]
+                Content = new[]
                 {
-                    AddButton = new BasicButton { Text = "Add", Size = new Vector2(90, 30), Action = () => editorSong.AddChart() },
-                    RemoveButton = new BasicButton { Text = "Remove", Size = new Vector2(90, 30), Action = remove },
+                    new Drawable[]
+                    {
+                        new BasicScrollContainer
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Child = rows = new FillFlowContainer
+                            {
+                                RelativeSizeAxes = Axes.X,
+                                AutoSizeAxes = Axes.Y,
+                                Direction = FillDirection.Vertical,
+                                Spacing = new Vector2(0, 3),
+                            },
+                        },
+                        new FillFlowContainer
+                        {
+                            RelativeSizeAxes = Axes.Y,
+                            AutoSizeAxes = Axes.X,
+                            Direction = FillDirection.Vertical,
+                            Spacing = new Vector2(0, 8),
+                            Padding = new MarginPadding { Left = 8 },
+                            Children = new Drawable[]
+                            {
+                                AddButton = new BasicButton { Text = "Add", Size = new Vector2(90, 30), Action = () => editorSong.AddChart() },
+                                RemoveButton = new BasicButton { Text = "Remove", Size = new Vector2(90, 30), Action = remove },
+                            },
+                        },
+                    },
                 },
             },
         };
@@ -60,6 +78,7 @@ public partial class ChartListSection : FillFlowContainer
 
     private void refresh()
     {
+        header.Text = $"Charts ({editorSong.Song.Charts.Count})";
         rows.Clear();
         foreach (var chart in editorSong.Song.Charts)
         {

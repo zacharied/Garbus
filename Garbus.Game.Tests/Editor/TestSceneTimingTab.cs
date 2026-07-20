@@ -66,6 +66,38 @@ namespace Garbus.Game.Tests.Editor
                 editor.ChildrenOfType<TimingPointList>().Any());
         }
 
+        [Test]
+        public void TestTimingScopeBannerTracksOwnership()
+        {
+            Schedule(() =>
+            {
+                editor = new GarbusEditor(new SongFile(GarbusSong.CreateDefault()));
+                Child = input = new osu.Framework.Testing.Input.ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Child = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both },
+                };
+            });
+            switchToTimingTab();
+
+            AddAssert("shared timing message", () =>
+                editor.ChildrenOfType<TimingPointList>().First().ScopeText.Text.ToString()
+                == "Changes made here will affect all charts in this song.");
+
+            AddAssert("table viewport starts below banner and header", () =>
+            {
+                var list = editor.ChildrenOfType<TimingPointList>().First();
+                var scroll = list.ChildrenOfType<BasicScrollContainer>().Single();
+                return scroll.ScreenSpaceDrawQuad.AABBFloat.Top
+                       >= list.ScreenSpaceDrawQuad.AABBFloat.Top + 70 - 1;
+            });
+
+            AddStep("switch to per-chart timing", () => editor.EditorSong.UsePerChartTiming());
+            AddUntilStep("per-chart timing message", () =>
+                editor.ChildrenOfType<TimingPointList>().First().ScopeText.Text.ToString()
+                == "Changes made here will affect only this chart.");
+        }
+
         // ------------------------------------------------------------------
         // 1. Add-at-playhead creates a point at snapped current time
         // ------------------------------------------------------------------

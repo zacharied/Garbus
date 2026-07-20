@@ -1,10 +1,10 @@
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Compose;
 using Garbus.Game.Edit.Screens.Dialogs;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
-using osu.Framework.Graphics.UserInterface;
 using osuTK;
 
 namespace Garbus.Game.Edit.Screens.Setup;
@@ -19,7 +19,8 @@ public partial class TimingOwnershipSection : FillFlowContainer
 {
     [Resolved] private EditorSong editorSong { get; set; } = null!;
     public Container? OverlayContainer { get; set; }
-    private BasicDropdown<TimingOwnership> dropdown = null!;
+    private RadioButton sharedButton = null!;
+    private RadioButton perChartButton = null!;
     private bool refreshing;
 
     [BackgroundDependencyLoader]
@@ -33,45 +34,57 @@ public partial class TimingOwnershipSection : FillFlowContainer
         Children = new Drawable[]
         {
             new SpriteText { Text = "Timing", Width = 160, Font = FontUsage.Default.With(size: 16) },
-            dropdown = new BasicDropdown<TimingOwnership>
+            new EditorRadioButtonCollection
             {
                 Width = 300,
-                Items = new[] { TimingOwnership.SharedSongTiming, TimingOwnership.PerChartTiming },
+                Direction = FillDirection.Horizontal,
+                Spacing = new Vector2(8, 0),
+                HorizontalButtonWidth = 146,
+                TransparentBackground = true,
+                Items = new[]
+                {
+                    sharedButton = new RadioButton("Shared", () => select(TimingOwnership.SharedSongTiming)),
+                    perChartButton = new RadioButton("Per-chart", () => select(TimingOwnership.PerChartTiming)),
+                },
             },
         };
-        dropdown.Current.Value = editorSong.Song.UsesSharedTiming ? TimingOwnership.SharedSongTiming : TimingOwnership.PerChartTiming;
-        dropdown.Current.ValueChanged += e =>
-        {
-            if (refreshing) return;
-            if (e.NewValue == TimingOwnership.PerChartTiming)
-            {
-                editorSong.UsePerChartTiming();
-                return;
-            }
-            if (editorSong.ChartTimingsAreIdentical())
-            {
-                editorSong.UseSharedTiming();
-                return;
-            }
-
-            var dialog = new ConfirmDialog("Chart timings differ. Use the active chart's timing for every chart?",
-                ("Use Active", editorSong.UseSharedTiming),
-                ("Cancel", () => setDropdown(TimingOwnership.PerChartTiming)));
-            if (OverlayContainer != null)
-            {
-                OverlayContainer.Child = dialog;
-                dialog.Show();
-            }
-            else setDropdown(TimingOwnership.PerChartTiming);
-        };
-        editorSong.TimingSourceChanged += () => Schedule(() => setDropdown(
+        setSelection(editorSong.Song.UsesSharedTiming ? TimingOwnership.SharedSongTiming : TimingOwnership.PerChartTiming);
+        editorSong.TimingSourceChanged += () => Schedule(() => setSelection(
             editorSong.Song.UsesSharedTiming ? TimingOwnership.SharedSongTiming : TimingOwnership.PerChartTiming));
     }
 
-    private void setDropdown(TimingOwnership value)
+    private void select(TimingOwnership value)
+    {
+        if (refreshing) return;
+        if (value == TimingOwnership.PerChartTiming)
+        {
+            editorSong.UsePerChartTiming();
+            return;
+        }
+        if (editorSong.ChartTimingsAreIdentical())
+        {
+            editorSong.UseSharedTiming();
+            return;
+        }
+
+        var dialog = new ConfirmDialog("Chart timings differ. Use the active chart's timing for every chart?",
+            ("Use Active", editorSong.UseSharedTiming),
+            ("Cancel", () => setSelection(TimingOwnership.PerChartTiming)));
+        if (OverlayContainer != null)
+        {
+            OverlayContainer.Child = dialog;
+            dialog.Show();
+        }
+        else setSelection(TimingOwnership.PerChartTiming);
+    }
+
+    private void setSelection(TimingOwnership value)
     {
         refreshing = true;
-        dropdown.Current.Value = value;
+        if (value == TimingOwnership.SharedSongTiming)
+            sharedButton.Selected.Value = true;
+        else
+            perChartButton.Selected.Value = true;
         refreshing = false;
     }
 }
