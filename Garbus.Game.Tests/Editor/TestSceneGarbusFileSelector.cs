@@ -18,23 +18,31 @@ namespace Garbus.Game.Tests.Editor
     [TestFixture]
     public partial class TestSceneGarbusFileSelector : GarbusTestScene
     {
+        private string? tempDirectory;
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (tempDirectory != null && Directory.Exists(tempDirectory))
+                Directory.Delete(tempDirectory, true);
+        }
+
         [Test]
         public void TestSelectedFileHasVisibleHighlight()
         {
-            string tempDirectory = null!;
             GarbusFileSelector selector = null!;
             ManualInputManager input = null!;
 
             AddStep("create selector with two files", () =>
             {
-                tempDirectory = Directory.CreateTempSubdirectory("garbus-files-").FullName;
-                File.WriteAllText(Path.Combine(tempDirectory, "first.mp3"), string.Empty);
-                File.WriteAllText(Path.Combine(tempDirectory, "second.mp3"), string.Empty);
+                string directory = tempDirectory = Directory.CreateTempSubdirectory("garbus-files-").FullName;
+                File.WriteAllText(Path.Combine(directory, "first.mp3"), string.Empty);
+                File.WriteAllText(Path.Combine(directory, "second.mp3"), string.Empty);
 
                 Child = input = new ManualInputManager
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Child = selector = new GarbusFileSelector(tempDirectory, new[] { ".mp3" })
+                    Child = selector = new GarbusFileSelector(directory, new[] { ".mp3" })
                     {
                         RelativeSizeAxes = Axes.Both,
                     },
@@ -62,8 +70,6 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("selection highlight moved", () =>
                 !isHighlighted(fileItem(selector, "first.mp3"))
                 && isHighlighted(fileItem(selector, "second.mp3")));
-
-            AddStep("cleanup", () => Directory.Delete(tempDirectory, true));
         }
 
         private static System.Collections.Generic.List<DirectorySelectorItem> fileItems(GarbusFileSelector selector) =>
@@ -74,7 +80,17 @@ namespace Garbus.Game.Tests.Editor
         private static DirectorySelectorItem fileItem(GarbusFileSelector selector, string name) =>
             fileItems(selector).Single(item => item.ChildrenOfType<SpriteText>().Any(text => text.Text.ToString() == name));
 
-        private static bool isHighlighted(DirectorySelectorItem item) =>
-            item.ChildrenOfType<Box>().Single().Colour.Equals((ColourInfo)GarbusFileSelector.SELECTION_COLOUR);
+        private static bool isHighlighted(DirectorySelectorItem item)
+        {
+            var background = item.ChildrenOfType<Box>().Single();
+            var itemBounds = item.ScreenSpaceDrawQuad.AABBFloat;
+            var backgroundBounds = background.ScreenSpaceDrawQuad.AABBFloat;
+
+            return background.Colour.Equals((ColourInfo)GarbusFileSelector.SELECTION_COLOUR)
+                   && System.Math.Abs(backgroundBounds.Left - itemBounds.Left) < 1
+                   && System.Math.Abs(backgroundBounds.Right - itemBounds.Right) < 1
+                   && System.Math.Abs(backgroundBounds.Top - itemBounds.Top) < 1
+                   && System.Math.Abs(backgroundBounds.Bottom - itemBounds.Bottom) < 1;
+        }
     }
 }

@@ -68,7 +68,7 @@ namespace Garbus.Game.Edit.Screens
                 Flow.AutoSizeAxes = Axes.Y;
                 Flow.RelativeSizeAxes = Axes.X;
 
-                Flow.Add(selectionBackground = new Box
+                AddInternal(selectionBackground = new Box
                 {
                     RelativeSizeAxes = Axes.Both,
                     BypassAutoSizeAxes = Axes.Both,
@@ -113,7 +113,7 @@ namespace Garbus.Game.Edit.Screens
 
             private void onCurrentFileChanged(ValueChangedEvent<FileInfo> file)
             {
-                bool selected = string.Equals(file.NewValue?.FullName, File.FullName, StringComparison.OrdinalIgnoreCase);
+                bool selected = ReferenceEquals(file.NewValue, File);
                 var targetColour = selected ? SELECTION_COLOUR : Color4.Transparent;
 
                 if (selectionInitialised)
