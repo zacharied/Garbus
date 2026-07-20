@@ -12,6 +12,7 @@ using osu.Framework.Development;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Input;
 using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 using osuTK;
@@ -51,11 +52,16 @@ namespace Garbus.Game
             new Dictionary<FrameworkSetting, object>
             {
                 { FrameworkSetting.VolumeUniversal, 0.25 },
+                { FrameworkSetting.ConfineMouseMode, ConfineMouseMode.Never },
             };
 
         [BackgroundDependencyLoader]
-        private void load(Storage storage)
+        private void load(Storage storage, FrameworkConfigManager frameworkConfig)
         {
+            // Garbus never requires relative mouse input, so the cursor should remain free to leave
+            // the window even in fullscreen mode. Override persisted framework configuration too.
+            frameworkConfig.SetValue(FrameworkSetting.ConfineMouseMode, ConfineMouseMode.Never);
+
             Resources.AddStore(new DllResourceStore(typeof(GarbusResources).Assembly));
 
             dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
