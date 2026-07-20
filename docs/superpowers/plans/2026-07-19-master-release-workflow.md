@@ -4,7 +4,7 @@
 
 **Goal:** Publish self-contained Windows x64 and Linux x64 ZIPs to one rolling GitHub prerelease after every successful push to `master`.
 
-**Architecture:** One read-only Ubuntu job tests the game, cross-publishes both runtime identifiers, and uploads ready-to-release archives. A second Ubuntu job runs only on `master` pushes, receives repository write permission, and updates the movable `latest-master` tag and prerelease with GitHub CLI.
+**Architecture:** One read-only Ubuntu job tests the game, cross-publishes both runtime identifiers, and uploads ready-to-release archives. A second Ubuntu job runs only on `master` pushes, receives repository write permission, and updates the movable `latest-master` tag and prerelease with GitHub CLI. Before moving the tag, it skips a distinct candidate that is already an ancestor of the published commit so non-FIFO workflow scheduling cannot roll the release backward.
 
 **Tech Stack:** GitHub Actions, .NET 8 SDK, Bash, Info-ZIP, GitHub CLI
 
@@ -181,6 +181,16 @@ jobs:
           set -euo pipefail
 
           tag='latest-master'
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            git fetch --force --no-tags origin "refs/tags/${tag}:refs/tags/${tag}"
+            published_sha="$(git rev-parse "${tag}^{commit}")"
+            if [[ "${GITHUB_SHA}" != "${published_sha}" ]] && git merge-base --is-ancestor "${GITHUB_SHA}" "${published_sha}"; then
+              printf 'Skipping publication: %s is older than already published %s.\n' \
+                "${GITHUB_SHA}" "${published_sha}"
+              exit 0
+            fi
+          fi
+
           git tag --force "${tag}" "${GITHUB_SHA}"
           git push --force origin "refs/tags/${tag}"
 
@@ -231,11 +241,13 @@ Expected: exit status 0 with no output.
 Run:
 
 ```bash
-grep -nE 'pull_request:|contents: read|contents: write|github.event_name|refs/heads/master|latest-master' .github/workflows/release-master.yml
+grep -nE 'pull_request:|contents: read|contents: write|github.event_name|refs/heads/master|latest-master|ls-remote --exit-code|fetch --force --no-tags|merge-base --is-ancestor' .github/workflows/release-master.yml
 ```
 
 Expected: the package job is read-only, the release job alone is write-enabled, and the release job is
-guarded to a push on `master`.
+guarded to a push on `master`. Before mutating `latest-master`, the publication script force-fetches an
+existing remote tag and skips a distinct candidate that is an ancestor of the published commit. Equal
+reruns and candidates that are descendants or on incomparable history continue to publication.
 
 - [ ] **Step 5: Commit the workflow and plan**
 
