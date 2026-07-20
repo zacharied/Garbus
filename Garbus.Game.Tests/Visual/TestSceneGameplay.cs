@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
@@ -166,6 +167,48 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("later cardinal unjudged", () => playfield.AllHitObjects
                                                                 .OfType<Objects.Drawables.DrawableCardinalNote>()
                                                                 .Count(h => !h.Judged) == 2);
+        }
+
+        [Test]
+        public void TestJudgementFeedbackAndRewind()
+        {
+            JudgementResult firstResult = null!;
+
+            playThrough(1900);
+
+            AddStep("press north", () => input.PressJoystickButton(JoystickButton.Hat1Up));
+            AddStep("release north", () => input.ReleaseJoystickButton(JoystickButton.Hat1Up));
+
+            AddUntilStep("first cardinal hit", () => firstCardinal()?.IsHit == true);
+            AddUntilStep("feedback shown", () => judgementFeedback()?.ActiveMessages.Count == 1);
+            AddStep("capture result", () => firstResult = firstCardinal()!.Result);
+            AddAssert("feedback references result", () => ReferenceEquals(judgementFeedback()!.ActiveMessages.Single().Result, firstResult));
+            AddAssert("feedback at north angle", () => judgementFeedback()!.ActiveMessages.Single().AngleDeg == 90);
+            AddAssert("feedback rank is near", () => judgementFeedback()!.ActiveMessages.Single().RankText == "NEAR");
+            AddAssert("feedback says early", () => judgementFeedback()!.ActiveMessages.Single().TimingText == "EARLY");
+
+            AddStep("rewind before judgement", () => manualClock.CurrentTime = 1800);
+            AddUntilStep("judgement reverted", () => firstCardinal()?.Judged == false);
+            AddUntilStep("feedback removed", () => judgementFeedback()?.ActiveMessages.Count == 0);
+
+            playThrough(1900);
+            AddStep("press north again", () => input.PressJoystickButton(JoystickButton.Hat1Up));
+            AddStep("release north again", () => input.ReleaseJoystickButton(JoystickButton.Hat1Up));
+            AddUntilStep("feedback replayed", () => judgementFeedback()?.ActiveMessages.Count == 1);
+            AddAssert("same result object can create fresh feedback", () => ReferenceEquals(judgementFeedback()!.ActiveMessages.Single().Result, firstResult));
+        }
+
+        [Test]
+        public void TestDisplayJudgementsSuppressesIntegratedFeedback()
+        {
+            AddStep("disable judgement display", () => playfield.DisplayJudgements.Value = false);
+            playThrough(1900);
+
+            AddStep("press north", () => input.PressJoystickButton(JoystickButton.Hat1Up));
+            AddStep("release north", () => input.ReleaseJoystickButton(JoystickButton.Hat1Up));
+
+            AddUntilStep("first cardinal hit", () => firstCardinal()?.IsHit == true);
+            AddAssert("feedback remains empty", () => judgementFeedback()?.ActiveMessages.Count == 0);
         }
 
         [Test]
@@ -382,6 +425,8 @@ namespace Garbus.Game.Tests.Visual
         }
 
         private ComboDisplay? comboDisplay() => playfield.ChildrenOfType<ComboDisplay>().SingleOrDefault();
+
+        private JudgementFeedbackDisplay? judgementFeedback() => playfield.ChildrenOfType<JudgementFeedbackDisplay>().SingleOrDefault();
 
         [Test]
         public void TestHitSampleResolves()

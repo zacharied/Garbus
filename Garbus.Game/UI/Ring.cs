@@ -7,6 +7,7 @@ using System.Linq;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
@@ -30,6 +31,7 @@ public partial class Ring : Playfield
 {
     private readonly Lane[] cardinalLanes = new Lane[Enum.GetValues<CardinalDirection>().Length];
     private readonly Lane[] shoulderLanes = new Lane[2];
+    private readonly JudgementFeedbackDisplay judgementFeedback = new JudgementFeedbackDisplay();
 
     [Cached]
     private SlamCoincidenceIndex slamCoincidenceIndex { get; set; } = new SlamCoincidenceIndex();
@@ -39,6 +41,10 @@ public partial class Ring : Playfield
     public Ring()
     {
         RelativeSizeAxes = Axes.Both;
+
+        judgementFeedback.DisplayJudgements.BindTo(DisplayJudgements);
+        NewResult += onNewResult;
+        RevertResult += judgementFeedback.Revert;
 
         var laneContainer = new Container { RelativeSizeAxes = Axes.Both };
 
@@ -64,13 +70,15 @@ public partial class Ring : Playfield
         }
 
         // Back-to-front: radial spokes, chord connectors (under all notes), the centre combo counter
-        // (drawn beneath every note), cross-lane paths, the lanes, the ring.
+        // (drawn beneath every note), cross-lane paths, the lanes, judgement feedback above every hit
+        // object, then the ring.
         AddRangeInternal([
             new PlayfieldRadialLines(),
             new ChordConnectorOverlay(),
             new ComboDisplay(),
             HitObjectContainer,
             laneContainer,
+            judgementFeedback,
             new Arc(0, 2 * MathF.PI)
             {
                 Resolution = 128,
@@ -97,6 +105,9 @@ public partial class Ring : Playfield
     /// <summary>The ring's own scrolling container (paths live here); also the shared radius source
     /// (ProgressAtTime) for the chord connector — all containers share the same size, so the radius matches.</summary>
     public GarbusScrollingHitObjectContainer ScrollingContainer => (GarbusScrollingHitObjectContainer)HitObjectContainer;
+
+    /// <summary>The angle-local judgement feedback halo. Exposed for wiring and tests.</summary>
+    public JudgementFeedbackDisplay JudgementFeedback => judgementFeedback;
 
     /// <summary>Every hit object drawable in the ring and its lanes (used by the chord connector's
     /// presence check).</summary>
@@ -148,4 +159,15 @@ public partial class Ring : Playfield
     };
 
     private static int shoulderIndex(HorizontalDirection side) => side == HorizontalDirection.Left ? 0 : 1;
+
+    private void onNewResult(DrawableHitObject drawable, JudgementResult result)
+        => judgementFeedback.Show(drawable, result);
+
+    protected override void Dispose(bool isDisposing)
+    {
+        NewResult -= onNewResult;
+        RevertResult -= judgementFeedback.Revert;
+        judgementFeedback.DisplayJudgements.UnbindFrom(DisplayJudgements);
+        base.Dispose(isDisposing);
+    }
 }

@@ -28,6 +28,12 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     where THitObject : Note, IHasDuration
     where THead : Note
 {
+    /// <summary>
+    /// The parent result grades the held proportion. Its application time at the tail is not a player
+    /// timing offset and must not be labelled early or late.
+    /// </summary>
+    public override bool DisplayTimingOffset => false;
+
     [Resolved]
     protected GarbusScrollingHitObjectContainer ScrollingContainer { get; private set; } = null!;
 

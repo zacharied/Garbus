@@ -4,7 +4,8 @@
 // Adapted for Garbus: skinning removed (ISkinSource, combo colours, IAnimationTimeReference),
 // positional hitsound balance removed, PausableSkinnableSound replaced by HitSoundContainer,
 // samples are Garbus's GarbusHitSample (a sample-store lookup name) rather than osu's HitSampleInfo,
-// GameplayRate reads the plain clock rate (no mod-adjusted "true" gameplay rate).
+// GameplayRate reads the plain clock rate (no mod-adjusted "true" gameplay rate); result presentation
+// contracts distinguish opted-out and duration-based feedback.
 
 #nullable disable
 
@@ -99,6 +100,13 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// Whether a visual indicator should be displayed when a scoring result occurs.
         /// </summary>
         public virtual bool DisplayResult => true;
+
+        /// <summary>
+        /// Whether this result's signed time offset represents player input timing and may be shown as
+        /// early/late feedback. Duration judgements override this because their application time is not
+        /// their quality measurement.
+        /// </summary>
+        public virtual bool DisplayTimingOffset => true;
 
         /// <summary>
         /// The scoring result of this <see cref="DrawableHitObject"/>.

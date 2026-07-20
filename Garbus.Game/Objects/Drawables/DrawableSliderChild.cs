@@ -16,6 +16,12 @@ namespace Garbus.Game.Objects.Drawables;
 
 public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelfPosition
 {
+    /// <summary>
+    /// A child grades how much of its segment was caught. Its application time at the node is not a
+    /// player timing offset and must not be labelled early or late.
+    /// </summary>
+    public override bool DisplayTimingOffset => false;
+
     [Resolved]
     private AnalogInputManager analogInput { get; set; } = null!;
 

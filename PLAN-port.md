@@ -215,6 +215,12 @@ zero height).
       launches the existing `PlayScreen(chart, track)` (guards a missing-audio chart so it never
       silently falls back to the bundled default). Main-menu Play now pushes song select. Deferred:
       background rendering, search box, configurable songs dir, editor default-save into the library.
+- [x] Angle-local judgement feedback — `UI/JudgementFeedbackDisplay` owns an invisible inner halo in
+      `Ring`; meaningful results show an upright rank plus early/late timing at the object's angle,
+      nearby results stack radially (three-message cap), duration grades omit misleading timing text,
+      and rewind removes feedback by exact `JudgementResult` reference. Discrete buttons suppress
+      Critical Perfect, show Perfect as white timing direction only, keep Near rank plus direction,
+      and show Miss without timing; holds and sliders suppress Perfect feedback.
 - [ ] Settings screen: audio device, volumes, offset calibration (port osu's suggested-offset idea),
       key bindings
 - [ ] Results screen
