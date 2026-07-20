@@ -134,13 +134,20 @@ jobs:
           set -euo pipefail
 
           tag='latest-master'
-          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null; then
             git fetch --force --no-tags origin "refs/tags/${tag}:refs/tags/${tag}"
             published_sha="$(git rev-parse "${tag}^{commit}")"
             if [[ "${GITHUB_SHA}" != "${published_sha}" ]] && git merge-base --is-ancestor "${GITHUB_SHA}" "${published_sha}"; then
               printf 'Skipping publication: %s is older than already published %s.\n' \
                 "${GITHUB_SHA}" "${published_sha}"
               exit 0
+            fi
+          else
+            ls_remote_status=$?
+            if [[ "${ls_remote_status}" -ne 2 ]]; then
+              printf 'Failed to query remote tag %s: git ls-remote exited with status %s.\n' \
+                "${tag}" "${ls_remote_status}" >&2
+              exit "${ls_remote_status}"
             fi
           fi
 
