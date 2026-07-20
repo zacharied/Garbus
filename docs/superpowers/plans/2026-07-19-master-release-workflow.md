@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Publish self-contained Windows x64 and Linux x64 ZIPs to one rolling GitHub prerelease after every successful push to `master`.
+**Goal:** Publish self-contained Windows x64 and Linux x64 ZIPs to an immutable, commit-specific GitHub prerelease after every successful push to `master`.
 
-**Architecture:** One read-only Ubuntu job tests the game, cross-publishes both runtime identifiers, and uploads ready-to-release archives. A second Ubuntu job runs only on `master` pushes, receives repository write permission, and updates the movable `latest-master` tag and prerelease with GitHub CLI. Before moving the tag, it skips a distinct candidate that is already an ancestor of the published commit so non-FIFO workflow scheduling cannot roll the release backward.
+**Architecture:** One read-only Ubuntu job tests the game, cross-publishes both runtime identifiers, and uploads ready-to-release archives. A second Ubuntu job runs only on `master` pushes, receives repository write permission, and creates an immutable `master-<12-char-sha>` tag and prerelease with GitHub CLI.
 
 **Tech Stack:** GitHub Actions, .NET 8 SDK, Bash, Info-ZIP, GitHub CLI
 
@@ -21,14 +21,14 @@
 
 ---
 
-### Task 1: Build And Rolling Release Workflow
+### Task 1: Build And Commit Release Workflow
 
 **Files:**
 - Create: `.github/workflows/release-master.yml`
 
 **Interfaces:**
 - Consumes: `Garbus.Desktop/Garbus.Desktop.csproj`, `Garbus.Game.Tests/Garbus.Game.Tests.csproj`, pushes and pull requests targeting `master`
-- Produces: validated self-contained ZIP archives, SHA-256 checksums, and the rolling `latest-master` GitHub prerelease
+- Produces: validated self-contained ZIP archives, SHA-256 checksums, and one commit-specific GitHub prerelease per successful `master` push
 
 - [ ] **Step 1: Confirm the workflow does not already exist**
 
@@ -135,19 +135,13 @@ jobs:
           compression-level: 0
 
   release:
-    name: Update rolling prerelease
+    name: Publish commit prerelease
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: package
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Check out tested commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-
       - name: Download release files
         uses: actions/download-artifact@v4
         with:
@@ -161,7 +155,8 @@ jobs:
           set -euo pipefail
 
           short_sha="${GITHUB_SHA::7}"
-          printf 'title=Latest master build (%s)\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
+          printf 'tag=master-%s\n' "${GITHUB_SHA::12}" >> "${GITHUB_OUTPUT}"
+          printf 'title=Master build (%s)\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
           cat > release-notes.md <<EOF
           Automated playtest build from [\`${GITHUB_SHA}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}).
 
@@ -172,53 +167,25 @@ jobs:
           - Download verification: \`SHA256SUMS.txt\`
           EOF
 
-      - name: Publish rolling prerelease
+      - name: Publish commit prerelease
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
           RELEASE_TITLE: ${{ steps.metadata.outputs.title }}
         shell: bash
         run: |
           set -euo pipefail
 
-          tag='latest-master'
-          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null; then
-            git fetch --force --no-tags origin "refs/tags/${tag}:refs/tags/${tag}"
-            published_sha="$(git rev-parse "${tag}^{commit}")"
-            if [[ "${GITHUB_SHA}" != "${published_sha}" ]]; then
-              if git merge-base --is-ancestor "${GITHUB_SHA}" "${published_sha}"; then
-                printf 'Skipping publication: %s is older than already published %s.\n' \
-                  "${GITHUB_SHA}" "${published_sha}"
-                exit 0
-              else
-                merge_base_status=$?
-                if [[ "${merge_base_status}" -ne 1 ]]; then
-                  printf 'Failed to compare candidate %s with published %s: git merge-base --is-ancestor exited with status %s.\n' \
-                    "${GITHUB_SHA}" "${published_sha}" "${merge_base_status}" >&2
-                  exit "${merge_base_status}"
-                fi
-              fi
-            fi
-          else
-            ls_remote_status=$?
-            if [[ "${ls_remote_status}" -ne 2 ]]; then
-              printf 'Failed to query remote tag %s: git ls-remote exited with status %s.\n' \
-                "${tag}" "${ls_remote_status}" >&2
-              exit "${ls_remote_status}"
-            fi
-          fi
-
-          git tag --force "${tag}" "${GITHUB_SHA}"
-          git push --force origin "refs/tags/${tag}"
-
-          if gh release view "${tag}" >/dev/null 2>&1; then
-            gh release upload "${tag}" release/* --clobber
-            gh release edit "${tag}" \
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" release/* --clobber
+            gh release edit "${RELEASE_TAG}" \
               --title "${RELEASE_TITLE}" \
               --notes-file release-notes.md \
               --prerelease \
               --latest=false
           else
-            gh release create "${tag}" release/* \
+            gh release create "${RELEASE_TAG}" release/* \
               --target "${GITHUB_SHA}" \
               --title "${RELEASE_TITLE}" \
               --notes-file release-notes.md \
@@ -233,9 +200,9 @@ Run:
 
 ```bash
 version=1.7.7
-archive="/tmp/actionlint_${version}_linux_x86_64.tar.gz"
+archive="/tmp/actionlint_${version}_linux_amd64.tar.gz"
 curl -fsSL \
-  "https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_x86_64.tar.gz" \
+  "https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_amd64.tar.gz" \
   -o "${archive}"
 tar -xzf "${archive}" -C /tmp actionlint
 /tmp/actionlint .github/workflows/release-master.yml
@@ -257,25 +224,19 @@ Expected: exit status 0 with no output.
 Run:
 
 ```bash
-grep -nE 'pull_request:|contents: read|contents: write|github.event_name|refs/heads/master|latest-master|ls-remote --exit-code|ls_remote_status|fetch --force --no-tags|merge-base --is-ancestor|merge_base_status' .github/workflows/release-master.yml
+grep -nE 'pull_request:|contents: read|contents: write|github.event_name|refs/heads/master|master-%s|RELEASE_TAG|gh release (create|upload|edit)' .github/workflows/release-master.yml
 ```
 
 Expected: the package job is read-only, the release job alone is write-enabled, and the release job is
-guarded to a push on `master`. The remote-tag probe discards only stdout so Git's stderr remains visible:
-status 0 force-fetches the existing tag and applies the ancestry guard, status 2 alone treats the tag as
-absent, and every other nonzero status prints a clear error and exits before tag mutation. Shell-level
-regression checks cover all three probe outcomes and prove the operational-error path cannot force-push.
-The ancestry check runs only when the candidate and published SHAs differ and preserves Git's stderr:
-status 0 means the candidate is older and publication skips successfully, status 1 means it is not an
-ancestor and publication may continue, and every other status prints a clear error and exits before
-`git tag --force` or `git push --force`. The focused shell harness covers that operational-error path
-without mutation while retaining older, equal, newer, and incomparable ancestry coverage.
+guarded to a push on `master`. Release metadata derives an immutable `master-<12-char-sha>` tag from
+`GITHUB_SHA`. A rerun uploads and edits only that same commit's release; a first run creates it at the
+tested SHA. No tag is force-moved.
 
 - [ ] **Step 5: Commit the workflow and plan**
 
 ```bash
 git add .github/workflows/release-master.yml docs/superpowers/plans/2026-07-19-master-release-workflow.md
-git commit -m "ci: publish rolling master builds"
+git commit -m "ci: publish master build artifacts"
 ```
 
 Expected: one implementation commit is created on `ci/master-release`.
@@ -320,18 +281,18 @@ Expected: `origin/ci/master-release` points to the reviewed local branch.
 - [ ] **Step 4: Open the hydrated Draft PR**
 
 Create a Draft PR with base `master`, head `ci/master-release`, and title
-`ci: publish rolling master builds`. Its description must include:
+`ci: publish master build artifacts`. Its description must include:
 
 ```markdown
 ## Summary
 
 - test and cross-publish self-contained Windows x64 and Linux x64 builds on Ubuntu
-- update one `latest-master` prerelease after successful pushes to `master`
+- retain a `master-<12-char-sha>` prerelease for every successful push to `master`
 - keep pull-request validation read-only and limit it to release workflow changes
 
 ## Distribution
 
-The rolling prerelease exposes `Garbus-win-x64.zip`, `Garbus-linux-x64.zip`, and
+Each commit prerelease exposes `Garbus-win-x64.zip`, `Garbus-linux-x64.zip`, and
 `SHA256SUMS.txt`. Each ZIP contains a top-level `Garbus` directory and commit metadata.
 
 ## Verification
@@ -351,6 +312,6 @@ Expected: GitHub reports the PR as Draft and its base branch as `master`.
 
 Use `gh pr checks --watch` for the new PR.
 
-Expected: the `Test and package` job succeeds and `Update rolling prerelease` is skipped. If the job
+Expected: the `Test and package` job succeeds and `Publish commit prerelease` is skipped. If the job
 fails, inspect its logs, fix the workflow, rerun local static checks and review as needed, push the fix,
 and wait for a passing run before reporting completion.

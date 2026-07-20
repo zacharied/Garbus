@@ -88,19 +88,13 @@ jobs:
           compression-level: 0
 
   release:
-    name: Update rolling prerelease
+    name: Publish commit prerelease
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: package
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Check out tested commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-
       - name: Download release files
         uses: actions/download-artifact@v4
         with:
@@ -114,7 +108,8 @@ jobs:
           set -euo pipefail
 
           short_sha="${GITHUB_SHA::7}"
-          printf 'title=Latest master build (%s)\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
+          printf 'tag=master-%s\n' "${GITHUB_SHA::12}" >> "${GITHUB_OUTPUT}"
+          printf 'title=Master build (%s)\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
           cat > release-notes.md <<EOF
           Automated playtest build from [\`${GITHUB_SHA}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}).
 
@@ -125,53 +120,25 @@ jobs:
           - Download verification: \`SHA256SUMS.txt\`
           EOF
 
-      - name: Publish rolling prerelease
+      - name: Publish commit prerelease
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
           RELEASE_TITLE: ${{ steps.metadata.outputs.title }}
         shell: bash
         run: |
           set -euo pipefail
 
-          tag='latest-master'
-          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null; then
-            git fetch --force --no-tags origin "refs/tags/${tag}:refs/tags/${tag}"
-            published_sha="$(git rev-parse "${tag}^{commit}")"
-            if [[ "${GITHUB_SHA}" != "${published_sha}" ]]; then
-              if git merge-base --is-ancestor "${GITHUB_SHA}" "${published_sha}"; then
-                printf 'Skipping publication: %s is older than already published %s.\n' \
-                  "${GITHUB_SHA}" "${published_sha}"
-                exit 0
-              else
-                merge_base_status=$?
-                if [[ "${merge_base_status}" -ne 1 ]]; then
-                  printf 'Failed to compare candidate %s with published %s: git merge-base --is-ancestor exited with status %s.\n' \
-                    "${GITHUB_SHA}" "${published_sha}" "${merge_base_status}" >&2
-                  exit "${merge_base_status}"
-                fi
-              fi
-            fi
-          else
-            ls_remote_status=$?
-            if [[ "${ls_remote_status}" -ne 2 ]]; then
-              printf 'Failed to query remote tag %s: git ls-remote exited with status %s.\n' \
-                "${tag}" "${ls_remote_status}" >&2
-              exit "${ls_remote_status}"
-            fi
-          fi
-
-          git tag --force "${tag}" "${GITHUB_SHA}"
-          git push --force origin "refs/tags/${tag}"
-
-          if gh release view "${tag}" >/dev/null 2>&1; then
-            gh release upload "${tag}" release/* --clobber
-            gh release edit "${tag}" \
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" release/* --clobber
+            gh release edit "${RELEASE_TAG}" \
               --title "${RELEASE_TITLE}" \
               --notes-file release-notes.md \
               --prerelease \
               --latest=false
           else
-            gh release create "${tag}" release/* \
+            gh release create "${RELEASE_TAG}" release/* \
               --target "${GITHUB_SHA}" \
               --title "${RELEASE_TITLE}" \
               --notes-file release-notes.md \
