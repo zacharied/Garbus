@@ -1,5 +1,5 @@
 // A label + current filename display + Choose button row for picking a resource file.
-// When the button is clicked a BasicFileSelector overlay is shown; on selection the
+// When the button is clicked a GarbusFileSelector overlay is shown; on selection the
 // OnFilePicked callback fires.
 
 using System;
@@ -103,7 +103,7 @@ namespace Garbus.Game.Edit.Screens.Setup
             if (overlayContainer == null)
                 return;
 
-            var selector = new BasicFileSelector(LastFileDirectory.Get(config), validExtensions)
+            var selector = new GarbusFileSelector(LastFileDirectory.Get(config), validExtensions)
             {
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
