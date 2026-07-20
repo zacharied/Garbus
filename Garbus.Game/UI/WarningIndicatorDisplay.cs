@@ -27,9 +27,9 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
 
     // Visual tuning. The arc centreline sits on the ring (radius_scale = 1.0); the inner half is erased by
     // the ring-circle mask, leaving the outward blur visible as an under-ring glow.
-    private const float radius_scale = 1.0f;
-    private const float thickness = 50;
-    private const float blur_sigma = 15f;
+    private const float radius_scale = 1.1f;
+    private const float thickness = 100f;
+    private const float blur_sigma = 50f;
     private const float arc_half_width_deg = 45f; // 90° total span across the ring.
     private const double fade_ms = 150;
 
