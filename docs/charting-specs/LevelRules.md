@@ -1,6 +1,18 @@
 # Level rules
 
-All levels inherit rules from above them unless contradicted.
+All levels
+
+### Difficulty restrictions
+
+Depending on the difficulty of the chart, charting restrictions are imposed.
+
+#### Tutorial
+
+All restrictions from Novice apply here.
+
+#### Novice
+
+The angle of a CardinalNote must be a multiple of 90deg (that is, it must be in one of four cardinal directions).
 
 ## Level 1
 
@@ -13,8 +25,6 @@ Offbeats disallowed except under obvious circumstances
 ## Dual actions
 
 Usually only one action at a time across both hands. Dual analog/dual face button is permissible with extreme telegraphing.
-
-Context must remain symmetrical.
 
 ## Context changing
 

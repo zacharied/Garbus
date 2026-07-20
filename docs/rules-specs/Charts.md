@@ -10,7 +10,6 @@ All paths are relative to the song's root folder.
 
 A song is a collection of charts associated with a single audio track.
 
-
 ### Data storage
 
 Songs have the following metadata. All fields are to be in the source work's original written language unless otherwise specified.
@@ -27,16 +26,18 @@ Songs have the following metadata. All fields are to be in the source work's ori
 
 #### Resource metadata
 
-|Name|Type|Purpose|
-|-|-|-|
-|Track|Path + audio file|The audio file for charts of this song|
-|Background|Path + image file|The background image for this song|
+| Name   |Type| Purpose                                |
+|--------|-|----------------------------------------|
+| Track  |Path + audio file| The audio file for charts of this song |
+| Jacket |Path + image file| The square jacket image for this song  |
 
 ## Chart
 
 A chart defines hit object data.
 
 ### Levels
+
+Levels are integers. A level of zero is represented as `??` in presentation. Negative levels are not allowed.
 
 ### Difficulties
 
@@ -48,20 +49,6 @@ The difficulty of a chart is a semantic representation of a chart's difficulty r
 | Novice   |
 | Advanced |
 | Expert   |
-
-#### Difficulty restrictions
-
-Depending on the difficulty of the chart, charting restrictions are imposed.
-
-##### Tutorial
-
-All restrictions from Novice apply here.
-
-##### Novice
-
-The angle of a CardinalNote must be a multiple of 90deg (that is, it must be in one of four cardinal directions).
-
-Slider objects must have their head objects placed at the horizontal cardinal direction corresponding to their side.
 
 ### Data storage
 
