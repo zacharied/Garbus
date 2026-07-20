@@ -51,7 +51,8 @@ namespace Garbus.Game.Tests.Editor
             System.IO.Directory.CreateDirectory(tempDir);
             savePath = Path.Combine(tempDir, "integration.garbus");
 
-            Child = new ScreenStack(editor = new GarbusEditor(new ChartFile(chart))) { RelativeSizeAxes = Axes.Both };
+            var song = new GarbusSong { ControlPointInfo = null, Charts = { chart } };
+            Child = new ScreenStack(editor = new GarbusEditor(new SongFile(song))) { RelativeSizeAxes = Axes.Both };
         });
 
         [TearDown]
@@ -83,7 +84,7 @@ namespace Garbus.Game.Tests.Editor
                 titleRow.TextBox.Text = "Integration Title";
                 titleRow.TriggerCommit();
             });
-            AddAssert("title applied to chart", () => editorChart.Metadata.Title, () => Is.EqualTo("Integration Title"));
+            AddAssert("title applied to song", () => editor.EditorSong.Song.Metadata.Title, () => Is.EqualTo("Integration Title"));
 
             // --- Add a timing point at 10000 ms / BPM 180, as an undoable change. ---
             AddStep("add timing point 10000 / 180 BPM", () =>
@@ -97,13 +98,13 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("two timing points in memory", () => editorChart.ControlPointInfo.TimingPoints.Count, () => Is.EqualTo(2));
 
             // --- Save to disk and assert the on-disk file round-trips everything. ---
-            AddStep("save to temp dir", () => editor.ChartFile.Save(savePath));
+            AddStep("save to temp dir", () => editor.SongFile.Save(savePath));
             AddAssert("file exists on disk", () => File.Exists(savePath));
-            AddAssert("decoded file has 3 objects", () => decodeSaved().HitObjects.Count, () => Is.EqualTo(3));
-            AddAssert("decoded file has 2 timing points", () => decodeSaved().ControlPointInfo.TimingPoints.Count, () => Is.EqualTo(2));
-            AddAssert("decoded file has the title", () => decodeSaved().Metadata.Title, () => Is.EqualTo("Integration Title"));
+            AddAssert("decoded file has 3 objects", () => decodeSavedChart().HitObjects.Count, () => Is.EqualTo(3));
+            AddAssert("decoded file has 2 timing points", () => decodeSavedTiming().TimingPoints.Count, () => Is.EqualTo(2));
+            AddAssert("decoded file has the title", () => decodeSavedSong().Metadata.Title, () => Is.EqualTo("Integration Title"));
             AddAssert("decoded file 180 BPM point present",
-                () => decodeSaved().ControlPointInfo.TimingPoints.Any(t => t.Time == 10000 && System.Math.Abs(t.BeatLength - 60000.0 / 180.0) < 0.01));
+                () => decodeSavedTiming().TimingPoints.Any(t => t.Time == 10000 && System.Math.Abs(t.BeatLength - 60000.0 / 180.0) < 0.01));
 
             // --- Undo ×3 / Redo ×3, tracking object counts across the changes. ---
             // Undo history (most-recent last): [+cardinal] [+hold] [+slider] [title] [+timing].
@@ -114,14 +115,14 @@ namespace Garbus.Game.Tests.Editor
                 () => editorChart.HitObjects.Count == 3 && editorChart.ControlPointInfo.TimingPoints.Count == 1);
             AddStep("undo #2 (title)", () => editor.ChangeHandlerForTests.Undo());
             AddAssert("title reverted, 3 objects",
-                () => editorChart.HitObjects.Count == 3 && editorChart.Metadata.Title == string.Empty);
+                () => editorChart.HitObjects.Count == 3 && editor.EditorSong.Song.Metadata.Title == string.Empty);
             AddStep("undo #3 (slider)", () => editor.ChangeHandlerForTests.Undo());
             AddAssert("2 objects after slider undo", () => editorChart.HitObjects.Count, () => Is.EqualTo(2));
 
             AddStep("redo #1 (slider)", () => editor.ChangeHandlerForTests.Redo());
             AddAssert("3 objects after slider redo", () => editorChart.HitObjects.Count, () => Is.EqualTo(3));
             AddStep("redo #2 (title)", () => editor.ChangeHandlerForTests.Redo());
-            AddAssert("title restored", () => editorChart.Metadata.Title, () => Is.EqualTo("Integration Title"));
+            AddAssert("title restored", () => editor.EditorSong.Song.Metadata.Title, () => Is.EqualTo("Integration Title"));
             AddStep("redo #3 (timing)", () => editor.ChangeHandlerForTests.Redo());
             AddAssert("2 timing points restored", () => editorChart.ControlPointInfo.TimingPoints.Count, () => Is.EqualTo(2));
             AddAssert("back to 3 objects", () => editorChart.HitObjects.Count, () => Is.EqualTo(3));
@@ -176,7 +177,15 @@ namespace Garbus.Game.Tests.Editor
             };
         }
 
-        private GarbusChart decodeSaved() => GarbusChartSerializer.Decode(File.ReadAllText(savePath));
+        private GarbusSong decodeSavedSong() => GarbusSongSerializer.Decode(File.ReadAllText(savePath)).Song;
+
+        private GarbusChart decodeSavedChart() => decodeSavedSong().Charts[0];
+
+        private ControlPointInfo decodeSavedTiming()
+        {
+            var song = decodeSavedSong();
+            return song.GetEffectiveControlPointInfo(song.Charts[0]);
+        }
 
         private SetupTab setupTab() => editor.ChildrenOfType<SetupTab>().Single();
         private ComposeTab composeTab() => editor.ChildrenOfType<ComposeTab>().Single();

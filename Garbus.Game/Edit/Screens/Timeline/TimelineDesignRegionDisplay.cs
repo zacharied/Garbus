@@ -18,7 +18,9 @@ namespace Garbus.Game.Edit.Screens.Timeline
     public partial class TimelineDesignRegionDisplay : CompositeDrawable
     {
         [Resolved]
-        private DesignPointInfo designPointInfo { get; set; } = null!;
+        private EditorChart editorChart { get; set; } = null!;
+
+        private DesignPointInfo designPointInfo = null!;
 
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
@@ -36,7 +38,19 @@ namespace Garbus.Game.Edit.Screens.Timeline
         [BackgroundDependencyLoader]
         private void load()
         {
+            bindDesignPointInfo();
+            editorChart.ChartChanged += onChartChanged;
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __) => bindDesignPointInfo();
+
+        private void bindDesignPointInfo()
+        {
+            if (designPointInfo != null)
+                designPointInfo.DesignPointsChanged -= onDesignPointsChanged;
+            designPointInfo = editorChart.DesignPointInfo;
             designPointInfo.DesignPointsChanged += onDesignPointsChanged;
+            regionCache.Invalidate();
         }
 
         protected override void Update()
@@ -89,6 +103,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
             base.Dispose(isDisposing);
             if (designPointInfo != null)
                 designPointInfo.DesignPointsChanged -= onDesignPointsChanged;
+            if (editorChart != null)
+                editorChart.ChartChanged -= onChartChanged;
         }
     }
 }

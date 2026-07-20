@@ -30,16 +30,16 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestNewChartOpensEditor()
         {
-            AddStep("click new chart", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Chart").TriggerClick());
+            AddStep("click new song", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Song").TriggerClick());
             AddUntilStep("editor pushed", () => stack.CurrentScreen is GarbusEditor);
             AddAssert("chart has default timing point", () =>
-                ((GarbusEditor)stack.CurrentScreen).ChartFile.Chart.ControlPointInfo.TimingPoints.Any());
+                ((GarbusEditor)stack.CurrentScreen).EditorChart.ControlPointInfo.TimingPoints.Any());
         }
 
         [Test]
         public void TestExitDirtyPrompts()
         {
-            AddStep("click new chart", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Chart").TriggerClick());
+            AddStep("click new song", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Song").TriggerClick());
             AddUntilStep("editor pushed and loaded", () => stack.CurrentScreen is GarbusEditor e && e.IsLoaded);
             AddStep("dirty the chart", dirtyEditor);
             AddUntilStep("editor is dirty", () => stack.CurrentScreen is GarbusEditor editor && editor.HasUnsavedChanges);
@@ -50,7 +50,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestExitDirtyDiscard()
         {
-            AddStep("click new chart", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Chart").TriggerClick());
+            AddStep("click new song", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Song").TriggerClick());
             AddUntilStep("editor pushed and loaded", () => stack.CurrentScreen is GarbusEditor e && e.IsLoaded);
             AddStep("dirty the chart", dirtyEditor);
             AddUntilStep("editor is dirty", () => stack.CurrentScreen is GarbusEditor editor && editor.HasUnsavedChanges);
@@ -63,7 +63,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestExitDirtyCancel()
         {
-            AddStep("click new chart", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Chart").TriggerClick());
+            AddStep("click new song", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Song").TriggerClick());
             AddUntilStep("editor pushed and loaded", () => stack.CurrentScreen is GarbusEditor e && e.IsLoaded);
             AddStep("dirty the chart", dirtyEditor);
             AddUntilStep("editor is dirty", () => stack.CurrentScreen is GarbusEditor editor && editor.HasUnsavedChanges);

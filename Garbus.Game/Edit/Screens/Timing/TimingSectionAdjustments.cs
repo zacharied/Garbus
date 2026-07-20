@@ -10,6 +10,7 @@ using System.Linq;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Objects;
+using Garbus.Game.Charts;
 
 namespace Garbus.Game.Edit.Screens.Timing
 {
@@ -46,6 +47,16 @@ namespace Garbus.Game.Edit.Screens.Timing
             chart.PerformOnRange(start, end, hitObject => hitObject.StartTime += adjustment);
         }
 
+        public static void AdjustHitObjectOffset(GarbusChart chart, double start, double end, double adjustment)
+        {
+            foreach (var hitObject in chart.HitObjects.Where(h => h.StartTime >= start && h.StartTime < end))
+            {
+                hitObject.StartTime += adjustment;
+                hitObject.ApplyDefaults();
+            }
+            chart.HitObjects.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+        }
+
         /// <summary>
         /// Keeps all objects in the timing section on the same beat after a BPM change.
         /// Must be called AFTER the new <see cref="TimingControlPoint.BeatLength"/> has been set,
@@ -75,6 +86,30 @@ namespace Garbus.Game.Edit.Screens.Timing
                         break;
                 }
             });
+        }
+
+        public static void SetHitObjectBPM(GarbusChart chart, TimingControlPoint timingControlPoint,
+                                           double oldBeatLength, double start, double end)
+        {
+            foreach (var hitObject in chart.HitObjects.Where(h => h.StartTime >= start && h.StartTime < end))
+            {
+                double beat = (hitObject.StartTime - timingControlPoint.Time) / oldBeatLength;
+                hitObject.StartTime = beat * timingControlPoint.BeatLength + timingControlPoint.Time;
+                double durationScale = timingControlPoint.BeatLength / oldBeatLength;
+
+                switch (hitObject)
+                {
+                    case SliderBody slider:
+                        foreach (var node in slider.Path.ControlPoints) node.TimeOffset *= durationScale;
+                        break;
+                    case IHasDuration withDuration:
+                        withDuration.Duration *= durationScale;
+                        break;
+                }
+
+                hitObject.ApplyDefaults();
+            }
+            chart.HitObjects.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
         }
     }
 }

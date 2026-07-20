@@ -42,7 +42,6 @@ namespace Garbus.Game.Edit
 
         private readonly EditorChart editorChart;
         private readonly Func<double> getPlayheadTime;
-        private readonly ControlPointInfo controlPointInfo;
         private readonly BindableBeatDivisor beatDivisor;
 
         /// <summary>
@@ -73,7 +72,6 @@ namespace Garbus.Game.Edit
         {
             this.editorChart = editorChart;
             this.getPlayheadTime = getPlayheadTime;
-            this.controlPointInfo = controlPointInfo;
             this.beatDivisor = beatDivisor;
         }
 
@@ -137,7 +135,7 @@ namespace Garbus.Game.Edit
             if (objects.Count == 0) return;
 
             // Snap the playhead to the current divisor.
-            double snappedPlayhead = controlPointInfo.GetClosestSnappedTime(
+            double snappedPlayhead = editorChart.ControlPointInfo.GetClosestSnappedTime(
                 getPlayheadTime(), beatDivisor.Value);
 
             // Shift all objects so the earliest lands exactly on the snapped playhead.

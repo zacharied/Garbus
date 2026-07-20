@@ -341,7 +341,7 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("set title/chartname/level", () =>
             {
-                editor.EditorChart.Metadata.Title = "Song";
+                editor.EditorSong.Song.Metadata.Title = "Song";
                 editor.EditorChart.Metadata.ChartName = "Hard";
                 editor.EditorChart.Metadata.Level = 5;
             });
@@ -368,10 +368,10 @@ namespace Garbus.Game.Tests.Editor
                 };
             });
 
-            AddUntilStep("shows New Chart, greyed out", () =>
+            AddUntilStep("shows New Song, greyed out", () =>
             {
                 var display = unsavedEditor.ChildrenOfType<ChartTitleDisplay>().SingleOrDefault();
-                return display != null && display.Text.ToString() == "New Chart"
+                return display != null && display.Text.ToString() == "New Song"
                        && display.Colour == (osu.Framework.Graphics.Colour4)new osuTK.Graphics.Color4(140, 140, 140, 255);
             });
         }

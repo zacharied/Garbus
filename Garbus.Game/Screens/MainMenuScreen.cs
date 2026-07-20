@@ -63,7 +63,7 @@ namespace Garbus.Game.Screens
                         {
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Text = "New Chart",
+                            Text = "New Song",
                             Size = new Vector2(200, 40),
                             Action = onNewChart,
                         },
@@ -71,7 +71,7 @@ namespace Garbus.Game.Screens
                         {
                             Anchor = Anchor.TopCentre,
                             Origin = Anchor.TopCentre,
-                            Text = "Open Chart",
+                            Text = "Open Song",
                             Size = new Vector2(200, 40),
                             Action = onOpenChart,
                         },
@@ -91,10 +91,7 @@ namespace Garbus.Game.Screens
 
         private void onNewChart()
         {
-            var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
-            var chartFile = new ChartFile(chart);
-            this.Push(new GarbusEditor(chartFile));
+            this.Push(new GarbusEditor(new SongFile(GarbusSong.CreateDefault())));
         }
 
         private void onOpenChart()
@@ -103,12 +100,11 @@ namespace Garbus.Game.Screens
             {
                 try
                 {
-                    var chartFile = ChartFile.Load(path);
-                    this.Push(new GarbusEditor(chartFile));
+                    this.Push(new GarbusEditor(SongFile.Load(path)));
                 }
                 catch (Exception ex)
                 {
-                    showError($"Failed to open chart:\n{ex.Message}");
+                    showError($"Failed to open song:\n{ex.Message}");
                 }
             });
 

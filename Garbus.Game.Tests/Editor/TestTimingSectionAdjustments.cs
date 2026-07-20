@@ -8,6 +8,7 @@
 //     newBeatLength/oldBeatLength; CardinalHoldNote.Duration scales; SliderBody scales its path TimeOffsets
 //     (its Duration is derived from the path — the setter is a no-op).
 
+using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Core;
@@ -75,6 +76,32 @@ namespace Garbus.Game.Tests.Editor
 
             Assert.That(note.StartTime, Is.EqualTo(4500).Within(0.001)); // 4000 + 2.5 * 200
             Assert.That(earlier.StartTime, Is.EqualTo(1000).Within(0.001));
+        }
+
+        [Test]
+        public void SharedTimingBpmAdjustmentMovesObjectsInEveryChart()
+        {
+            var timing = new ControlPointInfo();
+            var first = new TimingControlPoint { BeatLength = 500 };
+            var second = new TimingControlPoint { BeatLength = 400 };
+            timing.Add(0, first);
+            timing.Add(4000, second);
+            var firstChart = new GarbusChart { ControlPointInfo = null };
+            var secondChart = new GarbusChart { ControlPointInfo = null };
+            firstChart.HitObjects.Add(new CardinalNote { StartTime = 5000, AngleDeg = 0 });
+            secondChart.HitObjects.Add(new CardinalNote { StartTime = 5000, AngleDeg = 0 });
+            var song = new GarbusSong { ControlPointInfo = timing, Charts = { firstChart, secondChart } };
+            var editorSong = new EditorSong(song);
+            var active = new EditorChart(firstChart, timing);
+            var handler = new GarbusChartChangeHandler(editorSong, active);
+
+            TimingPointChanges.ChangeBpm(editorSong, active, handler, second, 300, adjustObjects: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstChart.HitObjects.Single().StartTime, Is.EqualTo(4500).Within(0.001));
+                Assert.That(secondChart.HitObjects.Single().StartTime, Is.EqualTo(4500).Within(0.001));
+            });
         }
 
         [Test]

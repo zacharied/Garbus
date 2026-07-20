@@ -13,6 +13,7 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
 using osuTK;
 using osuTK.Graphics;
+using Garbus.Game.Charts.Timing;
 
 namespace Garbus.Game.Edit.Screens.BottomBar
 {
@@ -28,6 +29,11 @@ namespace Garbus.Game.Edit.Screens.BottomBar
 
         [Resolved]
         private EditorChart editorChart { get; set; } = null!;
+
+        [Resolved]
+        private EditorSong editorSong { get; set; } = null!;
+
+        private ControlPointInfo controlPointInfo = null!;
 
         private Container tickContainer = null!;
         private Drawable previewMarker = null!;
@@ -96,9 +102,21 @@ namespace Garbus.Game.Edit.Screens.BottomBar
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            editorChart.ControlPointInfo.ControlPointsChanged += onControlPointsChanged;
+            bindControlPointInfo();
+            editorChart.ChartChanged += onChartChanged;
             rebuildTicks();
             updatePreviewMarker();
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __) => bindControlPointInfo();
+
+        private void bindControlPointInfo()
+        {
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
+            controlPointInfo = editorChart.ControlPointInfo;
+            controlPointInfo.ControlPointsChanged += onControlPointsChanged;
+            rebuildTicks();
         }
 
         private void onControlPointsChanged() => rebuildTicks();
@@ -108,7 +126,7 @@ namespace Garbus.Game.Edit.Screens.BottomBar
             tickContainer.Clear();
             timingTicks.Clear();
 
-            foreach (var tp in editorChart.ControlPointInfo.TimingPoints)
+            foreach (var tp in controlPointInfo.TimingPoints)
             {
                 var tick = new Box
                 {
@@ -125,7 +143,7 @@ namespace Garbus.Game.Edit.Screens.BottomBar
 
         private void updatePreviewMarker()
         {
-            double? preview = editorChart.Chart.PreviewTime;
+            double? preview = editorSong.Song.PreviewTime;
             previewMarker.Alpha = (preview.HasValue && preview.Value >= 0) ? 1 : 0;
         }
 
@@ -150,7 +168,7 @@ namespace Garbus.Game.Edit.Screens.BottomBar
                 tick.X = (float)(time / trackLength * DrawWidth);
 
             // Preview marker position
-            double? previewTime = editorChart.Chart.PreviewTime;
+            double? previewTime = editorSong.Song.PreviewTime;
             if (previewTime.HasValue && previewTime.Value >= 0 && previewTime.Value <= trackLength)
             {
                 previewMarker.Alpha = 1;
@@ -197,7 +215,9 @@ namespace Garbus.Game.Edit.Screens.BottomBar
         {
             base.Dispose(isDisposing);
             if (editorChart != null)
-                editorChart.ControlPointInfo.ControlPointsChanged -= onControlPointsChanged;
+                editorChart.ChartChanged -= onChartChanged;
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
         }
     }
 }

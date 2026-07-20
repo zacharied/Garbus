@@ -28,7 +28,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
 
-        public SaveAsDialog(Action<string> onSave, string defaultFilename = "new-chart")
+        public SaveAsDialog(Action<string> onSave, string defaultFilename = "new-song")
         {
             this.onSave = onSave;
             this.defaultFilename = defaultFilename;
@@ -83,7 +83,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
                     {
                         Anchor = Anchor.TopCentre,
                         Origin = Anchor.TopCentre,
-                        Text = "Save Chart As…",
+                        Text = "Save Song As…",
                         Font = FontUsage.Default.With(size: 20),
                         Colour = Color4.White,
                         Y = 6,
@@ -149,7 +149,7 @@ namespace Garbus.Game.Edit.Screens.Dialogs
 
             string filename = filenameBox.Text.Trim();
             if (string.IsNullOrEmpty(filename))
-                filename = "new-chart";
+                filename = "new-song";
 
             // Ensure .garbus extension.
             if (!filename.EndsWith(".garbus", StringComparison.OrdinalIgnoreCase))

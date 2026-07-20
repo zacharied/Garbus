@@ -1,18 +1,16 @@
 {
-  "version": 1,
+  "version": 2,
+  "id": "9ab9d35b-1a25-4b84-8641-112bf5dcf22d",
   "metadata": {
     "title": "test track",
     "artist": "unknown",
-    "charter": "garbus",
-    "chartName": "test chart",
-    "romanisedTitle": "",
-    "romanisedArtist": "",
-    "source": "",
-    "tags": "",
-    "audioFile": "test-track.ogg",
-    "backgroundFile": "",
-    "level": 0,
-    "difficulty": "Novice"
+    "titleRomanized": "",
+    "artistRomanized": "",
+    "source": ""
+  },
+  "resources": {
+    "track": "test-track.ogg",
+    "background": ""
   },
   "previewTime": null,
   "timingPoints": [
@@ -23,107 +21,119 @@
       "omitFirstBarLine": false
     }
   ],
-  "hitObjects": [
+  "charts": [
     {
-      "type": "slider",
-      "angleDeg": 0,
-      "side": "Right",
-      "controlPoints": [
+      "id": "5d47f795-5e27-4ddb-bfba-d85c915c2575",
+      "metadata": {
+        "chartName": "test chart",
+        "charter": "garbus",
+        "level": 0,
+        "difficulty": "Novice"
+      },
+      "hitObjects": [
         {
-          "timeOffset": 1000,
-          "rotationOffset": 0,
-          "smooth": false,
-          "sweepEasing": "None"
+          "type": "slider",
+          "angleDeg": 0,
+          "side": "Right",
+          "controlPoints": [
+            {
+              "timeOffset": 1000,
+              "rotationOffset": 0,
+              "smooth": false,
+              "sweepEasing": "None"
+            },
+            {
+              "timeOffset": 2000,
+              "rotationOffset": 90,
+              "smooth": false,
+              "sweepEasing": "None"
+            },
+            {
+              "timeOffset": 4000,
+              "rotationOffset": 90,
+              "smooth": false,
+              "sweepEasing": "None"
+            }
+          ],
+          "time": 2000
         },
         {
-          "timeOffset": 2000,
-          "rotationOffset": 90,
-          "smooth": false,
-          "sweepEasing": "None"
+          "type": "slider",
+          "angleDeg": 0,
+          "side": "Left",
+          "controlPoints": [
+            {
+              "timeOffset": 1000,
+              "rotationOffset": 0,
+              "smooth": false,
+              "sweepEasing": "None"
+            },
+            {
+              "timeOffset": 2000,
+              "rotationOffset": 90,
+              "smooth": false,
+              "sweepEasing": "None"
+            },
+            {
+              "timeOffset": 4000,
+              "rotationOffset": 90,
+              "smooth": false,
+              "sweepEasing": "None"
+            }
+          ],
+          "time": 5000
         },
         {
-          "timeOffset": 4000,
-          "rotationOffset": 90,
-          "smooth": false,
-          "sweepEasing": "None"
+          "type": "cardinal",
+          "angleDeg": 90,
+          "time": 2000
+        },
+        {
+          "type": "cardinal",
+          "angleDeg": 90,
+          "time": 2150
+        },
+        {
+          "type": "cardinal",
+          "angleDeg": 90,
+          "time": 4000
+        },
+        {
+          "type": "shoulder",
+          "side": "Right",
+          "time": 3000
+        },
+        {
+          "type": "shoulder",
+          "side": "Left",
+          "time": 3500
+        },
+        {
+          "type": "cardinal-hold",
+          "angleDeg": 180,
+          "duration": 1000,
+          "time": 6000
+        },
+        {
+          "type": "cardinal-hold",
+          "angleDeg": 270,
+          "duration": 2000,
+          "time": 8000
+        },
+        {
+          "type": "cardinal-hold",
+          "angleDeg": 0,
+          "duration": 80,
+          "time": 11000
+        },
+        {
+          "type": "shoulder-hold",
+          "side": "Right",
+          "duration": 1000,
+          "time": 13000
         }
       ],
-      "time": 2000
-    },
-    {
-      "type": "slider",
-      "angleDeg": 0,
-      "side": "Left",
-      "controlPoints": [
-        {
-          "timeOffset": 1000,
-          "rotationOffset": 0,
-          "smooth": false,
-          "sweepEasing": "None"
-        },
-        {
-          "timeOffset": 2000,
-          "rotationOffset": 90,
-          "smooth": false,
-          "sweepEasing": "None"
-        },
-        {
-          "timeOffset": 4000,
-          "rotationOffset": 90,
-          "smooth": false,
-          "sweepEasing": "None"
-        }
-      ],
-      "time": 5000
-    },
-    {
-      "type": "cardinal",
-      "angleDeg": 90,
-      "time": 2000
-    },
-    {
-      "type": "cardinal",
-      "angleDeg": 90,
-      "time": 2150
-    },
-    {
-      "type": "cardinal",
-      "angleDeg": 90,
-      "time": 4000
-    },
-    {
-      "type": "shoulder",
-      "side": "Right",
-      "time": 3000
-    },
-    {
-      "type": "shoulder",
-      "side": "Left",
-      "time": 3500
-    },
-    {
-      "type": "cardinal-hold",
-      "angleDeg": 180,
-      "duration": 1000,
-      "time": 6000
-    },
-    {
-      "type": "cardinal-hold",
-      "angleDeg": 270,
-      "duration": 2000,
-      "time": 8000
-    },
-    {
-      "type": "cardinal-hold",
-      "angleDeg": 0,
-      "duration": 80,
-      "time": 11000
-    },
-    {
-      "type": "shoulder-hold",
-      "side": "Right",
-      "duration": 1000,
-      "time": 13000
+      "designPoints": []
     }
   ]
 }

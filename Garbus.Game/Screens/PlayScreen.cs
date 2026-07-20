@@ -75,7 +75,7 @@ namespace Garbus.Game.Screens
         /// When non-null, this chart and track are used instead of the bundled default.
         /// Set by the editor test-mode constructor.
         /// </summary>
-        private readonly GarbusChart? injectedChart;
+        private readonly PlayableChart? injectedPlayableChart;
         private readonly Track? injectedTrack;
 
         /// <summary>The gameplay start time passed from the editor (milliseconds). Exposed for tests.</summary>
@@ -89,6 +89,8 @@ namespace Garbus.Game.Screens
 
         /// <summary>The chart this screen is playing. Exposed for editor test-mode assertions.</summary>
         public GarbusChart? Chart => chart;
+
+        public PlayableChart? PlayableChart { get; private set; }
 
         // ---
 
@@ -115,29 +117,42 @@ namespace Garbus.Game.Screens
         /// </param>
         public PlayScreen(GarbusChart chart, Track track, double startTime = 0)
         {
-            injectedChart = chart;
+            var bridgeSong = new GarbusSong { Charts = { chart } };
+            injectedPlayableChart = new PlayableChart(
+                bridgeSong,
+                chart,
+                chart.ControlPointInfo ?? new Charts.Timing.ControlPointInfo());
+            injectedTrack = track;
+            StartTime = startTime;
+        }
+
+        public PlayScreen(PlayableChart chart, Track track, double startTime = 0)
+        {
+            injectedPlayableChart = chart;
             injectedTrack = track;
             StartTime = startTime;
         }
 
         [BackgroundDependencyLoader]
-        private void load(ITrackStore tracks, ChartStore charts, GarbusConfigManager config)
+        private void load(ITrackStore tracks, SongStore songs, GarbusConfigManager config)
         {
-            if (injectedChart != null && injectedTrack != null)
+            if (injectedPlayableChart != null && injectedTrack != null)
             {
                 // Editor test mode: use the pre-provided chart + track.
-                chart = injectedChart;
+                PlayableChart = injectedPlayableChart;
+                chart = injectedPlayableChart.Chart;
                 track = injectedTrack;
             }
             else
             {
-                // Normal (standalone) path: load the bundled chart.
-                chart = charts.Get(DEFAULT_CHART);
-                chart.ApplyDefaults();
+                // Normal (standalone) path: load the bundled song's first chart.
+                var song = songs.Get(DEFAULT_CHART).Song;
+                PlayableChart = song.CreatePlayableChart(song.Charts[0].ChartId);
+                chart = PlayableChart.Chart;
 
-                // The chart references its audio by full filename (TrackStore only probes ".mp3" for
+                // The song references its audio by full filename (TrackStore only probes ".mp3" for
                 // extension-less lookups).
-                track = tracks.Get(chart.Metadata.AudioFile);
+                track = tracks.Get(song.Resources.Track);
             }
 
             chartEndTime = chart.HitObjects.Count == 0

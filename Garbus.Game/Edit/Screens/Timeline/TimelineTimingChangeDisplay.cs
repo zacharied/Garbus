@@ -21,7 +21,9 @@ namespace Garbus.Game.Edit.Screens.Timeline
     public partial class TimelineTimingChangeDisplay : CompositeDrawable
     {
         [Resolved]
-        private ControlPointInfo controlPointInfo { get; set; } = null!;
+        private EditorChart editorChart { get; set; } = null!;
+
+        private ControlPointInfo controlPointInfo = null!;
 
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
@@ -39,7 +41,19 @@ namespace Garbus.Game.Edit.Screens.Timeline
         [BackgroundDependencyLoader]
         private void load()
         {
+            bindControlPointInfo();
+            editorChart.ChartChanged += onChartChanged;
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __) => bindControlPointInfo();
+
+        private void bindControlPointInfo()
+        {
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
+            controlPointInfo = editorChart.ControlPointInfo;
             controlPointInfo.ControlPointsChanged += onControlPointsChanged;
+            groupCache.Invalidate();
         }
 
         protected override void Update()
@@ -92,6 +106,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
             base.Dispose(isDisposing);
             if (controlPointInfo != null)
                 controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
+            if (editorChart != null)
+                editorChart.ChartChanged -= onChartChanged;
         }
     }
 }

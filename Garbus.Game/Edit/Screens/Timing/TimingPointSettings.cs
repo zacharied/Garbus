@@ -32,6 +32,9 @@ namespace Garbus.Game.Edit.Screens.Timing
         private EditorChart editorChart { get; set; } = null!;
 
         [Resolved]
+        private EditorSong editorSong { get; set; } = null!;
+
+        [Resolved]
         private EditorClock editorClock { get; set; } = null!;
 
         [Resolved]
@@ -227,7 +230,7 @@ namespace Garbus.Game.Edit.Screens.Timing
             if (Math.Abs(newOffset - oldTime) < 0.01) return;
 
             SelectedGroup.Value = TimingPointChanges.MoveGroup(
-                editorChart, changeHandler, SelectedGroup.Value, newOffset, AdjustObjectsOnTimingChange.Value);
+                editorSong, editorChart, changeHandler, SelectedGroup.Value, newOffset, AdjustObjectsOnTimingChange.Value);
 
             if (!editorClock.IsRunning)
                 editorClock.Seek(newOffset);
@@ -247,7 +250,7 @@ namespace Garbus.Game.Edit.Screens.Timing
                 return;
             }
 
-            TimingPointChanges.ChangeBpm(editorChart, changeHandler, tp, bpm, AdjustObjectsOnTimingChange.Value);
+            TimingPointChanges.ChangeBpm(editorSong, editorChart, changeHandler, tp, bpm, AdjustObjectsOnTimingChange.Value);
         }
 
         private void commitSignature()

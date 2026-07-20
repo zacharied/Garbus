@@ -18,7 +18,7 @@ namespace Garbus.Game.Edit.Screens.Verify.Checks
 
         public IEnumerable<Issue> Run(CheckContext context)
         {
-            string backgroundFile = context.Chart.Metadata.BackgroundFile;
+            string backgroundFile = context.Song.Resources.Background;
 
             if (string.IsNullOrWhiteSpace(backgroundFile))
             {
@@ -27,13 +27,13 @@ namespace Garbus.Game.Edit.Screens.Verify.Checks
             }
 
             // Skip the disk check for unsaved (in-memory only) charts.
-            if (context.ChartFile.Directory == null)
+            if (context.SongFile.Directory == null)
                 yield break;
 
-            string fullPath = Path.Combine(context.ChartFile.Directory, backgroundFile);
+            string fullPath = Path.Combine(context.SongFile.Directory, backgroundFile);
 
             if (!File.Exists(fullPath))
-                yield return new Issue(null, $"Background file '{backgroundFile}' not found in chart directory.", Name);
+                yield return new Issue(null, $"Background file '{backgroundFile}' not found in song directory.", Name);
         }
     }
 }

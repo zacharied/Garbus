@@ -47,6 +47,7 @@ namespace Garbus.Game.Edit.Screens.Timing
         private FillFlowContainer<TimingPointRow> rowContainer = null!;
         private BasicButton addButton = null!;
         private BasicButton deleteButton = null!;
+        private ControlPointInfo controlPointInfo = null!;
 
         [BackgroundDependencyLoader]
         private void load()
@@ -141,8 +142,24 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             base.LoadComplete();
 
-            editorChart.ControlPointInfo.ControlPointsChanged += scheduleRefresh;
+            bindControlPointInfo();
+            editorChart.ChartChanged += onChartChanged;
             refreshRows();
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __)
+        {
+            SelectedGroup.Value = null;
+            bindControlPointInfo();
+            scheduleRefresh();
+        }
+
+        private void bindControlPointInfo()
+        {
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= scheduleRefresh;
+            controlPointInfo = editorChart.ControlPointInfo;
+            controlPointInfo.ControlPointsChanged += scheduleRefresh;
         }
 
         protected override bool OnKeyDown(KeyDownEvent e)
@@ -301,7 +318,9 @@ namespace Garbus.Game.Edit.Screens.Timing
             base.Dispose(isDisposing);
 
             if (editorChart != null)
-                editorChart.ControlPointInfo.ControlPointsChanged -= scheduleRefresh;
+                editorChart.ChartChanged -= onChartChanged;
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= scheduleRefresh;
         }
     }
 

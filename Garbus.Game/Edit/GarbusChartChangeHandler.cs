@@ -6,6 +6,7 @@
 // Adapted for Garbus: BeatmapEditorChangeHandler → GarbusChartChangeHandler; LegacyEditorBeatmapPatcher
 // replaced by per-object JSON-encoded identity diff; operates on EditorChart / GarbusChartSerializer.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,10 +26,23 @@ namespace Garbus.Game.Edit
     public partial class GarbusChartChangeHandler : EditorChangeHandler
     {
         private readonly EditorChart editorChart;
+        private readonly EditorSong? editorSong;
 
         public GarbusChartChangeHandler(EditorChart editorChart)
         {
             this.editorChart = editorChart;
+            initialise();
+        }
+
+        public GarbusChartChangeHandler(EditorSong editorSong, EditorChart editorChart)
+        {
+            this.editorChart = editorChart;
+            this.editorSong = editorSong;
+            initialise();
+        }
+
+        private void initialise()
+        {
 
             // Capture the baseline (pre-edit) state before wiring any events.
             // This ensures ensureStateSaved() in BeginChange finds a state already saved,
@@ -41,18 +55,34 @@ namespace Garbus.Game.Edit
             editorChart.TransactionBegan += BeginChange;
             editorChart.TransactionEnded += EndChange;
             editorChart.SaveStateTriggered += SaveState;
+            if (editorSong != null)
+            {
+                editorSong.TransactionBegan += BeginChange;
+                editorSong.TransactionEnded += EndChange;
+                editorSong.SaveStateTriggered += SaveState;
+            }
         }
 
         protected override void WriteCurrentStateToStream(MemoryStream stream)
         {
             // EditorChart now aliases Chart.HitObjects directly, so Chart always reflects live state.
             // Serialize it as-is — no shadow copy reconstruction needed.
-            byte[] bytes = Encoding.UTF8.GetBytes(GarbusChartSerializer.Encode(editorChart.Chart));
+            byte[] bytes = Encoding.UTF8.GetBytes(editorSong == null
+                ? GarbusChartSerializer.Encode(editorChart.Chart)
+                : GarbusSongSerializer.Encode(editorSong.Song));
             stream.Write(bytes, 0, bytes.Length);
         }
 
         protected override void ApplyStateChange(byte[] previousState, byte[] newState)
         {
+            if (editorSong != null)
+            {
+                Guid activeChartId = editorSong.ActiveChartId;
+                GarbusSong targetSong = GarbusSongSerializer.Decode(newState).Song;
+                editorSong.RestoreFrom(targetSong, activeChartId);
+                return;
+            }
+
             // Decode the target state.
             string json = Encoding.UTF8.GetString(newState);
             GarbusChart targetChart = GarbusChartSerializer.Decode(json);

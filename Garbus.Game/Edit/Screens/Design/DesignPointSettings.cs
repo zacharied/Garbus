@@ -28,9 +28,6 @@ namespace Garbus.Game.Edit.Screens.Design
         [Resolved]
         private IEditorChangeHandler changeHandler { get; set; } = null!;
 
-        [Resolved]
-        private DesignPointInfo designPointInfo { get; set; } = null!;
-
         public readonly Bindable<DesignPoint?> SelectedPoint = new Bindable<DesignPoint?>();
 
         private BasicTextBox startBox = null!;
@@ -205,7 +202,7 @@ namespace Garbus.Game.Edit.Screens.Design
         private void move(DesignPoint p, double start, double end)
         {
             changeHandler.BeginChange();
-            designPointInfo.MoveDesignPoint(p, start, end);
+            editorChart.DesignPointInfo.MoveDesignPoint(p, start, end);
             editorChart.SaveState();
             changeHandler.EndChange();
         }

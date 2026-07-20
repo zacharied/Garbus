@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Format;
 using osu.Framework.Audio;
@@ -36,44 +37,47 @@ namespace Garbus.Game.Screens.SongSelect
 
             foreach (string path in Directory.EnumerateFiles(rootDirectory, "*.garbus", SearchOption.AllDirectories))
             {
-                ChartCard? card = null;
+                List<ChartCard> cards;
                 try
                 {
-                    var chart = GarbusChartSerializer.Decode(File.ReadAllText(path));
-                    card = new ChartCard
-                    {
-                        Source = this,
-                        Locator = path,
-                        GroupKey = Path.GetDirectoryName(path)!,
-                        Title = chart.Metadata.Title,
-                        Artist = chart.Metadata.Artist,
-                        ChartName = chart.Metadata.ChartName,
-                        Level = chart.Metadata.Level,
-                        PreviewTime = chart.PreviewTime,
-                        AudioFile = chart.Metadata.AudioFile,
-                        BackgroundFile = chart.Metadata.BackgroundFile,
-                    };
+                    var song = GarbusSongSerializer.Decode(File.ReadAllBytes(path)).Song;
+                    cards = song.Charts.Select(chart => new ChartCard
+                        {
+                            Source = this,
+                            Locator = $"{path}#{chart.ChartId}",
+                            SongLocator = path,
+                            SongId = song.SongId,
+                            ChartId = chart.ChartId,
+                            GroupKey = path,
+                            Title = song.Metadata.Title,
+                            Artist = song.Metadata.Artist,
+                            ChartName = chart.Metadata.ChartName,
+                            Level = chart.Metadata.Level,
+                            PreviewTime = song.PreviewTime,
+                            AudioFile = song.Resources.Track,
+                            BackgroundFile = song.Resources.Background,
+                        }).ToList();
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Skipping unreadable chart \"{path}\": {ex.Message}", level: LogLevel.Important);
+                    Logger.Log($"Skipping unreadable song \"{path}\": {ex.Message}", level: LogLevel.Important);
+                    continue;
                 }
 
-                if (card != null)
+                foreach (var card in cards)
                     yield return card;
             }
         }
 
-        public GarbusChart LoadChart(ChartCard card)
+        public PlayableChart LoadChart(ChartCard card)
         {
-            var chart = GarbusChartSerializer.Decode(File.ReadAllText(card.Locator));
-            chart.ApplyDefaults();
-            return chart;
+            var song = GarbusSongSerializer.Decode(File.ReadAllBytes(card.SongLocator)).Song;
+            return song.CreatePlayableChart(card.ChartId);
         }
 
         public Track GetTrack(ChartCard card, AudioManager audio)
         {
-            string dir = Path.GetDirectoryName(card.Locator)!;
+            string dir = Path.GetDirectoryName(card.SongLocator)!;
 
             if (!trackStores.TryGetValue(dir, out var store))
             {
@@ -89,7 +93,7 @@ namespace Garbus.Game.Screens.SongSelect
             if (host == null || string.IsNullOrEmpty(card.BackgroundFile))
                 return null;
 
-            string dir = Path.GetDirectoryName(card.Locator)!;
+            string dir = Path.GetDirectoryName(card.SongLocator)!;
 
             if (!textureStores.TryGetValue(dir, out var store))
             {

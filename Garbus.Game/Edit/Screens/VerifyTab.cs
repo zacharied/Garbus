@@ -23,7 +23,10 @@ namespace Garbus.Game.Edit.Screens
         private EditorChart editorChart { get; set; } = null!;
 
         [Resolved]
-        private ChartFile chartFile { get; set; } = null!;
+        private EditorSong editorSong { get; set; } = null!;
+
+        [Resolved]
+        private SongFile songFile { get; set; } = null!;
 
         private IssueTable issueTable = null!;
 
@@ -88,8 +91,10 @@ namespace Garbus.Game.Edit.Screens
         private void refresh()
         {
             var context = new CheckContext(
+                Song: editorSong.Song,
                 Chart: editorChart.Chart,
-                ChartFile: chartFile,
+                SongFile: songFile,
+                ControlPointInfo: editorChart.ControlPointInfo,
                 TrackLength: editorClock.TrackLength);
 
             var issues = AllChecks

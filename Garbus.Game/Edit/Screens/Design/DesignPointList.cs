@@ -30,8 +30,7 @@ namespace Garbus.Game.Edit.Screens.Design
         [Resolved]
         private IEditorChangeHandler changeHandler { get; set; } = null!;
 
-        [Resolved]
-        private DesignPointInfo designPointInfo { get; set; } = null!;
+        private DesignPointInfo designPointInfo = null!;
 
         public readonly Bindable<DesignPoint?> SelectedPoint = new Bindable<DesignPoint?>();
 
@@ -131,8 +130,24 @@ namespace Garbus.Game.Edit.Screens.Design
         {
             base.LoadComplete();
 
-            designPointInfo.DesignPointsChanged += scheduleRefresh;
+            bindDesignPointInfo();
+            editorChart.ChartChanged += onChartChanged;
             refreshRows();
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __)
+        {
+            SelectedPoint.Value = null;
+            bindDesignPointInfo();
+            scheduleRefresh();
+        }
+
+        private void bindDesignPointInfo()
+        {
+            if (designPointInfo != null)
+                designPointInfo.DesignPointsChanged -= scheduleRefresh;
+            designPointInfo = editorChart.DesignPointInfo;
+            designPointInfo.DesignPointsChanged += scheduleRefresh;
         }
 
         protected override bool OnKeyDown(KeyDownEvent e)
@@ -249,6 +264,8 @@ namespace Garbus.Game.Edit.Screens.Design
             base.Dispose(isDisposing);
             if (designPointInfo != null)
                 designPointInfo.DesignPointsChanged -= scheduleRefresh;
+            if (editorChart != null)
+                editorChart.ChartChanged -= onChartChanged;
         }
     }
 

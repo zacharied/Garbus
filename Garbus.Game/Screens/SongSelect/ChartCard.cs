@@ -1,6 +1,7 @@
 // One decoded chart entry in the song-select list: display metadata plus the locator its owning
 // source uses to load the full chart and its audio.
 
+using System;
 using Garbus.Game.Charts;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
@@ -14,6 +15,12 @@ namespace Garbus.Game.Screens.SongSelect
 
         /// <summary>Source-specific handle (disk path or resource name).</summary>
         public required string Locator { get; init; }
+
+        public string SongLocator { get; init; } = string.Empty;
+
+        public Guid SongId { get; init; }
+
+        public Guid ChartId { get; init; }
 
         /// <summary>Folder identity charts are grouped by (a song = one folder).</summary>
         public required string GroupKey { get; init; }
@@ -31,7 +38,7 @@ namespace Garbus.Game.Screens.SongSelect
         /// <summary>Title, plus the chart (difficulty) name in brackets when present.</summary>
         public string DisplayName => string.IsNullOrEmpty(ChartName) ? Title : $"{Title} [{ChartName}]";
 
-        public GarbusChart LoadChart() => Source.LoadChart(this);
+        public PlayableChart LoadChart() => Source.LoadChart(this);
 
         public Track GetTrack(AudioManager audio) => Source.GetTrack(this, audio);
     }

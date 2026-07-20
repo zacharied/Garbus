@@ -67,13 +67,13 @@ namespace Garbus.Game.Screens.SongSelect
         }
 
         [BackgroundDependencyLoader]
-        private void load(Storage storage, ChartStore charts, ITrackStore resourceTracks, AudioManager audio, GarbusConfigManager config, GameHost host, TextureStore textures)
+        private void load(Storage storage, SongStore songs, ITrackStore resourceTracks, AudioManager audio, GarbusConfigManager config, GameHost host, TextureStore textures)
         {
             this.audio = audio;
 
             config.BindWith(GarbusSetting.SongSelectGrouped, grouped);
 
-            var resourceSource = new ResourceChartSource(charts, resourceTracks, textures);
+            var resourceSource = new ResourceChartSource(songs, resourceTracks, textures);
             string songsRoot = storage.GetStorageForDirectory("charts").GetFullPath(string.Empty);
             directorySource = new DirectoryChartSource(songsRoot, host);
             library = new ChartLibrary(directorySource, resourceSource);
@@ -345,7 +345,7 @@ namespace Garbus.Game.Screens.SongSelect
             // selection by its stable Locator so it re-highlights (and clears if it no longer exists).
             SelectedChart = SelectedChart == null
                 ? null
-                : Groups.SelectMany(g => g.Charts).FirstOrDefault(c => c.Locator == SelectedChart.Locator);
+                : Groups.SelectMany(g => g.Charts).FirstOrDefault(c => c.SongLocator == SelectedChart.SongLocator && c.ChartId == SelectedChart.ChartId);
 
             rebuild();
             detailPanel.Show(SelectedChart, SelectedChart == null ? null : SelectedChart.Source.GetBackground(SelectedChart));

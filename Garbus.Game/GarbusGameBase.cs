@@ -65,7 +65,7 @@ namespace Garbus.Game
             Resources.AddStore(new DllResourceStore(typeof(GarbusResources).Assembly));
 
             dependencies.Cache(LocalConfig = new GarbusConfigManager(storage));
-            dependencies.Cache(new ChartStore(Resources));
+            dependencies.Cache(new SongStore(Resources));
             dependencies.Cache(new KeyBindingStore(storage));
 
             // Scroll speed -> gameplay TimeRange. Cached here so the gameplay scrolling container

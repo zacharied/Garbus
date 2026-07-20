@@ -4,7 +4,7 @@
 // OsuColour/OverlayColourProvider dependencies; derives zoom range from EditorClock.TrackLength;
 // drives composer TimelineTimeRange via BAC's exact formula:
 //   TimelineTimeRange = EditorClock.TrackLength / CurrentZoom / 2
-// Waveform layer: WaveformGraph fed from track waveform via ChartFile directory store (null-safe).
+// Waveform layer: WaveformGraph fed from the song's shared track resource (null-safe).
 // Content width ∝ TrackLength × zoom; CentreMarker is a fixed overlay (non-scrolling).
 // Scroll-to-clock when playing; user drag seeks raw throughout — no beat snapping on release.
 
@@ -37,7 +37,7 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private EditorClock editorClock { get; set; } = null!;
 
         [Resolved]
-        private ChartFile chartFile { get; set; } = null!;
+        private SongFile songFile { get; set; } = null!;
 
         // ---- Bindable<double> written to the composer's TimelineTimeRange ----
         // Owned externally (ComposeTab) and passed in so the composer can subscribe.
@@ -257,9 +257,9 @@ namespace Garbus.Game.Edit.Screens.Timeline
 
         private void updateWaveform()
         {
-            // Read the raw encoded-audio file from the chart directory. Null for an unsaved chart,
+            // Read the raw encoded-audio file from the song directory. Null for an unsaved song,
             // no audio file, a missing file, or a TrackVirtual — WaveformGraph renders nothing then.
-            var stream = chartFile.GetAudioStream();
+            var stream = songFile.GetAudioStream();
 
             waveform.Waveform = null;
             currentWaveform?.Dispose();

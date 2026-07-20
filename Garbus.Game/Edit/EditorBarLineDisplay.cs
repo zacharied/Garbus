@@ -9,6 +9,7 @@ using osu.Framework.Graphics.Sprites;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI.Scrolling;
+using Garbus.Game.Charts.Timing;
 using osuTK.Graphics;
 
 namespace Garbus.Game.Edit
@@ -30,6 +31,7 @@ namespace Garbus.Game.Edit
         private readonly ScrollingHitObjectContainer lines = new ScrollingHitObjectContainer();
 
         private readonly List<BarLine> barLines = new List<BarLine>();
+        private ControlPointInfo controlPointInfo = null!;
 
         /// <summary>The last generated set of bar lines (independent of on-screen culling).</summary>
         public IReadOnlyList<BarLine> BarLines => barLines;
@@ -50,8 +52,20 @@ namespace Garbus.Game.Edit
         [BackgroundDependencyLoader]
         private void load()
         {
-            editorChart.ControlPointInfo.ControlPointsChanged += regenerate;
+            bindControlPointInfo();
+            editorChart.ChartChanged += onChartChanged;
             editorClock.TrackChanged += regenerate;
+            regenerate();
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __) => bindControlPointInfo();
+
+        private void bindControlPointInfo()
+        {
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= regenerate;
+            controlPointInfo = editorChart.ControlPointInfo;
+            controlPointInfo.ControlPointsChanged += regenerate;
             regenerate();
         }
 
@@ -68,7 +82,7 @@ namespace Garbus.Game.Edit
             lines.Clear();
             barLines.Clear();
             lastGeneratedTrackLength = editorClock.TrackLength;
-            barLines.AddRange(BarLineGenerator.Generate(editorChart.ControlPointInfo, editorClock.TrackLength));
+            barLines.AddRange(BarLineGenerator.Generate(controlPointInfo, editorClock.TrackLength));
 
             foreach (var barLine in barLines)
                 lines.Add(new DrawableBarLine(barLine));
@@ -78,7 +92,9 @@ namespace Garbus.Game.Edit
         {
             base.Dispose(isDisposing);
             if (editorChart.IsNotNull())
-                editorChart.ControlPointInfo.ControlPointsChanged -= regenerate;
+                editorChart.ChartChanged -= onChartChanged;
+            if (controlPointInfo.IsNotNull())
+                controlPointInfo.ControlPointsChanged -= regenerate;
             if (editorClock.IsNotNull())
                 editorClock.TrackChanged -= regenerate;
         }

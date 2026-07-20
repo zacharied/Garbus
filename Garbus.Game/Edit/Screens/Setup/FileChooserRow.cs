@@ -98,6 +98,8 @@ namespace Garbus.Game.Edit.Screens.Setup
             Schedule(() => commitPick(fullPath));
         }
 
+        public void SetValue(string value) => fileNameText.Text = string.IsNullOrEmpty(value) ? "(none)" : value;
+
         private void openSelector()
         {
             if (overlayContainer == null)

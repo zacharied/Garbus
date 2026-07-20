@@ -1,6 +1,7 @@
 // The native chart model (Phase 3): hit objects + timing + metadata + audio reference. Serialized
 // through Charts/Format (versioned JSON), replacing osu's Beatmap/WorkingBeatmap/converter pipeline.
 
+using System;
 using System.Collections.Generic;
 using Garbus.Game.Charts.Design;
 using Garbus.Game.Charts.Timing;
@@ -10,12 +11,14 @@ namespace Garbus.Game.Charts;
 
 public class GarbusChart
 {
+    public Guid ChartId { get; init; } = Guid.NewGuid();
+
     public ChartMetadata Metadata { get; init; } = new ChartMetadata();
 
     /// <summary>The song-select audio preview point in ms, or null when unset.</summary>
     public double? PreviewTime { get; set; }
 
-    public ControlPointInfo ControlPointInfo { get; init; } = new ControlPointInfo();
+    public ControlPointInfo? ControlPointInfo { get; set; } = new ControlPointInfo();
 
     public DesignPointInfo DesignPointInfo { get; init; } = new DesignPointInfo();
 

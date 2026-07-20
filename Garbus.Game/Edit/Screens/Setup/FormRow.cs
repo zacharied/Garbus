@@ -82,6 +82,12 @@ namespace Garbus.Game.Edit.Screens.Setup
             onCommit(current);
         }
 
+        public void SetValue(string value)
+        {
+            lastCommittedValue = value;
+            textBox.Text = value;
+        }
+
         /// <summary>Subclass that exposes <see cref="Commit"/> publicly so tests can call it.</summary>
         private partial class CommittableTextBox : BasicTextBox
         {

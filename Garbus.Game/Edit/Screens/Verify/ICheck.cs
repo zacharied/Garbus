@@ -2,11 +2,17 @@
 
 using System.Collections.Generic;
 using Garbus.Game.Charts;
+using Garbus.Game.Charts.Timing;
 
 namespace Garbus.Game.Edit.Screens.Verify
 {
     /// <summary>Everything a check may inspect.</summary>
-    public record CheckContext(GarbusChart Chart, ChartFile ChartFile, double TrackLength);
+    public record CheckContext(
+        GarbusSong Song,
+        GarbusChart Chart,
+        SongFile SongFile,
+        ControlPointInfo ControlPointInfo,
+        double TrackLength);
 
     /// <summary>A single verify-tab check. Stateless — called fresh each Refresh.</summary>
     public interface ICheck

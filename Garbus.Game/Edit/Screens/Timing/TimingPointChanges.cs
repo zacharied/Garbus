@@ -5,6 +5,7 @@
 // Adapted for Garbus: extracted into a shared static helper (osu inlines this in each caller); the
 // adjust-objects flag is a parameter instead of an OsuConfigManager setting.
 
+using System;
 using System.Linq;
 using Garbus.Game.Charts.Timing;
 using osu.Framework.Utils;
@@ -23,6 +24,14 @@ namespace Garbus.Game.Edit.Screens.Timing
         /// </summary>
         public static ControlPointGroup MoveGroup(EditorChart chart, IEditorChangeHandler changeHandler,
                                                   ControlPointGroup group, double newTime, bool adjustObjects)
+            => moveGroup(null, chart, changeHandler, group, newTime, adjustObjects);
+
+        public static ControlPointGroup MoveGroup(EditorSong song, EditorChart chart, IEditorChangeHandler changeHandler,
+                                                  ControlPointGroup group, double newTime, bool adjustObjects)
+            => moveGroup(song, chart, changeHandler, group, newTime, adjustObjects);
+
+        private static ControlPointGroup moveGroup(EditorSong? song, EditorChart chart, IEditorChangeHandler changeHandler,
+                                                   ControlPointGroup group, double newTime, bool adjustObjects)
         {
             var currentItems = group.ControlPoints.ToArray();
 
@@ -30,7 +39,15 @@ namespace Garbus.Game.Edit.Screens.Timing
 
             var tp = currentItems.OfType<TimingControlPoint>().FirstOrDefault();
             if (tp != null && adjustObjects)
+            {
+                var range = TimingSectionAdjustments.TimingRange(chart, tp);
                 TimingSectionAdjustments.AdjustHitObjectOffset(chart, tp, newTime - group.Time);
+                if (song?.Song.UsesSharedTiming == true)
+                {
+                    foreach (var other in song.Song.Charts.Where(c => !ReferenceEquals(c, chart.Chart)))
+                        TimingSectionAdjustments.AdjustHitObjectOffset(other, range.start, range.end, newTime - group.Time);
+                }
+            }
 
             chart.ControlPointInfo.RemoveGroup(group);
 
@@ -49,6 +66,14 @@ namespace Garbus.Game.Edit.Screens.Timing
         /// </summary>
         public static void ChangeBpm(EditorChart chart, IEditorChangeHandler changeHandler,
                                      TimingControlPoint tp, double newBpm, bool adjustObjects)
+            => changeBpm(null, chart, changeHandler, tp, newBpm, adjustObjects);
+
+        public static void ChangeBpm(EditorSong song, EditorChart chart, IEditorChangeHandler changeHandler,
+                                     TimingControlPoint tp, double newBpm, bool adjustObjects)
+            => changeBpm(song, chart, changeHandler, tp, newBpm, adjustObjects);
+
+        private static void changeBpm(EditorSong? song, EditorChart chart, IEditorChangeHandler changeHandler,
+                                      TimingControlPoint tp, double newBpm, bool adjustObjects)
         {
             double oldBeatLength = tp.BeatLength;
             double newBeatLength = 60000.0 / newBpm;
@@ -60,7 +85,15 @@ namespace Garbus.Game.Edit.Screens.Timing
             tp.BeatLength = newBeatLength;
 
             if (adjustObjects)
+            {
+                var range = TimingSectionAdjustments.TimingRange(chart, tp);
                 TimingSectionAdjustments.SetHitObjectBPM(chart, tp, oldBeatLength);
+                if (song?.Song.UsesSharedTiming == true)
+                {
+                    foreach (var other in song.Song.Charts.Where(c => !ReferenceEquals(c, chart.Chart)))
+                        TimingSectionAdjustments.SetHitObjectBPM(other, tp, oldBeatLength, range.start, range.end);
+                }
+            }
 
             chart.SaveState();
             changeHandler.EndChange();

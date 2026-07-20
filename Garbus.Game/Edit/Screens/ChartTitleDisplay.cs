@@ -1,5 +1,5 @@
 // Top-bar label showing "$Title [$ChartName Lv$Level]", where the bracket name falls back to the
-// difficulty when ChartName is unset (ChartMetadata.GetDisplayedChartName). Polls ChartFile/EditorChart each frame
+// difficulty when ChartName is unset (ChartMetadata.GetDisplayedChartName). Polls SongFile/EditorChart each frame
 // (matches ResourcesSection's convention) since FilePath/metadata can change from Setup or a
 // File → Save at any time, with no dedicated change event for either.
 
@@ -17,7 +17,10 @@ namespace Garbus.Game.Edit.Screens
         private EditorChart editorChart { get; set; } = null!;
 
         [Resolved]
-        private ChartFile chartFile { get; set; } = null!;
+        private SongFile songFile { get; set; } = null!;
+
+        [Resolved]
+        private EditorSong editorSong { get; set; } = null!;
 
         private static readonly Color4 normal_colour = Color4.White;
         private static readonly Color4 unsaved_colour = new Color4(140, 140, 140, 255);
@@ -39,9 +42,9 @@ namespace Garbus.Game.Edit.Screens
         {
             base.Update();
 
-            if (chartFile.FilePath == null)
+            if (songFile.FilePath == null)
             {
-                Text = "New Chart";
+                Text = "New Song";
                 Colour = unsaved_colour;
                 return;
             }
@@ -49,7 +52,7 @@ namespace Garbus.Game.Edit.Screens
             var meta = editorChart.Metadata;
             string levelText = meta.Level == 0 ? "??" : meta.Level.ToString();
 
-            Text = $"{meta.Title} [{meta.GetDisplayedChartName()} Lv{levelText}]";
+            Text = $"{editorSong.Song.Metadata.Title} [{meta.GetDisplayedChartName()} Lv{levelText}]";
             Colour = normal_colour;
         }
     }

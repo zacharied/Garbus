@@ -26,7 +26,9 @@ namespace Garbus.Game.Edit.Screens.Timeline
     public partial class TimelineTickDisplay : CompositeDrawable
     {
         [Resolved]
-        private ControlPointInfo controlPointInfo { get; set; } = null!;
+        private EditorChart editorChart { get; set; } = null!;
+
+        private ControlPointInfo controlPointInfo = null!;
 
         [Resolved]
         private BindableBeatDivisor beatDivisor { get; set; } = null!;
@@ -50,7 +52,19 @@ namespace Garbus.Game.Edit.Screens.Timeline
         private void load()
         {
             beatDivisor.BindValueChanged(_ => tickCache.Invalidate());
+            bindControlPointInfo();
+            editorChart.ChartChanged += onChartChanged;
+        }
+
+        private void onChartChanged(Charts.GarbusChart _, Charts.GarbusChart __) => bindControlPointInfo();
+
+        private void bindControlPointInfo()
+        {
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
+            controlPointInfo = editorChart.ControlPointInfo;
             controlPointInfo.ControlPointsChanged += onControlPointsChanged;
+            tickCache.Invalidate();
         }
 
         protected override void Update()
@@ -128,6 +142,8 @@ namespace Garbus.Game.Edit.Screens.Timeline
             base.Dispose(isDisposing);
             if (controlPointInfo != null)
                 controlPointInfo.ControlPointsChanged -= onControlPointsChanged;
+            if (editorChart != null)
+                editorChart.ChartChanged -= onChartChanged;
         }
     }
 }

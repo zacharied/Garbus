@@ -15,7 +15,7 @@ namespace Garbus.Game.Screens.SongSelect
         IEnumerable<ChartCard> Enumerate();
 
         /// <summary>Fully decodes the card's chart and applies defaults, ready for play.</summary>
-        GarbusChart LoadChart(ChartCard card);
+        PlayableChart LoadChart(ChartCard card);
 
         /// <summary>A fresh <see cref="Track"/> for the card's audio. Caller owns/disposes it.</summary>
         Track GetTrack(ChartCard card, AudioManager audio);

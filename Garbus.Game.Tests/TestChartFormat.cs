@@ -47,7 +47,18 @@ namespace Garbus.Game.Tests
             using var stream = store.GetStream(@"test-chart.garbus");
             Assert.That(stream, Is.Not.Null, "bundled test chart missing — run RegenerateBundledTestChart");
 
-            assertChartsEqual(GarbusTestChartGenerator.GenerateChart(), GarbusChartSerializer.Decode(stream));
+            var song = GarbusSongSerializer.Decode(stream).Song;
+            Assert.Multiple(() =>
+            {
+                Assert.That(song.SongId, Is.EqualTo(GarbusTestChartGenerator.TestSongId));
+                Assert.That(song.Charts.Single().ChartId, Is.EqualTo(GarbusTestChartGenerator.TestChartId));
+            });
+            var actual = song.Charts.Single();
+            actual.ControlPointInfo = song.ControlPointInfo;
+            actual.Metadata.Title = song.Metadata.Title;
+            actual.Metadata.Artist = song.Metadata.Artist;
+            actual.Metadata.AudioFile = song.Resources.Track;
+            assertChartsEqual(GarbusTestChartGenerator.GenerateChart(), actual);
         }
 
         /// <summary>
@@ -70,7 +81,8 @@ namespace Garbus.Game.Tests
             Directory.CreateDirectory(chartsDir);
 
             string path = Path.Combine(chartsDir, "test-chart.garbus");
-            File.WriteAllText(path, GarbusChartSerializer.Encode(GarbusTestChartGenerator.GenerateChart()));
+            string json = GarbusSongSerializer.Encode(GarbusTestChartGenerator.GenerateSong()).Replace("\r\n", "\n");
+            File.WriteAllText(path, json);
 
             TestContext.Out.WriteLine($"wrote {path}");
         }

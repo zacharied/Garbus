@@ -44,7 +44,11 @@ namespace Garbus.Game.Edit.Screens
 
         public ChartFile ChartFile { get; }
 
-        public bool HasUnsavedChanges => changeHandler.CurrentStateHash != hashAtLastSave;
+        public SongFile SongFile { get; }
+
+        public EditorSong EditorSong { get; private set; } = null!;
+
+        public bool HasUnsavedChanges => SongFile.NeedsVersionUpgrade || changeHandler.CurrentStateHash != hashAtLastSave;
 
         public EditorChart EditorChart { get; private set; } = null!;
 
@@ -115,6 +119,17 @@ namespace Garbus.Game.Edit.Screens
         public GarbusEditor(ChartFile chartFile)
         {
             ChartFile = chartFile;
+            SongFile = new SongFile(createSongFromLegacyChart(chartFile.Chart), chartFile.FilePath);
+        }
+
+        public GarbusEditor(SongFile songFile)
+        {
+            SongFile = songFile;
+            var chart = songFile.Song.Charts[0];
+            // Temporary adapter for legacy Setup/Verify components while the song-root migration lands.
+            chart.Metadata.AudioFile = songFile.Song.Resources.Track;
+            chart.Metadata.BackgroundFile = songFile.Song.Resources.Background;
+            ChartFile = new ChartFile(chart, songFile.FilePath);
         }
 
         protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
@@ -122,8 +137,9 @@ namespace Garbus.Game.Edit.Screens
             dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
 
             // Build the editor object graph and cache into DI.
-            EditorChart = new EditorChart(ChartFile.Chart);
-            changeHandler = new GarbusChartChangeHandler(EditorChart);
+            EditorSong = new EditorSong(SongFile.Song);
+            EditorChart = new EditorChart(EditorSong.ActiveChart, EditorSong.EffectiveControlPointInfo);
+            changeHandler = new GarbusChartChangeHandler(EditorSong, EditorChart);
 
             beatDivisor = new BindableBeatDivisor(4);
 
@@ -134,7 +150,19 @@ namespace Garbus.Game.Edit.Screens
 
             clipboard = new EditorClipboard(EditorChart, editorClock, EditorChart.ControlPointInfo, beatDivisor);
 
+            EditorSong.ActiveChartChanged += (_, chart) =>
+            {
+                EditorChart.Rebind(chart, EditorSong.EffectiveControlPointInfo);
+                editorClock.ControlPointInfo = EditorSong.EffectiveControlPointInfo;
+            };
+            EditorSong.TimingSourceChanged += () =>
+            {
+                EditorChart.Rebind(EditorSong.ActiveChart, EditorSong.EffectiveControlPointInfo);
+                editorClock.ControlPointInfo = EditorSong.EffectiveControlPointInfo;
+            };
+
             dependencies.Cache(editorClock);
+            dependencies.Cache(EditorSong);
             dependencies.Cache(EditorChart);
             dependencies.Cache(changeHandler);
             dependencies.CacheAs<IEditorChangeHandler>(changeHandler);
@@ -142,13 +170,7 @@ namespace Garbus.Game.Edit.Screens
             dependencies.Cache(clipboard);
             dependencies.CacheAs(this);
             dependencies.CacheAs(ChartFile);
-            // Cache ControlPointInfo directly so timeline components (TimelineTickDisplay,
-            // TimelineTimingChangeDisplay) can resolve it without going through EditorChart.
-            dependencies.CacheAs(EditorChart.ControlPointInfo);
-            // Cache DesignPointInfo directly so the Design tab components and the timeline region
-            // display can resolve it without going through EditorChart.
-            dependencies.CacheAs(EditorChart.DesignPointInfo);
-
+            dependencies.CacheAs(SongFile);
             return dependencies;
         }
 
@@ -235,13 +257,13 @@ namespace Garbus.Game.Edit.Screens
 
         public void Save()
         {
-            if (ChartFile.FilePath == null)
+            if (SongFile.FilePath == null)
             {
                 SaveAs();
                 return;
             }
 
-            ChartFile.Save();
+            SongFile.Save();
             hashAtLastSave = changeHandler.CurrentStateHash;
         }
 
@@ -249,9 +271,9 @@ namespace Garbus.Game.Edit.Screens
         {
             var dialog = new SaveAsDialog(path =>
             {
-                ChartFile.Save(path);
+                SongFile.Save(path);
                 hashAtLastSave = changeHandler.CurrentStateHash;
-            }, defaultFilename: string.IsNullOrEmpty(ChartFile.Chart.Metadata.Title) ? "new-chart" : ChartFile.Chart.Metadata.Title);
+            }, defaultFilename: string.IsNullOrEmpty(SongFile.Song.Metadata.Title) ? "new-song" : SongFile.Song.Metadata.Title);
 
             dialogOverlay.Child = dialog;
             dialog.Show();
@@ -264,11 +286,12 @@ namespace Garbus.Game.Edit.Screens
         private void ReloadTrack(AudioManager? audioManager)
         {
             Track track;
-            var store = ChartFile.GetTrackStore(audioManager ?? dependencies.Get<AudioManager>());
+            var store = SongFile.GetTrackStore(audioManager ?? dependencies.Get<AudioManager>());
+            string trackName = SongFile.Song.Resources.Track;
 
-            if (store != null && !string.IsNullOrEmpty(ChartFile.Chart.Metadata.AudioFile))
+            if (store != null && !string.IsNullOrEmpty(trackName))
             {
-                track = store.Get(ChartFile.Chart.Metadata.AudioFile) ?? new TrackVirtual(60000);
+                track = store.Get(trackName) ?? new TrackVirtual(60000);
             }
             else
             {
@@ -306,17 +329,18 @@ namespace Garbus.Game.Edit.Screens
             {
                 // Production path: obtain a NEW track instance from the chart directory store.
                 // We must NOT share the editor's own track instance with the gameplay clock.
-                var store = ChartFile.GetTrackStore(audioManager);
-                if (store != null && !string.IsNullOrEmpty(ChartFile.Chart.Metadata.AudioFile))
-                    freshTrack = store.Get(ChartFile.Chart.Metadata.AudioFile);
+                var store = SongFile.GetTrackStore(audioManager);
+                string trackName = SongFile.Song.Resources.Track;
+                if (store != null && !string.IsNullOrEmpty(trackName))
+                    freshTrack = store.Get(trackName);
             }
 
             if (freshTrack == null)
                 return; // No track available; button should have been disabled.
 
             // Deep-clone the chart via the serializer (ensures zero shared references).
-            var clonedChart = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(EditorChart.Chart));
-            clonedChart.ApplyDefaults();
+            var clonedSong = GarbusSongSerializer.Decode(GarbusSongSerializer.Encode(SongFile.Song)).Song;
+            var clonedChart = clonedSong.CreatePlayableChart(EditorSong.ActiveChartId);
 
             // Start at the editor's current position, clamped to ≥ 0. The lead-in count-in is applied
             // inside MasterGameplayClockContainer (StartTime = GameplayStartTime − LEAD_IN_TIME), so the
@@ -435,9 +459,7 @@ namespace Garbus.Game.Edit.Screens
             {
                 void doNew()
                 {
-                    var chart = new Charts.GarbusChart();
-                    chart.ControlPointInfo.Add(0, new Charts.Timing.TimingControlPoint { BeatLength = 500 });
-                    this.Push(new GarbusEditor(new Charts.ChartFile(chart)));
+                    this.Push(new GarbusEditor(new Charts.SongFile(Charts.GarbusSong.CreateDefault())));
                 }
 
                 if (HasUnsavedChanges)
@@ -453,12 +475,12 @@ namespace Garbus.Game.Edit.Screens
                     {
                         try
                         {
-                            var chartFile = Charts.ChartFile.Load(path);
-                            this.Push(new GarbusEditor(chartFile));
+                            var songFile = Charts.SongFile.Load(path);
+                            this.Push(new GarbusEditor(songFile));
                         }
                         catch (Exception ex)
                         {
-                            dialogOverlay.Child = new ConfirmDialog($"Failed to open chart:\n{ex.Message}", ("OK", () => { }));
+                            dialogOverlay.Child = new ConfirmDialog($"Failed to open song:\n{ex.Message}", ("OK", () => { }));
                             ((ConfirmDialog)dialogOverlay.Child).Show();
                         }
                     });
@@ -517,7 +539,7 @@ namespace Garbus.Game.Edit.Screens
                 new MenuItem("Set preview point to current time", () =>
                 {
                     EditorChart.BeginChange();
-                    EditorChart.Chart.PreviewTime = editorClock.CurrentTime;
+                    SongFile.Song.PreviewTime = editorClock.CurrentTime;
                     EditorChart.SaveState();
                     EditorChart.EndChange();
                 }),
@@ -733,6 +755,7 @@ namespace Garbus.Game.Edit.Screens
             // a plain DI-cached object (not an AddInternal child).  Dispose here so every editor
             // pushed onto the ScreenStack releases its track store when popped and disposed.
             ChartFile.Dispose();
+            SongFile.Dispose();
         }
 
         // --- Dialog helpers ---
@@ -742,10 +765,10 @@ namespace Garbus.Game.Edit.Screens
             var dialog = ConfirmDialog.SaveDiscardCancel(
                 save: () =>
                 {
-                    if (ChartFile.FilePath != null)
+                    if (SongFile.FilePath != null)
                     {
                         // Has a path — write directly, then continue.
-                        ChartFile.Save();
+                        SongFile.Save();
                         hashAtLastSave = changeHandler.CurrentStateHash;
                         continuation?.Invoke();
                     }
@@ -756,10 +779,10 @@ namespace Garbus.Game.Edit.Screens
                         // Cancelling SaveAs leaves the editor dirty and open.
                         var saveAsDialog = new SaveAsDialog(path =>
                         {
-                            ChartFile.Save(path);
+                            SongFile.Save(path);
                             hashAtLastSave = changeHandler.CurrentStateHash;
                             continuation?.Invoke();
-                        }, defaultFilename: string.IsNullOrEmpty(ChartFile.Chart.Metadata.Title) ? "new-chart" : ChartFile.Chart.Metadata.Title);
+                        }, defaultFilename: string.IsNullOrEmpty(SongFile.Song.Metadata.Title) ? "new-song" : SongFile.Song.Metadata.Title);
 
                         dialogOverlay.Child = saveAsDialog;
                         saveAsDialog.Show();
@@ -770,6 +793,29 @@ namespace Garbus.Game.Edit.Screens
 
             dialogOverlay.Child = dialog;
             dialog.Show();
+        }
+
+        private static GarbusSong createSongFromLegacyChart(GarbusChart chart)
+        {
+            return new GarbusSong
+            {
+                Metadata = new SongMetadata
+                {
+                    Title = chart.Metadata.Title,
+                    Artist = chart.Metadata.Artist,
+                    TitleRomanized = chart.Metadata.RomanisedTitle,
+                    ArtistRomanized = chart.Metadata.RomanisedArtist,
+                    Source = chart.Metadata.Source,
+                },
+                Resources = new SongResources
+                {
+                    Track = chart.Metadata.AudioFile,
+                    Background = chart.Metadata.BackgroundFile,
+                },
+                PreviewTime = chart.PreviewTime,
+                ControlPointInfo = null,
+                Charts = new List<GarbusChart> { chart },
+            };
         }
     }
 }

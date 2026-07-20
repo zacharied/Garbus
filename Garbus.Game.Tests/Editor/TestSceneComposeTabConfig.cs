@@ -101,15 +101,26 @@ namespace Garbus.Game.Tests.Editor
                 Config = parent.Get<GarbusConfigManager>();
 
                 var beatDivisor = new BindableBeatDivisor(4);
-                var editorChart = new EditorChart(chart);
+                var timing = chart.ControlPointInfo!;
+                chart.ControlPointInfo = null;
+                var song = new GarbusSong
+                {
+                    ControlPointInfo = timing,
+                    Charts = { chart },
+                };
+                var songFile = new SongFile(song);
+                var editorSong = new EditorSong(song);
+                var editorChart = new EditorChart(chart, editorSong.EffectiveControlPointInfo);
                 var editorClock = new EditorClock(editorChart.ControlPointInfo, 60000, beatDivisor);
                 editorClock.ChangeSource(new TrackVirtual(60000));
 
+                dependencies.Cache(editorSong);
                 dependencies.Cache(editorChart);
                 dependencies.Cache(editorClock);
                 dependencies.Cache(beatDivisor);
-                dependencies.CacheAs<IEditorChangeHandler>(new GarbusChartChangeHandler(editorChart));
+                dependencies.CacheAs<IEditorChangeHandler>(new GarbusChartChangeHandler(editorSong, editorChart));
                 dependencies.CacheAs(new ChartFile(chart));
+                dependencies.CacheAs(songFile);
                 dependencies.CacheAs(editorChart.ControlPointInfo);
                 dependencies.CacheAs(editorChart.DesignPointInfo);
 

@@ -1,49 +1,49 @@
-// Setup tab: scrollable list of three sections — Metadata, Difficulty, Resources.
-
 using Garbus.Game.Edit.Screens.Setup;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
-using osuTK;
 
-namespace Garbus.Game.Edit.Screens
+namespace Garbus.Game.Edit.Screens;
+
+public partial class SetupTab : EditorTabScreen
 {
-    public partial class SetupTab : EditorTabScreen
+    public SetupTab()
     {
-        private readonly Container overlayContainer;
-        private readonly ResourcesSection resourcesSection;
+        RelativeSizeAxes = Axes.Both;
+        var overlay = new Container { RelativeSizeAxes = Axes.Both, Depth = -10 };
+        var resources = new SongResourcesSection { OverlayContainer = overlay };
+        var timing = new TimingOwnershipSection { OverlayContainer = overlay };
+        var charts = new ChartListSection { OverlayContainer = overlay };
 
-        public SetupTab()
+        InternalChildren = new Drawable[]
         {
-            RelativeSizeAxes = Axes.Both;
-
-            resourcesSection = new ResourcesSection();
-            overlayContainer = new Container { RelativeSizeAxes = Axes.Both, Depth = -10 };
-            resourcesSection.OverlayContainer = overlayContainer;
-
-            // FillFlowContainer children in a vertical flow must use AutoSizeAxes.Y (not RelativeSizeAxes.Y).
-            // The scroll container itself fills the tab area.
-            InternalChildren = new Drawable[]
+            new GridContainer
             {
-                new BasicScrollContainer
+                RelativeSizeAxes = Axes.Both,
+                ColumnDimensions = new[] { new Dimension(), new Dimension() },
+                Content = new[]
                 {
-                    RelativeSizeAxes = Axes.Both,
-                    Child = new FillFlowContainer
+                    new Drawable[]
                     {
-                        RelativeSizeAxes = Axes.X,
-                        AutoSizeAxes = Axes.Y,
-                        Direction = FillDirection.Vertical,
-                        Spacing = new Vector2(0, 16),
-                        Padding = new MarginPadding { Vertical = 16, Horizontal = 8 },
-                        Children = new Drawable[]
-                        {
-                            new MetadataSection(),
-                            new DifficultySection(),
-                            resourcesSection,
-                        },
+                        column(new SongMetadataSection(), resources, timing, charts),
+                        column(new ChartMetadataSection()),
                     },
                 },
-                overlayContainer,
-            };
-        }
+            },
+            overlay,
+        };
     }
+
+    private static Drawable column(params Drawable[] children) => new BasicScrollContainer
+    {
+        RelativeSizeAxes = Axes.Both,
+        Child = new FillFlowContainer
+        {
+            RelativeSizeAxes = Axes.X,
+            AutoSizeAxes = Axes.Y,
+            Direction = FillDirection.Vertical,
+            Padding = new MarginPadding { Vertical = 16, Horizontal = 8 },
+            Spacing = new osuTK.Vector2(0, 10),
+            Children = children,
+        },
+    };
 }

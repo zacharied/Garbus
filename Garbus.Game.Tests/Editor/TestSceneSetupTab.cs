@@ -85,7 +85,7 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + metadata section loaded", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<MetadataSection>().Any());
+                editor.ChildrenOfType<SongMetadataSection>().Any());
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Garbus.Game.Tests.Editor
             {
                 string chartSubDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 System.IO.Directory.CreateDirectory(chartSubDir);
-                editor.ChartFile.Save(Path.Combine(chartSubDir, "test-chart.garbus"));
+                editor.SongFile.Save(Path.Combine(chartSubDir, "test-chart.garbus"));
             });
 
             AddUntilStep("choose buttons enabled after save", () =>
@@ -127,7 +127,7 @@ namespace Garbus.Game.Tests.Editor
             // Set the textbox value and programmatically commit.
             AddStep("set title text and commit", () =>
             {
-                var formRow = editor.ChildrenOfType<MetadataSection>()
+                var formRow = editor.ChildrenOfType<SongMetadataSection>()
                     .First()
                     .ChildrenOfType<FormRow>()
                     .First();
@@ -137,7 +137,7 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddAssert("metadata.Title updated", () =>
-                editor.EditorChart.Metadata.Title == "My Chart Title");
+                editor.EditorSong.Song.Metadata.Title == "My Chart Title");
         }
 
         [Test]
@@ -157,12 +157,12 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + metadata section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<MetadataSection>().Any());
+                editor.ChildrenOfType<SongMetadataSection>().Any());
 
             // Commit the title — one transaction = one undo step.
             AddStep("commit title", () =>
             {
-                var formRow = editor.ChildrenOfType<MetadataSection>()
+                var formRow = editor.ChildrenOfType<SongMetadataSection>()
                     .First()
                     .ChildrenOfType<FormRow>()
                     .First();
@@ -175,13 +175,13 @@ namespace Garbus.Game.Tests.Editor
 
             // Undo — title should revert.
             AddStep("undo", () => changeHandler.Undo());
-            AddAssert("title reverted", () => editor.EditorChart.Metadata.Title == string.Empty);
+            AddAssert("title reverted", () => editor.EditorSong.Song.Metadata.Title == string.Empty);
 
             AddAssert("redo available", () => changeHandler.CanRedo.Value);
 
             // Redo — title comes back.
             AddStep("redo", () => changeHandler.Redo());
-            AddAssert("title restored", () => editor.EditorChart.Metadata.Title == "My Chart Title");
+            AddAssert("title restored", () => editor.EditorSong.Song.Metadata.Title == "My Chart Title");
         }
 
         [Test]
@@ -201,7 +201,7 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + metadata section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<MetadataSection>().Any());
+                editor.ChildrenOfType<SongMetadataSection>().Any());
 
             // Capture initial state hash.
             string initialHash = string.Empty;
@@ -210,7 +210,7 @@ namespace Garbus.Game.Tests.Editor
             // Set the textbox value WITHOUT calling TriggerCommit — no state change should occur.
             AddStep("type without committing", () =>
             {
-                var formRow = editor.ChildrenOfType<MetadataSection>()
+                var formRow = editor.ChildrenOfType<SongMetadataSection>()
                     .First()
                     .ChildrenOfType<FormRow>()
                     .First();
@@ -223,7 +223,7 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("state hash unchanged (no commit)", () => changeHandler.CurrentStateHash == initialHash);
 
             // Metadata should also be unchanged (the raw textbox value change doesn't touch metadata).
-            AddAssert("metadata unchanged", () => editor.EditorChart.Metadata.Title == string.Empty);
+            AddAssert("metadata unchanged", () => editor.EditorSong.Song.Metadata.Title == string.Empty);
         }
 
         // ------------------------------------------------------------------
@@ -247,13 +247,13 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + difficulty section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<DifficultySection>().Any());
+                editor.ChildrenOfType<ChartMetadataSection>().Any());
 
             AddAssert("dropdown reflects default (Novice)", () =>
-                editor.ChildrenOfType<DifficultySection>().First().DifficultyDropdown.Current.Value == Difficulty.Novice);
+                editor.ChildrenOfType<ChartMetadataSection>().First().DifficultyDropdown.Current.Value == Difficulty.Novice);
 
             AddStep("select Expert", () =>
-                editor.ChildrenOfType<DifficultySection>().First().DifficultyDropdown.Current.Value = Difficulty.Expert);
+                editor.ChildrenOfType<ChartMetadataSection>().First().DifficultyDropdown.Current.Value = Difficulty.Expert);
 
             AddAssert("metadata.Difficulty updated", () =>
                 editor.EditorChart.Metadata.Difficulty == Difficulty.Expert);
@@ -283,7 +283,7 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + resources section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<ResourcesSection>().Any());
+                editor.ChildrenOfType<SongResourcesSection>().Any());
 
             AddAssert("audio file chooser row disabled", () =>
             {
@@ -312,14 +312,14 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + resources section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<ResourcesSection>().Any());
+                editor.ChildrenOfType<SongResourcesSection>().Any());
 
             string? chartDir = null;
             string? sourceOggPath = null;
 
             AddStep("prepare source audio file", () =>
             {
-                chartDir = editor.ChartFile.Directory;
+                chartDir = editor.SongFile.Directory;
                 Assert.That(chartDir, Is.Not.Null, "chart must be saved");
 
                 // Use a unique name in the system temp dir (NOT the chart subdirectory).
@@ -336,14 +336,14 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddUntilStep("AudioFile metadata set", () =>
-                !string.IsNullOrEmpty(editor.EditorChart.Metadata.AudioFile));
+                !string.IsNullOrEmpty(editor.EditorSong.Song.Resources.Track));
 
             AddAssert("AudioFile matches picked filename", () =>
-                editor.EditorChart.Metadata.AudioFile == Path.GetFileName(sourceOggPath));
+                editor.EditorSong.Song.Resources.Track == Path.GetFileName(sourceOggPath));
 
             AddAssert("file copied to chart directory", () =>
             {
-                string dest = Path.Combine(chartDir!, editor.EditorChart.Metadata.AudioFile);
+                string dest = Path.Combine(chartDir!, editor.EditorSong.Song.Resources.Track);
                 return File.Exists(dest);
             });
 
@@ -361,14 +361,14 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + resources section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<ResourcesSection>().Any());
+                editor.ChildrenOfType<SongResourcesSection>().Any());
 
             string? chartDir = null;
             string? sourcePngPath = null;
 
             AddStep("prepare source image file", () =>
             {
-                chartDir = editor.ChartFile.Directory;
+                chartDir = editor.SongFile.Directory;
                 sourcePngPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".png");
                 // Minimal PNG magic bytes.
                 File.WriteAllBytes(sourcePngPath, new byte[]
@@ -384,14 +384,14 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddUntilStep("BackgroundFile metadata set", () =>
-                !string.IsNullOrEmpty(editor.EditorChart.Metadata.BackgroundFile));
+                !string.IsNullOrEmpty(editor.EditorSong.Song.Resources.Background));
 
             AddAssert("BackgroundFile matches picked filename", () =>
-                editor.EditorChart.Metadata.BackgroundFile == Path.GetFileName(sourcePngPath));
+                editor.EditorSong.Song.Resources.Background == Path.GetFileName(sourcePngPath));
 
             AddAssert("file copied to chart directory", () =>
             {
-                string dest = Path.Combine(chartDir!, editor.EditorChart.Metadata.BackgroundFile);
+                string dest = Path.Combine(chartDir!, editor.EditorSong.Song.Resources.Background);
                 return File.Exists(dest);
             });
         }
@@ -413,7 +413,7 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("setup tab visible + resources section", () =>
                 editor.ChildrenOfType<SetupTab>().Any() &&
                 editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<ResourcesSection>().Any());
+                editor.ChildrenOfType<SongResourcesSection>().Any());
 
             string? sourcePngPath = null;
             AddStep("create stub png", () =>
@@ -429,13 +429,13 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddUntilStep("BackgroundFile set", () =>
-                !string.IsNullOrEmpty(editor.EditorChart.Metadata.BackgroundFile));
+                !string.IsNullOrEmpty(editor.EditorSong.Song.Resources.Background));
 
             AddAssert("can undo after pick", () => changeHandler.CanUndo.Value);
 
             AddStep("undo", () => changeHandler.Undo());
             AddAssert("BackgroundFile cleared after undo", () =>
-                string.IsNullOrEmpty(editor.EditorChart.Metadata.BackgroundFile));
+                string.IsNullOrEmpty(editor.EditorSong.Song.Resources.Background));
         }
     }
 }

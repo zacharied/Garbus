@@ -3,6 +3,7 @@
 // Since Phase 3 this is the source of truth for the bundled test chart file — regenerate it via the
 // explicit test TestChartFormat.RegenerateBundledTestChart after changing anything here.
 
+using System;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using Garbus.Game.Charts.Timing;
@@ -13,10 +14,14 @@ namespace Garbus.Game.Charts;
 
 public class GarbusTestChartGenerator
 {
+    public static readonly Guid TestSongId = Guid.Parse("9ab9d35b-1a25-4b84-8641-112bf5dcf22d");
+    public static readonly Guid TestChartId = Guid.Parse("5d47f795-5e27-4ddb-bfba-d85c915c2575");
+
     public static GarbusChart GenerateChart()
     {
         var chart = new GarbusChart
         {
+            ChartId = TestChartId,
             Metadata = new ChartMetadata
             {
                 Title = "test track",
@@ -131,5 +136,33 @@ public class GarbusTestChartGenerator
         chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
 
         return chart;
+    }
+
+    public static GarbusSong GenerateSong()
+    {
+        var chart = GenerateChart();
+        var timing = chart.ControlPointInfo;
+        chart.ControlPointInfo = null;
+
+        return new GarbusSong
+        {
+            SongId = TestSongId,
+            Metadata = new SongMetadata
+            {
+                Title = chart.Metadata.Title,
+                Artist = chart.Metadata.Artist,
+                TitleRomanized = chart.Metadata.RomanisedTitle,
+                ArtistRomanized = chart.Metadata.RomanisedArtist,
+                Source = chart.Metadata.Source,
+            },
+            Resources = new SongResources
+            {
+                Track = chart.Metadata.AudioFile,
+                Background = chart.Metadata.BackgroundFile,
+            },
+            PreviewTime = chart.PreviewTime,
+            ControlPointInfo = timing,
+            Charts = { chart },
+        };
     }
 }

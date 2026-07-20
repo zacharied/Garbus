@@ -20,7 +20,9 @@ namespace Garbus.Game.Edit
     public partial class EditorChart : TransactionalCommitComponent
     {
         /// <summary>The source chart this editor operates on.</summary>
-        public readonly GarbusChart Chart;
+        public GarbusChart Chart { get; private set; }
+
+        public event Action<GarbusChart, GarbusChart>? ChartChanged;
 
         /// <summary>Invoked when a <see cref="GarbusHitObject"/> is added.</summary>
         public event Action<GarbusHitObject>? HitObjectAdded;
@@ -37,27 +39,52 @@ namespace Garbus.Game.Edit
         /// <summary>Time-ordered view of all hit objects.</summary>
         public IReadOnlyList<GarbusHitObject> HitObjects => hitObjects;
 
-        public Charts.Timing.ControlPointInfo ControlPointInfo => Chart.ControlPointInfo;
+        public Charts.Timing.ControlPointInfo ControlPointInfo { get; private set; }
         public Charts.Design.DesignPointInfo DesignPointInfo => Chart.DesignPointInfo;
         public ChartMetadata Metadata => Chart.Metadata;
 
         // Direct alias to Chart.HitObjects — no shadow copy. All mutations go to the same list
         // that serialization reads, so Save() sees every edit without any extra bookkeeping.
         // (osu's EditorBeatmap uses the identical pattern: mutableHitObjects => PlayableBeatmap.HitObjects.)
-        private readonly List<GarbusHitObject> hitObjects;
+        private List<GarbusHitObject> hitObjects;
 
         // Pending batch collections, flushed in UpdateState.
         private readonly List<GarbusHitObject> batchPendingInserts = new List<GarbusHitObject>();
         private readonly List<GarbusHitObject> batchPendingDeletes = new List<GarbusHitObject>();
         private readonly HashSet<GarbusHitObject> batchPendingUpdates = new HashSet<GarbusHitObject>();
 
-        public EditorChart(GarbusChart chart)
+        public EditorChart(GarbusChart chart, Charts.Timing.ControlPointInfo? effectiveTiming = null)
         {
             Chart = chart;
+            ControlPointInfo = effectiveTiming ?? chart.ControlPointInfo
+                               ?? throw new ArgumentException("An effective timing source is required.", nameof(effectiveTiming));
 
             // Alias the chart's own list. Ensure it starts time-ordered.
             hitObjects = chart.HitObjects;
             hitObjects.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+        }
+
+        public void Rebind(GarbusChart chart, Charts.Timing.ControlPointInfo effectiveTiming)
+        {
+            if (ReferenceEquals(chart, Chart) && ReferenceEquals(effectiveTiming, ControlPointInfo))
+                return;
+
+            var previous = Chart;
+            foreach (var hitObject in hitObjects.ToArray())
+                HitObjectRemoved?.Invoke(hitObject);
+            SelectedHitObjects.Clear();
+
+            Chart = chart;
+            ControlPointInfo = effectiveTiming;
+            hitObjects = chart.HitObjects;
+            hitObjects.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+
+            foreach (var hitObject in hitObjects)
+            {
+                hitObject.ApplyDefaults();
+                HitObjectAdded?.Invoke(hitObject);
+            }
+            ChartChanged?.Invoke(previous, chart);
         }
 
         /// <summary>

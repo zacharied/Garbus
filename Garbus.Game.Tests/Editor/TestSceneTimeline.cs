@@ -274,21 +274,20 @@ namespace Garbus.Game.Tests.Editor
                 Config = parent.Get<GarbusConfigManager>();
 
                 var beatDivisor = new BindableBeatDivisor(4);
-                EditorChart = new EditorChart(chart);
+                var song = new GarbusSong { ControlPointInfo = null, Charts = { chart } };
+                var editorSong = new EditorSong(song);
+                EditorChart = new EditorChart(chart, editorSong.EffectiveControlPointInfo);
                 EditorClock = new EditorClock(EditorChart.ControlPointInfo, 60000, beatDivisor);
                 EditorClock.ChangeSource(new TrackVirtual(60000));
 
-                var chartFile = new ChartFile(chart);
+                var songFile = new SongFile(song);
 
+                dependencies.Cache(editorSong);
                 dependencies.Cache(EditorChart);
                 dependencies.Cache(EditorClock);
                 dependencies.Cache(beatDivisor);
                 dependencies.CacheAs<IEditorChangeHandler>(new GarbusChartChangeHandler(EditorChart));
-                dependencies.CacheAs(chartFile);
-                // Cache ControlPointInfo directly so child timeline components can resolve it.
-                dependencies.CacheAs(EditorChart.ControlPointInfo);
-                // Cache DesignPointInfo so the TimelineDesignRegionDisplay layer can resolve it.
-                dependencies.CacheAs(EditorChart.DesignPointInfo);
+                dependencies.CacheAs(songFile);
 
                 return dependencies;
             }

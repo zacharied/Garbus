@@ -29,6 +29,9 @@ namespace Garbus.Game.Edit.Screens.Timing
         private EditorChart editorChart { get; set; } = null!;
 
         [Resolved]
+        private EditorSong editorSong { get; set; } = null!;
+
+        [Resolved]
         private IEditorChangeHandler changeHandler { get; set; } = null!;
 
         /// <summary>Bind to the list's SelectedGroup.</summary>
@@ -188,7 +191,7 @@ namespace Garbus.Game.Edit.Screens.Timing
             double newTime = SelectedGroup.Value.Time + amount;
 
             SelectedGroup.Value = TimingPointChanges.MoveGroup(
-                editorChart, changeHandler, SelectedGroup.Value, newTime, AdjustObjectsOnTimingChange.Value);
+                editorSong, editorChart, changeHandler, SelectedGroup.Value, newTime, AdjustObjectsOnTimingChange.Value);
 
             if (!editorClock.IsRunning)
                 editorClock.Seek(newTime);
@@ -199,7 +202,7 @@ namespace Garbus.Game.Edit.Screens.Timing
             var tp = SelectedGroup.Value?.ControlPoints.OfType<TimingControlPoint>().FirstOrDefault();
             if (tp == null) return;
 
-            TimingPointChanges.ChangeBpm(editorChart, changeHandler, tp, tp.BPM + amount, AdjustObjectsOnTimingChange.Value);
+            TimingPointChanges.ChangeBpm(editorSong, editorChart, changeHandler, tp, tp.BPM + amount, AdjustObjectsOnTimingChange.Value);
         }
 
         private partial class PlaybackButton : osu.Framework.Graphics.UserInterface.BasicButton

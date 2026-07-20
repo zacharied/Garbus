@@ -131,5 +131,49 @@ namespace Garbus.Game.Tests.Editor
             Assert.That(chart.Chart.HitObjects, Is.EqualTo(chart.HitObjects),
                 "Chart.HitObjects must stay in sync with editorChart.HitObjects after redo");
         }
+
+        [Test]
+        public void TestWholeSongMetadataUndoRedo()
+        {
+            var song = GarbusSong.CreateDefault();
+            var editorSong = new EditorSong(song);
+            var editorChart = new EditorChart(editorSong.ActiveChart, editorSong.EffectiveControlPointInfo);
+            var songHandler = new GarbusChartChangeHandler(editorSong, editorChart);
+
+            songHandler.BeginChange();
+            song.Metadata.Title = "Changed";
+            editorSong.SaveState();
+            songHandler.EndChange();
+
+            songHandler.Undo();
+            Assert.That(song.Metadata.Title, Is.Empty);
+            songHandler.Redo();
+            Assert.That(song.Metadata.Title, Is.EqualTo("Changed"));
+        }
+
+        [Test]
+        public void TestWholeSongChartAddAndTimingOwnershipUndo()
+        {
+            var song = GarbusSong.CreateDefault();
+            var editorSong = new EditorSong(song);
+            var editorChart = new EditorChart(editorSong.ActiveChart, editorSong.EffectiveControlPointInfo);
+            var songHandler = new GarbusChartChangeHandler(editorSong, editorChart);
+
+            editorSong.AddChart();
+            Assert.That(song.Charts, Has.Count.EqualTo(2));
+            songHandler.Undo();
+            Assert.That(song.Charts, Has.Count.EqualTo(1));
+            songHandler.Redo();
+            Assert.That(song.Charts, Has.Count.EqualTo(2));
+
+            editorSong.UsePerChartTiming();
+            Assert.That(song.ControlPointInfo, Is.Null);
+            songHandler.Undo();
+            Assert.Multiple(() =>
+            {
+                Assert.That(song.ControlPointInfo, Is.Not.Null);
+                Assert.That(song.Charts.All(c => c.ControlPointInfo == null), Is.True);
+            });
+        }
     }
 }

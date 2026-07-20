@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Logging;
 
 namespace Garbus.Game.Screens.SongSelect
 {
@@ -20,14 +21,24 @@ namespace Garbus.Game.Screens.SongSelect
                    .ToList();
 
         /// <summary>Cards grouped by folder into songs, groups sorted by title (grouped view order).</summary>
-        public IReadOnlyList<SongGroup> Scan() =>
-            sources.SelectMany(s => s.Enumerate())
-                   .GroupBy(c => c.GroupKey)
-                   .Select(g => new SongGroup(
-                       g.First().Title,
-                       g.First().Artist,
-                       g.OrderBy(c => c.Level).ToList()))
-                   .OrderBy(sg => sg.Title, StringComparer.OrdinalIgnoreCase)
-                   .ToList();
+        public IReadOnlyList<SongGroup> Scan()
+        {
+            var groups = sources.SelectMany(s => s.Enumerate())
+                                .GroupBy(c => (c.Source, c.SongLocator))
+                                .Select(g => new SongGroup(
+                                    g.First().Title,
+                                    g.First().Artist,
+                                    g.OrderBy(c => c.Level).ToList(),
+                                    g.First().SongId,
+                                    g.First().SongLocator))
+                                .OrderBy(sg => sg.Title, StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+
+            foreach (var duplicate in groups.GroupBy(g => g.SongId).Where(g => g.Key != Guid.Empty && g.Count() > 1))
+                Logger.Log($"Duplicate song ID {duplicate.Key} found at: {string.Join(", ", duplicate.Select(g => g.SongLocator))}",
+                    level: LogLevel.Important);
+
+            return groups;
+        }
     }
 }

@@ -19,10 +19,10 @@ namespace Garbus.Game.Tests.Editor
         // -------------------------------------------------------------------------
 
         /// <summary>
-        /// Returns a ChartFile whose Directory resolves to an existing temp directory.
+        /// Returns a SongFile whose Directory resolves to an existing temp directory.
         /// The directory is created fresh for each call; the caller owns cleanup.
         /// </summary>
-        private static (ChartFile chartFile, string dir) MakeSavedChartFile(GarbusChart chart)
+        private static (SongFile songFile, string dir) MakeSavedChartFile(GarbusChart chart)
         {
             string dir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             System.IO.Directory.CreateDirectory(dir);
@@ -31,14 +31,20 @@ namespace Garbus.Game.Tests.Editor
             string filePath = Path.Combine(dir, "test.garbus");
             File.WriteAllText(filePath, "{}");
 
-            return (new ChartFile(chart, filePath), dir);
+            return (new SongFile(makeSong(chart), filePath), dir);
         }
 
-        /// <summary>Unsaved ChartFile — Directory is null.</summary>
-        private static ChartFile MakeUnsavedChartFile(GarbusChart chart) => new ChartFile(chart);
+        /// <summary>Unsaved SongFile — Directory is null.</summary>
+        private static SongFile MakeUnsavedChartFile(GarbusChart chart) => new SongFile(makeSong(chart));
 
-        private static CheckContext MakeContext(GarbusChart chart, ChartFile chartFile, double trackLength = 120000)
-            => new CheckContext(chart, chartFile, trackLength);
+        private static GarbusSong makeSong(GarbusChart chart) => new GarbusSong
+        {
+            ControlPointInfo = null,
+            Charts = { chart },
+        };
+
+        private static CheckContext MakeContext(GarbusChart chart, SongFile songFile, double trackLength = 120000)
+            => new CheckContext(songFile.Song, chart, songFile, songFile.Song.GetEffectiveControlPointInfo(chart), trackLength);
 
         // -------------------------------------------------------------------------
         // CheckAudioPresent
@@ -48,8 +54,9 @@ namespace Garbus.Game.Tests.Editor
         public void CheckAudioPresent_EmptyField_ReturnsOneIssue()
         {
             var chart = new GarbusChart();
-            chart.Metadata.AudioFile = string.Empty;
-            var ctx = MakeContext(chart, MakeUnsavedChartFile(chart));
+            var songFile = MakeUnsavedChartFile(chart);
+            songFile.Song.Resources.Track = string.Empty;
+            var ctx = MakeContext(chart, songFile);
 
             var issues = new CheckAudioPresent().Run(ctx).ToList();
 
@@ -69,7 +76,7 @@ namespace Garbus.Game.Tests.Editor
                 // Create the audio file in the chart directory.
                 string audioName = "song.ogg";
                 File.WriteAllText(Path.Combine(dir, audioName), "fake-audio");
-                chart.Metadata.AudioFile = audioName;
+                chartFile.Song.Resources.Track = audioName;
 
                 var ctx = MakeContext(chart, chartFile);
                 var issues = new CheckAudioPresent().Run(ctx).ToList();
@@ -90,7 +97,7 @@ namespace Garbus.Game.Tests.Editor
 
             try
             {
-                chart.Metadata.AudioFile = "missing.ogg";
+                chartFile.Song.Resources.Track = "missing.ogg";
 
                 var ctx = MakeContext(chart, chartFile);
                 var issues = new CheckAudioPresent().Run(ctx).ToList();
@@ -113,8 +120,9 @@ namespace Garbus.Game.Tests.Editor
         public void CheckAudioPresent_UnsavedChartNonEmptyField_ReturnsNoIssues()
         {
             var chart = new GarbusChart();
-            chart.Metadata.AudioFile = "song.ogg"; // field set, but chart not saved
-            var ctx = MakeContext(chart, MakeUnsavedChartFile(chart));
+            var songFile = MakeUnsavedChartFile(chart);
+            songFile.Song.Resources.Track = "song.ogg"; // field set, but song not saved
+            var ctx = MakeContext(chart, songFile);
 
             var issues = new CheckAudioPresent().Run(ctx).ToList();
 
@@ -129,8 +137,9 @@ namespace Garbus.Game.Tests.Editor
         public void CheckBackgroundPresent_EmptyField_ReturnsOneIssue()
         {
             var chart = new GarbusChart();
-            chart.Metadata.BackgroundFile = string.Empty;
-            var ctx = MakeContext(chart, MakeUnsavedChartFile(chart));
+            var songFile = MakeUnsavedChartFile(chart);
+            songFile.Song.Resources.Background = string.Empty;
+            var ctx = MakeContext(chart, songFile);
 
             var issues = new CheckBackgroundPresent().Run(ctx).ToList();
 
@@ -149,7 +158,7 @@ namespace Garbus.Game.Tests.Editor
             {
                 string bgName = "background.png";
                 File.WriteAllText(Path.Combine(dir, bgName), "fake-image");
-                chart.Metadata.BackgroundFile = bgName;
+                chartFile.Song.Resources.Background = bgName;
 
                 var ctx = MakeContext(chart, chartFile);
                 var issues = new CheckBackgroundPresent().Run(ctx).ToList();
@@ -170,7 +179,7 @@ namespace Garbus.Game.Tests.Editor
 
             try
             {
-                chart.Metadata.BackgroundFile = "missing.png";
+                chartFile.Song.Resources.Background = "missing.png";
 
                 var ctx = MakeContext(chart, chartFile);
                 var issues = new CheckBackgroundPresent().Run(ctx).ToList();
@@ -189,8 +198,9 @@ namespace Garbus.Game.Tests.Editor
         public void CheckBackgroundPresent_UnsavedChartNonEmptyField_ReturnsNoIssues()
         {
             var chart = new GarbusChart();
-            chart.Metadata.BackgroundFile = "bg.png";
-            var ctx = MakeContext(chart, MakeUnsavedChartFile(chart));
+            var songFile = MakeUnsavedChartFile(chart);
+            songFile.Song.Resources.Background = "bg.png";
+            var ctx = MakeContext(chart, songFile);
 
             var issues = new CheckBackgroundPresent().Run(ctx).ToList();
 

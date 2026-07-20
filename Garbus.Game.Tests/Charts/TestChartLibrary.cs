@@ -26,13 +26,17 @@ namespace Garbus.Game.Tests.Charts
             private readonly IEnumerable<ChartCard> cards;
             public StubSource(params ChartCard[] cards) => this.cards = cards;
             public IEnumerable<ChartCard> Enumerate() => cards;
-            public GarbusChart LoadChart(ChartCard card) => new GarbusChart();
+            public PlayableChart LoadChart(ChartCard card)
+            {
+                var song = GarbusSong.CreateDefault();
+                return song.CreatePlayableChart(song.Charts[0].ChartId);
+            }
             public Track GetTrack(ChartCard card, AudioManager audio) => null!;
             public Texture? GetBackground(ChartCard card) => null;
         }
 
         private ChartCard card(string group, string title, string artist, int level)
-            => new ChartCard { Source = null!, Locator = $"{group}/{title}", GroupKey = group, Title = title, Artist = artist, Level = level };
+            => new ChartCard { Source = null!, Locator = $"{group}/{title}", SongLocator = group, GroupKey = group, Title = title, Artist = artist, Level = level };
 
         [Test]
         public void TestGroupsByGroupKey()
@@ -82,12 +86,18 @@ namespace Garbus.Game.Tests.Charts
         }
 
         // Writes a chart's JSON into <root>/Charts/<name> so a ChartStore over <root> can find it.
-        private static void writeResourceChart(string root, string name, string title, int level)
+        private static void writeResourceSong(string root, string name, string title, params int[] levels)
         {
-            var chart = new GarbusChart { Metadata = { Title = title, Artist = "A", Level = level, AudioFile = "song.ogg" } };
+            var song = GarbusSong.CreateDefault();
+            song.Metadata.Title = title;
+            song.Metadata.Artist = "A";
+            song.Resources.Track = "song.ogg";
+            song.Charts.Clear();
+            foreach (int level in levels)
+                song.Charts.Add(new GarbusChart { ControlPointInfo = null, Metadata = new ChartMetadata { Level = level } });
             string full = Path.Combine(root, "Charts", name);
             Directory.CreateDirectory(Path.GetDirectoryName(full)!);
-            File.WriteAllText(full, GarbusChartSerializer.Encode(chart));
+            File.WriteAllText(full, GarbusSongSerializer.Encode(song));
         }
 
         // osu-framework's StorageBackedResourceStore.GetAvailableResources() is
@@ -123,11 +133,10 @@ namespace Garbus.Game.Tests.Charts
             string root = Directory.CreateTempSubdirectory("garbus-res-").FullName;
             try
             {
-                writeResourceChart(root, "flat.garbus", "Flat Song", 3);
-                writeResourceChart(root, "set/easy.garbus", "Set Song", 2);
-                writeResourceChart(root, "set/hard.garbus", "Set Song", 8);
+                writeResourceSong(root, "flat.garbus", "Flat Song", 3);
+                writeResourceSong(root, "set/song.garbus", "Set Song", 2, 8);
 
-                var store = new ChartStore(new RecursiveDirectoryResourceStore(root));
+                var store = new SongStore(new RecursiveDirectoryResourceStore(root));
                 var source = new ResourceChartSource(store, null!);
 
                 var cards = source.Enumerate().ToList();
@@ -147,11 +156,17 @@ namespace Garbus.Game.Tests.Charts
             }
         }
 
-        private static void writeDiskChart(string dir, string file, string title, int level)
+        private static void writeDiskSong(string dir, string file, string title, params int[] levels)
         {
             Directory.CreateDirectory(dir);
-            var chart = new GarbusChart { Metadata = { Title = title, Artist = "A", Level = level, AudioFile = "song.ogg" } };
-            File.WriteAllText(Path.Combine(dir, file), GarbusChartSerializer.Encode(chart));
+            var song = GarbusSong.CreateDefault();
+            song.Metadata.Title = title;
+            song.Metadata.Artist = "A";
+            song.Resources.Track = "song.ogg";
+            song.Charts.Clear();
+            foreach (int level in levels)
+                song.Charts.Add(new GarbusChart { ControlPointInfo = null, Metadata = new ChartMetadata { Level = level } });
+            File.WriteAllText(Path.Combine(dir, file), GarbusSongSerializer.Encode(song));
         }
 
         [Test]
@@ -160,9 +175,8 @@ namespace Garbus.Game.Tests.Charts
             string root = Directory.CreateTempSubdirectory("garbus-dir-").FullName;
             try
             {
-                writeDiskChart(Path.Combine(root, "song-a"), "easy.garbus", "Song A", 2);
-                writeDiskChart(Path.Combine(root, "song-a"), "hard.garbus", "Song A", 7);
-                writeDiskChart(Path.Combine(root, "song-b"), "normal.garbus", "Song B", 4);
+                writeDiskSong(Path.Combine(root, "song-a"), "song.garbus", "Song A", 2, 7);
+                writeDiskSong(Path.Combine(root, "song-b"), "song.garbus", "Song B", 4);
 
                 using var source = new DirectoryChartSource(root);
                 var groups = new ChartLibrary(source).Scan();
@@ -193,8 +207,13 @@ namespace Garbus.Game.Tests.Charts
             try
             {
                 Directory.CreateDirectory(Path.Combine(root, "song-bg"));
-                var chart = new GarbusChart { Metadata = { Title = "BG Song", Artist = "A", Level = 3, AudioFile = "song.ogg", BackgroundFile = "bg.jpg" } };
-                File.WriteAllText(Path.Combine(root, "song-bg", "chart.garbus"), GarbusChartSerializer.Encode(chart));
+                var song = GarbusSong.CreateDefault();
+                song.Metadata.Title = "BG Song";
+                song.Metadata.Artist = "A";
+                song.Resources.Track = "song.ogg";
+                song.Resources.Background = "bg.jpg";
+                song.Charts[0].Metadata.Level = 3;
+                File.WriteAllText(Path.Combine(root, "song-bg", "chart.garbus"), GarbusSongSerializer.Encode(song));
 
                 using var source = new DirectoryChartSource(root);
                 var card = source.Enumerate().Single();
