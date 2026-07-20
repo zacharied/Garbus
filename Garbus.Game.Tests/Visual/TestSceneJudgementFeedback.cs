@@ -153,8 +153,7 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
         AddAssert("slider child perfect rejected", () =>
         {
             var parent = createSliderBody();
-            var hitObject = new SliderChild(parent, parent.Path.ControlPoints.Single()) { StartTime = parent.EndTime };
-            hitObject.ApplyDefaults();
+            var hitObject = parent.NestedHitObjects.OfType<SliderChild>().Single();
             var result = new JudgementResult(hitObject, hitObject.Judgement) { Type = HitResult.Perfect };
             return !display.Show(new DrawableSliderChild(hitObject), result);
         });
@@ -189,7 +188,8 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
                 },
             };
 
-            return !new DrawableSliderChild(new SliderChild(parent, controlPoint)).DisplayTimingOffset;
+            parent.ApplyDefaults();
+            return !new DrawableSliderChild(parent.NestedHitObjects.OfType<SliderChild>().Single()).DisplayTimingOffset;
         });
     }
 
