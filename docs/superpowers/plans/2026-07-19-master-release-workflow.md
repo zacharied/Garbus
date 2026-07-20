@@ -184,10 +184,19 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null; then
             git fetch --force --no-tags origin "refs/tags/${tag}:refs/tags/${tag}"
             published_sha="$(git rev-parse "${tag}^{commit}")"
-            if [[ "${GITHUB_SHA}" != "${published_sha}" ]] && git merge-base --is-ancestor "${GITHUB_SHA}" "${published_sha}"; then
-              printf 'Skipping publication: %s is older than already published %s.\n' \
-                "${GITHUB_SHA}" "${published_sha}"
-              exit 0
+            if [[ "${GITHUB_SHA}" != "${published_sha}" ]]; then
+              if git merge-base --is-ancestor "${GITHUB_SHA}" "${published_sha}"; then
+                printf 'Skipping publication: %s is older than already published %s.\n' \
+                  "${GITHUB_SHA}" "${published_sha}"
+                exit 0
+              else
+                merge_base_status=$?
+                if [[ "${merge_base_status}" -ne 1 ]]; then
+                  printf 'Failed to compare candidate %s with published %s: git merge-base --is-ancestor exited with status %s.\n' \
+                    "${GITHUB_SHA}" "${published_sha}" "${merge_base_status}" >&2
+                  exit "${merge_base_status}"
+                fi
+              fi
             fi
           else
             ls_remote_status=$?
@@ -248,7 +257,7 @@ Expected: exit status 0 with no output.
 Run:
 
 ```bash
-grep -nE 'pull_request:|contents: read|contents: write|github.event_name|refs/heads/master|latest-master|ls-remote --exit-code|ls_remote_status|fetch --force --no-tags|merge-base --is-ancestor' .github/workflows/release-master.yml
+grep -nE 'pull_request:|contents: read|contents: write|github.event_name|refs/heads/master|latest-master|ls-remote --exit-code|ls_remote_status|fetch --force --no-tags|merge-base --is-ancestor|merge_base_status' .github/workflows/release-master.yml
 ```
 
 Expected: the package job is read-only, the release job alone is write-enabled, and the release job is
@@ -256,8 +265,11 @@ guarded to a push on `master`. The remote-tag probe discards only stdout so Git'
 status 0 force-fetches the existing tag and applies the ancestry guard, status 2 alone treats the tag as
 absent, and every other nonzero status prints a clear error and exits before tag mutation. Shell-level
 regression checks cover all three probe outcomes and prove the operational-error path cannot force-push.
-The ancestry cases continue to show that a distinct older candidate is skipped while equal reruns and
-candidates that are descendants or on incomparable history continue to publication.
+The ancestry check runs only when the candidate and published SHAs differ and preserves Git's stderr:
+status 0 means the candidate is older and publication skips successfully, status 1 means it is not an
+ancestor and publication may continue, and every other status prints a clear error and exits before
+`git tag --force` or `git push --force`. The focused shell harness covers that operational-error path
+without mutation while retaining older, equal, newer, and incomparable ancestry coverage.
 
 - [ ] **Step 5: Commit the workflow and plan**
 
