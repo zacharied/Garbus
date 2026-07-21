@@ -33,6 +33,12 @@ namespace Garbus.Game.Tests.Editor
     [TestFixture]
     public partial class TestSceneComposePlacement : GarbusTestScene
     {
+        private const Key slider_tool_key = Key.Number4;
+        private const Key shoulder_tool_key = Key.Number5;
+        private const Key shoulder_hold_tool_key = Key.Number6;
+        private const Key slam_centered_tool_key = Key.Number7;
+        private const Key slam_edge_tool_key = Key.Number8;
+
         private ComposePlacementHarness harness = null!;
         private EditorChart editorChart = null!;
 
@@ -51,7 +57,11 @@ namespace Garbus.Game.Tests.Editor
             Child = harness = new ComposePlacementHarness(editorChart) { RelativeSizeAxes = Axes.Both };
         });
 
-        private void waitForComposer() => AddUntilStep("wait for composer", () => harness.Composer?.IsLoaded == true);
+        private void waitForComposer()
+        {
+            AddUntilStep("wait for composer", () => harness.Composer?.IsLoaded == true);
+            AddStep("park cursor on playfield", () => input.MoveMouseTo(positionAtAngle(270)));
+        }
 
         /// <summary>Screen position of an absolute angle on the grid (origin-independent via the mapping).</summary>
         private Vector2 positionAtAngle(float angleDeg, float yFrac = 0.5f)
@@ -77,12 +87,22 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
 
-            for (int tool = 2; tool <= 7; tool++)
+            Key[] spritePreviewTools =
             {
-                int selectedTool = tool;
-                AddStep($"select placement tool {selectedTool}", () => input.Key((Key)((int)Key.Number1 + selectedTool - 1)));
-                AddStep($"move over playfield for tool {selectedTool}", () => input.MoveMouseTo(positionAtAngle(270)));
-                AddUntilStep($"tool {selectedTool} has sprite preview", () => placementSprite() != null);
+                Key.Number2,
+                Key.Number3,
+                shoulder_tool_key,
+                shoulder_hold_tool_key,
+                slam_centered_tool_key,
+                slam_edge_tool_key,
+            };
+
+            foreach (Key toolKey in spritePreviewTools)
+            {
+                Key selectedToolKey = toolKey;
+                AddStep($"select placement tool {selectedToolKey}", () => input.Key(selectedToolKey));
+                AddStep($"move over playfield for tool {selectedToolKey}", () => input.MoveMouseTo(positionAtAngle(270)));
+                AddUntilStep($"tool {selectedToolKey} has sprite preview", () => placementSprite() != null);
             }
         }
 
@@ -90,7 +110,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestSlamPlacementPreviewReflectsSideAndDirection()
         {
             waitForComposer();
-            AddStep("select edge slam tool", () => input.Key(Key.Number7));
+            AddStep("select edge slam tool", () => input.Key(slam_edge_tool_key));
             AddStep("hold alt and shift", () =>
             {
                 input.PressKey(Key.LAlt);
@@ -151,7 +171,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceShoulderNotePicksNearerSide()
         {
             waitForComposer();
-            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("select shoulder tool", () => input.Key(shoulder_tool_key));
             // Left strip is the West lane (180°); Right strip the East lane (0°).
             AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(180)));
             AddStep("click", () => input.Click(MouseButton.Left));
@@ -162,14 +182,14 @@ namespace Garbus.Game.Tests.Editor
         public void TestShoulderStripsSitOnWestEastLanes()
         {
             waitForComposer();
-            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("select shoulder tool", () => input.Key(shoulder_tool_key));
             AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(180)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("left shoulder placed", () => placedObject<ShoulderNote>()?.Side == HorizontalDirection.Left);
             AddAssert("left shoulder drawn on West lane", () =>
                 System.Math.Abs(shoulderDrawableXFraction(HorizontalDirection.Left) - EditorAngleMapping.ToX(180)) < 0.005f);
 
-            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("select shoulder tool", () => input.Key(shoulder_tool_key));
             AddStep("move near right strip", () => input.MoveMouseTo(positionAtAngle(0)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("right shoulder placed", () => placedObject<ShoulderNote>(1)?.Side == HorizontalDirection.Right);
@@ -181,7 +201,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestShoulderStripsInvariantUnderReverseAngleView()
         {
             waitForComposer();
-            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("select shoulder tool", () => input.Key(shoulder_tool_key));
             AddStep("move near left strip", () => input.MoveMouseTo(positionAtAngle(180)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("left shoulder placed", () => placedObject<ShoulderNote>()?.Side == HorizontalDirection.Left);
@@ -203,7 +223,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceShoulderHoldWithDrag()
         {
             waitForComposer();
-            AddStep("select shoulder hold tool", () => input.Key(Key.Number5));
+            AddStep("select shoulder hold tool", () => input.Key(shoulder_hold_tool_key));
             AddStep("move near right strip", () => input.MoveMouseTo(positionAtAngle(0, 0.6f)));
             AddStep("press", () => input.PressButton(MouseButton.Left));
             AddStep("drag upward", () => input.MoveMouseTo(positionAtAngle(0, 0.3f)));
@@ -216,12 +236,12 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceSlams()
         {
             waitForComposer();
-            AddStep("select center slam tool", () => input.Key(Key.Number6));
+            AddStep("select center slam tool", () => input.Key(slam_centered_tool_key));
             AddStep("move to playfield", () => input.MoveMouseTo(positionAtAngle(270)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("center slam placed at 270", () => placedObject<GarbusSlamCentered>()?.AngleDeg, () => Is.EqualTo(270));
 
-            AddStep("select edge slam tool", () => input.Key(Key.Number7));
+            AddStep("select edge slam tool", () => input.Key(slam_edge_tool_key));
             AddStep("move to playfield", () => input.MoveMouseTo(positionAtAngle(315, 0.4f)));
             AddStep("click", () => input.Click(MouseButton.Left));
             AddAssert("edge slam placed at 315", () => placedObject<GarbusSlamEdge>()?.AngleDeg, () => Is.EqualTo(315));
@@ -231,7 +251,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceSliderMultiClick()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             AddStep("move to first node", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
@@ -254,7 +274,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestSliderWaitingPreviewReflectsGestureAndSide()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move over playfield", () => input.MoveMouseTo(positionAtAngle(270)));
             AddUntilStep("slider preview loaded", () => sliderWaitingPreview()?.IsLoaded == true);
             AddAssert("normal gesture shows fading line", () =>
@@ -291,7 +311,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestSliderNodeAtEarlierTimeRejected()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             // body at a LATER time (low on screen, downward scrolling = later).
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.4f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
@@ -308,7 +328,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceSliderWithHorizontalSegment()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             AddStep("move to node 1", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
@@ -331,7 +351,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceSliderRejectsThreeNodesAtSameTime()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             AddStep("move to node 1", () => input.MoveMouseTo(positionAtAngle(315, 0.5f)));
@@ -351,7 +371,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceSliderWithLeadingArcCommits()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             // node 1 at the head's time (offset 0) — a leading horizontal arc.
@@ -373,7 +393,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlaceSliderZeroDurationCommits()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             // the only node sits at the head's time (offset 0): a zero-duration constant-radius arc.
@@ -391,7 +411,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestCtrlClickPlacesHeadOnlySlider()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("ctrl+left-click", () =>
             {
@@ -411,7 +431,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestPlainRightClickDoesNotPlaceHeadOnly()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("plain left-click (start)", () => input.Click(MouseButton.Left));
             AddStep("right-click with no nodes", () => input.Click(MouseButton.Right));
@@ -423,7 +443,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestToolSwitchDoesNotCommitHeadOnly()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("plain left-click (start)", () => input.Click(MouseButton.Left));
             AddStep("switch to select tool (auto-commit path)", () => input.Key(Key.Number1));

@@ -39,6 +39,11 @@ namespace Garbus.Game.Tests.Editor
     [TestFixture]
     public partial class TestSceneComposeSelection : GarbusTestScene
     {
+        private const Key slider_tool_key = Key.Number4;
+        private const Key shoulder_tool_key = Key.Number5;
+        private const Key slam_centered_tool_key = Key.Number7;
+        private const Key slam_edge_tool_key = Key.Number8;
+
         private ComposeSelectionHarness harness = null!;
         private EditorChart editorChart = null!;
         private GarbusChartChangeHandler changeHandler = null!;
@@ -786,7 +791,7 @@ namespace Garbus.Game.Tests.Editor
 
         private void placeDiagonalSlider()
         {
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             // head at South (270°, early), one node at East (0°, later).
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
@@ -801,7 +806,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>Places a zero-duration slider: head and one node at the SAME time (yFrac), different angle.</summary>
         private void placeZeroDurationSlider()
         {
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             // node at the SAME yFrac → same snapped time (offset 0), different angle → a horizontal arc.
@@ -832,7 +837,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>Places a head-only slider (zero control points) via Ctrl+left-click, then selects the select tool.</summary>
         private void placeHeadOnlySlider()
         {
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("ctrl+left-click to place head-only", () =>
             {
@@ -930,7 +935,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>Places a slam-edge (instant placement) at an angle and returns to the select tool.</summary>
         private void placeSlamEdgeAt(float angleDeg)
         {
-            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("select slam-edge tool", () => input.Key(slam_edge_tool_key));
             AddStep("place slam edge", () =>
             {
                 input.MoveMouseTo(positionAtAngle(angleDeg, 0.5f));
@@ -944,7 +949,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>Places a centered slam (instant placement) at an angle and returns to the select tool.</summary>
         private void placeSlamCenteredAt(float angleDeg)
         {
-            AddStep("select slam-centered tool", () => input.Key(Key.Number6));
+            AddStep("select slam-centered tool", () => input.Key(slam_centered_tool_key));
             AddStep("place slam centered", () =>
             {
                 input.MoveMouseTo(positionAtAngle(angleDeg, 0.5f));
@@ -1500,7 +1505,7 @@ namespace Garbus.Game.Tests.Editor
         public void TestTInsertsTimeOrderedNode()
         {
             waitForComposer();
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("move to body start", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body", () => input.Click(MouseButton.Left));
             AddStep("move to node", () => input.MoveMouseTo(positionAtAngle(270, 0.3f)));
@@ -1641,7 +1646,7 @@ namespace Garbus.Game.Tests.Editor
             // don't implement IHasSide and the S-key must leave them untouched.
             waitForComposer();
 
-            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("select shoulder tool", () => input.Key(shoulder_tool_key));
             AddStep("place shoulder (West)", () =>
             {
                 input.MoveMouseTo(positionAtAngle(180, 0.5f));
@@ -1666,7 +1671,7 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
 
-            AddStep("select slam-centered tool", () => input.Key(Key.Number6));
+            AddStep("select slam-centered tool", () => input.Key(slam_centered_tool_key));
             AddStep("hold alt", () => input.PressKey(Key.LAlt));
             AddStep("move to angle", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("click to place", () => input.Click(MouseButton.Left));
@@ -1675,7 +1680,7 @@ namespace Garbus.Game.Tests.Editor
             settleWith(() => placedObject<GarbusSlamCentered>()!.StartTime);
             AddStep("switch to select tool", () => input.Key(Key.Number1));
 
-            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("select slam-edge tool", () => input.Key(slam_edge_tool_key));
             AddStep("move to angle without alt", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
             AddStep("click to place", () => input.Click(MouseButton.Left));
             AddAssert("slam edge placed Left (no alt)", () => placedObject<GarbusSlamEdge>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
@@ -1686,7 +1691,7 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
 
-            AddStep("select slider tool", () => input.Key(Key.Number8));
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
             AddStep("hold alt", () => input.PressKey(Key.LAlt));
             AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.7f)));
             AddStep("click body (head)", () => input.Click(MouseButton.Left));
@@ -1705,7 +1710,7 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
 
-            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("select slam-edge tool", () => input.Key(slam_edge_tool_key));
             AddStep("hold shift", () => input.PressKey(Key.LShift));
             AddStep("move to angle", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
             AddStep("click to place", () => input.Click(MouseButton.Left));
@@ -1718,7 +1723,7 @@ namespace Garbus.Game.Tests.Editor
         {
             waitForComposer();
 
-            AddStep("select slam-edge tool", () => input.Key(Key.Number7));
+            AddStep("select slam-edge tool", () => input.Key(slam_edge_tool_key));
             AddStep("move to angle without shift", () => input.MoveMouseTo(positionAtAngle(90, 0.5f)));
             AddStep("click to place", () => input.Click(MouseButton.Left));
             AddAssert("slam edge placed Clockwise (no shift)", () => placedObject<GarbusSlamEdge>()!.Direction, () => Is.EqualTo(RotationalDirection.Clockwise));
@@ -2651,7 +2656,7 @@ namespace Garbus.Game.Tests.Editor
             waitForComposer();
 
             // Place a shoulder on the West side; read back whatever Side placement assigned.
-            AddStep("select shoulder tool", () => input.Key(Key.Number4));
+            AddStep("select shoulder tool", () => input.Key(shoulder_tool_key));
             AddStep("place shoulder (West)", () =>
             {
                 input.MoveMouseTo(positionAtAngle(180, 0.5f));
