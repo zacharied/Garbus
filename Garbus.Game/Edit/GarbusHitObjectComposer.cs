@@ -85,11 +85,11 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
     {
         new CardinalNoteCompositionTool(),
         new CardinalHoldNoteCompositionTool(),
+        new SliderCompositionTool(),
         new ShoulderNoteCompositionTool(),
         new ShoulderHoldNoteCompositionTool(),
         new SlamCenteredCompositionTool(),
         new SlamEdgeCompositionTool(),
-        new SliderCompositionTool(),
     };
 
     [BackgroundDependencyLoader]
