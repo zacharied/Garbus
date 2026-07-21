@@ -62,6 +62,12 @@ namespace Garbus.Game.Edit
             // Alias the chart's own list. Ensure it starts time-ordered.
             hitObjects = chart.HitObjects;
             hitObjects.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+
+            // Objects loaded from disk have never had defaults applied, so their Samples (and nested
+            // objects) are empty — which makes editor playback silent. Rebind() applies defaults on a
+            // chart swap; the initial load must do the same. Mirrors gameplay's GarbusChart.ApplyDefaults.
+            foreach (var hitObject in hitObjects)
+                hitObject.ApplyDefaults();
         }
 
         public void Rebind(GarbusChart chart, Charts.Timing.ControlPointInfo effectiveTiming)

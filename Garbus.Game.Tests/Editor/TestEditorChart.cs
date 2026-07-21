@@ -18,6 +18,21 @@ namespace Garbus.Game.Tests.Editor
         public void SetUp() => chart = new EditorChart(new GarbusChart());
 
         [Test]
+        public void TestConstructorAppliesDefaultsToExistingObjects()
+        {
+            // Simulate a chart loaded from disk: objects already present before EditorChart wraps it.
+            // Without ApplyDefaults, GarbusHitObject.Samples stays empty and editor playback is silent.
+            var loaded = new GarbusChart();
+            var note = new CardinalNote { StartTime = 1000, AngleDeg = 270 };
+            loaded.HitObjects.Add(note);
+            Assert.That(note.Samples, Is.Empty, "precondition: defaults not yet applied");
+
+            _ = new EditorChart(loaded);
+
+            Assert.That(note.Samples, Is.Not.Empty, "constructor must apply defaults so loaded objects have samples");
+        }
+
+        [Test]
         public void TestAddFiresEventAndAppliesDefaults()
         {
             GarbusHitObject? added = null;

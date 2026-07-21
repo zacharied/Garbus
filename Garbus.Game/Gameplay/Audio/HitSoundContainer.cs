@@ -71,6 +71,9 @@ namespace Garbus.Game.Gameplay.Audio
         /// <summary>How many times a sample has been played. Test observability seam.</summary>
         public int PlayCount { get; private set; }
 
+        /// <summary>How many samples are currently loaded (resolved from the store). Test observability seam.</summary>
+        public int LoadedCount => drawableSamples.Count;
+
         /// <summary>The sample last matched and played by <see cref="Play(GarbusHitSample?)"/>. Test seam.</summary>
         public GarbusHitSample? LastPlayed { get; private set; }
 

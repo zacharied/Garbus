@@ -325,6 +325,33 @@ namespace Garbus.Game.Tests.Editor
 
         private GarbusHitObjectComposer composer() => editor.ChildrenOfType<GarbusHitObjectComposer>().Single();
 
+        [Test]
+        public void TestPlaybackPlaysHitsoundInFullEditor()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+
+            AddStep("add note + seek before it", () =>
+            {
+                editor.EditorChart.Add(new CardinalNote { StartTime = 3000, AngleDeg = 270 });
+                var clock = editor.ChildrenOfType<EditorClock>().First();
+                clock.Stop();
+                clock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer().HitObjects.Any());
+
+            AddStep("start playback", () => editor.ChildrenOfType<EditorClock>().First().Start());
+            AddUntilStep("clock passes note", () => editor.ChildrenOfType<EditorClock>().First().CurrentTime > 3200);
+            AddStep("stop playback", () => editor.ChildrenOfType<EditorClock>().First().Stop());
+
+            AddAssert("a hitsound played", () =>
+                editor.ChildrenOfType<Garbus.Game.Gameplay.Audio.HitSoundContainer>().Sum(c => c.PlayCount) >= 1);
+
+            // The real check: a sample must actually be LOADED (resolved from the store), otherwise
+            // Play() increments PlayCount but emits no audio.
+            AddAssert("a sample was actually loaded", () =>
+                editor.ChildrenOfType<Garbus.Game.Gameplay.Audio.HitSoundContainer>().Sum(c => c.LoadedCount) >= 1);
+        }
+
         /// <summary>
         /// Regression guard: SpriteText.IsPresent is false while Text is empty, and Drawable.Update()
         /// is skipped entirely while !IsPresent — a dynamically-computed label starting from empty
