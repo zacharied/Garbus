@@ -35,6 +35,11 @@ internal partial class NodeDragPiece : CompositeDrawable
 
     private bool nodeSelected;
 
+    /// <summary>True between a delivered <see cref="OnDragStart"/> and the single <see cref="DragEnded"/> that
+    /// balances it — so the callback fires exactly once whether the drag ends normally or this handle is
+    /// disposed mid-drag.</summary>
+    private bool dragging;
+
     /// <summary>Whether this handle's node is currently selected; drives the solid fill.</summary>
     public bool NodeSelected
     {
@@ -82,6 +87,7 @@ internal partial class NodeDragPiece : CompositeDrawable
 
     protected override bool OnDragStart(DragStartEvent e)
     {
+        dragging = true;
         DragStarted?.Invoke(CpIndex);
         return true;
     }
@@ -95,6 +101,26 @@ internal partial class NodeDragPiece : CompositeDrawable
     protected override void OnDragEnd(DragEndEvent e)
     {
         base.OnDragEnd(e);
+        endDrag();
+    }
+
+    protected override void Dispose(bool isDisposing)
+    {
+        // The blueprint rebuilds its node handles every frame and disposes the trailing ones when a wrap
+        // copy drops (SliderSelectionBlueprint.Update). That can dispose the handle currently being dragged,
+        // and the framework never delivers OnDragEnd to a disposed drawable — so end the drag here to fire
+        // the balancing DragEnded. Without it, the change transaction opened by beginNodeDrag is stranded
+        // (TransactionActive stuck true) and Undo/Redo lock up.
+        endDrag();
+        base.Dispose(isDisposing);
+    }
+
+    private void endDrag()
+    {
+        if (!dragging)
+            return;
+
+        dragging = false;
         DragEnded?.Invoke();
     }
 }

@@ -16,6 +16,11 @@ internal partial class HoldEndDragPiece : CompositeDrawable
     public Action<Vector2>? Dragging { get; init; }
     public Action? DragEnded { get; init; }
 
+    /// <summary>True between a delivered <see cref="OnDragStart"/> and the single <see cref="DragEnded"/> that
+    /// balances it — so the callback fires exactly once whether the drag ends normally or this handle is
+    /// disposed mid-drag.</summary>
+    private bool dragging;
+
     public HoldEndDragPiece()
     {
         InternalChild = new EditSquarePiece { RelativeSizeAxes = Axes.Both };
@@ -23,6 +28,7 @@ internal partial class HoldEndDragPiece : CompositeDrawable
 
     protected override bool OnDragStart(DragStartEvent e)
     {
+        dragging = true;
         DragStarted?.Invoke();
         return true;
     }
@@ -36,6 +42,25 @@ internal partial class HoldEndDragPiece : CompositeDrawable
     protected override void OnDragEnd(DragEndEvent e)
     {
         base.OnDragEnd(e);
+        endDrag();
+    }
+
+    protected override void Dispose(bool isDisposing)
+    {
+        // If this handle is torn down mid-drag (its blueprint disposed while a drag is live), the framework
+        // never delivers OnDragEnd to the disposed drawable — so end the drag here to fire the balancing
+        // DragEnded. Without it, the change transaction opened by the drag is stranded (TransactionActive
+        // stuck true) and Undo/Redo lock up.
+        endDrag();
+        base.Dispose(isDisposing);
+    }
+
+    private void endDrag()
+    {
+        if (!dragging)
+            return;
+
+        dragging = false;
         DragEnded?.Invoke();
     }
 }

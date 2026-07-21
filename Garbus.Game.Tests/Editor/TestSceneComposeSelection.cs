@@ -554,6 +554,53 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestNodeDragThatDropsWrapCopyDoesNotStrandTransaction()
+        {
+            // Root-cause repro for "TransactionActive stuck true → Undo/Redo dead".
+            // SliderSelectionBlueprint.Update() rebuilds node handles every frame:
+            //     while (nodeHandles.Count > handlesNeeded) nodeHandles.Remove(nodeHandles[^1], true);
+            // A node drag opens a change transaction (beginNodeDrag → changeHandler.BeginChange). If the
+            // drag shrinks the visible wrap-copy count, this loop disposes the trailing NodeDragPiece — which
+            // can be the one currently holding the drag. osu-framework can't deliver OnDragEnd to a disposed
+            // drawable, so endNodeDrag → changeHandler.EndChange never runs and the transaction is stranded,
+            // permanently blocking RestoreState (Undo/Redo).
+            waitForComposer();
+            placeDiagonalSlider();
+
+            AddStep("wrap slider node past 360° (two wrap copies visible)", () =>
+            {
+                placedObject<SliderBody>()!.Path.ControlPoints[0].RotationOffset = 400;
+                editorChart.Update(placedObject<SliderBody>()!);
+            });
+
+            AddStep("select slider via head", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+            AddAssert("two wrap-copy node handles exist",
+                () => composer.ChildrenOfType<NodeDragPiece>().Count(h => h.CpIndex == 0), () => Is.EqualTo(2));
+
+            AddStep("press mouse on the GHOST (non-primary) node handle", () =>
+            {
+                var ghost = composer.ChildrenOfType<NodeDragPiece>().First(h => h.CpIndex == 0 && h.WrapK != 0);
+                input.MoveMouseTo(ghost);
+                input.PressButton(MouseButton.Left);
+            });
+
+            // March the node back toward centre so its offset falls below the wrap threshold and the
+            // second wrap copy (and its trailing handle) vanishes mid-drag.
+            AddRepeatStep("drag left toward centre", () => dragStepRight(-9), 40);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("wrap copy dropped to one handle",
+                () => composer.ChildrenOfType<NodeDragPiece>().Count(h => h.CpIndex == 0), () => Is.EqualTo(1));
+            AddAssert("change transaction closed (undo not blocked)",
+                () => changeHandler.TransactionActive, () => Is.False);
+        }
+
+        [Test]
         public void TestOutOfBoundsSliderDoesNotStealToolboxInput()
         {
             // A slider that wraps past 360° draws outline wrap-copies whose ends spill past the playfield's
