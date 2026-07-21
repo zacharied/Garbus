@@ -140,6 +140,16 @@ classes:
   `ShouldBeConsideredForInput` turns handle input on), so dragging one of several selected head-only
   sliders moved only that one. The handle still hit-tests, keeping the slider selectable. Pinned by
   `TestDraggingOneOfSeveralSelectedHeadOnlySlidersMovesAll`.
+- **A drag handle disposed mid-drag drops its `OnDragEnd`, stranding the change transaction.** A node/head
+  drag opens a transaction (`beginNodeDrag` → `changeHandler.BeginChange()`) closed on `DragEnded`.
+  `SliderSelectionBlueprint.Update` rebuilds the handle set every frame (one per node × visible wrap copy)
+  and disposes the trailing ones when a wrap copy drops (`nodeHandles.Remove(nodeHandles[^1], true)`) — which
+  can dispose the handle *currently* being dragged when the node crosses the seam. The framework never
+  delivers `OnDragEnd` to a disposed drawable, so `EndChange` never runs and the change handler's
+  `TransactionActive` sticks `true` forever, silently killing Undo/Redo (no exception). Fix: the drag pieces
+  (`NodeDragPiece`/`EditSquarePiece`/`HoldEndDragPiece`) fire `DragEnded` from *either* `OnDragEnd` or
+  `Dispose`, whichever comes first, guarded so it fires exactly once (a double `EndChange` throws). Pinned by
+  `TestNodeDragThatDropsWrapCopyDoesNotStrandTransaction`.
 - **The compose judgement line is raised `GarbusEditorPlayfield.JUDGEMENT_LINE_OFFSET` (40px) above the
   playfield bottom**, leaving a "hit zone" the objects scroll into after passing it (`StartTime` <
   `EditorTime`). Every time-scrolling layer keys its trailing edge (= the judgement line) off its own
