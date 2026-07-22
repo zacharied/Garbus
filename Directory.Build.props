@@ -9,4 +9,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+  <!-- Release: embed debug symbols in the assemblies (which then bundle into the single-file
+       exe) instead of emitting loose .pdb files next to it. Debug builds keep normal pdbs. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
 </Project>
