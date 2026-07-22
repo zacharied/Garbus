@@ -72,10 +72,18 @@ public class GarbusSong
     private static void validateResourcePath(string resource, string name)
     {
         if (string.IsNullOrEmpty(resource)) return;
-        if (Path.IsPathRooted(resource)
+        // Portability: a .garbus is authored on one OS and played on another, so the check cannot lean
+        // on the host's path semantics (Path.IsPathRooted misses a "C:\..." drive path on Linux, and a
+        // "/etc/..." path on Windows). Reject anything rooted on EITHER platform, plus any ".." escape.
+        if (isRootedOnAnyPlatform(resource)
             || resource.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries).Any(part => part == ".."))
             throw new InvalidDataException($"Song {name} resource must be a relative path within the song directory.");
     }
+
+    private static bool isRootedOnAnyPlatform(string resource) =>
+        Path.IsPathRooted(resource)
+        || resource[0] == '/' || resource[0] == '\\'                       // unix / UNC / drive-relative root
+        || (resource.Length >= 2 && char.IsLetter(resource[0]) && resource[1] == ':'); // "C:" drive prefix
 
     public static GarbusSong CreateDefault()
     {

@@ -186,18 +186,21 @@ namespace Garbus.Game.Tests.Visual
         [Test]
         public void TestSelectPopulatesDetailPanel()
         {
-            ChartCard? first = null;
+            ChartCard? seeded = null;
 
-            AddStep("select first chart", () =>
+            // Pick a seeded directory chart by title — those have no background file, unlike the bundled
+            // resource charts (which carry jackets). Selecting an unordered .First() would land on
+            // whichever card sorts first (a bundled chart with a jacket), so assert against a known one.
+            AddStep("select seeded chart", () =>
             {
-                first = songSelect.Groups.SelectMany(g => g.Charts).First();
-                songSelect.Select(first);
+                seeded = songSelect.Groups.SelectMany(g => g.Charts).First(c => c.Title == "Song 1");
+                songSelect.Select(seeded);
             });
 
             AddAssert("panel shows selected card", () =>
-                this.ChildrenOfType<ChartDetailPanel>().Single().DisplayedCard == first);
+                this.ChildrenOfType<ChartDetailPanel>().Single().DisplayedCard == seeded);
 
-            // The bundled chart has no background file → the placeholder path.
+            // The seeded chart has no background file → the placeholder path.
             AddAssert("panel shows placeholder (no background)", () =>
                 !this.ChildrenOfType<ChartDetailPanel>().Single().HasBackground);
         }
