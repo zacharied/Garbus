@@ -36,6 +36,9 @@ namespace Garbus.Game.Settings
         private FillFlowContainer settingsView = null!;
         private ControlsPanel? controlsView;
 
+        // Sits just right of the sliding panel; shown only while the Controls sub-view is up.
+        private ButtonTestPanel buttonTestPanel = null!;
+
         // Teardown for the volume-row subscriptions to the long-lived AudioManager bindables.
         private Action? volumeCleanup;
 
@@ -49,12 +52,20 @@ namespace Garbus.Game.Settings
         {
             Alpha = 0;
 
-            InternalChild = panel = new Container
+            InternalChildren = new Drawable[]
             {
-                RelativeSizeAxes = Axes.Y,
-                Width = panel_width,
-                Children = new Drawable[]
+                buttonTestPanel = new ButtonTestPanel
                 {
+                    X = panel_width + 12,
+                    Y = 12,
+                    Alpha = 0,
+                },
+                panel = new Container
+                {
+                    RelativeSizeAxes = Axes.Y,
+                    Width = panel_width,
+                    Children = new Drawable[]
+                    {
                     new Box
                     {
                         RelativeSizeAxes = Axes.Both,
@@ -81,6 +92,7 @@ namespace Garbus.Game.Settings
                             new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
                             new ControlsButton(showControls),
                         },
+                    },
                     },
                 },
             };
@@ -136,6 +148,8 @@ namespace Garbus.Game.Settings
 
             controlsView?.Expire();
             panel.Add(controlsView = new ControlsPanel(keyBindings, showSettings));
+
+            buttonTestPanel.FadeIn(200, Easing.OutQuint);
         }
 
         private void showSettings()
@@ -143,6 +157,8 @@ namespace Garbus.Game.Settings
             controlsView?.Expire();
             controlsView = null;
             settingsView.Show();
+
+            buttonTestPanel.FadeOut(200, Easing.OutQuint);
         }
 
         // A labelled row that opens the controls sub-view.
@@ -199,8 +215,9 @@ namespace Garbus.Game.Settings
 
         protected override bool OnClick(ClickEvent e)
         {
-            // A click landing outside the panel dismisses the overlay.
-            if (!panel.ReceivePositionalInputAt(e.ScreenSpaceMousePosition))
+            // A click landing outside the panel (and the button-test panel beside it) dismisses the overlay.
+            if (!panel.ReceivePositionalInputAt(e.ScreenSpaceMousePosition)
+                && !buttonTestPanel.ReceivePositionalInputAt(e.ScreenSpaceMousePosition))
                 Hide();
 
             return true;
