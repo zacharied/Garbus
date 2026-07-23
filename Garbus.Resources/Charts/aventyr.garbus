@@ -12,7 +12,7 @@
                       "track":  "aventyr.ogg",
                       "background":  "aventyr.jpg"
                   },
-    "previewTime":  null,
+    "previewTime":  66203.63636363637,
     "timingPoints":  [
                          {
                              "time":  -160,
@@ -3049,9 +3049,9 @@
                                                                     },
                                                                     {
                                                                         "timeOffset":  6818.1818181818235,
-                                                                        "rotationOffset":  -90,
+                                                                        "rotationOffset":  -180,
                                                                         "smooth":  false,
-                                                                        "sweepEasing":  "None"
+                                                                        "sweepEasing":  "In"
                                                                     }
                                                                 ],
                                               "time":  101203.63636363637
@@ -3076,29 +3076,29 @@
                                           },
                                           {
                                               "type":  "slider",
-                                              "angleDeg":  0,
+                                              "angleDeg":  90,
                                               "side":  "Left",
                                               "controlPoints":  [
                                                                     {
-                                                                        "timeOffset":  909.0909090909117,
+                                                                        "timeOffset":  454.54545454545587,
                                                                         "rotationOffset":  0,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "None"
                                                                     },
                                                                     {
-                                                                        "timeOffset":  1818.181818181809,
-                                                                        "rotationOffset":  90,
+                                                                        "timeOffset":  909.0909090908972,
+                                                                        "rotationOffset":  0,
                                                                         "smooth":  false,
-                                                                        "sweepEasing":  "InOutQuad"
+                                                                        "sweepEasing":  "In"
                                                                     }
                                                                 ],
-                                              "time":  107112.72727272728
+                                              "time":  108021.81818181819
                                           },
                                           {
                                               "type":  "cardinal-hold",
-                                              "angleDeg":  180,
-                                              "duration":  1136.363636363647,
-                                              "time":  108703.63636363637
+                                              "angleDeg":  0,
+                                              "duration":  1363.6363636363676,
+                                              "time":  108930.90909090909
                                           },
                                           {
                                               "type":  "slider",
@@ -3107,49 +3107,49 @@
                                               "controlPoints":  [
                                                                     {
                                                                         "timeOffset":  681.8181818181765,
-                                                                        "rotationOffset":  90,
+                                                                        "rotationOffset":  -90,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "Out"
                                                                     },
                                                                     {
                                                                         "timeOffset":  909.0909090909117,
-                                                                        "rotationOffset":  90,
+                                                                        "rotationOffset":  -90,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "None"
                                                                     },
                                                                     {
                                                                         "timeOffset":  1363.6363636363676,
-                                                                        "rotationOffset":  75,
+                                                                        "rotationOffset":  -75,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "In"
                                                                     },
                                                                     {
                                                                         "timeOffset":  1818.1818181818235,
-                                                                        "rotationOffset":  135,
+                                                                        "rotationOffset":  -135,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "None"
                                                                     },
                                                                     {
                                                                         "timeOffset":  2500,
-                                                                        "rotationOffset":  45,
+                                                                        "rotationOffset":  -45,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "InOutQuad"
                                                                     },
                                                                     {
                                                                         "timeOffset":  2727.2727272727207,
-                                                                        "rotationOffset":  45,
+                                                                        "rotationOffset":  -45,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "None"
                                                                     },
                                                                     {
                                                                         "timeOffset":  3181.8181818181765,
-                                                                        "rotationOffset":  30,
+                                                                        "rotationOffset":  -30,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "In"
                                                                     },
                                                                     {
                                                                         "timeOffset":  3636.3636363636324,
-                                                                        "rotationOffset":  90,
+                                                                        "rotationOffset":  -90,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "None"
                                                                     },
@@ -3170,13 +3170,13 @@
                                           },
                                           {
                                               "type":  "cardinal-hold",
-                                              "angleDeg":  180,
-                                              "duration":  909.0909090909117,
+                                              "angleDeg":  0,
+                                              "duration":  1363.6363636363676,
                                               "time":  110749.09090909091
                                           },
                                           {
                                               "type":  "cardinal-hold",
-                                              "angleDeg":  180,
+                                              "angleDeg":  0,
                                               "duration":  909.0909090909117,
                                               "time":  112567.27272727274
                                           },

@@ -12,7 +12,7 @@
                       "track":  "never get over.ogg",
                       "background":  "never get over.jpg"
                   },
-    "previewTime":  null,
+    "previewTime":  30713.42519824952,
     "timingPoints":  [
                          {
                              "time":  1364,
@@ -498,8 +498,8 @@
                                           },
                                           {
                                               "type":  "slider",
-                                              "angleDeg":  5,
-                                              "side":  "Right",
+                                              "angleDeg":  185,
+                                              "side":  "Left",
                                               "controlPoints":  [
                                                                     {
                                                                         "timeOffset":  0,
@@ -512,8 +512,8 @@
                                           },
                                           {
                                               "type":  "slider",
-                                              "angleDeg":  185,
-                                              "side":  "Left",
+                                              "angleDeg":  5,
+                                              "side":  "Right",
                                               "controlPoints":  [
                                                                     {
                                                                         "timeOffset":  0,
@@ -1002,12 +1002,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  0,
                                               "time":  53864
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  0,
+                                              "angleDeg":  180,
                                               "time":  53864
                                           },
                                           {
@@ -2047,12 +2047,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  0,
                                               "time":  87614
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  0,
+                                              "angleDeg":  180,
                                               "time":  87614
                                           },
                                           {
@@ -2169,34 +2169,7 @@
                                           },
                                           {
                                               "type":  "slider",
-                                              "angleDeg":  165,
-                                              "side":  "Left",
-                                              "controlPoints":  [
-
-                                                                ],
-                                              "time":  94176.5
-                                          },
-                                          {
-                                              "type":  "slider",
-                                              "angleDeg":  15,
-                                              "side":  "Right",
-                                              "controlPoints":  [
-
-                                                                ],
-                                              "time":  94176.5
-                                          },
-                                          {
-                                              "type":  "slider",
-                                              "angleDeg":  345,
-                                              "side":  "Right",
-                                              "controlPoints":  [
-
-                                                                ],
-                                              "time":  94176.5
-                                          },
-                                          {
-                                              "type":  "slider",
-                                              "angleDeg":  180,
+                                              "angleDeg":  195,
                                               "side":  "Left",
                                               "controlPoints":  [
 
@@ -2214,8 +2187,35 @@
                                           },
                                           {
                                               "type":  "slider",
-                                              "angleDeg":  195,
+                                              "angleDeg":  180,
                                               "side":  "Left",
+                                              "controlPoints":  [
+
+                                                                ],
+                                              "time":  94176.5
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  15,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+
+                                                                ],
+                                              "time":  94176.5
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  165,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+
+                                                                ],
+                                              "time":  94176.5
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  345,
+                                              "side":  "Right",
                                               "controlPoints":  [
 
                                                                 ],
@@ -2353,6 +2353,40 @@
                                           },
                                           {
                                               "type":  "slider",
+                                              "angleDeg":  5,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  0,
+                                                                        "rotationOffset":  -10,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  98864
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  820.3125,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  1406.25,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "Out"
+                                                                    }
+                                                                ],
+                                              "time":  98864
+                                          },
+                                          {
+                                              "type":  "slider",
                                               "angleDeg":  185,
                                               "side":  "Left",
                                               "controlPoints":  [
@@ -2381,40 +2415,6 @@
                                                                         "rotationOffset":  -90,
                                                                         "smooth":  false,
                                                                         "sweepEasing":  "Out"
-                                                                    }
-                                                                ],
-                                              "time":  98864
-                                          },
-                                          {
-                                              "type":  "slider",
-                                              "angleDeg":  180,
-                                              "side":  "Left",
-                                              "controlPoints":  [
-                                                                    {
-                                                                        "timeOffset":  820.3125,
-                                                                        "rotationOffset":  0,
-                                                                        "smooth":  false,
-                                                                        "sweepEasing":  "None"
-                                                                    },
-                                                                    {
-                                                                        "timeOffset":  1406.25,
-                                                                        "rotationOffset":  90,
-                                                                        "smooth":  false,
-                                                                        "sweepEasing":  "Out"
-                                                                    }
-                                                                ],
-                                              "time":  98864
-                                          },
-                                          {
-                                              "type":  "slider",
-                                              "angleDeg":  5,
-                                              "side":  "Right",
-                                              "controlPoints":  [
-                                                                    {
-                                                                        "timeOffset":  0,
-                                                                        "rotationOffset":  -10,
-                                                                        "smooth":  false,
-                                                                        "sweepEasing":  "None"
                                                                     }
                                                                 ],
                                               "time":  98864
