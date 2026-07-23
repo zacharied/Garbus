@@ -1,9 +1,10 @@
 // The right-hand song-select detail panel: the selected chart's background image (or a placeholder
-// square), title, artist, chart name + level, and a "Press X to play!" button. Display-only — it
+// square), title, artist, chart name + level, and a "Press [Cross] to play!" button. Display-only — it
 // invokes LaunchRequested on click and holds no selection/launch logic of its own.
 
 using System;
 using Garbus.Game.Charts;
+using Garbus.Game.Input;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -90,15 +91,7 @@ namespace Garbus.Game.Screens.SongSelect
                             Font = FontUsage.Default.With(size: 18),
                             Colour = new Color4(150, 160, 190, 255),
                         },
-                        playButton = new BasicButton
-                        {
-                            Anchor = Anchor.TopCentre,
-                            Origin = Anchor.TopCentre,
-                            Size = new Vector2(image_size, 72),
-                            Text = "Press X to play!",
-                            BackgroundColour = new Color4(70, 90, 140, 255),
-                            Action = () => LaunchRequested?.Invoke(),
-                        },
+                        playButton = createPlayButton(),
                     },
                 },
             };
@@ -130,6 +123,59 @@ namespace Garbus.Game.Screens.SongSelect
             image.Texture = background;
             image.Alpha = background != null ? 1 : 0;
             placeholder.Alpha = background != null ? 0 : 1;
+        }
+
+        // The play button, whose label mixes text with the live gamepad glyph: "Press [Cross] to play!".
+        // Face-south (Cross on a DualSense) is the button Launch() is bound to on a controller — see
+        // SongSelectScreen.OnJoystickPress (GamePadA). BasicButton is a container with its own centred
+        // SpriteText (left empty here); the prompt flow is added on top and inherits the button's
+        // enabled/disabled colour fade.
+        private BasicButton createPlayButton()
+        {
+            var button = new BasicButton
+            {
+                Anchor = Anchor.TopCentre,
+                Origin = Anchor.TopCentre,
+                Size = new Vector2(image_size, 72),
+                BackgroundColour = new Color4(70, 90, 140, 255),
+                Action = () => LaunchRequested?.Invoke(),
+            };
+
+            button.Add(new FillFlowContainer
+            {
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                AutoSizeAxes = Axes.Both,
+                Direction = FillDirection.Horizontal,
+                Spacing = new Vector2(8, 0),
+                Children = new Drawable[]
+                {
+                    new SpriteText
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Text = "Press",
+                        Font = FontUsage.Default.With(size: 26),
+                        Colour = Color4.White,
+                    },
+                    new GamepadButtonSprite(GamepadButton.FaceSouth)
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Size = new Vector2(38),
+                    },
+                    new SpriteText
+                    {
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Text = "to play!",
+                        Font = FontUsage.Default.With(size: 26),
+                        Colour = Color4.White,
+                    },
+                },
+            });
+
+            return button;
         }
 
         // "{ChartName} · Lv.{Level}", omitting whichever piece is absent.
