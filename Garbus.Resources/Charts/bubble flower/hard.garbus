@@ -1,0 +1,130 @@
+﻿{
+    "version":  1,
+    "metadata":  {
+                     "title":  "Bubble Flower",
+                     "artist":  "",
+                     "charter":  "",
+                     "chartName":  "",
+                     "romanisedTitle":  "",
+                     "romanisedArtist":  "",
+                     "source":  "",
+                     "tags":  "",
+                     "audioFile":  "bubble flower.ogg",
+                     "backgroundFile":  "",
+                     "level":  0,
+                     "difficulty":  "Novice"
+                 },
+    "previewTime":  null,
+    "timingPoints":  [
+                         {
+                             "time":  1282,
+                             "beatLength":  312.5,
+                             "timeSignature":  4,
+                             "omitFirstBarLine":  false
+                         }
+                     ],
+    "hitObjects":  [
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  300,
+                           "time":  11282
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  180,
+                           "time":  11750.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  180,
+                           "duration":  312.5,
+                           "time":  12219.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  12532
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  210,
+                           "time":  13000.75
+                       },
+                       {
+                           "type":  "cardinal-hold",
+                           "angleDeg":  210,
+                           "duration":  312.5,
+                           "time":  13469.5
+                       },
+                       {
+                           "type":  "cardinal",
+                           "angleDeg":  0,
+                           "time":  13782
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+                                                 {
+                                                     "timeOffset":  781.25,
+                                                     "rotationOffset":  135,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  1250,
+                                                     "rotationOffset":  225,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "None"
+                                                 },
+                                                 {
+                                                     "timeOffset":  2968.75,
+                                                     "rotationOffset":  135,
+                                                     "smooth":  false,
+                                                     "sweepEasing":  "In"
+                                                 }
+                                             ],
+                           "time":  14563.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15657
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  180,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15735.125
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15813.25
+                       },
+                       {
+                           "type":  "slider",
+                           "angleDeg":  225,
+                           "side":  "Left",
+                           "controlPoints":  [
+
+                                             ],
+                           "time":  15969.5
+                       }
+                   ],
+    "designPoints":  [
+
+                     ]
+}
