@@ -57,7 +57,8 @@ is a shipped end-user artifact and has no meaning inside a repo checkout.
    temp directory. Compute the zip's SHA-256 and compare against its line in `SHA256SUMS.txt`.
    Abort on mismatch, leaving the install untouched.
 7. **Staged swap:** extract the verified zip into a temp staging directory (the zip's top-level
-   entry is `Garbus/`), then copy the inner `Garbus/*` over the install dir, overwriting.
+   entry is `Garbus/`), then copy the inner `Garbus/*` over the install dir, overwriting — **but
+   skip the running updater script itself** (`update.bat` / `update.sh`; see below).
    Extract-then-copy (never extract in place) means a failed or corrupt download can't leave a
    half-updated install.
 8. **Report:** print the new commit / release title and exit. On Windows the trailing `pause`
@@ -70,9 +71,13 @@ is a shipped end-user artifact and has no meaning inside a repo checkout.
   `Get-Process`. No `gh`, no modules, no token.
 - **Linux:** `curl`, `unzip`, `sha256sum`, `pgrep` — standard on any `linux-x64` desktop target.
 
-**Self-overwrite is safe:** the updater overwrites the folder it lives in, including itself.
-Both `cmd.exe`/PowerShell and bash read the script fully before executing, so replacing the
-running script file mid-run does not break the current run.
+**The updater skips overwriting itself.** It overwrites the folder it lives in, but the copy
+step excludes the currently-running script (`update.bat` on Windows, `update.sh` on Linux).
+`cmd.exe` tracks its position in a running `.bat` by byte offset and holds a file handle, so
+overwriting it mid-run risks a sharing violation (a mid-copy failure) or corrupt continuation;
+a running bash script has the same hazard. Consequence: the updater logic itself is **not**
+self-updated — if it changes in a future build, testers re-extract the release zip manually to
+pick up the new script. Acceptable for a playtest tool.
 
 ## Assumptions / limitations (acceptable for a playtest tool)
 
