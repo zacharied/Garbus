@@ -41,18 +41,18 @@
 
 - [ ] **Step 1: Create the file with the full content below**
 
-The file is a batch/PowerShell polyglot. `cmd` runs only the lines above `exit /b`; the PowerShell body after the `#POWERSHELL#` marker is never parsed by `cmd` (execution stops at `exit /b`) and is `Invoke-Expression`-ed by the PowerShell child. `%~f0` is the batch's own full path; `%~dp0` is its directory (trailing `\`). `#POWERSHELL#` is 12 characters, hence `+12` when slicing.
+The file is a batch/PowerShell polyglot. `cmd` runs only the lines above `exit /b`; the PowerShell body after the marker is never parsed by `cmd` (execution stops at `exit /b`) and is `Invoke-Expression`-ed by the PowerShell child. `%~f0` is the batch's own full path; `%~dp0` is its directory (trailing `\`). **The marker must be assembled from two string pieces (`'#POWER' + 'SHELL#'`) so the contiguous literal appears exactly once — on the marker line — and no `rem` comment may contain the contiguous literal, or `IndexOf` matches it first and slices mid-batch.**
 
 ```bat
 @echo off
 setlocal
 rem === Garbus updater (Windows) ===
 rem Double-click to update this install to the newest master build.
-rem This .bat re-invokes Windows PowerShell on its own body (after #POWERSHELL#).
+rem This .bat re-invokes Windows PowerShell on its own body (after the marker line).
 set "GARBUS_INSTALL_DIR=%~dp0"
 set "GARBUS_FORCE="
 echo %*| findstr /i /c:"-force" >nul && set "GARBUS_FORCE=1"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $raw = Get-Content -LiteralPath '%~f0' -Raw; Invoke-Expression $raw.Substring($raw.IndexOf('#POWERSHELL#') + 12)"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $mk = '#POWER' + 'SHELL#'; $raw = Get-Content -LiteralPath '%~f0' -Raw; Invoke-Expression $raw.Substring($raw.IndexOf($mk) + $mk.Length)"
 set "_exit=%errorlevel%"
 echo.
 pause
