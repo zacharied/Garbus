@@ -149,6 +149,10 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         Alpha = 0,
     };
 
+    private readonly SliderContactSpikes contactSpikes;
+
+    internal SliderContactSpikes ContactSpikes => contactSpikes;
+
     // Per-node data, rebuilt whenever a new hit object is applied.
     private float[] nodeRadians = Array.Empty<float>();
     private double[] nodeTimes = Array.Empty<double>();
@@ -173,6 +177,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         RelativeSizeAxes = Axes.Both;
 
         var sideColour = HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
+        contactSpikes = new SliderContactSpikes(sideColour);
         pathContainer.Colour = sideColour;
         escapeContainer.Colour = sideColour;
         tipBox.Colour = sideColour;
@@ -199,6 +204,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
         // Escape band and tip marker draw in front of the main body's glow.
         AddInternal(escapeContainer);
+        AddInternal(contactSpikes);
         AddInternal(tipBox);
 
         headCircle.Size = new Vector2(Thickness);
@@ -293,6 +299,10 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             // Main body: the emergence front (radius 0) out to the ring, at full alpha.
             bodyIndex = renderBand(0f, ringRadius, 1f, bodyPaths, pathContainer, bodyIndex);
 
+            bool hasRingContact = State.Value == ArmedState.Idle &&
+                                  Time.Current >= nodeTimes[0] && Time.Current <= nodeTimes[^1];
+            contactSpikes.SetContact(toRadians(AngleDegAt(Time.Current)), ringRadius, hasRingContact);
+
             // Beyond the ring: whether the leading edge is being caught right now decides the look.
             bool caught = isLeadingEdgeCaught();
             bool hasTip = tryGetLeadingTip(ringRadius, catcherRadius, out Vector2 tip);
@@ -322,6 +332,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         }
         else
         {
+            contactSpikes.SetContact(0, 0, false);
             updateTipBox(false, Vector2.Zero);
         }
 

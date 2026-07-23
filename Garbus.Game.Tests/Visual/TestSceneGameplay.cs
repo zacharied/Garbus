@@ -104,6 +104,96 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("slider body alive", () => playfield.AllHitObjects.OfType<Objects.Drawables.DrawableSliderBody>().Any(h => h.IsAlive));
         }
 
+        [Test]
+        public void TestSliderContactSpikesFollowRingContact()
+        {
+            Objects.Drawables.DrawableSliderBody rightBody = null!;
+            Objects.Drawables.SliderContactSpikes contactSpikes = null!;
+            float firstContactAngle = 0;
+
+            AddUntilStep("right slider registered", () =>
+            {
+                rightBody = playfield.AllHitObjects
+                                     .OfType<Objects.Drawables.DrawableSliderBody>()
+                                     .SingleOrDefault(b => b.HitObject.Side == HorizontalDirection.Right)!;
+                return rightBody != null;
+            });
+
+            AddAssert("paddles have no endpoint triangles", () => playfield.ChildrenOfType<StickIndicator>()
+                                                                         .All(i => i.ChildrenOfType<StickCentreSpike>().Count() == 1 &&
+                                                                                   i.ChildrenOfType<osu.Framework.Graphics.Shapes.Triangle>().Count() == 1));
+            playThrough(1900);
+            AddUntilStep("right slider contact effect loaded", () =>
+            {
+                contactSpikes = rightBody.ContactSpikes;
+                return contactSpikes.IsLoaded;
+            });
+            AddAssert("hidden before slider reaches ring", () => !contactSpikes.Active && contactSpikes.Alpha == 0);
+
+            playThrough(2000);
+            AddUntilStep("split spike appears at contact", () => contactSpikes.Active && contactSpikes.Alpha > 0);
+            AddAssert("two flared triangles with centre gap", () =>
+                contactSpikes.Blades.Count == 2 &&
+                contactSpikes.Blades[0].AngleRadians < contactSpikes.ContactAngleRadians &&
+                contactSpikes.Blades[1].AngleRadians > contactSpikes.ContactAngleRadians);
+            AddAssert("spike uses slider side colour", () => contactSpikes.SideColour.Equals(Constants.RightColour));
+            AddAssert("triangles point inward and stop before centre", () => contactSpikes.Blades.All(blade =>
+            {
+                var triangle = blade.ChildrenOfType<osu.Framework.Graphics.Shapes.Triangle>().SingleOrDefault();
+                float ringRadius = MathF.Min(playfield.DrawWidth, playfield.DrawHeight) / 2;
+                return triangle != null && triangle.DrawHeight > 0 && triangle.DrawHeight < ringRadius;
+            }));
+            AddStep("remember first contact angle", () => firstContactAngle = contactSpikes.ContactAngleRadians);
+
+            playThrough(3500);
+            AddUntilStep("spike follows moving contact", () =>
+                !approximately(contactSpikes.ContactAngleRadians, firstContactAngle) &&
+                approximately(contactSpikes.ContactAngleRadians, rightBody.AngleDegAt(manualClock.CurrentTime) * MathF.PI / 180));
+
+            playThrough(6200);
+            AddUntilStep("spike hides after slider leaves ring", () => !contactSpikes.Active && contactSpikes.Alpha == 0);
+        }
+
+        [Test]
+        public void TestStickCentreSpikeFollowsActiveStickAndFitsGap()
+        {
+            StickIndicator rightIndicator = null!;
+            StickCentreSpike centreSpike = null!;
+
+            AddUntilStep("right centre spike loaded", () =>
+            {
+                rightIndicator = playfield.ChildrenOfType<StickIndicator>()
+                                          .SingleOrDefault(i => i.Side == HorizontalDirection.Right)!;
+                centreSpike = rightIndicator?.ChildrenOfType<StickCentreSpike>().SingleOrDefault()!;
+                return centreSpike?.IsLoaded == true;
+            });
+
+            AddAssert("hidden while stick is in deadzone", () => !centreSpike.Active && centreSpike.Alpha == 0);
+            AddAssert("narrower than slider contact gap", () => StickCentreSpike.HalfWidthDeg < Objects.Drawables.SliderContactSpikes.GapHalfWidthDeg);
+
+            AddStep("activate right stick at east", () => setStick(HorizontalDirection.Right, 1, 0));
+            AddUntilStep("centre spike appears at stick angle", () =>
+                centreSpike.Active && centreSpike.Alpha > 0 && approximately(centreSpike.AngleRadians, 0));
+            AddAssert("uses right side colour and blur", () =>
+                centreSpike.SideColour.Equals(Constants.RightColour) &&
+                centreSpike.ChildrenOfType<osu.Framework.Graphics.Containers.BufferedContainer>()
+                           .Single().BlurSigma.X > 0);
+            AddAssert("widest at centre and tapers to ring", () =>
+            {
+                var triangle = centreSpike.ChildrenOfType<osu.Framework.Graphics.Shapes.Triangle>().Single();
+                float ringRadius = MathF.Min(rightIndicator.DrawWidth, rightIndicator.DrawHeight) / 2;
+                return approximately(centreSpike.Blade.BaseRadius, 0) &&
+                       approximately(centreSpike.Blade.TipRadius, ringRadius) &&
+                       MathF.Abs(triangle.DrawHeight - ringRadius) < 1;
+            });
+
+            AddStep("rotate right stick north", () => setStick(HorizontalDirection.Right, 0, -1));
+            AddUntilStep("centre spike follows stick", () => approximately(centreSpike.AngleRadians, MathF.PI / 2));
+
+            AddStep("release right stick", () => setStick(HorizontalDirection.Right, 0, 0));
+            AddUntilStep("centre spike hides in deadzone", () => !centreSpike.Active && centreSpike.Alpha == 0);
+        }
+
         /// <summary>
         /// Walks the clock forward in sub-lifetime increments. A single large jump would take entries
         /// straight from future to past without them ever becoming alive, skipping the kill-path
@@ -117,6 +207,24 @@ namespace Garbus.Game.Tests.Visual
                 return manualClock.CurrentTime >= target;
             });
         }
+
+        private void setStick(HorizontalDirection side, float x, float y)
+        {
+            var xSource = side == HorizontalDirection.Left
+                ? JoystickAxisSource.GamePadLeftStickX
+                : JoystickAxisSource.GamePadRightStickX;
+            var ySource = side == HorizontalDirection.Left
+                ? JoystickAxisSource.GamePadLeftStickY
+                : JoystickAxisSource.GamePadRightStickY;
+
+            input.Input(new JoystickAxisInput(new[]
+            {
+                new JoystickAxis(xSource, x),
+                new JoystickAxis(ySource, y),
+            }));
+        }
+
+        private static bool approximately(float first, float second) => MathF.Abs(first - second) < 0.001f;
 
         [Test]
         public void TestUntouchedNotesMiss()

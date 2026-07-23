@@ -1,131 +1,111 @@
-# Catcher end-spikes — design
+# Slider contact spikes — design
 
 ## Summary
 
-Add decorative/feedback **spikes** that grow inward from the two ends of each stick-catcher
-arc, crossing over the playfield ring toward the centre. Each spike is a needled flame with a
-thin bright core line of the catcher's pure colour and a soft glow that is transparent at the
-edges, brightening toward the tip while dissolving to fully transparent. The spikes appear
-whenever the catcher is active (out of the deadzone) and **intensify** while the catcher is
-actually eating a slider body.
+Replace the decorative spikes on the ends of the stick-catcher paddles with a slider-owned contact
+effect. Whenever a slider body reaches the outer ring, a split spike emerges from that slider's exact
+ring-contact point and follows the point as the slider sweeps around the ring.
 
-There is one catcher per side: Left is blue (`Constants.LeftColour`, `#0564D0`), Right is
-magenta (`Constants.RightColour`, `#D41159`).
+The effect consists of two narrow, flared triangles pointing inward. A visible gap runs between them
+along the contact angle, giving the spike a forked silhouette rather than a single solid needle.
+
+A complementary stick spike runs from the playfield centre to the ring. It is widest at the centre,
+tapers to a point at the ring, follows the analog stick's angle, and occupies the fork's centre gap
+when the stick aligns with slider contact.
 
 ## Behaviour
 
-Per catcher, driven by `AnalogInputManager.SliderCatcher[Side]` plus a catch signal:
-
-- **Deadzone** (`!SliderCatcher.Activated`): no arc, no spikes. Unchanged from today.
-- **Active, not catching**: the arc is visible; a spike grows inward from *each* of the arc's
-  two angular ends (`StartRadians` and `EndRadians`). The idle look is shallow and faint —
-  reaches roughly `0.6×` the ring radius, with low glow intensity.
-- **Catching** (any alive slider body of this catcher's side currently has its leading edge
-  caught): the spikes intensify along three axes at once:
-  - **Reach**: the tip extends deeper, to roughly `0.35–0.4×` the ring radius.
-  - **Brightness**: core and glow brighten.
-  - **Pulse**: a continuous ~1 s breathing pulse on reach/brightness while the catch lasts.
-
-The transition between idle and catching should be smooth (interpolated), not a hard snap.
+- Stick-catcher paddles retain their existing arcs but have no spikes attached to their angular ends.
+- A slider contact spike appears when chart time reaches the slider's first node.
+- It remains visible while chart time lies between the slider's first and last nodes, because that is
+  the interval during which the slider body intersects the ring.
+- It follows `DrawableSliderBody.AngleDegAt(Time.Current)` every frame. That method evaluates the same
+  eased/smoothed sweep used to draw the body, so the effect cannot drift away from the visible contact.
+- It disappears once the slider's last node passes the ring or the slider leaves its idle/alive state.
+- Each simultaneous slider owns its own effect. Paddle activation and catch success do not control it.
+- Each stick owns one centre-origin spike. It appears with the catcher arc outside the deadzone, follows
+  `SliderCatcher.Angle`, and hides when the stick returns to the deadzone.
 
 ## Geometry and appearance
 
-Matches the approved visual mockup, expressed in engine terms:
+- The pair is centred on the slider/ring contact angle at exactly `1.0×` ring radius.
+- Two triangle bases sit on opposite sides of the contact angle with an empty angular gap between them.
+- Each triangle follows its own nearby radial line, so both point toward the playfield centre and the
+  physical gap naturally narrows as the tips approach the centre.
+- Both triangles use the slider side colour: blue for Left (`Constants.LeftColour`) and magenta for
+  Right (`Constants.RightColour`).
+- Each triangle gradients from the opaque side colour at the ring to bright transparent white at its
+  inward tip. A small additive glow softens the lateral edges.
+- The ring stroke draws over the triangle bases, visually capping them at the contact point.
+- The stick spike is a single triangular wedge with its wide base at radius zero and its apex on the
+  ring. Its centre width is derived from a `0.5°` half-width at ring scale, keeping the taper inside
+  the split contact spike's `0.7°` half-gap wherever the two effects overlap.
+- The stick spike's additive blur uses its side's blue or magenta colour.
 
-- **Silhouette**: a *needled flame* — concave sides tapering to a sharp point aimed at the
-  playfield centre. Each spike's base sits on its arc end at the catcher radius
-  (`1.06×` ring radius, matching `StickIndicator.RadiusScale`), and the base is slim
-  (~1.4° angular half-width for the crisp core; the soft glow bleeds out to ~5°).
-- **Two spikes per catcher**, one centred on each arc end angle. Half of each base overhangs
-  past the arc end (the spike "comes out of" the end). They track the arc ends every frame as
-  the stick sweeps, so they stay anchored while the catcher rotates and resizes.
-- **Fill**: a thin bright **core line** of the pure catcher colour runs down the spine. The rest
-  is a **soft glow that is transparent at the lateral edges**, brightening from base to tip
-  (blue → cyan → white for Left; magenta → pink → white for Right) *and* dissolving to fully
-  transparent alpha at the tip, so the needle melts into the playfield rather than ending on a
-  hard edge.
-- **Draw order**: spikes draw over the ring interior but under the arc stroke, so the arc caps
-  the spike bases cleanly. `StickIndicator` (and therefore its spikes) already sits above the
-  `Ring` in `GarbusPlayfield`'s child list.
+Initial tuning values, expressed relative to the current ring radius:
 
-Numeric starting values (tune during implementation; all radii are fractions of the current ring
-radius `= GarbusScrollingHitObjectContainer.ScrollLength`):
-
-| Parameter            | Idle (active) | Catching (pulse range) |
-| -------------------- | ------------- | ---------------------- |
-| Tip reach (× ring R) | ~0.60         | ~0.34 – 0.40           |
-| Core half-width      | ~1.4°         | ~1.4°                  |
-| Glow half-width      | ~3.6°         | ~4.8 – 6.0°            |
-| Glow opacity         | ~0.45         | ~0.70 – 0.95           |
-| Pulse period         | —             | ~1.0 s                 |
+| Parameter | Value |
+| --- | --- |
+| Tip radius | `0.22×` ring radius |
+| Triangle half-width | `1.15°` |
+| Gap half-width | `0.7°` (`1.4°` total gap) |
+| Glow opacity | `0.9` |
+| Glow blur sigma | `8px` |
+| Stick-spike half-width | `0.5°` |
+| Stick-spike radial span | centre (`0×R`) to ring (`1×R`) |
 
 ## Architecture
 
-**Ownership.** A new drawable owned by `StickIndicator` renders the pair of spikes. Options:
-either a single `CatcherSpikes` container that draws both, or two spike drawables the indicator
-positions. `StickIndicator` already:
-- resolves `AnalogInputManager` and reads `SliderCatchers[Side]`,
-- sweeps `arc.StartRadians` / `arc.EndRadians` each `Update`,
-- knows its `Side` (colour source).
+`DrawableSliderBody` owns one `SliderContactSpikes` drawable. This keeps the effect beside the
+authoritative slider geometry and avoids scanning `Ring.AliveHitObjects` or duplicating state in the
+stick indicators.
 
-So the spikes need no new wiring in `GarbusPlayfield`. The indicator passes the two end angles,
-the side colour, `Activated`, and the catch flag to the spikes each frame.
+During `DrawableSliderBody.updatePath()`:
 
-**Catch signal.** `DrawableSliderBody.updatePath()` already computes `isLeadingEdgeCaught()`
-every frame. Surface it as a read-only `bool IsBeingCaught` property set in that method. The
-spikes (or `StickIndicator`) resolve the `[Cached] Ring` and each frame evaluate:
+```csharp
+bool hasRingContact = State.Value == ArmedState.Idle &&
+                      Time.Current >= nodeTimes[0] &&
+                      Time.Current <= nodeTimes[^1];
 
-```
-bool catching = ring.AliveHitObjects
-    .OfType<DrawableSliderBody>()
-    .Any(b => b.HitObject.Side == Side && b.IsBeingCaught);
+contactSpikes.SetContact(
+    toRadians(AngleDegAt(Time.Current)),
+    scrollingContainer.ScrollLength,
+    hasRingContact);
 ```
 
-`Ring.AliveHitObjects` already exists for exactly this kind of presence query. This keeps the
-catch state derived from the authoritative per-frame body computation — no duplicated catch
-logic and no cross-object mutable flags beyond the one exposed property.
+`SliderContactSpikes` offsets its two blade angles equally around the contact angle. Each blade owns a
+gradient `Triangle` wrapped in `GlowEffect`.
 
-## Rendering approach
+The triangle inside the glow wrapper must remain top-left anchored. Centring a child inside an
+auto-sized effect wrapper creates a circular required-size dependency and can make the wrapper grow
+every layout frame. The wrapper itself receives the centre anchor, bottom-centre origin, radial
+position, and rotation.
 
-The main technical risk: `SmoothPath` (used by `Arc` and `DrawableSliderBody`) is single-colour
-via its framebuffer blit, so it cannot express the base→tip colour+alpha gradient directly.
-
-**Primary plan**: render each spike as a **gradient-capable primitive** — an elongated
-`Triangle`/quad given a `ColourInfo` vertical gradient (pure opaque catcher colour at the base
-edge → bright, alpha-0 colour at the apex), oriented so its axis runs radially from the arc end
-toward the centre. Wrap it in a `GlowEffect` (the same effect `DrawableSliderBody` already uses
-for its additive halo) to produce the soft, edge-transparent bloom and the bright core read.
-Idle↔catching drives the apex distance (reach), the gradient's brightness, and the pulse via
-per-frame values or transforms.
-
-**Fallback**: if a per-vertex/`ColourInfo` gradient on the chosen primitive proves fiddly, use a
-pre-baked gradient sprite (flame texture carrying the radial + transverse falloff) tinted per
-side. Note the tint caveat — a multiplicative tint cannot brighten toward white at the tip, so
-the baked texture must encode the luminance ramp itself.
-
-The concave needle silhouette can come from the primitive's shape (a narrow triangle already
-reads as a needle) plus the glow softening; exact concavity is a polish detail, not load-bearing.
+`StickIndicator` owns one `StickCentreSpike`, listed before its `Arc` so the paddle stroke caps the
+outer tip. It reuses `SpikeBlade` with a base radius of zero and a tip radius at the ring, and receives
+the current stick angle, ring radius, and activation state each frame. This is directional stick
+feedback only; it does not depend on a slider being present or caught.
 
 ## Testing
 
-Headless coverage (extend `Garbus.Game.Tests`, reusing the `TestSceneGameplay` manual-clock and
-`AnalogInputManager` setup):
+Headless gameplay coverage should verify:
 
-- Spikes are hidden when the catcher is in the deadzone.
-- When active, two spikes are present and anchored to the arc's two end angles (verify they
-  follow after moving the stick / changing catcher angle).
-- Spikes intensify (measurably — reach/brightness) when a matching-side slider body reports
-  `IsBeingCaught`, and relax when it stops.
-- A body of the *other* side being caught does not intensify this catcher's spikes.
-- Left spikes carry the blue colour, Right the magenta.
+- Stick-catcher paddles contain no endpoint spikes; each owns exactly one centre-origin wedge.
+- The contact effect is hidden before the slider reaches the ring.
+- Exactly two triangles appear at the first-node time with one on either side of the contact angle.
+- Both triangles are bounded inside the ring and use the slider's side colour.
+- The pair follows `AngleDegAt(Time.Current)` as the slider sweeps.
+- The effect disappears after the final node passes the ring.
+- Each centre spike is hidden in the deadzone, appears at the active stick angle, has its wide base at
+  centre and point at the ring, has a non-zero side-colour blur, and follows stick rotation.
+- The centre spike's half-width is smaller than the slider contact gap half-width.
 
-Prefer asserting on the derived catch flag / spike state parameters over pixel output, since the
-glow/gradient render is not deterministically inspectable headless.
+Prefer state and geometry assertions over pixel comparison because glow output is not deterministic in
+headless rendering.
 
 ## Out of scope
 
-- No change to catch *detection* or judgement — this is purely a visual layer over the existing
-  per-frame catch computation.
-- No new config/toggle for the effect.
-- The existing `tipBox` "consumed" marker and escape-band fade on `DrawableSliderBody` stay as
-  they are; spikes are an additive, independent feedback layer at the arc ends.
+- No change to slider catch detection, judgement, escape-band rendering, or the existing consumed-tip
+  marker.
+- No pulse or catch-dependent intensification in this version; both effects are direct state feedback.
+- No settings toggle.
