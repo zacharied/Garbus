@@ -204,7 +204,7 @@ namespace Garbus.Game.Screens
                         lastJudgementText = new SpriteText { Font = FontUsage.Default.With(size: 20), Colour = Color4.Gray },
                         new SpriteText
                         {
-                            Text = @"space: pause   r: restart   arrows/IJKL: cardinals   q/e: shoulders",
+                            Text = @"space: pause   r: restart",
                             Font = FontUsage.Default.With(size: 14),
                             Colour = Color4.DimGray,
                         },
