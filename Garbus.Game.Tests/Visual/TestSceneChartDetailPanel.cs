@@ -2,6 +2,7 @@
 // reports no background for a textureless card; the empty state clears the displayed card.
 
 using System.Linq;
+using Garbus.Game.Input;
 using Garbus.Game.Screens.SongSelect;
 using NUnit.Framework;
 using osu.Framework.Graphics;
@@ -31,6 +32,17 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("no background (placeholder)", () => !panel.HasBackground);
             AddAssert("title rendered", () => this.ChildrenOfType<SpriteText>().Any(t => t.Text.ToString() == "My Song"));
             AddAssert("artist rendered", () => this.ChildrenOfType<SpriteText>().Any(t => t.Text.ToString() == "My Artist"));
+        }
+
+        [Test]
+        public void TestPlayButtonShowsGamepadGlyph()
+        {
+            // The play prompt embeds the live face-south (Cross) glyph, and its texture actually resolves.
+            AddAssert("play prompt shows face-south glyph", () =>
+            {
+                var sprite = panel.ChildrenOfType<GamepadButtonSprite>().SingleOrDefault();
+                return sprite != null && sprite.Texture != null;
+            });
         }
 
         [Test]

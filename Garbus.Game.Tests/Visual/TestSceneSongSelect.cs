@@ -248,7 +248,7 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("click play button", () =>
             {
-                var button = this.ChildrenOfType<BasicButton>().Single(b => b.Text.ToString() == "Press X to play!");
+                var button = this.ChildrenOfType<ChartDetailPanel>().Single().ChildrenOfType<BasicButton>().Single();
                 input.MoveMouseTo(button);
                 input.Click(osuTK.Input.MouseButton.Left);
             });
