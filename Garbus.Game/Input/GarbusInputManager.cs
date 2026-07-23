@@ -55,6 +55,10 @@ namespace Garbus.Game.Input
         /// <summary>The bindings actually in effect: the store's overrides when one is cached, else defaults.</summary>
         public IEnumerable<IKeyBinding> ActiveKeyBindings => KeyBindings ?? DefaultKeyBindings;
 
+        /// <summary>Re-reads the effective bindings from the store. Lets a long-lived input manager (e.g. the
+        /// button-test panel sitting beside the rebind view) reflect a rebind without being recreated.</summary>
+        public void ReloadBindings() => ReloadMappings();
+
         // The base class calls this from LoadComplete (and would otherwise reset KeyBindings to the
         // defaults). Pull from the store when present so persisted rebinds take effect.
         protected override void ReloadMappings()
