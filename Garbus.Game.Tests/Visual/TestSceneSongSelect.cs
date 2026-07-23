@@ -16,6 +16,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input;
 using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 using osu.Framework.Screens;
@@ -181,6 +182,41 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("press up", () => input.Key(Key.Up));
             AddAssert("selection moved back to first card", () => songSelect.SelectedChart == ordered[0]);
+        }
+
+        [Test]
+        public void TestGamepadDPadMovesSelection()
+        {
+            IReadOnlyList<ChartCard> ordered = null!;
+
+            AddStep("go flat (deterministic single-list order)", () => songSelect.Grouped = false);
+            AddStep("capture flat order + select first", () =>
+            {
+                ordered = songSelect.Groups.SelectMany(g => g.Charts).OrderBy(c => c.Level).ToList();
+                songSelect.Select(ordered[0]);
+            });
+
+            AddAssert("at least two charts to navigate between", () => ordered.Count >= 2);
+
+            AddStep("d-pad down", () => press(JoystickButton.Hat1Down));
+            AddAssert("selection advanced to second card", () => songSelect.SelectedChart == ordered[1]);
+
+            AddStep("d-pad up", () => press(JoystickButton.Hat1Up));
+            AddAssert("selection moved back to first card", () => songSelect.SelectedChart == ordered[0]);
+        }
+
+        [Test]
+        public void TestGamepadSouthLaunches()
+        {
+            AddStep("select first chart", () => songSelect.Select(songSelect.Groups.SelectMany(g => g.Charts).First()));
+            AddStep("press face button south", () => press(JoystickButton.GamePadA));
+            AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
+        }
+
+        private void press(JoystickButton button)
+        {
+            input.PressJoystickButton(button);
+            input.ReleaseJoystickButton(button);
         }
 
         [Test]

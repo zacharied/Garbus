@@ -19,6 +19,7 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input;
 using osu.Framework.Input.Events;
 using osu.Framework.Platform;
 using osu.Framework.Screens;
@@ -317,6 +318,29 @@ namespace Garbus.Game.Screens.SongSelect
             }
 
             return base.OnKeyDown(e);
+        }
+
+        // Gamepad: d-pad up/down scroll the list, face button south (A / Joystick2) confirms — mirroring
+        // Up/Down/Enter in OnKeyDown. The controller is opened as an SDL gamepad, so the d-pad arrives as
+        // JoystickHat1 (GamePadDPad*) and A as Button2 (GamePadA); see GarbusInputManager.DefaultBindings.
+        protected override bool OnJoystickPress(JoystickPressEvent e)
+        {
+            switch (e.Button)
+            {
+                case JoystickButton.GamePadDPadDown:
+                    moveSelection(true);
+                    return true;
+
+                case JoystickButton.GamePadDPadUp:
+                    moveSelection(false);
+                    return true;
+
+                case JoystickButton.GamePadA:
+                    Launch();
+                    return true;
+            }
+
+            return base.OnJoystickPress(e);
         }
 
         /// <summary>Moves the current selection one row forward (down) or backward (up) in the

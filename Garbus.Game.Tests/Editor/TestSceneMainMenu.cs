@@ -14,18 +14,27 @@ using NUnit.Framework;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
 
 namespace Garbus.Game.Tests.Editor
 {
     [TestFixture]
     public partial class TestSceneMainMenu : GarbusTestScene
     {
+        private ManualInputManager input = null!;
         private ScreenStack stack = null!;
+        private MainMenuScreen menu = null!;
 
         [SetUp]
-        public void SetUp() => Schedule(() => Child = stack = new ScreenStack(new MainMenuScreen()) { RelativeSizeAxes = Axes.Both });
+        public void SetUp() => Schedule(() =>
+            Child = input = new ManualInputManager
+            {
+                RelativeSizeAxes = Axes.Both,
+                Child = stack = new ScreenStack(menu = new MainMenuScreen()) { RelativeSizeAxes = Axes.Both },
+            });
 
         [Test]
         public void TestNewChartOpensEditor()
@@ -79,6 +88,45 @@ namespace Garbus.Game.Tests.Editor
         {
             AddStep("click play", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "Play").TriggerClick());
             AddUntilStep("song select pushed", () => stack.CurrentScreen is SongSelectScreen);
+        }
+
+        [Test]
+        public void TestGamepadDPadMovesSelection()
+        {
+            AddUntilStep("menu loaded", () => menu.IsLoaded && menu.MenuButtonCount == 3);
+            AddAssert("first item selected by default", () => menu.SelectedIndex == 0);
+
+            AddStep("d-pad down", () => press(JoystickButton.Hat1Down));
+            AddAssert("second item selected", () => menu.SelectedIndex == 1);
+
+            AddStep("d-pad down", () => press(JoystickButton.Hat1Down));
+            AddAssert("third item selected", () => menu.SelectedIndex == 2);
+
+            AddStep("d-pad down at bottom", () => press(JoystickButton.Hat1Down));
+            AddAssert("selection clamps at last item", () => menu.SelectedIndex == 2);
+
+            AddStep("d-pad up", () => press(JoystickButton.Hat1Up));
+            AddAssert("second item selected", () => menu.SelectedIndex == 1);
+
+            AddStep("d-pad up", () => press(JoystickButton.Hat1Up));
+            AddStep("d-pad up at top", () => press(JoystickButton.Hat1Up));
+            AddAssert("selection clamps at first item", () => menu.SelectedIndex == 0);
+        }
+
+        [Test]
+        public void TestGamepadSouthActivatesSelectedItem()
+        {
+            AddUntilStep("menu loaded", () => menu.IsLoaded && menu.MenuButtonCount == 3);
+            AddAssert("play is the default selection", () => menu.SelectedIndex == 0);
+
+            AddStep("press face button south", () => press(JoystickButton.GamePadA));
+            AddUntilStep("song select pushed", () => stack.CurrentScreen is SongSelectScreen);
+        }
+
+        private void press(JoystickButton button)
+        {
+            input.PressJoystickButton(button);
+            input.ReleaseJoystickButton(button);
         }
 
         // Helper: resolve the current editor and add a CardinalNote to mark it dirty.
