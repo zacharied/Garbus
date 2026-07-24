@@ -1,7 +1,7 @@
 // Draws one thin, semi-transparent yellow polygon per same-start-time cardinal
-// chord, inscribed at the chord's shared (co-radial) distance from centre. Lives in Ring below the hit
-// objects. Geometry comes from ChordHighlighter + ProgressAtTime (never from live note positions), so it
-// keeps its full shape while the chord is scrolling in, even if one member despawns early.
+// chord, inscribed at the chord's shared (co-radial) distance from centre. Lives in Ring above the hit
+// objects but below judgement feedback and the outer ring. Geometry comes from ChordHighlighter +
+// ProgressAtTime, so it keeps its full shape while the chord is scrolling in, even if one member despawns early.
 //
 // In ordinary gameplay it is shown at full opacity only while at least one member is alive AND still unjudged
 // (ArmedState.Idle). The instant the chord reaches the ring and is judged, the polygon is frozen at its

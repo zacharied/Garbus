@@ -636,6 +636,70 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     }
 
     [Test]
+    public void TestMiniConnectorDrawsAboveOverlappingInitialChord()
+    {
+        ChordConnectorOverlay connectorOverlay = null!;
+        DrawableCardinalNote[] notes = null!;
+
+        AddStep("create mini-scale preview", () => Child = new Container
+        {
+            Size = new Vector2(InlineChartPreviewPanel.SIZE),
+            Child = new DrawSizePreservingFillContainer
+            {
+                RelativeSizeAxes = Axes.Both,
+                TargetDrawSize = new Vector2(ChartPreviewContent.TARGET_DRAW_SIZE),
+                Child = preview = new ChartPreviewContent { RelativeSizeAxes = Axes.Both },
+            },
+        });
+        AddUntilStep("mini-scale preview loaded", () => preview.IsLoaded);
+        AddStep("apply first chart chord", () => preview.Apply(fullState(1, chartWith(
+            new CardinalNote { StartTime = 21333.333333333332, AngleDeg = 180 },
+            new CardinalNote { StartTime = 21333.333333333332, AngleDeg = 0 }), [7, 8], 20700, 700)));
+        AddUntilStep("first chord connector visible", () =>
+            (connectorOverlay = preview.ChildrenOfType<ChordConnectorOverlay>().Single())
+                .ChildrenOfType<SmoothPath>().SingleOrDefault() is { IsPresent: true, Alpha: 1 }
+            && (notes = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>()
+                               .Where(note => note.IsLoaded)
+                               .OrderBy(note => note.ScreenSpaceDrawQuad.Centre.X)
+                               .ToArray()).Length == 2);
+        AddAssert("first connector is centred in ring", () =>
+            Vector2.Distance(
+                connectorOverlay.ChildrenOfType<SmoothPath>().Single().ScreenSpaceDrawQuad.Centre,
+                preview.ChildrenOfType<Ring>().Single().ScreenSpaceDrawQuad.Centre),
+            () => Is.LessThan(1));
+        AddAssert("note bodies cover entire connector segment", () =>
+        {
+            var connectorBounds = connectorOverlay.ChildrenOfType<SmoothPath>().Single().ScreenSpaceDrawQuad.AABBFloat;
+            var leftNoteBounds = notes[0].ScreenSpaceDrawQuad.AABBFloat;
+            var rightNoteBounds = notes[1].ScreenSpaceDrawQuad.AABBFloat;
+            return leftNoteBounds.Left <= connectorBounds.Left
+                   && leftNoteBounds.Right >= connectorBounds.Centre.X
+                   && rightNoteBounds.Left <= connectorBounds.Centre.X
+                   && rightNoteBounds.Right >= connectorBounds.Right;
+        });
+        AddAssert("connector uses shared foreground layer", () =>
+        {
+            Ring ring = preview.ChildrenOfType<Ring>().Single();
+            Drawable laneContainer = ring.ChildrenOfType<Lane>().First().Parent!;
+            JudgementFeedbackDisplay feedback = ring.ChildrenOfType<JudgementFeedbackDisplay>().Single();
+            Arc outerRing = ring.ChildrenOfType<Arc>().Single(arc => internalChildIndex(ring, arc) >= 0);
+            int hitObjectsIndex = internalChildIndex(ring, ring.HitObjectContainer);
+            int lanesIndex = internalChildIndex(ring, laneContainer);
+            int connectorIndex = internalChildIndex(ring, connectorOverlay);
+            int feedbackIndex = internalChildIndex(ring, feedback);
+            int outerRingIndex = internalChildIndex(ring, outerRing);
+
+            return ReferenceEquals(laneContainer.Parent, ring)
+                   && hitObjectsIndex >= 0
+                   && lanesIndex >= 0
+                   && connectorIndex > hitObjectsIndex
+                   && connectorIndex > lanesIndex
+                   && feedbackIndex > connectorIndex
+                   && outerRingIndex > connectorIndex;
+        });
+    }
+
+    [Test]
     public void TestPreviewConnectorStoppedSeekUsesChordTimeAndRewinds()
     {
         SmoothPath connector = null!;
@@ -1720,6 +1784,11 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         (bool)typeof(Drawable).GetProperty("IsDisposed",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!
             .GetValue(drawable)!;
+
+    private static int internalChildIndex(CompositeDrawable parent, Drawable child) =>
+        (int)typeof(CompositeDrawable).GetMethod("IndexOfInternal",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(parent, [child])!;
 
     private void useGatedDrawables(List<IGatedDrawable> generations)
     {
