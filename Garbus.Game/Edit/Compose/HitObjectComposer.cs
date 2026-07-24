@@ -27,7 +27,6 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
-using osu.Framework.Timing;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Gameplay.UI.Scrolling;
@@ -100,9 +99,6 @@ namespace Garbus.Game.Edit.Compose
         /// <summary>Houses the playfield and its blueprint overlay.</summary>
         protected Container PlayfieldContentContainer { get; private set; } = null!;
 
-        /// <summary>Playfield-scoped overlays drawn after the blueprint content.</summary>
-        protected Container PlayfieldOverlayContainer { get; private set; } = null!;
-
         protected InputManager InputManager { get; private set; } = null!;
 
         private EditorRadioButtonCollection toolboxCollection = null!;
@@ -115,9 +111,6 @@ namespace Garbus.Game.Edit.Compose
         [BackgroundDependencyLoader]
         private void load()
         {
-            var inspectorScrollClock = new FramedClock();
-            var inspectorContentClock = new FramedClock();
-
             InternalChildren = new Drawable[]
             {
                 // Offset the content region between the toolboxes via X + Width rather than Padding.
@@ -146,11 +139,6 @@ namespace Garbus.Game.Edit.Compose
                     {
                         Playfield,
                         blueprintContainer = CreateBlueprintContainer(),
-                        PlayfieldOverlayContainer = new Container
-                        {
-                            Name = "Mini preview overlay",
-                            RelativeSizeAxes = Axes.Both,
-                        },
                     },
                 },
                 new Container
@@ -188,19 +176,7 @@ namespace Garbus.Game.Edit.Compose
                             RelativeSizeAxes = Axes.Both,
                             Colour = new Colour4(20, 20, 26, 255),
                         },
-                        new BasicScrollContainer
-                        {
-                            Name = "Right toolbox scroll",
-                            RelativeSizeAxes = Axes.Both,
-                            ScrollbarOverlapsContent = false,
-                            // Keep all inspector and menu scrolling/transforms on UI time. The playfield remains
-                            // on the composer's editor clock through its separate content branch.
-                            Clock = inspectorScrollClock,
-                            Child = RightToolbox = new ExpandingToolboxContainer(TOOLBOX_WIDTH_RIGHT, scrollContent: true)
-                            {
-                                Clock = inspectorContentClock,
-                            },
-                        },
+                        RightToolbox = new ExpandingToolboxContainer(TOOLBOX_WIDTH_RIGHT),
                     },
                 },
             };

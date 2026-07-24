@@ -48,7 +48,6 @@ namespace Garbus.Game.Edit
         private FillFlowContainer controlsFlow = null!;
 
         private ScheduledDelegate? rollingUpdate;
-        private readonly List<Func<bool>> menuOpenChecks = new();
 
         // Tracked so a node-selection change (which isn't observable via events) triggers a rebuild.
         private readonly HashSet<GarbusPathControlPoint> lastNodeSelectionSnapshot = new HashSet<GarbusPathControlPoint>();
@@ -148,16 +147,8 @@ namespace Garbus.Game.Edit
 
         private void rebuild()
         {
-            if (IsHovered || menuOpenChecks.Any(isOpen => isOpen()))
-            {
-                rollingUpdate?.Cancel();
-                rollingUpdate = Scheduler.AddDelayed(rebuild, 250);
-                return;
-            }
-
             inspectorText.Clear();
             controlsFlow.Clear();
-            menuOpenChecks.Clear();
 
             rollingUpdate?.Cancel();
             rollingUpdate = null;
@@ -308,11 +299,10 @@ namespace Garbus.Game.Edit
         private void addMultiValueDropdown<T>(string label, MultiValue<T> state, Action<T> onChange)
             where T : struct, Enum
         {
-            var dropdown = new InspectorEnumDropdown<T>(state, onChange)
+            var dropdown = new MultiValueEnumDropdown<T>(state, onChange)
             {
                 RelativeSizeAxes = Axes.X,
             };
-            menuOpenChecks.Add(() => dropdown.MenuOpen);
 
             controlsFlow.Add(new FillFlowContainer
             {
@@ -331,18 +321,6 @@ namespace Garbus.Game.Edit
                     dropdown,
                 },
             });
-        }
-
-        private partial class InspectorEnumDropdown<T> : MultiValueEnumDropdown<T>
-            where T : struct, Enum
-        {
-            public bool MenuOpen => Menu.State == MenuState.Open;
-
-            public InspectorEnumDropdown(MultiValue<T> state, Action<T> onChange)
-                : base(state, onChange)
-            {
-                Menu.MaxHeight = 160;
-            }
         }
 
         private static string readableTypeName(GarbusHitObject h) => h switch

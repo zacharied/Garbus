@@ -5,8 +5,7 @@
 // entangled with OsuScrollContainer, the editor config (EditorContractSidebars), and hover-expand
 // animations — none of which exist in Garbus. Rewritten fresh as a plain fixed-width vertical
 // FillFlowContainer (the brief types LeftToolbox/RightToolbox as FillFlowContainer). The hover
-// expand/contract polish is deferred; the toolbox is always at its full width. Right-toolbox content
-// can opt into relative-width/auto-height sizing for hosting inside a bounded ScrollContainer.
+// expand/contract polish is deferred; the toolbox is always at its full width.
 
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -20,20 +19,10 @@ namespace Garbus.Game.Edit.Compose
     /// </summary>
     public partial class ExpandingToolboxContainer : FillFlowContainer
     {
-        public ExpandingToolboxContainer(float width, bool scrollContent = false)
+        public ExpandingToolboxContainer(float width)
         {
-            if (scrollContent)
-            {
-                RelativeSizeAxes = Axes.X;
-                AutoSizeAxes = Axes.Y;
-                Width = 1;
-            }
-            else
-            {
-                Width = width;
-                RelativeSizeAxes = Axes.Y;
-            }
-
+            Width = width;
+            RelativeSizeAxes = Axes.Y;
             Direction = FillDirection.Vertical;
             Spacing = new Vector2(0, 5);
             Padding = new MarginPadding { Vertical = 5, Horizontal = 5 };

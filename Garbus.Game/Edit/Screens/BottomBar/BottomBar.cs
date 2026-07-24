@@ -1,6 +1,6 @@
 // Bespoke for Garbus (modeled on osu.Game/Screens/Edit/BottomBar.cs).
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: four columns (150 | flex | 220 | 90); no osu.Game
+// Adapted for Garbus: four fixed-width columns (150 | flex | 220 | 90); no osu.Game
 // OverlayColourProvider/EdgeEffect/TestGameplayButton wiring; Test button wired in Task 19.
 
 using osu.Framework.Allocation;
@@ -13,7 +13,7 @@ namespace Garbus.Game.Edit.Screens.BottomBar
 {
     /// <summary>
     /// The fixed 60 px bar at the bottom of the editor.
-    /// Columns: time (150 px) | timeline (flex) | playback (220 px) | test (90 px).
+    /// Columns: TimeInfoDisplay (150 px) | SummaryTimeline (flex) | PlaybackControl (220 px) | Test button (90 px).
     /// </summary>
     public partial class BottomBar : CompositeDrawable
     {
@@ -71,3 +71,4 @@ namespace Garbus.Game.Edit.Screens.BottomBar
         }
     }
 }
+
