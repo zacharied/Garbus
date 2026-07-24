@@ -73,7 +73,7 @@ public sealed partial class SpikeBlade : Container
     public float TipRadius { get; private set; }
 
     private readonly ColourInfo colour;
-    private readonly Triangle triangle = new();
+    private readonly Triangle triangle = new() { EdgeSmoothness = Vector2.One };
     private BufferedContainer glow = null!;
 
     public SpikeBlade(ColourInfo colour)
