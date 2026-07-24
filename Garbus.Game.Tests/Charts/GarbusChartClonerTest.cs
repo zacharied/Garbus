@@ -164,7 +164,14 @@ namespace Garbus.Game.Tests.Charts
                 });
 
                 for (int j = 0; j < source.Groups[i].ControlPoints.Count; j++)
-                    Assert.That(clone.Groups[i].ControlPoints[j], Is.Not.SameAs(source.Groups[i].ControlPoints[j]));
+                {
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(clone.Groups[i].ControlPoints[j], Is.Not.SameAs(source.Groups[i].ControlPoints[j]));
+                        Assert.That(((TimingControlPoint)clone.Groups[i].ControlPoints[j]).TimeSignature,
+                            Is.Not.SameAs(((TimingControlPoint)source.Groups[i].ControlPoints[j]).TimeSignature));
+                    });
+                }
             }
 
             source.TimingPoints[0].OmitFirstBarLine = false;

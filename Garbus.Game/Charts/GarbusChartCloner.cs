@@ -150,6 +150,15 @@ internal static class GarbusChartCloner
 
         ControlPointInfo clone = source.DeepClone();
 
+        for (int i = 0; i < source.TimingPoints.Count; i++)
+        {
+            TimeSignature sourceSignature = source.TimingPoints[i].TimeSignature;
+
+            // Bindable suppresses value-equal assignments, so change the value before assigning the detached equivalent.
+            clone.TimingPoints[i].TimeSignature = new TimeSignature(sourceSignature.Numerator == 1 ? 2 : 1);
+            clone.TimingPoints[i].TimeSignature = new TimeSignature(sourceSignature.Numerator);
+        }
+
         foreach (ControlPointGroup group in source.Groups.Where(group => group.ControlPoints.Count == 0))
             clone.GroupAt(group.Time, true);
 
