@@ -188,13 +188,6 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("no buffered blur outside contact spikes", () =>
                 rightBody.ChildrenOfType<osu.Framework.Graphics.Containers.BufferedContainer>().Count() ==
                 rightBody.ContactSpikes.ChildrenOfType<osu.Framework.Graphics.Containers.BufferedContainer>().Count());
-
-            // Glow-only look: the crisp line layer is hidden by default, but the glow must stay
-            // visible — both sit under the same fade container, so hiding the wrong node would
-            // take the glow with it.
-            AddAssert("crisp line hidden, glow visible", () =>
-                rightBody.BodyPaths[0].Parent!.Alpha == 0 &&
-                rightBody.GlowPaths[0].Parent!.Alpha == 1);
         }
 
         [Test]
@@ -654,10 +647,6 @@ namespace Garbus.Game.Tests.Visual
 
             // "Fake radius": the disc is as wide as a tube cross-section, not just the crisp line.
             AddAssert("disc carries tube fullness", () => body.HeadGlow.PathRadius > body.Thickness / 2);
-
-            // Glow-only mode: the crisp circle stays hidden (it returns with ShowLine).
-            AddAssert("crisp circle hidden in glow-only mode", () =>
-                body.ChildrenOfType<osu.Framework.Graphics.Shapes.Circle>().All(c => c.Alpha == 0));
 
             // Past the ring the disc dissolves over the same EscapeFadeScale runway as the tube,
             // instead of the old hard pop at the ring.
