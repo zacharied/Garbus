@@ -194,6 +194,44 @@ namespace Garbus.Game.Tests.Charts
         }
 
         [Test]
+        public void CloneChartPreservesAndOwnsEmptyTimingGroups()
+        {
+            ControlPointInfo source = createEffectiveTiming();
+            ControlPointGroup createdEmptyGroup = source.GroupAt(1200, true);
+            ControlPointGroup emptiedGroup = source.GroupAt(3600, true);
+            emptiedGroup.Add(new TimingControlPoint { BeatLength = 250 });
+            emptiedGroup.Remove(emptiedGroup.ControlPoints.Single());
+
+            ControlPointInfo clone = GarbusChartCloner.CloneChart(createChart(), source).ControlPointInfo!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(clone.Groups.Select(group => group.Time), Is.EqualTo(source.Groups.Select(group => group.Time)));
+                Assert.That(clone.Groups.Select(group => group.ControlPoints.Count), Is.EqualTo(source.Groups.Select(group => group.ControlPoints.Count)));
+            });
+
+            ControlPointGroup clonedCreatedEmptyGroup = clone.GroupAt(createdEmptyGroup.Time)!;
+            ControlPointGroup clonedEmptiedGroup = clone.GroupAt(emptiedGroup.Time)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(clonedCreatedEmptyGroup, Is.Not.SameAs(createdEmptyGroup));
+                Assert.That(clonedCreatedEmptyGroup.ControlPoints, Is.Not.SameAs(createdEmptyGroup.ControlPoints));
+                Assert.That(clonedEmptiedGroup, Is.Not.SameAs(emptiedGroup));
+                Assert.That(clonedEmptiedGroup.ControlPoints, Is.Not.SameAs(emptiedGroup.ControlPoints));
+            });
+
+            createdEmptyGroup.Add(new TimingControlPoint { BeatLength = 750 });
+            clonedEmptiedGroup.Add(new TimingControlPoint { BeatLength = 125 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(clonedCreatedEmptyGroup.ControlPoints, Is.Empty);
+                Assert.That(emptiedGroup.ControlPoints, Is.Empty);
+            });
+        }
+
+        [Test]
         public void UnsupportedChartSubtypeFailsExplicitly()
         {
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneChart(new UnsupportedChart(), createEffectiveTiming()));

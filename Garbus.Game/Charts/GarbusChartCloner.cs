@@ -148,7 +148,12 @@ internal static class GarbusChartCloner
             }
         }
 
-        return source.DeepClone();
+        ControlPointInfo clone = source.DeepClone();
+
+        foreach (ControlPointGroup group in source.Groups.Where(group => group.ControlPoints.Count == 0))
+            clone.GroupAt(group.Time, true);
+
+        return clone;
     }
 
     private static void ensureExactType<T>(object source, string description)
