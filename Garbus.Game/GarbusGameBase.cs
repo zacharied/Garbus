@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
@@ -64,14 +66,14 @@ namespace Garbus.Game
             // the window even in fullscreen mode. Override persisted framework configuration too.
             frameworkConfig.SetValue(FrameworkSetting.ConfineMouseMode, ConfineMouseMode.Never);
 
-            // Disable the framework's independent per-axis joystick deadzone. It clamps whichever of
-            // X/Y is individually below the threshold to zero, which flattens a wedge around each
-            // cardinal onto exactly N/E/S/W (the analog sticks "snap"). AnalogInputManager.SliderCatcher
-            // gates activation *radially* (Position.Length() > DEADZONE), which preserves the true
-            // angle, so the framework's per-axis clamp is pure distortion here.
-            var joystickHandler = Host.AvailableInputHandlers.OfType<JoystickHandler>().SingleOrDefault();
-            if (joystickHandler != null)
-                joystickHandler.DeadzoneThreshold.Value = 0;
+            // Replace the framework's per-axis joystick deadzone with a radial (stick-vector) one.
+            // The per-axis clamp snaps shallow diagonals onto the cardinals; setting it to 0 instead
+            // makes a drifting stick emit a permanently-held phantom axis-button that pollutes every
+            // global key-combination and silently disables the framework debug key-bindings (Ctrl+F11,
+            // etc.). See RadialJoystickHandler. The platform GameHosts have internal constructors so we
+            // can't inject via a custom host; UserInputManager reads Host.AvailableInputHandlers live,
+            // so we swap the handler in place instead.
+            swapInRadialJoystickHandler();
 
             Resources.AddStore(new DllResourceStore(typeof(GarbusResources).Assembly));
 
@@ -92,6 +94,38 @@ namespace Garbus.Game
 
             // Custom font setup.
             initialiseFonts();
+        }
+
+        // Swaps the stock JoystickHandler out of the live handler list for a RadialJoystickHandler.
+        // No-op when there's no joystick handler (headless) or no window to bind to.
+        private void swapInRadialJoystickHandler()
+        {
+            var stock = Host.AvailableInputHandlers.OfType<JoystickHandler>().SingleOrDefault();
+            if (stock == null)
+                return;
+
+            var radial = new RadialJoystickHandler();
+            if (!radial.Initialize(Host))
+            {
+                radial.Dispose();
+                return;
+            }
+
+            ImmutableArray<osu.Framework.Input.Handlers.InputHandler> swapped =
+                Host.AvailableInputHandlers.Replace(stock, radial);
+
+            // AvailableInputHandlers has a private setter; UserInputManager reads it live, so replacing
+            // the array is enough for the swap to take effect on the next input collection.
+            var setter = typeof(GameHost).GetProperty(nameof(GameHost.AvailableInputHandlers))?.GetSetMethod(nonPublic: true);
+            if (setter == null)
+                throw new InvalidOperationException("Could not access GameHost.AvailableInputHandlers setter; the osu-framework API may have changed.");
+
+            setter.Invoke(Host, new object[] { swapped });
+
+            // Unsubscribe the stock handler from the window (otherwise it keeps enqueuing drift events
+            // into a queue that is no longer collected) and drop it.
+            stock.Enabled.Value = false;
+            stock.Dispose();
         }
 
         protected override void Dispose(bool isDisposing)
