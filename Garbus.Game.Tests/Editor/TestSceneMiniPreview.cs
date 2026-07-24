@@ -1,16 +1,19 @@
 // The editor Mini preview: a non-interactive autoHit playfield hosted over the compose workspace,
 // mirroring the editor's live hit objects on a clock slaved to the EditorClock.
 
+using System.IO;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Preview;
+using Garbus.Game.Edit.Screens;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI.Scrolling;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
+using Garbus.Game.Screens;
 using Garbus.Game.Tests.Visual;
 using Garbus.Game.UI;
 using NUnit.Framework;
@@ -19,6 +22,8 @@ using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Utils;
@@ -189,6 +194,167 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("fresh panel reads back the persisted offset", () =>
                 Precision.AlmostEquals(freshPanel.OffsetForTests.X, expectedOffset().X, 1f)
                 && Precision.AlmostEquals(freshPanel.OffsetForTests.Y, expectedOffset().Y, 1f));
+        }
+
+        // ------------------------------------------------------------------
+        // GarbusEditor-level wiring: enable toggle, Compose-only visibility gating, and
+        // suspend/restore around Test mode (Task 8). Hosts a real GarbusEditor on a ScreenStack,
+        // modelled on TestSceneEditorShell's setup.
+        // ------------------------------------------------------------------
+
+        private static GarbusEditor buildEditor()
+        {
+            var chart = new GarbusChart();
+            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+
+            var chartFile = new ChartFile(chart);
+            chartFile.Save(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".garbus"));
+
+            return new GarbusEditor(chartFile);
+        }
+
+        [Test]
+        public void TestPreviewVisibleOnlyInComposeWhenEnabled()
+        {
+            GarbusEditor editor = null!;
+            AddStep("create editor", () =>
+                Child = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = new ScreenStack(editor = buildEditor()) { RelativeSizeAxes = Axes.Both },
+                });
+            AddUntilStep("editor loaded", () => editor?.IsLoaded == true && editor.ChildrenOfType<ComposeTab>().Any());
+
+            InlineChartPreviewPanel panel() => editor.ChildrenOfType<InlineChartPreviewPanel>().Single();
+
+            AddAssert("on Compose + enabled → visible", () => editor.Tab.Value == EditorTab.Compose && panel().Alpha > 0);
+            AddStep("switch to Timing tab", () => editor.Tab.Value = EditorTab.Timing);
+            AddUntilStep("hidden off Compose", () => panel().Alpha == 0);
+            AddStep("back to Compose", () => editor.Tab.Value = EditorTab.Compose);
+            AddUntilStep("visible again", () => panel().Alpha > 0);
+            AddStep("disable via toggle", () => editor.MiniPreviewEnabled.Value = false);
+            AddUntilStep("hidden when disabled", () => panel().Alpha == 0);
+        }
+
+        [Test]
+        public void TestViewMenuMiniPreviewToggleFlipsBinding()
+        {
+            GarbusEditor editor = null!;
+            ManualInputManager input = null!;
+            AddStep("create editor", () =>
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = new ScreenStack(editor = buildEditor()) { RelativeSizeAxes = Axes.Both },
+                });
+            AddUntilStep("editor loaded", () => editor?.IsLoaded == true && editor.ChildrenOfType<ComposeTab>().Any());
+
+            AddStep("click View", () =>
+            {
+                var viewItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                     .First(i => i.Item.Text.Value.ToString() == "View");
+                input.MoveMouseTo(viewItem);
+                input.Click(MouseButton.Left);
+            });
+
+            AddUntilStep("view dropdown open", () =>
+                editor.ChildrenOfType<BasicMenu>().Count(m => m.State == MenuState.Open) >= 2);
+
+            AddAssert("Mini Preview item present", () =>
+                editor.ChildrenOfType<Menu.DrawableMenuItem>().Any(i => i.Item.Text.Value.ToString() == "Mini Preview"));
+
+            bool initialState = false;
+            AddStep("capture state", () => initialState = editor.MiniPreviewEnabled.Value);
+
+            AddStep("click Mini Preview", () =>
+            {
+                var drawableItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                         .First(i => i.Item.Text.Value.ToString() == "Mini Preview");
+                input.MoveMouseTo(drawableItem);
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("bindable flipped", () => editor.MiniPreviewEnabled.Value == !initialState);
+        }
+
+        [Test]
+        public void TestPreviewSuspendsForTestModeAndRestores()
+        {
+            GarbusEditor editor = null!;
+            ManualInputManager input = null!;
+            ScreenStack stack = null!;
+
+            AddStep("create editor with virtual track", () =>
+            {
+                editor = buildEditor();
+                editor.TrackFactoryOverride = () => new TrackVirtual(60_000);
+
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = stack = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both },
+                };
+            });
+            AddUntilStep("editor loaded", () => editor?.IsLoaded == true && editor.ChildrenOfType<ComposeTab>().Any());
+
+            AddAssert("enabled initially", () => editor.MiniPreviewEnabled.Value);
+
+            AddStep("press F5", () => input.Key(Key.F5));
+            AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
+
+            AddAssert("disabled while suspended", () => !editor.MiniPreviewEnabled.Value);
+
+            PlayScreen playScreen = null!;
+            AddStep("capture PlayScreen and exit", () =>
+            {
+                playScreen = (PlayScreen)stack.CurrentScreen;
+                playScreen.Exit();
+            });
+
+            AddUntilStep("back at editor", () => stack.CurrentScreen is GarbusEditor);
+            AddAssert("restored to enabled on resume", () => editor.MiniPreviewEnabled.Value);
+        }
+
+        [Test]
+        public void TestPreviewSuspendRestoresPriorDisabledValue()
+        {
+            GarbusEditor editor = null!;
+            ManualInputManager input = null!;
+            ScreenStack stack = null!;
+
+            AddStep("create editor with virtual track", () =>
+            {
+                editor = buildEditor();
+                editor.TrackFactoryOverride = () => new TrackVirtual(60_000);
+
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = stack = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both },
+                };
+            });
+            AddUntilStep("editor loaded", () => editor?.IsLoaded == true && editor.ChildrenOfType<ComposeTab>().Any());
+
+            AddStep("user disables preview before test mode", () => editor.MiniPreviewEnabled.Value = false);
+
+            AddStep("press F5", () => input.Key(Key.F5));
+            AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
+            AddAssert("still disabled while suspended", () => !editor.MiniPreviewEnabled.Value);
+
+            PlayScreen playScreen = null!;
+            AddStep("capture PlayScreen and exit", () =>
+            {
+                playScreen = (PlayScreen)stack.CurrentScreen;
+                playScreen.Exit();
+            });
+
+            AddUntilStep("back at editor", () => stack.CurrentScreen is GarbusEditor);
+            AddAssert("resume does NOT force-enable — user's prior disabled choice survives",
+                () => !editor.MiniPreviewEnabled.Value);
         }
 
         // ------------------------------------------------------------------

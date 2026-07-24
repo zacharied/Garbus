@@ -6,6 +6,7 @@ using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens.BottomBar;
 using Garbus.Game.Edit.Screens.Dialogs;
 using Garbus.Game.Screens;
@@ -41,6 +42,13 @@ namespace Garbus.Game.Edit.Screens
         // --- Public contract ---
 
         public readonly Bindable<EditorTab> Tab = new Bindable<EditorTab>(EditorTab.Compose);
+
+        /// <summary>
+        /// Whether the docked mini preview panel should be shown while on the Compose tab.
+        /// Automatically suspended (set false) while a <see cref="PlayScreen"/> (or any other screen)
+        /// is pushed on top of the editor, and restored to its prior value on resume.
+        /// </summary>
+        internal BindableBool MiniPreviewEnabled { get; } = new BindableBool(true);
 
         public ChartFile ChartFile { get; }
 
@@ -116,6 +124,11 @@ namespace Garbus.Game.Edit.Screens
         private Container tabContainer = null!;
         private Container dialogOverlay = null!;
 
+        private InlineChartPreviewPanel inlinePreviewPanel = null!;
+
+        /// <summary>Stashed <see cref="MiniPreviewEnabled"/> value across a suspend/resume cycle.</summary>
+        private bool? miniPreviewEnabledBeforeSuspension;
+
         public GarbusEditor(ChartFile chartFile)
         {
             ChartFile = chartFile;
@@ -180,6 +193,8 @@ namespace Garbus.Game.Edit.Screens
             audioManager = audio;
             RelativeSizeAxes = Axes.Both;
 
+            inlinePreviewPanel = new InlineChartPreviewPanel();
+
             // Load track.
             ReloadTrack(audioManager);
 
@@ -225,7 +240,7 @@ namespace Garbus.Game.Edit.Screens
             tabContainer.Children = new Drawable[]
             {
                 setupTab = new SetupTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
-                composeTab = new ComposeTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+                composeTab = new ComposeTab(inlinePreviewPanel) { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 timingTab = new TimingTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 designTab = new DesignTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 verifyTab = new VerifyTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
@@ -240,6 +255,7 @@ namespace Garbus.Game.Edit.Screens
             base.LoadComplete();
 
             Tab.BindValueChanged(e => updateTabVisibility(e.NewValue), true);
+            MiniPreviewEnabled.BindValueChanged(_ => updateInlinePreviewVisibility(), true);
         }
 
         // --- Tab management ---
@@ -251,7 +267,17 @@ namespace Garbus.Game.Edit.Screens
             timingTab.State.Value = activeTab == EditorTab.Timing ? Visibility.Visible : Visibility.Hidden;
             designTab.State.Value = activeTab == EditorTab.Design ? Visibility.Visible : Visibility.Hidden;
             verifyTab.State.Value = activeTab == EditorTab.Verify ? Visibility.Visible : Visibility.Hidden;
+
+            updateInlinePreviewVisibility();
         }
+
+        /// <summary>
+        /// The mini preview panel is only shown while enabled AND on the Compose tab — it is docked
+        /// inside <see cref="ComposeTab"/>'s content, but that tab merely hides via <see cref="Visibility"/>
+        /// rather than being removed, so the panel's own visibility must be gated independently.
+        /// </summary>
+        private void updateInlinePreviewVisibility()
+            => inlinePreviewPanel?.SetVisible(MiniPreviewEnabled.Value && Tab.Value == EditorTab.Compose);
 
         // --- Save / SaveAs ---
 
@@ -316,6 +342,10 @@ namespace Garbus.Game.Edit.Screens
         /// </summary>
         public void StartTestMode()
         {
+            // Unconditional: suspend the mini preview before any early-return below, so a test-mode
+            // launch that bails out (no track available) never leaves the preview stuck visible.
+            suspendPreview();
+
             // Determine which track to use.
             Track? freshTrack = null;
 
@@ -357,6 +387,32 @@ namespace Garbus.Game.Edit.Screens
             // If returning from a PlayScreen, seek the editor clock to where gameplay ended.
             if (e.Last is PlayScreen playScreen && playScreen.ExitTime.HasValue)
                 editorClock.Seek(playScreen.ExitTime.Value);
+
+            // Restore the mini preview to whatever it was before suspension (NOT force-enabled — the
+            // user may have disabled it before the suspend, and that choice must survive the round-trip).
+            if (miniPreviewEnabledBeforeSuspension is bool wasEnabled)
+            {
+                miniPreviewEnabledBeforeSuspension = null;
+                MiniPreviewEnabled.Value = wasEnabled;
+            }
+        }
+
+        public override void OnSuspending(ScreenTransitionEvent e)
+        {
+            suspendPreview();
+            base.OnSuspending(e);
+        }
+
+        /// <summary>
+        /// Hides the mini preview and stashes its prior enabled state (only on the first call of a
+        /// suspend cycle — <c>??=</c> so a redundant call, e.g. both <see cref="StartTestMode"/> and
+        /// the following <see cref="OnSuspending"/> for the same push, doesn't clobber the stash with
+        /// the already-suspended `false`).
+        /// </summary>
+        private void suspendPreview()
+        {
+            miniPreviewEnabledBeforeSuspension ??= MiniPreviewEnabled.Value;
+            MiniPreviewEnabled.Value = false;
         }
 
         // --- Layout helpers ---
@@ -450,6 +506,7 @@ namespace Garbus.Game.Edit.Screens
                 new ToggleMenuItem("Show Timing Changes", config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges)),
                 new ToggleMenuItem("Show Design Regions", config.GetBindable<bool>(GarbusSetting.EditorShowDesignRegions)),
                 new ToggleMenuItem("Auto-Seek on Placement", config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement)),
+                new ToggleMenuItem("Mini Preview", MiniPreviewEnabled),
             };
         }
 
@@ -581,6 +638,9 @@ namespace Garbus.Game.Edit.Screens
                 });
                 return true;
             }
+
+            // Exit confirmed (or was never dirty) — hide the preview; there is no resume coming.
+            MiniPreviewEnabled.Value = false;
 
             return base.OnExiting(e);
         }
