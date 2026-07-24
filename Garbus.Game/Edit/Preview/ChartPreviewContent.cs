@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Garbus.Game.Charts.Format;
+using Garbus.Game.Charts;
 using Garbus.Game.Gameplay;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -23,20 +23,16 @@ internal partial class ChartPreviewContent : CompositeDrawable
 {
     internal const float TARGET_DRAW_SIZE = 768;
 
-    private readonly ChartPreviewModel model = new();
     private readonly ChartPreviewClock previewClock = new();
     private readonly ManualClock manualClock = new();
     private readonly Func<GarbusHitObject, DrawableHitObject> drawableFactory;
     private readonly Func<DrawableHitObject, bool> isDrawableReady;
-    private readonly Dictionary<long, DrawableHitObject> drawables = new();
-    private readonly Dictionary<long, DrawableHitObject> pendingVisualRefreshes = new();
+    private Dictionary<PreviewObjectId, GarbusHitObject> objects = new();
+    private readonly Dictionary<PreviewObjectId, DrawableHitObject> drawables = new();
+    private readonly Dictionary<PreviewObjectId, DrawableHitObject> pendingVisualRefreshes = new();
     private readonly GarbusScrollingInfo scrollingInfo = new();
 
     private readonly FramedClock framedClock;
-
-    private long revision;
-    private int applyBatchDepth;
-    private bool hitObjectRefreshPending;
 
     private Container clockContent = null!;
     private GarbusPlayfield playfield = null!;
@@ -56,15 +52,15 @@ internal partial class ChartPreviewContent : CompositeDrawable
         framedClock = new FramedClock(manualClock);
     }
 
-    public event Action? ResyncRequested
-    {
-        add => model.ResyncRequested += value;
-        remove => model.ResyncRequested -= value;
-    }
+    public event Action? ResyncRequested;
 
-    internal event Action<ChartPreviewFullState>? FullStateReceivedForTests;
+    internal event Action<ChartPreviewSnapshot>? SnapshotReceivedForTests;
 
-    internal event Action<ChartPreviewMessage>? MessageAppliedForTests;
+    internal event Action<ChartPreviewBatch>? BatchAppliedForTests;
+
+    internal long AcceptedRevision { get; private set; }
+
+    internal GarbusChart CurrentChart { get; private set; } = new();
 
     protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
     {
@@ -94,129 +90,131 @@ internal partial class ChartPreviewContent : CompositeDrawable
                 Children =
                 [
                     playfield,
-                    designOverlay = new DesignOverlay(model.Chart),
+                    designOverlay = new DesignOverlay(CurrentChart),
                 ],
             },
         ];
     }
 
-    public bool Apply(ChartPreviewMessage message)
+    public bool Replace(ChartPreviewSnapshot snapshot)
     {
-        // A full state replaces chart and clock together; mixed revisions would create a snapshot that never existed.
-        if (message is ChartPreviewFullState mismatchedFullState
-            && mismatchedFullState.Transport.Revision != mismatchedFullState.Revision)
-            return model.RequestResync();
+        ArgumentNullException.ThrowIfNull(snapshot);
+        SnapshotReceivedForTests?.Invoke(snapshot);
 
-        if (message is ChartPreviewFullState receivedFullState)
-            FullStateReceivedForTests?.Invoke(receivedFullState);
+        if (snapshot.Revision <= AcceptedRevision)
+            return reject(snapshot.Revision < AcceptedRevision);
 
-        long? incomingRevision = message switch
+        if (!tryStageSnapshot(snapshot, out GarbusChart? nextChart, out Dictionary<PreviewObjectId, GarbusHitObject>? nextObjects))
+            return reject();
+
+        DrawableHitObject[] staleDrawables = drawables.Values.ToArray();
+
+        pendingVisualRefreshes.Clear();
+        foreach (DrawableHitObject drawable in staleDrawables)
+            detach(drawable);
+        drawables.Clear();
+
+        CurrentChart = nextChart;
+        objects = nextObjects;
+
+        foreach ((PreviewObjectId id, GarbusHitObject hitObject) in objects)
         {
-            ChartPreviewFullState state => state.Revision,
-            ChartPreviewObjectUpsert state => state.Revision,
-            ChartPreviewObjectRemove state => state.Revision,
-            ChartPreviewStructuralState state => state.Revision,
-            ChartPreviewTransport state => state.Revision,
-            ChartPreviewScrollSpeed state => state.Revision,
-            _ => null,
-        };
-
-        // Strict ordering prevents a same-frame remove/upsert batch from being replayed in a different order.
-        if (incomingRevision <= revision)
-            return incomingRevision < revision && model.RequestResync();
-
-        bool applied;
-
-        switch (message)
-        {
-            case ChartPreviewFullState fullState:
-                if (!model.ApplyFullState(fullState))
-                    return false;
-
-                rebuildObjects();
-                replaceDesignOverlay();
-                scrollingInfo.TimeRange.Value = fullState.TimeRange;
-                previewClock.Apply(fullState.Transport);
-                refreshHitObjects();
-                applied = true;
-                break;
-
-            case ChartPreviewObjectUpsert upsert:
-                applied = applyObjectUpsert(upsert);
-                break;
-
-            case ChartPreviewObjectRemove remove:
-                if (!model.ApplyObjectRemove(remove))
-                    return false;
-
-                if (!drawables.Remove(remove.ObjectId, out DrawableHitObject? removed))
-                    return model.RequestResync();
-
-                pendingVisualRefreshes.Remove(remove.ObjectId);
-                playfield.UntrackJudgedResult(removed);
-                playfield.Remove(removed);
-                removed.Dispose();
-                refreshHitObjects();
-                applied = true;
-                break;
-
-            case ChartPreviewStructuralState structuralState:
-                if (!model.ApplyStructuralState(structuralState))
-                    return false;
-
-                replaceDesignOverlay();
-                refreshHitObjects();
-                applied = true;
-                break;
-
-            case ChartPreviewTransport transport:
-                previewClock.Apply(transport);
-                applied = true;
-                break;
-
-            case ChartPreviewScrollSpeed scrollSpeed:
-                scrollingInfo.TimeRange.Value = scrollSpeed.TimeRange;
-                applied = true;
-                break;
-
-            default:
-                return true;
+            DrawableHitObject drawable = createDrawable(hitObject);
+            drawables.Add(id, drawable);
+            playfield.Add(drawable);
         }
 
-        if (applied && incomingRevision.HasValue)
-            revision = incomingRevision.Value;
+        foreach (DrawableHitObject drawable in staleDrawables)
+            drawable.Dispose();
 
-        if (applied)
-            MessageAppliedForTests?.Invoke(message);
-
-        return applied;
+        refreshHitObjects();
+        replaceDesignOverlay();
+        scrollingInfo.TimeRange.Value = snapshot.TimeRange;
+        previewClock.Apply(snapshot.Transport);
+        AcceptedRevision = snapshot.Revision;
+        return true;
     }
 
-    internal void ApplyBatch(Action apply)
+    public bool Apply(ChartPreviewBatch batch)
     {
-        ArgumentNullException.ThrowIfNull(apply);
+        ArgumentNullException.ThrowIfNull(batch);
 
-        applyBatchDepth++;
+        if (batch.Revision != AcceptedRevision + 1)
+            return reject(batch.Revision != AcceptedRevision);
 
-        try
+        if (!tryStageBatch(batch, out GarbusChart? nextChart, out Dictionary<PreviewObjectId, GarbusHitObject>? nextObjects))
+            return reject();
+
+        var retained = new List<(PreviewObjectId Id, DrawableHitObject Drawable, GarbusHitObject HitObject)>();
+        var stale = new List<(PreviewObjectId Id, DrawableHitObject Drawable)>();
+        var created = new List<(PreviewObjectId Id, GarbusHitObject HitObject)>();
+
+        foreach (PreviewObjectId id in batch.Removes)
+            stale.Add((id, drawables[id]));
+
+        foreach (PreviewObjectState upsert in batch.Upserts)
         {
-            apply();
-        }
-        finally
-        {
-            if (--applyBatchDepth == 0 && hitObjectRefreshPending)
+            if (!drawables.TryGetValue(upsert.Id, out DrawableHitObject? drawable))
+                created.Add((upsert.Id, upsert.HitObject));
+            else if (objects[upsert.Id].GetType() == upsert.HitObject.GetType())
+                retained.Add((upsert.Id, drawable, upsert.HitObject));
+            else
             {
-                hitObjectRefreshPending = false;
-                refreshHitObjects();
+                stale.Add((upsert.Id, drawable));
+                created.Add((upsert.Id, upsert.HitObject));
             }
         }
+
+        foreach ((PreviewObjectId id, DrawableHitObject drawable) in stale)
+        {
+            pendingVisualRefreshes.Remove(id);
+            detach(drawable);
+            drawables.Remove(id);
+        }
+
+        foreach ((PreviewObjectId _, DrawableHitObject drawable, GarbusHitObject _) in retained)
+            detach(drawable);
+
+        CurrentChart = nextChart;
+        objects = nextObjects;
+
+        foreach ((PreviewObjectId _, DrawableHitObject drawable, GarbusHitObject hitObject) in retained)
+        {
+            drawable.Apply(hitObject);
+            playfield.Add(drawable);
+            playfield.TrackJudgedResult(drawable);
+        }
+
+        foreach ((PreviewObjectId id, GarbusHitObject hitObject) in created)
+        {
+            DrawableHitObject drawable = createDrawable(hitObject);
+            drawables.Add(id, drawable);
+            playfield.Add(drawable);
+        }
+
+        foreach ((PreviewObjectId _, DrawableHitObject drawable) in stale)
+            drawable.Dispose();
+
+        if (!batch.Removes.IsEmpty || !batch.Upserts.IsEmpty || batch.Structure != null)
+            refreshHitObjects();
+
+        if (batch.Structure != null)
+            replaceDesignOverlay();
+        if (batch.TimeRange.HasValue)
+            scrollingInfo.TimeRange.Value = batch.TimeRange.Value;
+        if (batch.Transport.HasValue)
+            previewClock.Apply(batch.Transport.Value);
+
+        AcceptedRevision = batch.Revision;
+        BatchAppliedForTests?.Invoke(batch);
+        return true;
     }
 
     protected override void Update()
     {
         manualClock.CurrentTime = previewClock.CurrentTime;
 
-        foreach ((long id, DrawableHitObject drawable) in pendingVisualRefreshes.ToArray())
+        foreach ((PreviewObjectId id, DrawableHitObject drawable) in pendingVisualRefreshes.ToArray())
         {
             if (!drawables.TryGetValue(id, out DrawableHitObject? current) || !ReferenceEquals(current, drawable))
             {
@@ -244,6 +242,134 @@ internal partial class ChartPreviewContent : CompositeDrawable
         base.Update();
     }
 
+    private bool tryStageSnapshot(
+        ChartPreviewSnapshot snapshot,
+        out GarbusChart chart,
+        out Dictionary<PreviewObjectId, GarbusHitObject> stagedObjects)
+    {
+        chart = null!;
+        stagedObjects = null!;
+
+        if (snapshot.Structure == null
+            || snapshot.Objects.IsDefault
+            || !validStructure(snapshot.Structure)
+            || !validRange(snapshot.TimeRange)
+            || !validTransport(snapshot.Transport))
+            return false;
+
+        stagedObjects = new Dictionary<PreviewObjectId, GarbusHitObject>();
+        foreach (PreviewObjectState state in snapshot.Objects)
+        {
+            if (!validObjectState(state) || !stagedObjects.TryAdd(state.Id, state.HitObject))
+                return false;
+        }
+
+        applyDefaults(stagedObjects.Values);
+        chart = createChart(snapshot.Structure, stagedObjects);
+        return true;
+    }
+
+    private bool tryStageBatch(
+        ChartPreviewBatch batch,
+        out GarbusChart chart,
+        out Dictionary<PreviewObjectId, GarbusHitObject> stagedObjects)
+    {
+        chart = null!;
+        stagedObjects = null!;
+
+        if (batch.Removes.IsDefault
+            || batch.Upserts.IsDefault
+            || batch.Structure != null && (!validStructure(batch.Structure) || batch.Structure.ChartId != CurrentChart.ChartId)
+            || batch.TimeRange.HasValue && !validRange(batch.TimeRange.Value)
+            || batch.Transport.HasValue && !validTransport(batch.Transport.Value))
+            return false;
+
+        var removeIds = new HashSet<PreviewObjectId>();
+        foreach (PreviewObjectId id in batch.Removes)
+        {
+            if (id.Value <= 0 || !removeIds.Add(id) || !objects.ContainsKey(id))
+                return false;
+        }
+
+        var upsertIds = new HashSet<PreviewObjectId>();
+        foreach (PreviewObjectState state in batch.Upserts)
+        {
+            if (!validObjectState(state)
+                || !upsertIds.Add(state.Id)
+                || removeIds.Contains(state.Id))
+                return false;
+        }
+
+        stagedObjects = new Dictionary<PreviewObjectId, GarbusHitObject>(objects);
+        foreach (PreviewObjectId id in batch.Removes)
+            stagedObjects.Remove(id);
+        foreach (PreviewObjectState state in batch.Upserts)
+            stagedObjects[state.Id] = state.HitObject;
+
+        applyDefaults(batch.Upserts.Select(state => state.HitObject));
+        chart = createChart(batch.Structure ?? structureFrom(CurrentChart), stagedObjects);
+        return true;
+    }
+
+    private static void applyDefaults(IEnumerable<GarbusHitObject> hitObjects)
+    {
+        foreach (GarbusHitObject hitObject in hitObjects)
+            hitObject.ApplyDefaults();
+    }
+
+    private static GarbusChart createChart(
+        PreviewChartStructure structure,
+        IReadOnlyDictionary<PreviewObjectId, GarbusHitObject> chartObjects)
+        => new()
+        {
+            ChartId = structure.ChartId,
+            Metadata = structure.Metadata,
+            PreviewTime = structure.PreviewTime,
+            ControlPointInfo = structure.ControlPointInfo,
+            DesignPointInfo = structure.DesignPointInfo,
+            HitObjects = chartObjects.OrderBy(pair => pair.Value.StartTime)
+                                     .ThenBy(pair => pair.Key.Value)
+                                     .Select(pair => pair.Value)
+                                     .ToList(),
+        };
+
+    private static PreviewChartStructure structureFrom(GarbusChart chart) => new(
+        chart.ChartId,
+        chart.Metadata,
+        chart.PreviewTime,
+        chart.ControlPointInfo!,
+        chart.DesignPointInfo);
+
+    private static bool validStructure(PreviewChartStructure structure) =>
+        structure.ChartId != Guid.Empty
+        && structure.Metadata != null
+        && structure.ControlPointInfo != null
+        && structure.DesignPointInfo != null;
+
+    private static bool validObjectState(PreviewObjectState? state) =>
+        state != null
+        && state.Id.Value > 0
+        && state.HitObject != null
+        && isSupported(state.HitObject);
+
+    private static bool isSupported(GarbusHitObject hitObject) => hitObject is
+        CardinalNote or CardinalHoldNote or ShoulderNote or ShoulderHoldNote
+        or GarbusSlamCentered or GarbusSlamEdge or SliderBody;
+
+    private static bool validRange(double timeRange) => double.IsFinite(timeRange) && timeRange > 0;
+
+    private static bool validTransport(PreviewTransportState transport) =>
+        double.IsFinite(transport.Time)
+        && double.IsFinite(transport.Rate)
+        && transport.Rate > 0;
+
+    private bool reject(bool requestResync = true)
+    {
+        if (requestResync)
+            ResyncRequested?.Invoke();
+        return false;
+    }
+
     private static IEnumerable<DrawableHitObject> withNested(DrawableHitObject drawable)
     {
         yield return drawable;
@@ -252,74 +378,11 @@ internal partial class ChartPreviewContent : CompositeDrawable
             yield return nested;
     }
 
-    private bool applyObjectUpsert(ChartPreviewObjectUpsert state)
-    {
-        GarbusHitObject incoming;
-        try
-        {
-            incoming = GarbusChartSerializer.DecodeHitObject(state.ObjectJson);
-        }
-        catch
-        {
-            return model.ApplyObjectUpsert(state);
-        }
-
-        bool hadDrawable = drawables.TryGetValue(state.ObjectId, out DrawableHitObject? drawable);
-        bool retainDrawable = hadDrawable
-                              && model.Objects.TryGetValue(state.ObjectId, out GarbusHitObject? existing)
-                              && existing.GetType() == incoming.GetType();
-
-        if (retainDrawable)
-        {
-            playfield.UntrackJudgedResult(drawable!);
-            playfield.Remove(drawable!);
-        }
-
-        if (!model.ApplyObjectUpsert(state))
-        {
-            if (retainDrawable)
-            {
-                playfield.Add(drawable!);
-                playfield.TrackJudgedResult(drawable!);
-            }
-            return false;
-        }
-
-        if (retainDrawable)
-        {
-            playfield.Add(drawable!);
-            playfield.TrackJudgedResult(drawable!);
-        }
-        else
-        {
-            if (hadDrawable)
-            {
-                pendingVisualRefreshes.Remove(state.ObjectId);
-                playfield.UntrackJudgedResult(drawable!);
-                playfield.Remove(drawable!);
-                drawable!.Dispose();
-            }
-
-            DrawableHitObject replacement = createDrawable(model.Objects[state.ObjectId]);
-            drawables[state.ObjectId] = replacement;
-            playfield.Add(replacement);
-        }
-
-        refreshHitObjects();
-        return true;
-    }
-
     private void refreshHitObjects()
     {
-        if (applyBatchDepth > 0)
-        {
-            hitObjectRefreshPending = true;
-            return;
-        }
+        playfield.SetHitObjects(CurrentChart.HitObjects);
 
-        playfield.SetHitObjects(model.Chart.HitObjects);
-
-        foreach ((long id, DrawableHitObject drawable) in drawables)
+        foreach ((PreviewObjectId id, DrawableHitObject drawable) in drawables)
         {
             if (isDrawableReady(drawable))
             {
@@ -328,27 +391,6 @@ internal partial class ChartPreviewContent : CompositeDrawable
             }
             else
                 pendingVisualRefreshes[id] = drawable;
-        }
-    }
-
-    private void rebuildObjects()
-    {
-        pendingVisualRefreshes.Clear();
-
-        foreach (DrawableHitObject drawable in drawables.Values)
-        {
-            playfield.UntrackJudgedResult(drawable);
-            playfield.Remove(drawable);
-            drawable.Dispose();
-        }
-
-        drawables.Clear();
-
-        foreach ((long id, GarbusHitObject hitObject) in model.Objects)
-        {
-            DrawableHitObject drawable = createDrawable(hitObject);
-            drawables.Add(id, drawable);
-            playfield.Add(drawable);
         }
     }
 
@@ -368,10 +410,16 @@ internal partial class ChartPreviewContent : CompositeDrawable
             disableInput(nested);
     }
 
+    private void detach(DrawableHitObject drawable)
+    {
+        playfield.UntrackJudgedResult(drawable);
+        playfield.Remove(drawable);
+    }
+
     private void replaceDesignOverlay()
     {
         clockContent.Remove(designOverlay, true);
-        clockContent.Add(designOverlay = new DesignOverlay(model.Chart));
+        clockContent.Add(designOverlay = new DesignOverlay(CurrentChart));
     }
 
     protected override void Dispose(bool isDisposing)
@@ -382,7 +430,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
 
     internal int ObjectCountForTests => drawables.Count;
 
-    internal DrawableHitObject DrawableForTests(long objectId) => drawables[objectId];
+    internal DrawableHitObject DrawableForTests(PreviewObjectId objectId) => drawables[objectId];
 
     internal GarbusPlayfield PlayfieldForTests => playfield;
 
@@ -391,6 +439,4 @@ internal partial class ChartPreviewContent : CompositeDrawable
     internal double ClockTimeForTests => manualClock.CurrentTime;
 
     internal double CurrentTimeRangeForTests => scrollingInfo.TimeRange.Value;
-
-    internal long AcceptedRevisionForTests => revision;
 }

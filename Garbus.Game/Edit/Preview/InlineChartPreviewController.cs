@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using Garbus.Game.Charts;
@@ -240,55 +241,79 @@ internal partial class InlineChartPreviewController : CompositeComponent
 
     private void flushPendingChanges()
     {
-        view.ApplyBatch(() =>
+        if (pendingFullState)
         {
-            if (pendingFullState)
+            sendFullState();
+            return;
+        }
+
+        KeyValuePair<GarbusHitObject, long>[] removes = pendingRemoves.ToArray();
+        KeyValuePair<GarbusHitObject, long>[] upserts = pendingUpserts.ToArray();
+        pendingRemoves.Clear();
+        pendingUpserts.Clear();
+
+        foreach ((GarbusHitObject hitObject, long id) in removes)
+        {
+            apply(new ChartPreviewBatch(
+                nextRevision(),
+                [new PreviewObjectId(id)],
+                ImmutableArray<PreviewObjectState>.Empty,
+                null,
+                null,
+                null));
+            sentObjects.Remove(hitObject);
+            objectIds.Remove(hitObject);
+        }
+
+        foreach ((GarbusHitObject hitObject, long id) in upserts)
+        {
+            GarbusHitObject detached = GarbusChartSerializer.DecodeHitObject(GarbusChartSerializer.EncodeHitObject(hitObject));
+            apply(new ChartPreviewBatch(
+                nextRevision(),
+                ImmutableArray<PreviewObjectId>.Empty,
+                [new PreviewObjectState(new PreviewObjectId(id), detached)],
+                null,
+                null,
+                null));
+            sentObjects.Add(hitObject);
+        }
+
+        if (pendingStructuralState)
+        {
+            pendingStructuralState = false;
+            GarbusChart source = editorChart.CreateSerializableChart();
+            string structuralState = GarbusChartSerializer.EncodeStructural(source);
+
+            if (structuralState != lastStructuralState)
             {
-                sendFullState();
-                return;
+                lastStructuralState = structuralState;
+                GarbusChart detached = GarbusChartSerializer.Decode(structuralState);
+                apply(new ChartPreviewBatch(
+                    nextRevision(),
+                    ImmutableArray<PreviewObjectId>.Empty,
+                    ImmutableArray<PreviewObjectState>.Empty,
+                    structure(source.ChartId, detached),
+                    null,
+                    null));
             }
+        }
 
-            KeyValuePair<GarbusHitObject, long>[] removes = pendingRemoves.ToArray();
-            KeyValuePair<GarbusHitObject, long>[] upserts = pendingUpserts.ToArray();
-            pendingRemoves.Clear();
-            pendingUpserts.Clear();
-
-            foreach ((GarbusHitObject hitObject, long id) in removes)
-            {
-                apply(new ChartPreviewObjectRemove(nextRevision(), id));
-                sentObjects.Remove(hitObject);
-                objectIds.Remove(hitObject);
-            }
-
-            foreach ((GarbusHitObject hitObject, long id) in upserts)
-            {
-                apply(new ChartPreviewObjectUpsert(nextRevision(), id, GarbusChartSerializer.EncodeHitObject(hitObject)));
-                sentObjects.Add(hitObject);
-            }
-
-            if (pendingStructuralState)
-            {
-                pendingStructuralState = false;
-                string structuralState = GarbusChartSerializer.EncodeStructural(editorChart.CreateSerializableChart());
-
-                if (structuralState != lastStructuralState)
-                {
-                    lastStructuralState = structuralState;
-                    apply(new ChartPreviewStructuralState(nextRevision(), structuralState));
-                }
-            }
-
-            if (pendingScrollSpeed)
-            {
-                pendingScrollSpeed = false;
-                apply(new ChartPreviewScrollSpeed(nextRevision(), scrollingInfo.TimeRange.Value));
-            }
-        });
+        if (pendingScrollSpeed)
+        {
+            pendingScrollSpeed = false;
+            apply(new ChartPreviewBatch(
+                nextRevision(),
+                ImmutableArray<PreviewObjectId>.Empty,
+                ImmutableArray<PreviewObjectState>.Empty,
+                null,
+                scrollingInfo.TimeRange.Value,
+                null));
+        }
     }
 
     private void updateTransport()
     {
-        ChartPreviewTransport transport = captureTransport(revision + 1);
+        PreviewTransportState transport = captureTransport();
 
         pendingSmoothSeekTransport |= editorClock.IsSeeking;
 
@@ -303,8 +328,13 @@ internal partial class InlineChartPreviewController : CompositeComponent
         pendingImmediateTransport = false;
         pendingSmoothSeekTransport = false;
 
-        nextRevision();
-        apply(transport);
+        apply(new ChartPreviewBatch(
+            nextRevision(),
+            ImmutableArray<PreviewObjectId>.Empty,
+            ImmutableArray<PreviewObjectState>.Empty,
+            null,
+            null,
+            transport));
         rememberTransport(transport);
     }
 
@@ -335,34 +365,53 @@ internal partial class InlineChartPreviewController : CompositeComponent
         }).ToArray();
 
         long stateRevision = nextRevision();
-        ChartPreviewTransport transport = captureTransport(stateRevision);
+        PreviewTransportState transport = captureTransport();
 
         GarbusChart serializableChart = editorChart.CreateSerializableChart();
+        GarbusChart detached = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(serializableChart));
+        ImmutableArray<PreviewObjectState> objectStates = detached.HitObjects
+                                                                  .Select((hitObject, index) => new PreviewObjectState(
+                                                                      new PreviewObjectId(ids[index]),
+                                                                      hitObject))
+                                                                  .ToImmutableArray();
 
-        apply(new ChartPreviewFullState(
+        replace(new ChartPreviewSnapshot(
             stateRevision,
-            GarbusChartSerializer.Encode(serializableChart),
-            ids,
+            structure(serializableChart.ChartId, detached),
+            objectStates,
             scrollingInfo.TimeRange.Value,
             transport));
         lastStructuralState = GarbusChartSerializer.EncodeStructural(serializableChart);
         rememberTransport(transport);
     }
 
-    private ChartPreviewTransport captureTransport(long revision)
+    private PreviewTransportState captureTransport()
     {
         double time = editorClock.CurrentTime;
         long timestamp = Stopwatch.GetTimestamp();
-        return new ChartPreviewTransport(revision, time, editorClock.IsRunning, ((IClock)editorClock).Rate, timestamp);
+        return new PreviewTransportState(time, editorClock.IsRunning, ((IClock)editorClock).Rate, timestamp);
     }
 
-    private void apply(ChartPreviewMessage message)
+    private void apply(ChartPreviewBatch batch)
     {
-        if (!view.Apply(message))
+        if (!view.Apply(batch))
             pendingFullState = true;
     }
 
-    private void rememberTransport(ChartPreviewTransport transport)
+    private void replace(ChartPreviewSnapshot snapshot)
+    {
+        if (!view.Replace(snapshot))
+            pendingFullState = true;
+    }
+
+    private static PreviewChartStructure structure(Guid chartId, GarbusChart chart) => new(
+        chartId,
+        chart.Metadata,
+        chart.PreviewTime,
+        chart.ControlPointInfo!,
+        chart.DesignPointInfo);
+
+    private void rememberTransport(PreviewTransportState transport)
     {
         hasTransportState = true;
         lastTransportTime = transport.Time;

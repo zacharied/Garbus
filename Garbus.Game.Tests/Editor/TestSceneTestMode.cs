@@ -306,7 +306,7 @@ namespace Garbus.Game.Tests.Editor
             InlineChartPreviewPanel panel = null!;
             PlayScreen playScreen = null!;
             long acceptedRevisionBeforeClose = 0;
-            var reopenedFullStates = new List<ChartPreviewFullState>();
+            var reopenedFullStates = new List<ChartPreviewSnapshot>();
 
             AddUntilStep("mini preview loaded", () =>
                 (panel = editor.ChildrenOfType<InlineChartPreviewPanel>().SingleOrDefault()!)?.ViewForTests.IsLoaded == true);
@@ -314,8 +314,8 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("mini accepts pre-close seek", () => panel.ViewForTests.ClockTimeForTests >= 4800);
             AddStep("capture mini lifecycle state", () =>
             {
-                acceptedRevisionBeforeClose = panel.ViewForTests.AcceptedRevisionForTests;
-                panel.ViewForTests.FullStateReceivedForTests += reopenedFullStates.Add;
+                acceptedRevisionBeforeClose = panel.ViewForTests.AcceptedRevision;
+                panel.ViewForTests.SnapshotReceivedForTests += reopenedFullStates.Add;
             });
             AddStep("start test mode", () => editor.StartTestMode());
             AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
@@ -339,7 +339,7 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("first reopen full state advances retained revision", () =>
                 reopenedFullStates[0].Revision, () => Is.GreaterThan(acceptedRevisionBeforeClose));
             AddAssert("reopen full state contains current chart", () =>
-                reopenedFullStates[0].ObjectIds.Length, () => Is.EqualTo(4));
+                reopenedFullStates[0].Objects.Length, () => Is.EqualTo(4));
             AddAssert("first reopen full state uses returned play time", () =>
                 playScreen.ExitTime.HasValue
                 && System.Math.Abs(reopenedFullStates[0].Transport.Time - playScreen.ExitTime.Value) < 0.001);

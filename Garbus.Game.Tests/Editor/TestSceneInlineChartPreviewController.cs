@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -38,8 +39,8 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
     private GarbusScrollingInfo scrollingInfo = null!;
     private ChartPreviewContent preview = null!;
     private InlineChartPreviewController controller = null!;
-    private readonly List<ChartPreviewFullState> fullStates = new();
-    private readonly List<ChartPreviewMessage> appliedMessages = new();
+    private readonly List<ChartPreviewSnapshot> fullStates = new();
+    private readonly List<ChartPreviewBatch> appliedMessages = new();
     private BindableDouble rateAdjustment = null!;
 
     [SetUpSteps]
@@ -69,8 +70,8 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             {
                 Size = new Vector2(ChartPreviewContent.TARGET_DRAW_SIZE),
             };
-            preview.FullStateReceivedForTests += fullStates.Add;
-            preview.MessageAppliedForTests += appliedMessages.Add;
+            preview.SnapshotReceivedForTests += fullStates.Add;
+            preview.BatchAppliedForTests += appliedMessages.Add;
             controller = new InlineChartPreviewController(
                 editorChart,
                 editorClock,
@@ -106,8 +107,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
 
         openMini();
         AddAssert("full state contains effective timing", () =>
-            GarbusChartSerializer.Decode(fullStates.Single().ChartJson)
-                                 .ControlPointInfo!.TimingPoints.Single().Time,
+            fullStates.Single().Structure.ControlPointInfo.TimingPoints.Single().Time,
             () => Is.EqualTo(250));
     }
 
@@ -117,9 +117,9 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         bool objectUpdatedWhenTransportApplied = false;
 
         openMini();
-        AddStep("observe transport apply", () => preview.MessageAppliedForTests += message =>
+        AddStep("observe transport apply", () => preview.BatchAppliedForTests += batch =>
         {
-            if (message is ChartPreviewTransport)
+            if (batch.Transport.HasValue)
             {
                 objectUpdatedWhenTransportApplied =
                     ((CardinalNote)preview.PlayfieldForTests.AllHitObjects.Single().HitObject).AngleDeg == 180;
@@ -132,11 +132,11 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorClock.Seek(2500);
         });
         AddUntilStep("object and transport applied", () =>
-            appliedMessages.Any(message => message is ChartPreviewObjectUpsert)
-            && appliedMessages.Any(message => message is ChartPreviewTransport));
+            appliedMessages.Any(batch => !batch.Upserts.IsEmpty)
+            && appliedMessages.Any(batch => batch.Transport.HasValue));
         AddAssert("object applied before transport", () =>
-            appliedMessages.FindIndex(message => message is ChartPreviewObjectUpsert),
-            () => Is.LessThan(appliedMessages.FindIndex(message => message is ChartPreviewTransport)));
+            appliedMessages.FindIndex(batch => !batch.Upserts.IsEmpty),
+            () => Is.LessThan(appliedMessages.FindIndex(batch => batch.Transport.HasValue)));
         AddAssert("transport observes updated object", () => objectUpdatedWhenTransportApplied);
         AddAssert("transport applies seek time", () => preview.ClockTimeForTests,
             () => Is.EqualTo(2500).Within(0.001));
@@ -169,10 +169,10 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddUntilStep("replacement full state received", () => fullStates.Count == 2);
         AddAssert("replacement structure is authoritative", () =>
         {
-            GarbusChart decoded = GarbusChartSerializer.Decode(fullStates.Last().ChartJson);
-            return decoded.HitObjects.Single().StartTime == 3000
-                   && decoded.ControlPointInfo!.TimingPoints.Single().Time == 500
-                   && decoded.DesignPointInfo.DesignPoints.OfType<TutorialMessage>().Single().Text == "replacement";
+            ChartPreviewSnapshot received = fullStates.Last();
+            return received.Objects.Single().HitObject.StartTime == 3000
+                   && received.Structure.ControlPointInfo.TimingPoints.Single().Time == 500
+                   && received.Structure.DesignPointInfo.DesignPoints.OfType<TutorialMessage>().Single().Text == "replacement";
         });
         AddUntilStep("replacement content applied", () =>
             preview.PlayfieldForTests.AllHitObjects.Single().HitObject.StartTime == 3000
@@ -185,7 +185,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         long revisionBeforeUpdate = 0;
 
         openMini();
-        AddStep("capture revision", () => revisionBeforeUpdate = preview.AcceptedRevisionForTests);
+        AddStep("capture revision", () => revisionBeforeUpdate = preview.AcceptedRevision);
         AddStep("update same object three times", () =>
         {
             initialNote.AngleDeg = 90;
@@ -196,10 +196,10 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorChart.Update(initialNote);
         });
         AddUntilStep("coalesced upsert applied", () =>
-            preview.AcceptedRevisionForTests == revisionBeforeUpdate + 1
+            preview.AcceptedRevision == revisionBeforeUpdate + 1
             && ((CardinalNote)preview.PlayfieldForTests.AllHitObjects.Single().HitObject).AngleDeg == 180);
         AddWaitStep("allow another frame", 2);
-        AddAssert("only one revision emitted", () => preview.AcceptedRevisionForTests,
+        AddAssert("only one revision emitted", () => preview.AcceptedRevision,
             () => Is.EqualTo(revisionBeforeUpdate + 1));
     }
 
@@ -215,7 +215,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddUntilStep("authoritative replacement received", () => fullStates.Count == 2);
         AddUntilStep("replacement contains every object", () =>
             preview.ObjectCountForTests == max_pending_object_deltas + 2);
-        AddAssert("overflow used one full-state revision", () => preview.AcceptedRevisionForTests,
+        AddAssert("overflow used one full-state revision", () => preview.AcceptedRevision,
             () => Is.EqualTo(2));
     }
 
@@ -226,7 +226,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         long revisionBeforeChanges = 0;
 
         openMini();
-        AddStep("capture revision", () => revisionBeforeChanges = preview.AcceptedRevisionForTests);
+        AddStep("capture revision", () => revisionBeforeChanges = preview.AcceptedRevision);
         AddStep("add and remove object in one frame", () =>
         {
             editorChart.Add(transient);
@@ -235,7 +235,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddWaitStep("allow pending changes to flush", 2);
         AddAssert("transient object was never emitted", () =>
             preview.ObjectCountForTests == 1
-            && preview.AcceptedRevisionForTests == revisionBeforeChanges);
+            && preview.AcceptedRevision == revisionBeforeChanges);
         AddAssert("unsent reference released", objectIdCount, () => Is.EqualTo(1));
     }
 
@@ -254,12 +254,12 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorChart.Add(secondDuplicate);
         });
         AddUntilStep("both equal-valued objects applied", () =>
-            appliedMessages.OfType<ChartPreviewObjectUpsert>().Count() == 2);
+            appliedMessages.SelectMany(batch => batch.Upserts).Count() == 2);
         AddStep("capture distinct ids", () =>
         {
-            ChartPreviewObjectUpsert[] additions = appliedMessages.OfType<ChartPreviewObjectUpsert>().ToArray();
-            firstId = additions[0].ObjectId;
-            secondId = additions[1].ObjectId;
+            PreviewObjectState[] additions = appliedMessages.SelectMany(batch => batch.Upserts).ToArray();
+            firstId = additions[0].Id.Value;
+            secondId = additions[1].Id.Value;
         });
         AddAssert("equal values have distinct reference ids", () => firstId, () => Is.Not.EqualTo(secondId));
         AddStep("update first object", () =>
@@ -268,10 +268,10 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorChart.Update(firstDuplicate);
         });
         AddUntilStep("first update keeps id", () =>
-            appliedMessages.OfType<ChartPreviewObjectUpsert>().Count(upsert => upsert.ObjectId == firstId) == 2);
+            appliedMessages.SelectMany(batch => batch.Upserts).Count(upsert => upsert.Id.Value == firstId) == 2);
         AddStep("remove first object", () => editorChart.Remove(firstDuplicate));
         AddUntilStep("first remove keeps id", () =>
-            appliedMessages.OfType<ChartPreviewObjectRemove>().Any(remove => remove.ObjectId == firstId));
+            appliedMessages.SelectMany(batch => batch.Removes).Any(remove => remove.Value == firstId));
     }
 
     [Test]
@@ -301,7 +301,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddStep("queue remove then request resync", () =>
         {
             editorChart.Remove(removedNote);
-            Assert.That(preview.Apply(new ChartPreviewTransport(0, 1000, false, 1, 0)), Is.False);
+            Assert.That(preview.Apply(invalidBatch(0)), Is.False);
         });
         AddUntilStep("authoritative replacement received", () => fullStates.Count == 2);
         AddAssert("queued remove reference released", objectIdCount, () => Is.EqualTo(1));
@@ -316,7 +316,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         openMini();
         AddStep("request resync then remove note", () =>
         {
-            Assert.That(preview.Apply(new ChartPreviewTransport(0, 1000, false, 1, 0)), Is.False);
+            Assert.That(preview.Apply(invalidBatch(0)), Is.False);
             editorChart.Remove(initialNote);
         });
         AddUntilStep("authoritative empty state received", () =>
@@ -368,11 +368,11 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorChart.Add(replacement);
         });
         AddUntilStep("both deltas applied", () =>
-            appliedMessages.Any(message => message is ChartPreviewObjectRemove)
-            && appliedMessages.Any(message => message is ChartPreviewObjectUpsert));
+            appliedMessages.Any(batch => !batch.Removes.IsEmpty)
+            && appliedMessages.Any(batch => !batch.Upserts.IsEmpty));
         AddAssert("remove precedes upsert", () =>
-            appliedMessages.FindIndex(message => message is ChartPreviewObjectRemove),
-            () => Is.LessThan(appliedMessages.FindIndex(message => message is ChartPreviewObjectUpsert)));
+            appliedMessages.FindIndex(batch => !batch.Removes.IsEmpty),
+            () => Is.LessThan(appliedMessages.FindIndex(batch => !batch.Upserts.IsEmpty)));
     }
 
     [Test]
@@ -385,14 +385,14 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorChart.Update(initialNote);
         });
         AddUntilStep("object upsert applied", () =>
-            appliedMessages.OfType<ChartPreviewObjectUpsert>().Count() == 1);
+            appliedMessages.SelectMany(batch => batch.Upserts).Count() == 1);
         AddWaitStep("allow structural check", 2);
         AddAssert("object-only state emits no structural state", () =>
-            appliedMessages.OfType<ChartPreviewStructuralState>(), () => Is.Empty);
+            appliedMessages.Where(batch => batch.Structure != null), () => Is.Empty);
         AddStep("change timing", () =>
             editorChart.ControlPointInfo.Add(2000, new TimingControlPoint { BeatLength = 400 }));
         AddUntilStep("timing state applied", () =>
-            appliedMessages.OfType<ChartPreviewStructuralState>().Count() == 1
+            appliedMessages.Where(batch => batch.Structure != null).Count() == 1
             && previewChart().ControlPointInfo!.TimingPoints.Any(point => point.Time == 2000));
         AddStep("change design", () =>
         {
@@ -404,7 +404,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             });
         });
         AddUntilStep("design state applied", () =>
-            appliedMessages.OfType<ChartPreviewStructuralState>().Count() == 2
+            appliedMessages.Where(batch => batch.Structure != null).Count() == 2
             && preview.DesignOverlayForTests.MessageTextForTests == "updated structure");
         AddStep("change metadata", () =>
         {
@@ -414,7 +414,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             editorChart.EndChange();
         });
         AddUntilStep("metadata state applied", () =>
-            appliedMessages.OfType<ChartPreviewStructuralState>().Count() == 3
+            appliedMessages.Where(batch => batch.Structure != null).Count() == 3
             && previewChart().Metadata.Title == "Updated title");
     }
 
@@ -424,7 +424,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         openMini();
         AddStep("change scroll speed", () => scrollingInfo.TimeRange.Value = 1234);
         AddUntilStep("scroll speed applied", () =>
-            appliedMessages.OfType<ChartPreviewScrollSpeed>().Count() == 1
+            appliedMessages.Where(batch => batch.TimeRange.HasValue).Count() == 1
             && preview.CurrentTimeRangeForTests == 1234);
     }
 
@@ -434,7 +434,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         openMini();
         AddStep("start editor clock", () => editorClock.Start());
         AddUntilStep("start transport applied", () =>
-            appliedMessages.OfType<ChartPreviewTransport>().Count() == 1);
+            appliedMessages.Where(batch => batch.Transport.HasValue).Count() == 1);
         AddStep("defer transport cadence", () =>
         {
             appliedMessages.Clear();
@@ -442,16 +442,16 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         });
         AddStep("seek while running", () => editorClock.Seek(4000));
         AddUntilStep("discrete seek transport applied immediately", () =>
-            appliedMessages.OfType<ChartPreviewTransport>().Count() == 1);
+            appliedMessages.Where(batch => batch.Transport.HasValue).Count() == 1);
         AddStep("defer cadence and change rate", () =>
         {
             setLastTransportTimestamp(Stopwatch.GetTimestamp() + Stopwatch.Frequency);
             rateAdjustment.Value = 1.5;
         });
         AddUntilStep("rate transport applied immediately", () =>
-            appliedMessages.OfType<ChartPreviewTransport>().Count() == 2);
+            appliedMessages.Where(batch => batch.Transport.HasValue).Count() == 2);
         AddAssert("rate transport has requested rate", () =>
-            appliedMessages.OfType<ChartPreviewTransport>().Last().Rate,
+            appliedMessages.Where(batch => batch.Transport.HasValue).Last().Transport!.Value.Rate,
             () => Is.EqualTo(1.5));
     }
 
@@ -468,11 +468,11 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         });
         AddWaitStep("process below-cadence seeks", 1);
         AddAssert("no early smooth-seek transport", () =>
-            appliedMessages.OfType<ChartPreviewTransport>(), () => Is.Empty);
+            appliedMessages.Where(batch => batch.Transport.HasValue), () => Is.Empty);
         AddStep("make cadence due", () =>
             setLastTransportTimestamp(Stopwatch.GetTimestamp() - Stopwatch.Frequency));
         AddUntilStep("one smooth-seek transport applied", () =>
-            appliedMessages.OfType<ChartPreviewTransport>().Count() == 1);
+            appliedMessages.Where(batch => batch.Transport.HasValue).Count() == 1);
         AddStep("defer cadence and retarget again", () =>
         {
             setLastTransportTimestamp(Stopwatch.GetTimestamp() + Stopwatch.Frequency);
@@ -480,7 +480,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         });
         AddWaitStep("process second below-cadence seek", 1);
         AddAssert("smooth-seek transport remains capped", () =>
-            appliedMessages.OfType<ChartPreviewTransport>().Count(), () => Is.EqualTo(1));
+            appliedMessages.Where(batch => batch.Transport.HasValue).Count(), () => Is.EqualTo(1));
     }
 
     [Test]
@@ -490,18 +490,18 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
 
         openMini();
         AddStep("start editor clock", () => editorClock.Start());
-        AddUntilStep("start transport applied", () => preview.AcceptedRevisionForTests == 2);
+        AddUntilStep("start transport applied", () => preview.AcceptedRevision == 2);
         AddStep("defer cadence timestamp", () =>
         {
-            revisionAfterStart = preview.AcceptedRevisionForTests;
+            revisionAfterStart = preview.AcceptedRevision;
             setLastTransportTimestamp(Stopwatch.GetTimestamp() + Stopwatch.Frequency);
         });
         AddWaitStep("run frames below cadence", 5);
-        AddAssert("no early running transport", () => preview.AcceptedRevisionForTests,
+        AddAssert("no early running transport", () => preview.AcceptedRevision,
             () => Is.EqualTo(revisionAfterStart));
         AddStep("make cadence due", () => setLastTransportTimestamp(Stopwatch.GetTimestamp() - Stopwatch.Frequency));
         AddUntilStep("one cadence transport applied", () =>
-            preview.AcceptedRevisionForTests == revisionAfterStart + 1);
+            preview.AcceptedRevision == revisionAfterStart + 1);
     }
 
     [Test]
@@ -509,7 +509,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
     {
         openMini();
         AddStep("apply stale state", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(0, 1000, false, 1, 0)), Is.False));
+            Assert.That(preview.Apply(invalidBatch(0)), Is.False));
         AddUntilStep("replacement full state received", () => fullStates.Count == 2);
         AddAssert("replacement full state advances revision", () => fullStates[1].Revision,
             () => Is.GreaterThan(fullStates[0].Revision));
@@ -529,7 +529,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             useRejectingClockSource();
             editorClock.SeekingOrStopped.ValueChanged += _ => seekingStateChanges++;
             producerRevisionBeforeSeek = controllerRevision();
-            acceptedRevisionBeforeSeek = preview.AcceptedRevisionForTests;
+            acceptedRevisionBeforeSeek = preview.AcceptedRevision;
         });
         AddStep("reject stopped mini seek", () => seekResult = editorClock.Seek(1000));
         AddAssert("stopped seek rejected", () => seekResult, () => Is.False);
@@ -538,17 +538,17 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddWaitStep("allow stopped mini transport update", 2);
         AddAssert("stopped rejection keeps mini producer revision", controllerRevision,
             () => Is.EqualTo(producerRevisionBeforeSeek));
-        AddAssert("stopped rejection keeps mini accepted revision", () => preview.AcceptedRevisionForTests,
+        AddAssert("stopped rejection keeps mini accepted revision", () => preview.AcceptedRevision,
             () => Is.EqualTo(acceptedRevisionBeforeSeek));
 
         AddStep("start rejecting source", () => editorClock.Start());
         AddUntilStep("mini clock playing without seeking", () => editorClock.IsRunning && !editorClock.SeekingOrStopped.Value);
-        AddUntilStep("mini start transport applied", () => preview.AcceptedRevisionForTests > acceptedRevisionBeforeSeek);
+        AddUntilStep("mini start transport applied", () => preview.AcceptedRevision > acceptedRevisionBeforeSeek);
         AddStep("capture playing mini revisions", () =>
         {
             seekingStateChanges = 0;
             producerRevisionBeforeSeek = controllerRevision();
-            acceptedRevisionBeforeSeek = preview.AcceptedRevisionForTests;
+            acceptedRevisionBeforeSeek = preview.AcceptedRevision;
             setLastTransportTimestamp(Stopwatch.GetTimestamp() + Stopwatch.Frequency);
         });
         AddStep("reject playing mini seek", () => seekResult = editorClock.Seek(2000));
@@ -559,7 +559,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddWaitStep("allow playing mini transport update", 2);
         AddAssert("playing rejection keeps mini producer revision", controllerRevision,
             () => Is.EqualTo(producerRevisionBeforeSeek));
-        AddAssert("playing rejection keeps mini accepted revision", () => preview.AcceptedRevisionForTests,
+        AddAssert("playing rejection keeps mini accepted revision", () => preview.AcceptedRevision,
             () => Is.EqualTo(acceptedRevisionBeforeSeek));
     }
 
@@ -567,16 +567,18 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
     {
         AddStep("open mini", () => controller.Open());
         AddUntilStep("authoritative full state applied", () =>
-            controller.Enabled && fullStates.Count == 1 && preview.AcceptedRevisionForTests == 1);
+            controller.Enabled && fullStates.Count == 1 && preview.AcceptedRevision == 1);
     }
 
-    private GarbusChart previewChart()
-    {
-        var model = (ChartPreviewModel)typeof(ChartPreviewContent)
-            .GetField("model", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(preview)!;
-        return model.Chart;
-    }
+    private GarbusChart previewChart() => preview.CurrentChart;
+
+    private static ChartPreviewBatch invalidBatch(long revision) => new(
+        revision,
+        ImmutableArray<PreviewObjectId>.Empty,
+        ImmutableArray<PreviewObjectState>.Empty,
+        null,
+        null,
+        new PreviewTransportState(1000, false, 1, 0));
 
     private long controllerRevision() =>
         (long)typeof(InlineChartPreviewController)

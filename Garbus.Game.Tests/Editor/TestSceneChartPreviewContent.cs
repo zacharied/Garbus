@@ -50,7 +50,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     [Test]
     public void TestFullStateRendersCleanReadOnlyPlayfield()
     {
-        AddStep("apply full state", () => Assert.That(preview.Apply(fullState(1, previewChart(), [10, 20], 1200, 900)), Is.True));
+        AddStep("apply full state", () => Assert.That(preview.Replace(fullState(1, previewChart(), [10, 20], 1200, 900)), Is.True));
         AddUntilStep("objects loaded", () => preview.ObjectCountForTests == 2
                                                 && preview.PlayfieldForTests.AllHitObjects.All(d => d.IsLoaded));
 
@@ -77,7 +77,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                                                                .All(d => !d.HandleUserInput));
 
         AddStep("seek slider consumers without analog input", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(2, 2200, false, 1, 0)), Is.True));
+            Assert.That(preview.Apply(transportBatch(2, 2200, false, 1, 0)), Is.True));
         AddUntilStep("slider consumers update without analog input", () =>
             preview.ClockTimeForTests == 2200
             && preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().SingleOrDefault() is { IsLoaded: true } slider
@@ -145,8 +145,8 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             miniWarning = miniPreview.PlayfieldForTests.WarningIndicators;
             gameplayPlayfield.SetHitObjects(chart.HitObjects);
             gameplayClock.CurrentTime = startTimes[0] - 1000;
-            Assert.That(squarePreview.Apply(fullState(1, chart, [1, 2, 3, 4], startTimes[0] - 1000, 700)), Is.True);
-            Assert.That(miniPreview.Apply(fullState(1, chart, [1, 2, 3, 4], startTimes[0] - 1000, 700)), Is.True);
+            Assert.That(squarePreview.Replace(fullState(1, chart, [1, 2, 3, 4], startTimes[0] - 1000, 700)), Is.True);
+            Assert.That(miniPreview.Replace(fullState(1, chart, [1, 2, 3, 4], startTimes[0] - 1000, 700)), Is.True);
         });
         AddUntilStep("first cardinal warning revealed", () =>
             warning.RevealedAngleDeg(HorizontalDirection.Left) == angles[0]
@@ -155,8 +155,8 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("advance first warning fade", () =>
         {
             gameplayClock.CurrentTime = startTimes[0] - 900;
-            Assert.That(squarePreview.Apply(new ChartPreviewTransport(2, startTimes[0] - 900, false, 1, 0)), Is.True);
-            Assert.That(miniPreview.Apply(new ChartPreviewTransport(2, startTimes[0] - 900, false, 1, 0)), Is.True);
+            Assert.That(squarePreview.Apply(transportBatch(2, startTimes[0] - 900, false, 1, 0)), Is.True);
+            Assert.That(miniPreview.Apply(transportBatch(2, startTimes[0] - 900, false, 1, 0)), Is.True);
         });
         AddUntilStep("first warning output visible", () =>
             visibleWarningAlpha(warning) > 0
@@ -190,9 +190,9 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                 {
                     gameplayClock.CurrentTime = startTimes[index] - 1000;
                     Assert.That(squarePreview.Apply(
-                        new ChartPreviewTransport(index + 2, startTimes[index] - 1000, false, 1, 0)), Is.True);
+                        transportBatch(index + 2, startTimes[index] - 1000, false, 1, 0)), Is.True);
                     Assert.That(miniPreview.Apply(
-                        new ChartPreviewTransport(index + 2, startTimes[index] - 1000, false, 1, 0)), Is.True);
+                        transportBatch(index + 2, startTimes[index] - 1000, false, 1, 0)), Is.True);
                 });
                 AddUntilStep($"{angles[index]} degree warning revealed", () =>
                     warning.RevealedAngleDeg(HorizontalDirection.Left) == angles[index]
@@ -231,7 +231,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("seek to exact warning start", () =>
         {
-            Assert.That(preview.Apply(fullState(
+            Assert.That(preview.Replace(fullState(
                 1,
                 chartWith(warningSlider(angle, start_time)),
                 [1],
@@ -244,12 +244,12 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             && warningEffectBuffer(warning).Alpha == 0);
 
         AddStep("seek to initial half-period", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(2, warningStart + breathe_period / 2, false, 1, 0)), Is.True));
+            transportBatch(2, warningStart + breathe_period / 2, false, 1, 0)), Is.True));
         AddUntilStep("initial half-period is full alpha", () =>
             warningEffectBuffer(warning).Alpha == 1);
 
         AddStep("seek to full-period boundary", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(3, warningStart + breathe_period, false, 1, 0)), Is.True));
+            transportBatch(3, warningStart + breathe_period, false, 1, 0)), Is.True));
         AddUntilStep("full-period boundary is minimum alpha", () =>
             warningEffectBuffer(warning).Alpha == breathe_min_alpha);
     }
@@ -267,7 +267,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("seek stopped preview into warning", () =>
         {
-            Assert.That(preview.Apply(fullState(
+            Assert.That(preview.Replace(fullState(
                 1,
                 chartWith(warningSlider(angle, start_time)),
                 [1],
@@ -282,35 +282,35 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("record first alpha", () => firstSampleAlpha = warningEffectBuffer(warning).Alpha);
 
         AddStep("seek before warning", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(2, start_time - WarningIndicatorDisplay.WARNING_TIME - 1, false, 1, 0)), Is.True));
+            transportBatch(2, start_time - WarningIndicatorDisplay.WARNING_TIME - 1, false, 1, 0)), Is.True));
         AddUntilStep("before interval is transparent", () =>
             warning.RevealedAngleDeg(HorizontalDirection.Left) == null
             && warningEffectBuffer(warning).Alpha == 0);
 
         AddStep("seek back to first sample", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(3, first_sample_time, false, 1, 0)), Is.True));
+            transportBatch(3, first_sample_time, false, 1, 0)), Is.True));
         AddUntilStep("first alpha restored exactly", () =>
             warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
             && warningEffectBuffer(warning).Alpha == firstSampleAlpha);
 
         AddStep("seek after warning", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(4, start_time + 1, false, 1, 0)), Is.True));
+            transportBatch(4, start_time + 1, false, 1, 0)), Is.True));
         AddUntilStep("after interval is transparent", () =>
             warning.RevealedAngleDeg(HorizontalDirection.Left) == null
             && warningEffectBuffer(warning).Alpha == 0);
 
         AddStep("rewind into warning", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(5, phase_sample_time, false, 1, 0)), Is.True));
+            transportBatch(5, phase_sample_time, false, 1, 0)), Is.True));
         AddUntilStep("rewind restores angle and phase", () =>
             warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
             && warningEffectBuffer(warning).Alpha > 0);
         AddStep("record rewind alpha", () => rewindAlpha = warningEffectBuffer(warning).Alpha);
 
         AddStep("seek before warning again", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(6, start_time - WarningIndicatorDisplay.WARNING_TIME - 1, false, 1, 0)), Is.True));
+            transportBatch(6, start_time - WarningIndicatorDisplay.WARNING_TIME - 1, false, 1, 0)), Is.True));
         AddUntilStep("warning clears again", () => warningEffectBuffer(warning).Alpha == 0);
         AddStep("advance to same phase sample", () => Assert.That(preview.Apply(
-            new ChartPreviewTransport(7, phase_sample_time, false, 1, 0)), Is.True));
+            transportBatch(7, phase_sample_time, false, 1, 0)), Is.True));
         AddUntilStep("forward and backward histories match", () =>
             warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
             && warningEffectBuffer(warning).Alpha == rewindAlpha);
@@ -320,12 +320,12 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     public void TestSameTypeUpsertRetainsDrawableAndRecalculatesRouting()
     {
         DrawableHitObject before = null!;
-        AddStep("apply full state", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply full state", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 }), [7], 900, 700)));
         AddUntilStep("drawable loaded", () => preview.PlayfieldForTests.AllHitObjects.SingleOrDefault()?.IsLoaded == true);
         AddStep("capture drawable", () => before = preview.PlayfieldForTests.AllHitObjects.Single());
 
-        AddStep("upsert cardinal", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert cardinal", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
             GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2500, AngleDeg = 180 }))), Is.True));
@@ -343,7 +343,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableSliderBody before = null!;
         Drawable bufferedPath = null!;
 
-        AddStep("apply left slider", () => preview.Apply(fullState(1, chartWith(new SliderBody
+        AddStep("apply left slider", () => preview.Replace(fullState(1, chartWith(new SliderBody
         {
             StartTime = 2000,
             AngleDeg = 0,
@@ -365,7 +365,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                                  .Parent!;
         });
 
-        AddStep("upsert right slider", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert right slider", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
             GarbusChartSerializer.EncodeHitObject(new SliderBody
@@ -396,7 +396,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableSlamCentered centred = null!;
         DrawableSlamEdge edge = null!;
 
-        AddStep("apply left slams", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply left slams", () => preview.Replace(fullState(1, chartWith(
             new GarbusSlamCentered { StartTime = 2000, AngleDeg = 45, Side = HorizontalDirection.Left },
             new GarbusSlamEdge
             {
@@ -412,7 +412,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             edge = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSlamEdge>().Single();
         });
 
-        AddStep("upsert centred slam", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert centred slam", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
             GarbusChartSerializer.EncodeHitObject(new GarbusSlamCentered
@@ -421,7 +421,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                 AngleDeg = 135,
                 Side = HorizontalDirection.Right,
             }))), Is.True));
-        AddStep("upsert edge slam", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert edge slam", () => Assert.That(preview.Apply(upsertBatch(
             3,
             8,
             GarbusChartSerializer.EncodeHitObject(new GarbusSlamEdge
@@ -445,14 +445,14 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     {
         DrawableHitObject[] before = null!;
 
-        AddStep("apply separate cardinals", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply separate cardinals", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 2000, AngleDeg = 0 },
             new CardinalHoldNote { StartTime = 2100, AngleDeg = 180, Duration = 500 }), [7, 8], 1900, 700)));
         AddUntilStep("cardinals loaded white", () => preview.PlayfieldForTests.AllHitObjects
                                                          .Count(d => d.IsLoaded && d.Colour.Equals((ColourInfo)Colour4.White)) == 2);
         AddStep("capture cardinals", () => before = preview.PlayfieldForTests.AllHitObjects.ToArray());
 
-        AddStep("move one cardinal into chord", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("move one cardinal into chord", () => Assert.That(preview.Apply(upsertBatch(
             2,
             8,
             GarbusChartSerializer.EncodeHitObject(new CardinalHoldNote
@@ -473,19 +473,19 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote note = null!;
         DrawableCardinalHoldNote hold = null!;
 
-        AddStep("apply fresh note and hold chord", () => Assert.That(preview.Apply(fullState(1, chartWith(
+        AddStep("apply fresh note and hold chord", () => Assert.That(preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 2000, AngleDeg = 0 },
             new CardinalHoldNote { StartTime = 2000, AngleDeg = 180, Duration = 500 }), [7, 8], 1900, 700)), Is.True));
         AddUntilStep("fresh chord roots loaded", () =>
-            preview.DrawableForTests(7) is DrawableCardinalNote { IsLoaded: true } loadedNote
-            && preview.DrawableForTests(8) is DrawableCardinalHoldNote { IsLoaded: true } loadedHold
+            preview.DrawableForTests(new PreviewObjectId(7)) is DrawableCardinalNote { IsLoaded: true } loadedNote
+            && preview.DrawableForTests(new PreviewObjectId(8)) is DrawableCardinalHoldNote { IsLoaded: true } loadedHold
             && (note = loadedNote) != null
             && (hold = loadedHold) != null);
         AddAssert("fresh chord roots are yellow", () => new[] { note.Colour, hold.Colour },
             () => Is.All.EqualTo((ColourInfo)ChordColours.Highlight));
 
         AddStep("seek through both chord results", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(2, 2500, false, 1, 0)), Is.True));
+            Assert.That(preview.Apply(transportBatch(2, 2500, false, 1, 0)), Is.True));
         AddUntilStep("both chord roots hit", () => note.Judged && hold.Judged);
         AddAssert("first chord results are exact", () => new[] { note.Result.RawTime, hold.Result.RawTime },
             () => Is.EqualTo(new[] { 2000, 2500 }));
@@ -493,13 +493,13 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             () => Is.All.EqualTo((ColourInfo)ChordColours.Highlight));
 
         AddStep("rewind before chord", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(3, 1900, false, 1, 0)), Is.True));
+            Assert.That(preview.Apply(transportBatch(3, 1900, false, 1, 0)), Is.True));
         AddUntilStep("both chord roots rewind", () => !note.Judged && !hold.Judged);
         AddAssert("chord roots stay yellow after rewind", () => new[] { note.Colour, hold.Colour },
             () => Is.All.EqualTo((ColourInfo)ChordColours.Highlight));
 
         AddStep("reapply both chord results", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(4, 2500, false, 1, 0)), Is.True));
+            Assert.That(preview.Apply(transportBatch(4, 2500, false, 1, 0)), Is.True));
         AddUntilStep("both chord roots hit again", () => note.Judged && hold.Judged);
         AddAssert("reapplied chord results are exact", () => new[] { note.Result.RawTime, hold.Result.RawTime },
             () => Is.EqualTo(new[] { 2000, 2500 }));
@@ -513,19 +513,19 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote existing = null!;
         DrawableCardinalNote fresh = null!;
 
-        AddStep("apply one cardinal", () => Assert.That(preview.Apply(fullState(1, chartWith(
+        AddStep("apply one cardinal", () => Assert.That(preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1900, 700)), Is.True));
         AddUntilStep("existing cardinal loaded white", () =>
-            preview.DrawableForTests(7) is DrawableCardinalNote { IsLoaded: true } loaded
+            preview.DrawableForTests(new PreviewObjectId(7)) is DrawableCardinalNote { IsLoaded: true } loaded
             && loaded.Colour.Equals((ColourInfo)Colour4.White)
             && (existing = loaded) != null);
 
-        AddStep("upsert fresh chord member", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert fresh chord member", () => Assert.That(preview.Apply(upsertBatch(
             2,
             8,
             GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.True));
         AddUntilStep("fresh chord member loaded", () =>
-            preview.DrawableForTests(8) is DrawableCardinalNote { IsLoaded: true } loaded
+            preview.DrawableForTests(new PreviewObjectId(8)) is DrawableCardinalNote { IsLoaded: true } loaded
             && (fresh = loaded) != null);
         AddAssert("existing and fresh chord members are yellow", () => new[] { existing.Colour, fresh.Colour },
             () => Is.All.EqualTo((ColourInfo)ChordColours.Highlight));
@@ -534,7 +534,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                    .ChildrenOfType<SmoothPath>().SingleOrDefault() is { IsPresent: true });
 
         AddStep("seek through live chord", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(3, 2000, false, 1, 0)), Is.True));
+            Assert.That(preview.Apply(transportBatch(3, 2000, false, 1, 0)), Is.True));
         AddUntilStep("both live chord members hit", () => existing.Judged && fresh.Judged);
         AddAssert("both live chord results are exact", () => new[] { existing.Result.RawTime, fresh.Result.RawTime },
             () => Is.EqualTo(new[] { 2000, 2000 }));
@@ -548,7 +548,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply pending unloaded drawable", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1900, 700)), Is.True);
             Assert.That(generations, Has.Count.EqualTo(1));
             Assert.That(generations[0].Drawable.IsLoaded, Is.False);
@@ -556,11 +556,11 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         });
 
         AddStep("remove pending drawable", () =>
-            Assert.That(preview.Apply(new ChartPreviewObjectRemove(2, 7)), Is.True));
+            Assert.That(preview.Apply(removeBatch(2, 7)), Is.True));
         AddAssert("removal clears pending ownership", () => pendingVisualRefreshes(preview), () => Is.Empty);
 
         AddStep("add replacement work to advance updates", () =>
-            Assert.That(preview.Apply(new ChartPreviewObjectUpsert(3, 8,
+            Assert.That(preview.Apply(upsertBatch(3, 8,
                 GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2500, AngleDeg = 90 }))), Is.True));
         AddUntilStep("current generation loads behind closed gate", () =>
             generations.Count == 2 && generations[1].Drawable.IsLoaded);
@@ -578,7 +578,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply pending unloaded cardinal", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1900, 700)), Is.True);
             Assert.That(generations, Has.Count.EqualTo(1));
             Assert.That(generations[0].Drawable.IsLoaded, Is.False);
@@ -587,7 +587,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("replace same id with pending unloaded shoulder", () =>
         {
-            Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+            Assert.That(preview.Apply(upsertBatch(
                 2,
                 7,
                 GarbusChartSerializer.EncodeHitObject(new ShoulderNote
@@ -622,7 +622,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply first pending unloaded full state", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1900, 700)), Is.True);
             Assert.That(generations, Has.Count.EqualTo(1));
             Assert.That(generations[0].Drawable.IsLoaded, Is.False);
@@ -631,7 +631,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply authoritative unloaded replacement full state", () =>
         {
-            Assert.That(preview.Apply(fullState(2, chartWith(
+            Assert.That(preview.Replace(fullState(2, chartWith(
                 new CardinalNote { StartTime = 3000, AngleDeg = 180 }), [8], 2900, 700)), Is.True);
             Assert.That(generations, Has.Count.EqualTo(2));
             Assert.That(generations[1].Drawable.IsLoaded, Is.False);
@@ -663,7 +663,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply pending unloaded drawable before disposal", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1900, 700)), Is.True);
             Assert.That(generations, Has.Count.EqualTo(1));
             Assert.That(generations[0].Drawable.IsLoaded, Is.False);
@@ -689,7 +689,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddUntilStep("update sentinel preview loaded", () => preview.IsLoaded);
         AddStep("apply and release update sentinel", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 3000, AngleDeg = 90 }), [8], 2900, 700)), Is.True);
             generations.Single().ReleaseLoad();
         });
@@ -708,7 +708,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply genuinely pending unloaded drawable", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1900, 700)), Is.True);
             Assert.That(generations, Has.Count.EqualTo(1));
             Assert.That(generations[0].Drawable.IsLoaded, Is.False);
@@ -725,7 +725,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("successful generation leaves pending ownership", () => pendingVisualRefreshes(preview), () => Is.Empty);
 
         AddStep("advance preview without visual refresh", () =>
-            Assert.That(preview.Apply(new ChartPreviewTransport(2, 1950, false, 1, 0)), Is.True));
+            Assert.That(preview.Apply(transportBatch(2, 1950, false, 1, 0)), Is.True));
         AddAssert("deferred refresh executed exactly once", () => generations[0].VisualApplyCount, () => Is.EqualTo(2));
     }
 
@@ -746,7 +746,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             },
         });
         AddUntilStep("mini-scale preview loaded", () => preview.IsLoaded);
-        AddStep("apply first chart chord", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply first chart chord", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 21333.333333333332, AngleDeg = 180 },
             new CardinalNote { StartTime = 21333.333333333332, AngleDeg = 0 }), [7, 8], 20700, 700)));
         AddUntilStep("first chord connector visible", () =>
@@ -798,7 +798,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     {
         SmoothPath connector = null!;
 
-        AddStep("apply future instant chord", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply future instant chord", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 2000, AngleDeg = 0 },
             new CardinalNote { StartTime = 2000, AngleDeg = 180 }), [7, 8], 1900, 700)));
         AddUntilStep("connector visible before chord", () =>
@@ -808,12 +808,12 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             && (connector = path) != null);
 
         AddStep("seek stopped past connector fade", () =>
-            preview.Apply(new ChartPreviewTransport(2, 2201, false, 1, 0)));
+            preview.Apply(transportBatch(2, 2201, false, 1, 0)));
         AddAssert("connector hidden at seek destination", () => connector.IsPresent, () => Is.False);
         AddAssert("connector alpha resolved at seek destination", () => connector.Alpha, () => Is.Zero);
 
         AddStep("rewind stopped before chord", () =>
-            preview.Apply(new ChartPreviewTransport(3, 1900, false, 1, 0)));
+            preview.Apply(transportBatch(3, 1900, false, 1, 0)));
         AddUntilStep("connector returns after rewind", () => connector.IsPresent && connector.Alpha == 1);
     }
 
@@ -824,7 +824,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         Ring ring = null!;
         DrawableCardinalHoldNote hold = null!;
 
-        AddStep("apply future hold chord", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply future hold chord", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 2000, AngleDeg = 0 },
             new CardinalHoldNote { StartTime = 2000, AngleDeg = 180, Duration = 1000 }), [7, 8], 1900, 700)));
         AddUntilStep("hold chord loaded", () =>
@@ -836,7 +836,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             && (ring = preview.ChildrenOfType<Ring>().Single()) != null);
 
         AddStep("seek stopped into head fade", () =>
-            preview.Apply(new ChartPreviewTransport(2, 2100, false, 1, 0)));
+            preview.Apply(transportBatch(2, 2100, false, 1, 0)));
         AddAssert("hold remains alive through head fade", () => ring.AliveHitObjects
                                                                     .Any(drawable => ReferenceEquals(drawable.HitObject, hold.HitObject)));
         AddAssert("hold connector uses head fade", () => connector.Alpha,
@@ -845,12 +845,12 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                                                                     .All(vertex => Math.Abs(vertex.Length - ring.ScrollingContainer.ScrollLength) < 0.001f));
 
         AddStep("seek stopped past head fade", () =>
-            preview.Apply(new ChartPreviewTransport(3, 2201, false, 1, 0)));
+            preview.Apply(transportBatch(3, 2201, false, 1, 0)));
         AddAssert("hold tail remains pending", () => hold.IsAlive && !hold.Judged && hold.HitObject.GetEndTime() == 3000);
         AddAssert("hold connector hidden after head fade", () => connector.IsPresent, () => Is.False);
 
         AddStep("rewind stopped before hold head", () =>
-            preview.Apply(new ChartPreviewTransport(4, 1900, false, 1, 0)));
+            preview.Apply(transportBatch(4, 1900, false, 1, 0)));
         AddUntilStep("hold connector returns after rewind", () => connector.IsPresent && connector.Alpha == 1);
     }
 
@@ -860,33 +860,20 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableHitObject[] before = null!;
         bool refreshedBetweenDeltas = false;
 
-        AddStep("apply separate cardinals", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply separate cardinals", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 2000, AngleDeg = 0 },
             new CardinalNote { StartTime = 2100, AngleDeg = 180 }), [7, 8], 1900, 700)));
         AddUntilStep("cardinals loaded white", () => preview.PlayfieldForTests.AllHitObjects
                                                          .Count(d => d.IsLoaded && d.Colour.Equals((ColourInfo)Colour4.White)) == 2);
         AddStep("capture cardinals", () => before = preview.PlayfieldForTests.AllHitObjects.ToArray());
 
-        AddStep("apply multi-object batch", () => preview.ApplyBatch(() =>
-        {
-            Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
-                2,
-                8,
-                GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.True);
-            refreshedBetweenDeltas |= before.Any(d => d.Colour.Equals((ColourInfo)ChordColours.Highlight));
-
-            Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
-                3,
-                7,
-                GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2200, AngleDeg = 0 }))), Is.True);
-            refreshedBetweenDeltas |= before.Any(d => !d.Colour.Equals((ColourInfo)Colour4.White));
-
-            Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
-                4,
-                8,
-                GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2200, AngleDeg = 180 }))), Is.True);
-            refreshedBetweenDeltas |= before.Any(d => d.Colour.Equals((ColourInfo)ChordColours.Highlight));
-        }));
+        AddStep("apply multi-object batch", () => Assert.That(preview.Apply(batch(
+            2,
+            upserts:
+            [
+                state(7, new CardinalNote { StartTime = 2200, AngleDeg = 0 }),
+                state(8, new CardinalNote { StartTime = 2200, AngleDeg = 180 }),
+            ])), Is.True));
 
         AddAssert("no global refresh between deltas", () => refreshedBetweenDeltas, () => Is.False);
         AddUntilStep("final chord refreshed", () => before.All(d => d.Colour.Equals((ColourInfo)ChordColours.Highlight)));
@@ -897,10 +884,10 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     [Test]
     public void TestScrollRangeReachesEveryScrollingContainer()
     {
-        AddStep("apply full state", () => preview.Apply(fullState(1, previewChart(), [10, 20], 0, 700)));
+        AddStep("apply full state", () => preview.Replace(fullState(1, previewChart(), [10, 20], 0, 700)));
         AddUntilStep("scroll containers loaded", () => preview.ChildrenOfType<GarbusScrollingHitObjectContainer>().Any(c => c.IsLoaded));
 
-        AddStep("change time range", () => Assert.That(preview.Apply(new ChartPreviewScrollSpeed(2, 2400)), Is.True));
+        AddStep("change time range", () => Assert.That(preview.Apply(rangeBatch(2, 2400)), Is.True));
 
         AddUntilStep("view range changed", () => preview.CurrentTimeRangeForTests == 2400);
         AddAssert("scrolling containers exist", () => preview.ChildrenOfType<GarbusScrollingHitObjectContainer>().Any());
@@ -914,24 +901,12 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     {
         int resyncRequests = 0;
         AddStep("listen for resync", () => preview.ResyncRequested += () => resyncRequests++);
-        AddStep("apply full state", () => Assert.That(preview.Apply(fullState(5, previewChart(), [10, 20], 0, 700)), Is.True));
+        AddStep("apply full state", () => Assert.That(preview.Replace(fullState(5, previewChart(), [10, 20], 0, 700)), Is.True));
 
-        AddStep("apply stale scroll range", () => Assert.That(preview.Apply(new ChartPreviewScrollSpeed(4, 2400)), Is.False));
+        AddStep("apply stale scroll range", () => Assert.That(preview.Apply(rangeBatch(4, 2400)), Is.False));
 
         AddAssert("scroll range unchanged", () => preview.CurrentTimeRangeForTests, () => Is.EqualTo(700));
         AddAssert("resync requested", () => resyncRequests, () => Is.EqualTo(1));
-    }
-
-    [Test]
-    public void TestFullStateWithHigherNestedRevisionIsRejectedAtomically()
-    {
-        testMismatchedFullStateRevision(7);
-    }
-
-    [Test]
-    public void TestFullStateWithLowerNestedRevisionIsRejectedAtomically()
-    {
-        testMismatchedFullStateRevision(5);
     }
 
     [Test]
@@ -939,22 +914,22 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     {
         int resyncRequests = 0;
         AddStep("listen for resync", () => preview.ResyncRequested += () => resyncRequests++);
-        AddStep("apply full state", () => Assert.That(preview.Apply(fullState(5, chartWith(
+        AddStep("apply full state", () => Assert.That(preview.Replace(fullState(5, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 }), [7], 500, 700)), Is.True));
-        AddStep("apply newer transport", () => Assert.That(preview.Apply(new ChartPreviewTransport(7, 1500, false, 1, 0)), Is.True));
+        AddStep("apply newer transport", () => Assert.That(preview.Apply(transportBatch(6, 1500, false, 1, 0)), Is.True));
 
-        AddStep("reject older model update", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
-            6,
+        AddStep("reject older model update", () => Assert.That(preview.Apply(upsertBatch(
+            5,
             7,
             GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.False));
         AddAssert("model unchanged", () => preview.PlayfieldForTests.AllHitObjects.Single().HitObject.StartTime, () => Is.EqualTo(1000));
 
-        AddStep("apply newer scroll range", () => Assert.That(preview.Apply(new ChartPreviewScrollSpeed(8, 2400)), Is.True));
-        AddStep("reject older transport", () => Assert.That(preview.Apply(new ChartPreviewTransport(7, 9000, false, 1, 0)), Is.False));
+        AddStep("apply newer scroll range", () => Assert.That(preview.Apply(rangeBatch(7, 2400)), Is.True));
+        AddStep("reject older transport", () => Assert.That(preview.Apply(transportBatch(7, 9000, false, 1, 0)), Is.False));
 
         AddAssert("transport unchanged", () => preview.ClockTimeForTests, () => Is.EqualTo(1500).Within(0.001));
         AddAssert("scroll range retained", () => preview.CurrentTimeRangeForTests, () => Is.EqualTo(2400));
-        AddAssert("both stale messages requested resync", () => resyncRequests, () => Is.EqualTo(2));
+        AddAssert("stale batch requested resync", () => resyncRequests, () => Is.EqualTo(1));
     }
 
     [Test]
@@ -962,11 +937,11 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     {
         int resyncRequests = 0;
         AddStep("listen for resync", () => preview.ResyncRequested += () => resyncRequests++);
-        AddStep("apply full state", () => Assert.That(preview.Apply(fullState(5, previewChart(), [10, 20], 1500, 700)), Is.True));
+        AddStep("apply full state", () => Assert.That(preview.Replace(fullState(5, previewChart(), [10, 20], 1500, 700)), Is.True));
         AddUntilStep("initial transport applied", () => preview.ClockTimeForTests == 1500);
 
         AddStep("apply duplicate transport", () => Assert.That(
-            preview.Apply(new ChartPreviewTransport(5, 9000, false, 1, 0)), Is.False));
+            preview.Apply(transportBatch(5, 9000, false, 1, 0)), Is.False));
 
         AddAssert("transport unchanged", () => preview.ClockTimeForTests, () => Is.EqualTo(1500).Within(0.001));
         AddAssert("no resync requested", () => resyncRequests, () => Is.Zero);
@@ -975,7 +950,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     [Test]
     public void TestStructuralStateReplacesTutorialOverlay()
     {
-        AddStep("apply full state", () => preview.Apply(fullState(1, previewChart(), [10, 20], 1200, 700)));
+        AddStep("apply full state", () => preview.Replace(fullState(1, previewChart(), [10, 20], 1200, 700)));
         AddUntilStep("old tutorial visible", () => preview.DesignOverlayForTests.MessageTextForTests == "Preview tutorial");
 
         AddStep("replace structural state", () =>
@@ -987,7 +962,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                 EndTime = 2000,
                 Text = "Replacement tutorial",
             });
-            Assert.That(preview.Apply(new ChartPreviewStructuralState(2, GarbusChartSerializer.Encode(replacement))), Is.True);
+            Assert.That(preview.Apply(structureBatch(2, GarbusChartSerializer.Encode(replacement))), Is.True);
         });
 
         AddUntilStep("replacement tutorial visible", () => preview.DesignOverlayForTests.MessageVisibleForTests
@@ -1006,7 +981,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("create preview and ordinary note", () =>
         {
-            preview.Apply(fullState(1, chartWith(
+            preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 1000, AngleDeg = 0 }), [7], 900, 700));
 
             gameplayClock = new ManualClock { CurrentTime = 900 };
@@ -1028,7 +1003,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddUntilStep("advance both beyond miss window", () =>
         {
             gameplayClock.CurrentTime += 100;
-            preview.Apply(new ChartPreviewTransport(transportRevision++, gameplayClock.CurrentTime, false, 1, 0));
+            preview.Apply(transportBatch(transportRevision++, gameplayClock.CurrentTime, false, 1, 0));
             return gameplayClock.CurrentTime >= 3000;
         });
 
@@ -1048,22 +1023,22 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote drawable = null!;
         double hitLifetimeEnd = 0;
 
-        AddStep("apply preview note", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply preview note", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 }), [7], 900, 700)));
         AddUntilStep("preview note loaded", () =>
             preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().SingleOrDefault() is { IsLoaded: true } loaded
             && (drawable = loaded) != null);
 
-        AddStep("seek to note start", () => preview.Apply(new ChartPreviewTransport(2, 1000, false, 1, 0)));
+        AddStep("seek to note start", () => preview.Apply(transportBatch(2, 1000, false, 1, 0)));
         AddUntilStep("preview note hits", () => drawable.State.Value == ArmedState.Hit);
         AddAssert("first result is exact", () => drawable.Result.RawTime, () => Is.EqualTo(1000));
         AddStep("capture hit lifetime", () => hitLifetimeEnd = drawable.LifetimeEnd);
 
-        AddStep("seek beyond hit lifetime", () => preview.Apply(new ChartPreviewTransport(3, hitLifetimeEnd + 1, false, 1, 0)));
+        AddStep("seek beyond hit lifetime", () => preview.Apply(transportBatch(3, hitLifetimeEnd + 1, false, 1, 0)));
         AddUntilStep("preview hit no longer alive", () => !drawable.IsAlive && !drawable.IsPresent);
         AddAssert("expired preview note remains hit", () => drawable.Judged && drawable.State.Value == ArmedState.Hit);
 
-        AddStep("seek backward into hit lifetime", () => preview.Apply(new ChartPreviewTransport(4, 1200, false, 1, 0)));
+        AddStep("seek backward into hit lifetime", () => preview.Apply(transportBatch(4, 1200, false, 1, 0)));
         AddWaitStep("process backward seek", 2);
         AddAssert("preview clock rewinds", () => drawable.Clock.CurrentTime, () => Is.EqualTo(1200).Within(0.001));
         AddAssert("rewound time is inside hit lifetime", () => drawable.LifetimeEnd, () => Is.GreaterThan(1200));
@@ -1074,10 +1049,10 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("revived drawable retained", () => preview.PlayfieldForTests.AllHitObjects.Single(), () => Is.SameAs(drawable));
         AddAssert("revived result remains hit", () => drawable.Judged && drawable.State.Value == ArmedState.Hit);
 
-        AddStep("seek before result", () => preview.Apply(new ChartPreviewTransport(5, 900, false, 1, 0)));
+        AddStep("seek before result", () => preview.Apply(transportBatch(5, 900, false, 1, 0)));
         AddUntilStep("preview result rewinds", () => !drawable.Judged && drawable.State.Value == ArmedState.Idle);
 
-        AddStep("seek forward to note start again", () => preview.Apply(new ChartPreviewTransport(6, 1000, false, 1, 0)));
+        AddStep("seek forward to note start again", () => preview.Apply(transportBatch(6, 1000, false, 1, 0)));
         AddUntilStep("preview note hits again", () => drawable.State.Value == ArmedState.Hit);
         AddAssert("reapplied result is exact", () => drawable.Result.RawTime, () => Is.EqualTo(1000));
         AddAssert("reapplied result remains silent", () => drawable.SamplesPlayCount, () => Is.Zero);
@@ -1090,7 +1065,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote later = null!;
         int laterResultCount = 0;
 
-        AddStep("apply same-lane preview notes", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply same-lane preview notes", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 },
             new CardinalNote { StartTime = 1200, AngleDeg = 0 }), [7, 8], 900, 700)));
         AddUntilStep("same-lane preview notes loaded", () =>
@@ -1110,7 +1085,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             };
         });
 
-        AddStep("jump forward across both notes", () => preview.Apply(new ChartPreviewTransport(2, 1300, false, 1, 0)));
+        AddStep("jump forward across both notes", () => preview.Apply(transportBatch(2, 1300, false, 1, 0)));
         AddUntilStep("both preview notes hit", () =>
             earlier.Judged && earlier.State.Value == ArmedState.Hit
                            && later.Judged && later.State.Value == ArmedState.Hit);
@@ -1118,13 +1093,13 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("later result time is exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
         AddAssert("later result applied once", () => laterResultCount, () => Is.EqualTo(1));
 
-        AddStep("rewind between notes", () => preview.Apply(new ChartPreviewTransport(3, 1100, false, 1, 0)));
+        AddStep("rewind between notes", () => preview.Apply(transportBatch(3, 1100, false, 1, 0)));
         AddUntilStep("rewind transport applied", () => preview.ClockTimeForTests, () => Is.EqualTo(1100));
         AddAssert("later result becomes unjudged", () => later.Judged, () => Is.False);
         AddAssert("later state becomes idle", () => later.State.Value, () => Is.EqualTo(ArmedState.Idle));
         AddAssert("earlier result remains applied", () => earlier.Judged && earlier.State.Value == ArmedState.Hit);
 
-        AddStep("move forward across later note", () => preview.Apply(new ChartPreviewTransport(4, 1300, false, 1, 0)));
+        AddStep("move forward across later note", () => preview.Apply(transportBatch(4, 1300, false, 1, 0)));
         AddUntilStep("later result reapplies", () => later.Judged && later.State.Value == ArmedState.Hit);
         AddAssert("reapplied later result time is exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
         AddWaitStep("hold after later result", 3);
@@ -1143,7 +1118,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             if (result.RawTime == 1200)
                 laterResultCount++;
         });
-        AddStep("apply only later note at 1300", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply only later note at 1300", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1200, AngleDeg = 0 }), [8], 1300, 700)));
         AddUntilStep("later preview note loads and hits", () =>
             preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().SingleOrDefault() is { IsLoaded: true, Judged: true } loaded
@@ -1152,7 +1127,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("initial later result time is exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
         AddAssert("later result initially applied once", () => laterResultCount, () => Is.EqualTo(1));
 
-        AddStep("upsert earlier note while still at 1300", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert earlier note while still at 1300", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
             GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 1000, AngleDeg = 0 }))), Is.True));
@@ -1165,13 +1140,13 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("live-upserted earlier result time is exact", () => earlier.Result.RawTime, () => Is.EqualTo(1000));
         AddAssert("live-upserted later result time remains exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
 
-        AddStep("rewind between live-upserted notes", () => preview.Apply(new ChartPreviewTransport(3, 1100, false, 1, 0)));
+        AddStep("rewind between live-upserted notes", () => preview.Apply(transportBatch(3, 1100, false, 1, 0)));
         AddUntilStep("live-upsert rewind applied", () => preview.ClockTimeForTests, () => Is.EqualTo(1100));
         AddAssert("earlier live-upserted result remains hit", () => earlier.Judged && earlier.State.Value == ArmedState.Hit);
         AddAssert("later live-upserted result becomes idle and unjudged", () =>
             !later.Judged && later.State.Value == ArmedState.Idle);
 
-        AddStep("move forward across later live-upserted note", () => preview.Apply(new ChartPreviewTransport(4, 1300, false, 1, 0)));
+        AddStep("move forward across later live-upserted note", () => preview.Apply(transportBatch(4, 1300, false, 1, 0)));
         AddUntilStep("later live-upserted result reapplies", () => later.Judged && later.State.Value == ArmedState.Hit);
         AddAssert("reapplied live-upserted later result time is exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
         AddWaitStep("hold after live-upserted later result", 3);
@@ -1184,7 +1159,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote edited = null!;
         DrawableCardinalNote unchanged = null!;
 
-        AddStep("apply judged preview notes", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply judged preview notes", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 },
             new CardinalNote { StartTime = 1200, AngleDeg = 0 }), [7, 8], 1300, 700)));
         AddUntilStep("both preview notes load and hit", () =>
@@ -1192,11 +1167,11 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             && notes.Count(d => d.IsLoaded && d.Judged && d.State.Value == ArmedState.Hit) == 2);
         AddStep("capture judged preview notes", () =>
         {
-            edited = (DrawableCardinalNote)preview.DrawableForTests(7);
-            unchanged = (DrawableCardinalNote)preview.DrawableForTests(8);
+            edited = (DrawableCardinalNote)preview.DrawableForTests(new PreviewObjectId(7));
+            unchanged = (DrawableCardinalNote)preview.DrawableForTests(new PreviewObjectId(8));
         });
 
-        AddStep("move judged result after unchanged result", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("move judged result after unchanged result", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
             GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 1250, AngleDeg = 0 }))), Is.True));
@@ -1204,7 +1179,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             edited.Judged && edited.HitObject.StartTime == 1250 && edited.Result.RawTime == 1250);
         AddAssert("unchanged result stays exact", () => unchanged.Result.RawTime, () => Is.EqualTo(1200));
 
-        AddStep("rewind between edited result times", () => preview.Apply(new ChartPreviewTransport(3, 1225, false, 1, 0)));
+        AddStep("rewind between edited result times", () => preview.Apply(transportBatch(3, 1225, false, 1, 0)));
         AddUntilStep("edited-result rewind applied", () => preview.ClockTimeForTests, () => Is.EqualTo(1225));
         AddAssert("unchanged earlier result remains hit", () => unchanged.Judged && unchanged.State.Value == ArmedState.Hit);
         AddAssert("edited later result becomes idle and unjudged", () =>
@@ -1218,7 +1193,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote unchanged = null!;
         int reappliedResultCount = 0;
 
-        AddStep("apply judged preview notes at 1300", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply judged preview notes at 1300", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 },
             new CardinalNote { StartTime = 1200, AngleDeg = 0 }), [7, 8], 1300, 700)));
         AddUntilStep("both preview notes load and hit", () =>
@@ -1226,8 +1201,8 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             && notes.Count(d => d.IsLoaded && d.Judged && d.State.Value == ArmedState.Hit) == 2);
         AddStep("capture judged preview notes", () =>
         {
-            edited = (DrawableCardinalNote)preview.DrawableForTests(7);
-            unchanged = (DrawableCardinalNote)preview.DrawableForTests(8);
+            edited = (DrawableCardinalNote)preview.DrawableForTests(new PreviewObjectId(7));
+            unchanged = (DrawableCardinalNote)preview.DrawableForTests(new PreviewObjectId(8));
             preview.PlayfieldForTests.NewResult += (drawable, _) =>
             {
                 if (ReferenceEquals(drawable, edited))
@@ -1237,12 +1212,12 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("move judged result beyond stationary time", () =>
         {
-            Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+            Assert.That(preview.Apply(upsertBatch(
                 2,
                 7,
                 GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 1400, AngleDeg = 0 }))), Is.True);
             Assert.That(edited.HitObject.StartTime, Is.EqualTo(1400));
-            Assert.That(edited.Result.RawTime, Is.EqualTo(1400));
+            Assert.That(edited.Result.RawTime, Is.Null);
         });
         AddAssert("preview time remains stationary", () => preview.ClockTimeForTests, () => Is.EqualTo(1300));
         AddUntilStep("future edited result promptly reverts", () =>
@@ -1250,7 +1225,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("unchanged earlier result remains hit", () =>
             unchanged.Judged && unchanged.State.Value == ArmedState.Hit);
 
-        AddStep("move to edited result time", () => preview.Apply(new ChartPreviewTransport(3, 1400, false, 1, 0)));
+        AddStep("move to edited result time", () => preview.Apply(transportBatch(3, 1400, false, 1, 0)));
         AddUntilStep("edited maximum result reapplies", () =>
             edited.Judged && edited.State.Value == ArmedState.Hit
                           && edited.Result.Type == HitResult.CriticalPerfect);
@@ -1276,14 +1251,14 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         var revertedResults = new List<JudgementResult>();
         var replayedResults = new List<(DrawableHitObject Drawable, JudgementResult Result)>();
 
-        AddStep("apply preview hold", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply preview hold", () => preview.Replace(fullState(1, chartWith(
             new CardinalHoldNote { StartTime = 1000, AngleDeg = 0, Duration = 1000 }), [7], 900, 700)));
         AddUntilStep("preview hold tree loads", () =>
             preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalHoldNote>().SingleOrDefault() is { IsLoaded: true } loaded
             && withNested(loaded).Count() == 2
             && withNested(loaded).All(d => d.IsLoaded)
             && (hold = loaded) != null);
-        AddStep("judge preview hold tree", () => preview.Apply(new ChartPreviewTransport(2, 2000, false, 1, 0)));
+        AddStep("judge preview hold tree", () => preview.Apply(transportBatch(2, 2000, false, 1, 0)));
         AddUntilStep("preview hold tree hits", () =>
             withNested(hold).All(d => d.Judged && d.State.Value == ArmedState.Hit));
         AddStep("capture original hold result tree", () =>
@@ -1294,7 +1269,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             originalNestedDisposals = disposalCountsFor(originalNested);
         });
 
-        AddStep("upsert first judged hold rebuild", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert first judged hold rebuild", () => Assert.That(preview.Apply(upsertBatch(
             3,
             7,
             GarbusChartSerializer.EncodeHitObject(new CardinalHoldNote
@@ -1312,7 +1287,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("retained hold root remains alive", () => holdDisposals.Values, () => Is.All.Zero);
         AddAssert("first replacement hold generation remains alive", () => firstReplacementNested.All(d => !isDisposed(d)));
 
-        AddStep("upsert second judged hold rebuild", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert second judged hold rebuild", () => Assert.That(preview.Apply(upsertBatch(
             4,
             7,
             GarbusChartSerializer.EncodeHitObject(new CardinalHoldNote
@@ -1331,8 +1306,8 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             judgedResultsBeforeRewind = currentTree.Where(d => d.Judged).Select(d => d.Result).ToArray();
             updatedTimes = currentTree.Select(d => d.HitObject.GetEndTime()).ToArray();
 
-            Assert.That(preview.DrawableForTests(7), Is.SameAs(hold));
-            Assert.That(hold.Result, Is.SameAs(rootResult));
+            Assert.That(preview.DrawableForTests(new PreviewObjectId(7)), Is.SameAs(hold));
+            Assert.That(hold.Result, Is.Not.SameAs(rootResult));
             Assert.That(originalNested.All(old => currentTree.Skip(1).All(current => !ReferenceEquals(old, current))), Is.True);
             Assert.That(firstReplacementNested.All(old => currentTree.Skip(1).All(current => !ReferenceEquals(old, current))), Is.True);
             Assert.That(originalNestedDisposals.Values, Is.All.EqualTo(1));
@@ -1347,7 +1322,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             preview.PlayfieldForTests.NewResult += (drawable, result) => replayedResults.Add((drawable, result));
         });
 
-        AddStep("rewind before current hold tree", () => preview.Apply(new ChartPreviewTransport(5, 900, false, 1, 0)));
+        AddStep("rewind before current hold tree", () => preview.Apply(transportBatch(5, 900, false, 1, 0)));
         AddUntilStep("current hold tree rewinds", () =>
             preview.ClockTimeForTests == 900
             && currentTree.All(d => !d.Judged && d.State.Value == ArmedState.Idle));
@@ -1357,7 +1332,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             currentTree.Skip(1).All(d => !d.Judged && d.State.Value == ArmedState.Idle));
         AddUntilStep("current hold nested objects load idle", () => currentTree.Skip(1).All(d => d.IsLoaded && !d.Judged));
 
-        AddStep("replay current hold result tree", () => preview.Apply(new ChartPreviewTransport(6, 2000, false, 1, 0)));
+        AddStep("replay current hold result tree", () => preview.Apply(transportBatch(6, 2000, false, 1, 0)));
         AddUntilStep("current hold tree reapplies", () =>
             currentTree.All(d => d.Judged && d.State.Value == ArmedState.Hit));
         AddWaitStep("hold after current hold replay", 3);
@@ -1384,7 +1359,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         var revertedResults = new List<JudgementResult>();
         var replayedResults = new List<(DrawableHitObject Drawable, JudgementResult Result)>();
 
-        AddStep("apply preview slider", () => preview.Apply(fullState(1, chartWith(new SliderBody
+        AddStep("apply preview slider", () => preview.Replace(fullState(1, chartWith(new SliderBody
         {
             StartTime = 1000,
             AngleDeg = 0,
@@ -1403,7 +1378,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             && withNested(loaded).Count() == 4
             && withNested(loaded).All(d => d.IsLoaded)
             && (slider = loaded) != null);
-        AddStep("judge preview slider tree", () => preview.Apply(new ChartPreviewTransport(2, 2600, false, 1, 0)));
+        AddStep("judge preview slider tree", () => preview.Apply(transportBatch(2, 2600, false, 1, 0)));
         AddUntilStep("preview slider tree hits", () =>
             withNested(slider).All(d => d.Judged && d.State.Value == ArmedState.Hit));
         AddStep("capture original slider result tree", () =>
@@ -1414,7 +1389,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             originalNestedDisposals = disposalCountsFor(originalNested);
         });
 
-        AddStep("upsert first judged slider rebuild", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert first judged slider rebuild", () => Assert.That(preview.Apply(upsertBatch(
             3,
             7,
             GarbusChartSerializer.EncodeHitObject(new SliderBody
@@ -1440,7 +1415,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddAssert("retained slider root remains alive", () => sliderDisposals.Values, () => Is.All.Zero);
         AddAssert("first replacement slider generation remains alive", () => firstReplacementNested.All(d => !isDisposed(d)));
 
-        AddStep("upsert second judged slider rebuild", () => Assert.That(preview.Apply(new ChartPreviewObjectUpsert(
+        AddStep("upsert second judged slider rebuild", () => Assert.That(preview.Apply(upsertBatch(
             4,
             7,
             GarbusChartSerializer.EncodeHitObject(new SliderBody
@@ -1467,8 +1442,8 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             judgedResultsBeforeRewind = currentTree.Where(d => d.Judged).Select(d => d.Result).ToArray();
             updatedTimes = currentTree.Select(d => d.HitObject.GetEndTime()).ToArray();
 
-            Assert.That(preview.DrawableForTests(7), Is.SameAs(slider));
-            Assert.That(slider.Result, Is.SameAs(rootResult));
+            Assert.That(preview.DrawableForTests(new PreviewObjectId(7)), Is.SameAs(slider));
+            Assert.That(slider.Result, Is.Not.SameAs(rootResult));
             Assert.That(originalNested.All(old => currentTree.Skip(1).All(current => !ReferenceEquals(old, current))), Is.True);
             Assert.That(firstReplacementNested.All(old => currentTree.Skip(1).All(current => !ReferenceEquals(old, current))), Is.True);
             Assert.That(originalNestedDisposals.Values, Is.All.EqualTo(1));
@@ -1483,7 +1458,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             preview.PlayfieldForTests.NewResult += (drawable, result) => replayedResults.Add((drawable, result));
         });
 
-        AddStep("rewind before current slider tree", () => preview.Apply(new ChartPreviewTransport(5, 900, false, 1, 0)));
+        AddStep("rewind before current slider tree", () => preview.Apply(transportBatch(5, 900, false, 1, 0)));
         AddUntilStep("current slider tree rewinds", () =>
             preview.ClockTimeForTests == 900
             && currentTree.All(d => !d.Judged && d.State.Value == ArmedState.Idle));
@@ -1493,7 +1468,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             currentTree.Skip(1).All(d => !d.Judged && d.State.Value == ArmedState.Idle));
         AddUntilStep("current slider nested objects load idle", () => currentTree.Skip(1).All(d => d.IsLoaded && !d.Judged));
 
-        AddStep("replay current slider result tree", () => preview.Apply(new ChartPreviewTransport(6, 2600, false, 1, 0)));
+        AddStep("replay current slider result tree", () => preview.Apply(transportBatch(6, 2600, false, 1, 0)));
         AddUntilStep("current slider tree reapplies", () =>
             currentTree.All(d => d.Judged && d.State.Value == ArmedState.Hit));
         AddWaitStep("hold after current slider replay", 3);
@@ -1509,20 +1484,20 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableCardinalNote drawable = null!;
         double hitLifetimeEnd = 0;
 
-        AddStep("apply preview note", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply preview note", () => preview.Replace(fullState(1, chartWith(
             new CardinalNote { StartTime = 1000, AngleDeg = 0 }), [7], 900, 700)));
         AddUntilStep("preview note loaded", () =>
             preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().SingleOrDefault() is { IsLoaded: true } loaded
             && (drawable = loaded) != null);
 
-        AddStep("seek to note start", () => preview.Apply(new ChartPreviewTransport(2, 1000, false, 1, 0)));
+        AddStep("seek to note start", () => preview.Apply(transportBatch(2, 1000, false, 1, 0)));
         AddUntilStep("preview note hits", () => drawable.State.Value == ArmedState.Hit);
         AddStep("capture hit lifetime", () => hitLifetimeEnd = drawable.LifetimeEnd);
 
-        AddStep("change scroll speed after hit", () => preview.Apply(new ChartPreviewScrollSpeed(3, 1400)));
+        AddStep("change scroll speed after hit", () => preview.Apply(rangeBatch(3, 1400)));
         AddAssert("scroll speed preserves hit lifetime", () => drawable.LifetimeEnd, () => Is.EqualTo(hitLifetimeEnd));
 
-        AddStep("seek beyond hit lifetime", () => preview.Apply(new ChartPreviewTransport(4, hitLifetimeEnd + 1, false, 1, 0)));
+        AddStep("seek beyond hit lifetime", () => preview.Apply(transportBatch(4, hitLifetimeEnd + 1, false, 1, 0)));
         AddUntilStep("preview note expires using hit lifecycle", () => !drawable.IsAlive && !drawable.IsPresent);
         AddAssert("expired preview note remains judged", () => drawable.Judged);
     }
@@ -1536,7 +1511,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableSliderHead sliderHead = null!;
         DrawableSliderChild firstControlPoint = null!;
 
-        AddStep("apply active duration objects", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply active duration objects", () => preview.Replace(fullState(1, chartWith(
             new CardinalHoldNote { StartTime = 2000, AngleDeg = 180, Duration = 1000 },
             new ShoulderHoldNote { StartTime = 2000, Side = HorizontalDirection.Right, Duration = 1000 },
             new SliderBody
@@ -1593,7 +1568,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         DrawableSliderHead sliderHead = null!;
         DrawableSliderChild[] sliderChildren = null!;
 
-        AddStep("apply hold and slider", () => preview.Apply(fullState(1, chartWith(
+        AddStep("apply hold and slider", () => preview.Replace(fullState(1, chartWith(
             new CardinalHoldNote { StartTime = 1000, AngleDeg = 0, Duration = 500 },
             new SliderBody
             {
@@ -1618,16 +1593,16 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         });
         AddAssert("preview judgements hidden", () => preview.PlayfieldForTests.DisplayJudgements.Value, () => Is.False);
 
-        AddStep("seek to hold head", () => preview.Apply(new ChartPreviewTransport(2, 1000, false, 1, 0)));
+        AddStep("seek to hold head", () => preview.Apply(transportBatch(2, 1000, false, 1, 0)));
         AddUntilStep("hold head hits", () => holdHead.State.Value == ArmedState.Hit);
         AddAssert("hold head gets maximum result", () => holdHead.Result.Type,
             () => Is.EqualTo(holdHead.HitObject.Judgement.MaxResult));
         AddAssert("hold head result time is exact", () => holdHead.Result.RawTime, () => Is.EqualTo(1000));
         AddAssert("hold body remains idle at head", () => !hold.Judged && hold.State.Value == ArmedState.Idle);
 
-        AddStep("seek before hold end", () => preview.Apply(new ChartPreviewTransport(3, 1499, false, 1, 0)));
+        AddStep("seek before hold end", () => preview.Apply(transportBatch(3, 1499, false, 1, 0)));
         AddAssert("hold body remains idle before end", () => !hold.Judged && hold.State.Value == ArmedState.Idle);
-        AddStep("seek to hold end", () => preview.Apply(new ChartPreviewTransport(4, 1500, false, 1, 0)));
+        AddStep("seek to hold end", () => preview.Apply(transportBatch(4, 1500, false, 1, 0)));
         AddUntilStep("hold body hits", () => hold.State.Value == ArmedState.Hit);
         AddAssert("hold body gets maximum result", () => hold.Result.Type,
             () => Is.EqualTo(hold.HitObject.Judgement.MaxResult));
@@ -1642,26 +1617,26 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             sliderChildren = slider.NestedHitObjects.OfType<DrawableSliderChild>().OrderBy(d => d.HitObject.StartTime).ToArray();
         });
 
-        AddStep("seek to slider head", () => preview.Apply(new ChartPreviewTransport(5, 2000, false, 1, 0)));
+        AddStep("seek to slider head", () => preview.Apply(transportBatch(5, 2000, false, 1, 0)));
         AddUntilStep("slider head hits", () => sliderHead.State.Value == ArmedState.Hit);
         AddAssert("slider head gets maximum result", () => sliderHead.Result.Type,
             () => Is.EqualTo(sliderHead.HitObject.Judgement.MaxResult));
         AddAssert("slider head result time is exact", () => sliderHead.Result.RawTime, () => Is.EqualTo(2000));
         AddAssert("slider body remains idle at head", () => !slider.Judged && slider.State.Value == ArmedState.Idle);
 
-        AddStep("seek before first control point", () => preview.Apply(new ChartPreviewTransport(6, 2499, false, 1, 0)));
+        AddStep("seek before first control point", () => preview.Apply(transportBatch(6, 2499, false, 1, 0)));
         AddAssert("first control point remains idle before its time", () => !sliderChildren[0].Judged);
-        AddStep("seek to first control point", () => preview.Apply(new ChartPreviewTransport(7, 2500, false, 1, 0)));
+        AddStep("seek to first control point", () => preview.Apply(transportBatch(7, 2500, false, 1, 0)));
         AddUntilStep("first control point hits", () => sliderChildren[0].State.Value == ArmedState.Hit);
         AddAssert("first control point gets maximum result", () => sliderChildren[0].Result.Type,
             () => Is.EqualTo(sliderChildren[0].HitObject.Judgement.MaxResult));
         AddAssert("first control point result time is exact", () => sliderChildren[0].Result.RawTime, () => Is.EqualTo(2500));
         AddAssert("slider body remains idle after first control point", () => !slider.Judged && slider.State.Value == ArmedState.Idle);
 
-        AddStep("seek before slider end", () => preview.Apply(new ChartPreviewTransport(8, 2999, false, 1, 0)));
+        AddStep("seek before slider end", () => preview.Apply(transportBatch(8, 2999, false, 1, 0)));
         AddAssert("last control point and body remain idle before end", () =>
             !sliderChildren[1].Judged && !slider.Judged && slider.State.Value == ArmedState.Idle);
-        AddStep("seek to slider end", () => preview.Apply(new ChartPreviewTransport(9, 3000, false, 1, 0)));
+        AddStep("seek to slider end", () => preview.Apply(transportBatch(9, 3000, false, 1, 0)));
         AddUntilStep("last control point and body hit", () =>
             sliderChildren[1].State.Value == ArmedState.Hit && slider.State.Value == ArmedState.Hit);
         AddAssert("last control point gets maximum result", () => sliderChildren[1].Result.Type,
@@ -1688,51 +1663,44 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("apply future preview note", () =>
         {
-            Assert.That(preview.Apply(fullState(1, chartWith(
+            Assert.That(preview.Replace(fullState(1, chartWith(
                 new CardinalNote { StartTime = 2000, AngleDeg = 0 }), [7], 1200, 700)), Is.True);
-            drawable = (DrawableCardinalNote)preview.DrawableForTests(7);
+            drawable = (DrawableCardinalNote)preview.DrawableForTests(new PreviewObjectId(7));
         });
         AddAssert("future note starts before lifetime", () => drawable.IsAlive, () => Is.False);
 
         AddStep("cross future note lifetime boundary", () =>
-            preview.Apply(new ChartPreviewTransport(2, 1300, false, 1, 0)));
+            preview.Apply(transportBatch(2, 1300, false, 1, 0)));
         AddUntilStep("future note becomes alive", () => drawable.IsAlive);
         AddAssert("preview skips spawn tween", () =>
             drawable.ChildrenOfType<Sprite>().Single().Scale,
             () => Is.EqualTo(Vector2.One));
     }
 
-    private static ChartPreviewFullState fullState(long revision, GarbusChart chart, long[] ids, double time, double timeRange) =>
-        new(revision, GarbusChartSerializer.Encode(chart), ids, timeRange,
-            new ChartPreviewTransport(revision, time, false, 1, 0));
+    private static ChartPreviewSnapshot fullState(long revision, GarbusChart chart, long[] ids, double time, double timeRange) =>
+        snapshot(revision, chart, ids, time, timeRange);
 
-    private void testMismatchedFullStateRevision(long transportRevision)
+    private static ChartPreviewBatch transportBatch(long revision, double time, bool isRunning, double rate, long timestamp) =>
+        batch(revision, transport: new PreviewTransportState(time, isRunning, rate, timestamp));
+
+    private static ChartPreviewBatch upsertBatch(long revision, long id, string objectJson) =>
+        batch(revision, upserts: [state(id, GarbusChartSerializer.DecodeHitObject(objectJson))]);
+
+    private static ChartPreviewBatch removeBatch(long revision, long id) =>
+        batch(revision, removes: [new PreviewObjectId(id)]);
+
+    private static ChartPreviewBatch rangeBatch(long revision, double timeRange) =>
+        batch(revision, timeRange: timeRange);
+
+    private ChartPreviewBatch structureBatch(long revision, string structureJson)
     {
-        int resyncRequests = 0;
-        DrawableHitObject originalDrawable = null!;
-
-        AddStep("listen for resync", () => preview.ResyncRequested += () => resyncRequests++);
-        AddStep("apply initial full state", () => Assert.That(preview.Apply(fullState(5, chartWith(
-            new CardinalNote { StartTime = 1000, AngleDeg = 0 }), [7], 500, 700)), Is.True));
-        AddUntilStep("initial state applied", () => preview.ClockTimeForTests == 500
-                                                   && preview.ObjectCountForTests == 1
-                                                   && preview.DrawableForTests(7).IsLoaded);
-        AddStep("capture original drawable", () => originalDrawable = preview.DrawableForTests(7));
-
-        AddStep("reject mismatched full state", () => Assert.That(preview.Apply(new ChartPreviewFullState(
-            6,
-            GarbusChartSerializer.Encode(chartWith(new CardinalNote { StartTime = 9000, AngleDeg = 180 })),
-            [8],
-            2400,
-            new ChartPreviewTransport(transportRevision, 9000, false, 1, 0))), Is.False));
-
-        AddAssert("model and drawable unchanged", () => preview.ObjectCountForTests == 1
-                                                        && preview.DrawableForTests(7).HitObject.StartTime == 1000
-                                                        && ReferenceEquals(preview.DrawableForTests(7), originalDrawable));
-        AddAssert("clock unchanged", () => preview.ClockTimeForTests, () => Is.EqualTo(500).Within(0.001));
-        AddAssert("scroll range unchanged", () => preview.CurrentTimeRangeForTests, () => Is.EqualTo(700));
-        AddAssert("accepted revision unchanged", () => preview.AcceptedRevisionForTests, () => Is.EqualTo(5));
-        AddAssert("one resync requested", () => resyncRequests, () => Is.EqualTo(1));
+        GarbusChart detached = GarbusChartSerializer.Decode(structureJson);
+        return batch(revision, structure: new PreviewChartStructure(
+            preview.CurrentChart.ChartId,
+            detached.Metadata,
+            detached.PreviewTime,
+            detached.ControlPointInfo!,
+            detached.DesignPointInfo));
     }
 
     private static GarbusChart previewChart()
@@ -1966,9 +1934,9 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     };
 
     private static Dictionary<long, DrawableHitObject> pendingVisualRefreshes(ChartPreviewContent content) =>
-        (Dictionary<long, DrawableHitObject>)typeof(ChartPreviewContent)
+        ((Dictionary<PreviewObjectId, DrawableHitObject>)typeof(ChartPreviewContent)
             .GetField("pendingVisualRefreshes", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-            .GetValue(content)!;
+            .GetValue(content)!).ToDictionary(pair => pair.Key.Value, pair => pair.Value);
 
     private interface IGatedDrawable
     {

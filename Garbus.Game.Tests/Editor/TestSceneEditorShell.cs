@@ -314,14 +314,14 @@ namespace Garbus.Game.Tests.Editor
         {
             InlineChartPreviewPanel panel = null!;
             long revisionBeforeSuspension = 0;
-            var reopenedFullStates = new List<ChartPreviewFullState>();
+            var reopenedFullStates = new List<ChartPreviewSnapshot>();
 
             AddUntilStep("mini preview loaded", () =>
                 (panel = editor.ChildrenOfType<InlineChartPreviewPanel>().SingleOrDefault()!)?.ViewForTests.IsLoaded == true);
             AddStep("capture mini lifecycle state", () =>
             {
-                revisionBeforeSuspension = panel.ViewForTests.AcceptedRevisionForTests;
-                panel.ViewForTests.FullStateReceivedForTests += reopenedFullStates.Add;
+                revisionBeforeSuspension = panel.ViewForTests.AcceptedRevision;
+                panel.ViewForTests.SnapshotReceivedForTests += reopenedFullStates.Add;
             });
             AddStep("push unrelated screen", () => stack.Push(new PreviewSuspendingScreen()));
             AddUntilStep("unrelated screen pushed", () => stack.CurrentScreen is PreviewSuspendingScreen);

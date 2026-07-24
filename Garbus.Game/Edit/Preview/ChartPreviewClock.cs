@@ -9,7 +9,6 @@ internal sealed class ChartPreviewClock
     private double authoritativeTime;
     private bool isRunning;
     private double rate;
-    private long revision;
     private long authoritativeTimestamp;
 
     public ChartPreviewClock()
@@ -33,12 +32,8 @@ internal sealed class ChartPreviewClock
         return authoritativeTime + elapsedMilliseconds * rate;
     }
 
-    public void Apply(ChartPreviewTransport state)
+    public void Apply(PreviewTransportState state)
     {
-        if (state.Revision <= revision)
-            return;
-
-        revision = state.Revision;
         authoritativeTime = state.Time;
         isRunning = state.IsRunning;
         rate = state.Rate;
