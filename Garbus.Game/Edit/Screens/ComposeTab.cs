@@ -23,6 +23,7 @@ using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit.Compose;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens.Timeline;
 
 namespace Garbus.Game.Edit.Screens
@@ -35,10 +36,17 @@ namespace Garbus.Game.Edit.Screens
         private GarbusHitObjectComposer composer = null!;
         private TimelineStrip timelineStrip = null!;
 
+        private readonly InlineChartPreviewPanel? inlinePreviewPanel;
+
         // Stored as a field so the config bound copy is not garbage-collected after load() returns —
         // GetBindable's copy is held by the config only via a weak reference, so a local variable would
         // be collected and the menu toggle would stop propagating until an editor reload.
         private Bindable<bool>? autoSeekOnPlacement;
+
+        internal ComposeTab(InlineChartPreviewPanel? inlinePreviewPanel = null)
+        {
+            this.inlinePreviewPanel = inlinePreviewPanel;
+        }
 
         [BackgroundDependencyLoader]
         private void load(GarbusConfigManager config)
@@ -55,10 +63,12 @@ namespace Garbus.Game.Edit.Screens
             const float zoom_column_width = 35;
             const float divisor_column_width = 120;
 
+            Container content;
+
             InternalChild = new PopoverContainer
             {
                 RelativeSizeAxes = Axes.Both,
-                Child = new Container
+                Child = content = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
                     Children = new Drawable[]
@@ -107,6 +117,10 @@ namespace Garbus.Game.Edit.Screens
                     },
                 },
             };
+
+            // Docked last so it draws above the timeline + composer; it only claims input over itself.
+            if (inlinePreviewPanel != null)
+                content.Add(inlinePreviewPanel);
 
             // AutoSeekOnPlacement config → composer.
             autoSeekOnPlacement = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);
