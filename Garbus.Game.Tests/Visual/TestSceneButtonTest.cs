@@ -11,6 +11,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input;
+using osu.Framework.Input.Events;
 using osu.Framework.Input.StateChanges;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
@@ -25,6 +26,7 @@ namespace Garbus.Game.Tests.Visual
         private string tempDir = null!;
         private ButtonTestPanel panel = null!;
         private ManualInputManager manual = null!;
+        private JoystickSentinel sentinel = null!;
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -40,10 +42,18 @@ namespace Garbus.Game.Tests.Visual
                     Child = manual = new ManualInputManager
                     {
                         RelativeSizeAxes = Axes.Both,
-                        Child = panel = new ButtonTestPanel
+                        Child = new Container
                         {
-                            Anchor = Anchor.Centre,
-                            Origin = Anchor.Centre,
+                            RelativeSizeAxes = Axes.Both,
+                            Children = new Drawable[]
+                            {
+                                sentinel = new JoystickSentinel(),
+                                panel = new ButtonTestPanel
+                                {
+                                    Anchor = Anchor.Centre,
+                                    Origin = Anchor.Centre,
+                                },
+                            },
                         },
                     },
                 };
@@ -93,6 +103,31 @@ namespace Garbus.Game.Tests.Visual
                 new JoystickAxis(JoystickAxisSource.GamePadLeftStickY, 0f),
             })));
             AddUntilStep("left dot recentred", () => panel.StickDot(HorizontalDirection.Left).X == 0);
+        }
+
+        // Records any raw joystick press it receives. Placed behind the panel so it only fires
+        // if a press propagated past the panel instead of being consumed there.
+        private partial class JoystickSentinel : Drawable
+        {
+            public bool Fired { get; private set; }
+
+            public JoystickSentinel() => RelativeSizeAxes = Axes.Both;
+
+            protected override bool OnJoystickPress(JoystickPressEvent e)
+            {
+                Fired = true;
+                return true;
+            }
+        }
+
+        [Test]
+        public void TestBoundButtonConsumesInput()
+        {
+            // Default binding: ButtonN1 = JoystickHat1Up. Pressing it must light N1 AND stop at the panel.
+            AddStep("press d-pad up", () => manual.PressJoystickButton(JoystickButton.Hat1Up));
+            AddAssert("N1 lit", () => panel.IsLit(GarbusAction.ButtonN1));
+            AddAssert("sentinel behind panel never fired", () => !sentinel.Fired);
+            AddStep("release", () => manual.ReleaseJoystickButton(JoystickButton.Hat1Up));
         }
 
         // Caches the store before its consumer (the panel's embedded input manager) resolves dependencies.
