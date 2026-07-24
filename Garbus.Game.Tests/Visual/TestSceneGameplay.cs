@@ -155,6 +155,119 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestSliderBodyGlowIsGeometric()
+        {
+            Objects.Drawables.DrawableSliderBody rightBody = null!;
+
+            AddUntilStep("right slider registered", () =>
+            {
+                rightBody = playfield.AllHitObjects
+                                     .OfType<Objects.Drawables.DrawableSliderBody>()
+                                     .SingleOrDefault(b => b.HitObject.Side == HorizontalDirection.Right)!;
+                return rightBody != null;
+            });
+
+            playThrough(3500);
+
+            AddUntilStep("glow paths mirror body paths", () =>
+            {
+                var bodyPaths = rightBody.BodyPaths.Where(p => p.Vertices.Count >= 2).ToList();
+                var glowPaths = rightBody.GlowPaths.Where(p => p.Vertices.Count >= 2).ToList();
+
+                return bodyPaths.Count > 0
+                       && glowPaths.Count == bodyPaths.Count
+                       && glowPaths.Zip(bodyPaths).All(pair => pair.First.Vertices.SequenceEqual(pair.Second.Vertices));
+            });
+
+            AddAssert("glow is wider than the line and additive", () => rightBody.GlowPaths.All(g =>
+                g.PathRadius > rightBody.Thickness / 2 &&
+                g.Blending == osu.Framework.Graphics.BlendingParameters.Additive));
+
+            // The perf fix this pins: no per-frame blurred framebuffer for the body glow. The only
+            // buffered containers left in the subtree belong to the contact spikes' (small) glow.
+            AddAssert("no buffered blur outside contact spikes", () =>
+                rightBody.ChildrenOfType<osu.Framework.Graphics.Containers.BufferedContainer>().Count() ==
+                rightBody.ContactSpikes.ChildrenOfType<osu.Framework.Graphics.Containers.BufferedContainer>().Count());
+
+            // Glow-only look: the crisp line layer is hidden by default, but the glow must stay
+            // visible — both sit under the same fade container, so hiding the wrong node would
+            // take the glow with it.
+            AddAssert("crisp line hidden, glow visible", () =>
+                rightBody.BodyPaths[0].Parent!.Alpha == 0 &&
+                rightBody.GlowPaths[0].Parent!.Alpha == 1);
+        }
+
+        [Test]
+        public void TestEscapingSliderRendersAsGlowTube()
+        {
+            Objects.Drawables.DrawableSliderBody rightBody = null!;
+
+            AddUntilStep("right slider registered", () =>
+            {
+                rightBody = playfield.AllHitObjects
+                                     .OfType<Objects.Drawables.DrawableSliderBody>()
+                                     .SingleOrDefault(b => b.HitObject.Side == HorizontalDirection.Right)!;
+                return rightBody != null;
+            });
+
+            // Mid-slider with no input: the leading edge has escaped past the ring uncaught.
+            playThrough(3500);
+
+            AddUntilStep("escape slices present", () => rightBody.EscapePaths.Any(p => p.Vertices.Count >= 2));
+
+            // The escaping portion must keep the tube look: every crisp escape slice has a glow twin.
+            AddAssert("escape glow mirrors escape slices", () =>
+            {
+                var crisp = rightBody.EscapePaths.Where(p => p.Vertices.Count >= 2).ToList();
+                var glow = rightBody.EscapeGlowPaths.Where(p => p.Vertices.Count >= 2).ToList();
+
+                return crisp.Count > 0
+                       && glow.Count == crisp.Count
+                       && glow.Zip(crisp).All(pair => pair.First.Vertices.SequenceEqual(pair.Second.Vertices));
+            });
+
+            // The uncaught fade must dissolve over a band wider than the old hard clip at the
+            // catcher radius (1.06x ring), so the tube reads as flying off rather than popping.
+            AddAssert("escaping fade reaches past the catcher", () =>
+            {
+                float ringRadius = MathF.Min(playfield.DrawWidth, playfield.DrawHeight) / 2;
+
+                return rightBody.EscapeGlowPaths
+                                .Where(p => p.Vertices.Count >= 2)
+                                .SelectMany(p => p.Vertices)
+                                .Select(v => v.Length)
+                                .DefaultIfEmpty(0)
+                                .Max() > ringRadius * 1.15f;
+            });
+        }
+
+        [Test]
+        public void TestUncaughtDimIsEased()
+        {
+            Objects.Drawables.DrawableSliderBody rightBody = null!;
+
+            AddUntilStep("right slider registered", () =>
+            {
+                rightBody = playfield.AllHitObjects
+                                     .OfType<Objects.Drawables.DrawableSliderBody>()
+                                     .SingleOrDefault(b => b.HitObject.Side == HorizontalDirection.Right)!;
+                return rightBody != null;
+            });
+
+            playThrough(1900);
+            AddAssert("full alpha before start", () => rightBody.Alpha == 1);
+
+            // Two separate frames: the first Update past StartTime begins the dim fade, the second
+            // lands mid-fade — the alpha must be easing, not snapped straight to the dim value.
+            AddStep("step just past start", () => manualClock.CurrentTime = 2050);
+            AddStep("step into the fade", () => manualClock.CurrentTime = 2125);
+            AddAssert("dim is easing", () => rightBody.Alpha is > 0.4f and < 1f);
+
+            AddStep("step past the fade", () => manualClock.CurrentTime = 2600);
+            AddUntilStep("settled at dim", () => osu.Framework.Utils.Precision.AlmostEquals(rightBody.Alpha, 0.4f, 0.001f));
+        }
+
+        [Test]
         public void TestStickCentreSpikeFollowsActiveStickAndFitsGap()
         {
             StickIndicator rightIndicator = null!;
@@ -532,13 +645,24 @@ namespace Garbus.Game.Tests.Visual
             });
 
             // Walk the clock up to just before StartTime; the head must have emerged and be visible as a
-            // circle (Alpha > 0, non-zero size) before it reaches the ring.
-            AddUntilStep("head circle visible before judgement", () =>
+            // glow disc (a dot-length GlowPath carrying the tube's full cross-section) before the ring.
+            AddUntilStep("head glow disc visible before judgement", () =>
             {
                 manualClock.CurrentTime = Math.Min(5000, manualClock.CurrentTime + 50);
-                var circle = body.ChildrenOfType<osu.Framework.Graphics.Shapes.Circle>().FirstOrDefault();
-                return circle != null && circle.Alpha > 0 && circle.DrawWidth > 0 && manualClock.CurrentTime >= 5000;
+                return body.HeadGlow.Alpha > 0 && body.HeadGlow.Vertices.Count >= 2 && manualClock.CurrentTime >= 5000;
             });
+
+            // "Fake radius": the disc is as wide as a tube cross-section, not just the crisp line.
+            AddAssert("disc carries tube fullness", () => body.HeadGlow.PathRadius > body.Thickness / 2);
+
+            // Glow-only mode: the crisp circle stays hidden (it returns with ShowLine).
+            AddAssert("crisp circle hidden in glow-only mode", () =>
+                body.ChildrenOfType<osu.Framework.Graphics.Shapes.Circle>().All(c => c.Alpha == 0));
+
+            // Past the ring the disc dissolves over the same EscapeFadeScale runway as the tube,
+            // instead of the old hard pop at the ring.
+            AddStep("step past the ring", () => manualClock.CurrentTime = 5150);
+            AddAssert("disc mid-dissolve past ring", () => body.HeadGlow.Alpha is > 0f and < 1f);
 
             // Catch timing requires real stick input; an untouched head misses after its 200ms late edge.
             playThrough(6000);

@@ -6,7 +6,6 @@ using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Shapes;
 using Garbus.Game.Core;
@@ -44,23 +43,52 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// <summary>
     /// Full width of the rendered line, in pixels. Half of this becomes the <see cref="Path.PathRadius"/>.
     /// </summary>
-    public float Thickness { get; init; } = 15;
+    public float Thickness { get; init; } = 16f;
 
     /// <summary>
-    /// Colour of the additive glow rendered behind the path. White gives a neutral halo that brightens
+    /// Colour of the additive glow rendered around the path. White gives a neutral halo that brightens
     /// whatever colour the path itself is tinted.
     /// </summary>
     public ColourInfo GlowColour { get; init; } = Colour4.White;
 
     /// <summary>
-    /// Blur radius (sigma, in pixels) of the glow — larger values spread the halo further out.
+    /// Gaussian sigma (in pixels) of the glow's falloff profile — larger values spread the halo
+    /// further out.
     /// </summary>
-    public float GlowBlurSigma { get; init; } = 30f;
+    public float GlowBlurSigma { get; init; } = 1.64f;
 
     /// <summary>
-    /// Intensity multiplier applied to the glow.
+    /// Intensity multiplier applied to the glow profile before it clips at full alpha. Values
+    /// well above 1 grow the saturated "hot" band around the line; near 1 the halo never
+    /// saturates and the whole visible glow is the smooth falloff.
     /// </summary>
-    public float GlowStrength { get; init; } = 30f;
+    public float GlowStrength { get; init; } = 10.6f;
+
+    /// <summary>
+    /// Falloff-shape exponent applied to the glow's skirt. 1 is the pure Gaussian profile; below
+    /// 1 lifts the tail (gentler, longer fade); above 1 tightens it. Never affects the saturated
+    /// core, only the visible falloff.
+    /// </summary>
+    public float GlowFalloff { get; init; } = 0.45f;
+
+    /// <summary>
+    /// Whether to draw the crisp line on top of the glow. Off by default: the glow's saturated
+    /// core already reads as a solid neon tube, so the body is rendered by the glow alone. The
+    /// line geometry is still computed either way (the glow twins share its vertices).
+    /// </summary>
+    public bool ShowLine { get; init; } = true;
+
+    /// <summary>
+    /// How far past the ring (as a multiple of the ring radius) an escaping, uncaught body fades
+    /// out. The caught body is still consumed hard at the catcher radius (1.06); the escaping fade
+    /// gets a wider runway so the tube reads as flying off and dissolving rather than popping.
+    /// </summary>
+    public float EscapeFadeScale { get; init; } = 1.3f;
+
+    /// <summary>
+    /// Alpha the whole body dims to while it is past its start time but not being caught.
+    /// </summary>
+    public float UncaughtDimAlpha { get; init; } = 0.4f;
 
     /// <summary>
     /// Number of straight sub-segments used to approximate the link between two consecutive nodes.
@@ -94,17 +122,41 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     [Resolved]
     private AnalogInputManager analogInput { get; set; } = null!;
 
-    // Tinted/faded as a unit (fade-in, red-on-miss). SmoothPath forces its own draw colour to white,
-    // so colour/alpha applied here is what tints the path via the framebuffer blit.
+    // Tinted/faded as a unit (fade-in, red-on-miss): holds the crisp paths and their glow twins.
+    // SmoothPath forces its own draw colour to white, so colour applied here is what tints the
+    // paths via their framebuffer blits.
+    private readonly Container bodyVisual = new()
+    {
+        RelativeSizeAxes = Axes.Both,
+    };
+
     private readonly Container<SmoothPath> pathContainer = new()
     {
         RelativeSizeAxes = Axes.Both,
     };
 
-    // The portion of the body beyond the ring (ring -> catcher radius). Kept separate from pathContainer
-    // so each pooled slice can carry its own alpha for the escape fade, and so it can be faded/tinted as
-    // a unit on hit/miss independently of the glow-wrapped main body.
+    // The additive glow twins draw in front of the crisp paths (additive never occludes), matching
+    // the in-front placement of the GlowEffect this replaces, which brightened the line core.
+    private readonly Container<GlowPath> glowContainer = new()
+    {
+        RelativeSizeAxes = Axes.Both,
+    };
+
+    // The portion of the body beyond the ring. Kept separate from bodyVisual so each pooled slice can
+    // carry its own alpha for the escape fade; tinted/faded as a unit on hit independently of the body.
+    // Mirrors bodyVisual's structure: crisp slices (gated by ShowLine) plus glow twins, so the tube
+    // keeps its look as it crosses the ring instead of degrading to a thin crisp line.
+    private readonly Container escapeVisual = new()
+    {
+        RelativeSizeAxes = Axes.Both,
+    };
+
     private readonly Container<SmoothPath> escapeContainer = new()
+    {
+        RelativeSizeAxes = Axes.Both,
+    };
+
+    private readonly Container<GlowPath> escapeGlowContainer = new()
     {
         RelativeSizeAxes = Axes.Both,
     };
@@ -116,6 +168,18 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     // Pool of SmoothPaths for the escape band [ring, catcher]. When escaping, one slice per sub-band.
     private readonly List<SmoothPath> escapePaths = new();
+
+    // Pools of additive glow twins, one per crisp path in the corresponding band.
+    private readonly List<GlowPath> glowPaths = new();
+    private readonly List<GlowPath> escapeGlowPaths = new();
+
+    internal IReadOnlyList<SmoothPath> BodyPaths => bodyPaths;
+
+    internal IReadOnlyList<GlowPath> GlowPaths => glowPaths;
+
+    internal IReadOnlyList<SmoothPath> EscapePaths => escapePaths;
+
+    internal IReadOnlyList<GlowPath> EscapeGlowPaths => escapeGlowPaths;
 
     // Pulsating, spinning marker riding the leading tip while it is being consumed by the catcher.
     private readonly Box tipBox = new()
@@ -149,6 +213,15 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         Alpha = 0,
     };
 
+    // Glow disc for head-only sliders: a dot-length GlowPath renders as a filled circle with the
+    // tube's full cross-section profile, so a lone head is as "full" as a slice of real tube.
+    private GlowPath headGlow = null!;
+
+    internal GlowPath HeadGlow => headGlow;
+
+    // Reused two-element buffer for the disc's degenerate dot-length path.
+    private readonly Vector2[] headVertices = new Vector2[2];
+
     private readonly SliderContactSpikes contactSpikes;
 
     internal SliderContactSpikes ContactSpikes => contactSpikes;
@@ -178,8 +251,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
         var sideColour = HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
         contactSpikes = new SliderContactSpikes(sideColour);
-        pathContainer.Colour = sideColour;
-        escapeContainer.Colour = sideColour;
+        bodyVisual.Colour = sideColour;
+        escapeVisual.Colour = sideColour;
         tipBox.Colour = sideColour;
 
         headContainer.Colour = sideColour;
@@ -189,25 +262,30 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     [BackgroundDependencyLoader]
     private void load()
     {
-        // Wrap the whole path pool in an additive glow. GlowEffect buffers pathContainer's rendered
-        // alpha and blurs it, so the halo hugs the actual line shape (not a bounding box) and a single
-        // buffer covers every pooled path. The crisp paths are drawn in front of the halo. Fading or
-        // recolouring pathContainer flows through to the glow, since it is regenerated from that content.
-        AddInternal(new GlowEffect
-        {
-            Colour = GlowColour,
-            BlurSigma = new Vector2(GlowBlurSigma),
-            Strength = GlowStrength,
-            // PadExtent would inset (and misalign) the relatively-sized pathContainer, so leave it off.
-            PadExtent = false,
-        }.ApplyTo(pathContainer));
+        // The glow is geometric: each body path gets an additive GlowPath twin sharing its vertices,
+        // whose cross-section texture bakes the exact falloff a Gaussian blur of the crisp line would
+        // produce (see GlowPath). This replaces the previous GlowEffect, whose playfield-sized
+        // framebuffer was fully re-rendered and blurred (two ~129-tap passes at sigma 30) every frame
+        // per slider — the main gameplay render bottleneck. Fading or recolouring bodyVisual flows
+        // through to crisp paths and glow twins alike.
+        glowContainer.Colour = GlowColour;
+        pathContainer.Alpha = ShowLine ? 1 : 0;
+        bodyVisual.AddRange(new Drawable[] { pathContainer, glowContainer });
+        AddInternal(bodyVisual);
 
         // Escape band and tip marker draw in front of the main body's glow.
-        AddInternal(escapeContainer);
+        escapeContainer.Alpha = ShowLine ? 1 : 0;
+        escapeVisual.AddRange(new Drawable[] { escapeContainer, escapeGlowContainer });
+        AddInternal(escapeVisual);
         AddInternal(contactSpikes);
         AddInternal(tipBox);
 
         headCircle.Size = new Vector2(Thickness);
+        headContainer.Add(headGlow = new GlowPath(Thickness / 2, GlowBlurSigma, GlowStrength, GlowFalloff)
+        {
+            Anchor = Anchor.Centre,
+            Alpha = 0,
+        });
         AddInternal(headContainer);
 
         AddInternal(nestedContainer);
@@ -217,13 +295,17 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     {
         base.OnApply();
         rebuildNodes();
+
+        // Reset the eased uncaught-dim state for (re)use.
+        dimTarget = 1;
+        Alpha = 1;
     }
 
     protected override void PrepareForUse()
     {
         base.PrepareForUse();
-        pathContainer.FadeInFromZero(100, Easing.In);
-        escapeContainer.FadeInFromZero(100, Easing.In);
+        bodyVisual.FadeInFromZero(100, Easing.In);
+        escapeVisual.FadeInFromZero(100, Easing.In);
         headContainer.FadeInFromZero(100, Easing.In);
     }
 
@@ -296,8 +378,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
                 // letting the curve creep outward from the middle a little at a time.
                 nodeRadii[i] = scrollingContainer.DistanceFromCentreAtTime(nodeTimes[i]);
 
-            // Main body: the emergence front (radius 0) out to the ring, at full alpha.
-            bodyIndex = renderBand(0f, ringRadius, 1f, bodyPaths, pathContainer, bodyIndex);
+            // Main body: the emergence front (radius 0) out to the ring, at full alpha, with glow.
+            bodyIndex = renderBand(0f, ringRadius, 1f, bodyPaths, pathContainer, bodyIndex, glowPaths, glowContainer);
 
             bool hasRingContact = State.Value == ArmedState.Idle &&
                                   Time.Current >= nodeTimes[0] && Time.Current <= nodeTimes[^1];
@@ -310,19 +392,24 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             if (caught && hasTip)
             {
                 // Consumed by the catcher: draw solid out to the catcher radius, and ride the tip marker.
-                escapeIndex = renderBand(ringRadius, catcherRadius, 1f, escapePaths, escapeContainer, escapeIndex);
+                escapeIndex = renderBand(ringRadius, catcherRadius, 1f, escapePaths, escapeContainer, escapeIndex, escapeGlowPaths, escapeGlowContainer);
             }
             else
             {
-                // Escaping (or idle): fade out over the ring -> catcher band. Each layer starts at the
-                // ring and reaches a bit further; overlapping them source-over yields a radial fade
-                // (opaque at the ring, faint at the rim) without lumpy mid-band caps.
-                float h = (catcherRadius - ringRadius) / escape_bands;
+                // Escaping (or idle): dissolve over the wider ring -> EscapeFadeScale runway. Each layer
+                // starts at the ring and reaches a bit further, so coverage (and thus brightness) ramps
+                // down with distance without lumpy mid-band caps. The crisp slices composite source-over
+                // (escape_layer_alpha each); the glow twins composite additively, so their per-layer
+                // alpha is 1/N — the N-deep inner edge then sums back to the tube's full brightness and
+                // stays continuous across the ring.
+                float fadeOuter = ringRadius * EscapeFadeScale;
+                float h = (fadeOuter - ringRadius) / escape_bands;
 
                 for (int b = 0; b < escape_bands; b++)
                 {
                     float outer = ringRadius + (b + 1) * h;
-                    escapeIndex = renderBand(ringRadius, outer, escape_layer_alpha, escapePaths, escapeContainer, escapeIndex);
+                    escapeIndex = renderBand(ringRadius, outer, escape_layer_alpha, escapePaths, escapeContainer, escapeIndex,
+                        escapeGlowPaths, escapeGlowContainer, 1f / escape_bands);
                 }
             }
 
@@ -339,40 +426,72 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         // Hide pooled paths used by a longer path on a previous frame / hit object.
         for (int i = bodyIndex; i < bodyPaths.Count; i++)
             bodyPaths[i].Vertices = Array.Empty<Vector2>();
+        for (int i = bodyIndex; i < glowPaths.Count; i++)
+            glowPaths[i].Vertices = Array.Empty<Vector2>();
         for (int i = escapeIndex; i < escapePaths.Count; i++)
             escapePaths[i].Vertices = Array.Empty<Vector2>();
+        for (int i = escapeIndex; i < escapeGlowPaths.Count; i++)
+            escapeGlowPaths[i].Vertices = Array.Empty<Vector2>();
     }
+
+    private const double dim_fade_duration = 150;
+
+    // Target of the eased uncaught dim; tracked so the fade fires only when the state flips rather
+    // than restarting every frame.
+    private float dimTarget = 1;
 
     private void updateBodyVisual(bool caught)
     {
-        Alpha = Time.Current < HitObject.StartTime || caught
-            ? 1f
-            : 0.4f;
+        float target = Time.Current < HitObject.StartTime || caught ? 1f : UncaughtDimAlpha;
+
+        if (target != dimTarget)
+        {
+            dimTarget = target;
+            this.FadeTo(target, dim_fade_duration, Easing.OutQuint);
+        }
     }
 
     /// <summary>
-    /// A head-only slider (no control points) has no path to render; show its single node as a filled
-    /// circle of the body's own line radius, travelling centre→ring like a body head would. Hidden for
-    /// any slider that has a real path (its line already draws the head).
+    /// A head-only slider (no control points) has no path to render; show its single node as a glow
+    /// disc of the tube's full cross-section (plus the crisp circle when <see cref="ShowLine"/> is on),
+    /// travelling centre→ring like a body head would, then dissolving over the same
+    /// <see cref="EscapeFadeScale"/> runway as an escaping tube. Hidden for any slider that has a real
+    /// path (its line already draws the head).
     /// </summary>
     private void updateHeadCircle()
     {
         if (nodeTimes.Length >= 2)
         {
             headCircle.Alpha = 0;
+            headGlow.Alpha = 0;
             return;
         }
 
         float ringRadius = scrollingContainer.ScrollLength;
+        float fadeOuter = ringRadius * EscapeFadeScale;
         float r = scrollingContainer.DistanceFromCentreAtTime(nodeTimes[0]);
 
-        if (r >= 0 && r <= ringRadius)
+        float alpha = r < 0 || r > fadeOuter ? 0
+            : r <= ringRadius ? 1
+            : 1 - (r - ringRadius) / (fadeOuter - ringRadius);
+
+        headCircle.Alpha = ShowLine ? alpha : 0;
+        headGlow.Alpha = alpha;
+
+        if (alpha <= 0)
         {
-            headCircle.Position = polarToCartesian(nodeRadians[0], r);
-            headCircle.Alpha = 1;
+            headGlow.Vertices = Array.Empty<Vector2>();
+            return;
         }
-        else
-            headCircle.Alpha = 0;
+
+        Vector2 position = polarToCartesian(nodeRadians[0], r);
+        headCircle.Position = position;
+
+        // A dot-length path renders as a filled disc with rounded caps — the tube's cross-section.
+        headVertices[0] = position;
+        headVertices[1] = position + new Vector2(0.1f, 0);
+        headGlow.Vertices = headVertices;
+        headGlow.Position = -headGlow.PositionInBoundingBox(Vector2.Zero);
     }
 
     /// <summary>
@@ -381,7 +500,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// <paramref name="container"/> at <paramref name="alpha"/>, starting at <paramref name="poolIndex"/>.
     /// Returns the next free pool index.
     /// </summary>
-    private int renderBand(float innerRadius, float outerRadius, float alpha, List<SmoothPath> pool, Container<SmoothPath> container, int poolIndex)
+    private int renderBand(float innerRadius, float outerRadius, float alpha, List<SmoothPath> pool, Container<SmoothPath> container, int poolIndex,
+                           List<GlowPath>? glowPool = null, Container<GlowPath>? glowTarget = null, float? glowAlpha = null)
     {
         scratchVertices.Clear();
 
@@ -395,7 +515,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             if (!clipToBand(rA, rB, innerRadius, outerRadius, out float tLo, out float tHi))
             {
                 // This link is entirely outside the band; the run cannot continue past it.
-                poolIndex = flushRun(pool, container, alpha, poolIndex);
+                poolIndex = flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
                 continue;
             }
 
@@ -405,7 +525,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             // one ended (a shared, fully-visible node). Otherwise there is a gap — flush and start a
             // fresh path so the two spans are not bridged by a stray line.
             if (scratchVertices.Count > 0 && !approxEqual(scratchVertices[^1], startPoint))
-                poolIndex = flushRun(pool, container, alpha, poolIndex);
+                poolIndex = flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
 
             if (scratchVertices.Count == 0)
                 scratchVertices.Add(startPoint);
@@ -418,10 +538,10 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
             // Clipped before reaching its end node: the curve leaves the band here, so the run ends.
             if (tHi < 1f)
-                poolIndex = flushRun(pool, container, alpha, poolIndex);
+                poolIndex = flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
         }
 
-        return flushRun(pool, container, alpha, poolIndex);
+        return flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
     }
 
     /// <summary>
@@ -498,11 +618,12 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// at least two points) to the next pooled path at <paramref name="alpha"/>, then clears the scratch
     /// buffer. Returns the updated index into <paramref name="pool"/>.
     /// </summary>
-    private int flushRun(List<SmoothPath> pool, Container<SmoothPath> container, float alpha, int poolIndex)
+    private int flushRun(List<SmoothPath> pool, Container<SmoothPath> container, float alpha, int poolIndex,
+                         List<GlowPath>? glowPool, Container<GlowPath>? glowTarget, float? glowAlpha)
     {
         if (scratchVertices.Count >= 2)
         {
-            var path = getPath(pool, container, poolIndex++);
+            var path = getPath(pool, container, poolIndex);
 
             // Vertices setter copies the list, so reusing the scratch buffer afterwards is safe.
             path.Vertices = scratchVertices;
@@ -511,6 +632,19 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             // Path auto-sizes to its vertex bounds and offsets content by vertexBounds.TopLeft; undo that
             // offset so a vertex at the polar origin (0,0) lands on the playfield centre (our anchor).
             path.Position = -path.PositionInBoundingBox(Vector2.Zero);
+
+            if (glowPool != null && glowTarget != null)
+            {
+                // The glow twin shares the run's vertices but carries its own (wider) bounding box,
+                // so it needs its own origin compensation. Its alpha may differ from the crisp run's:
+                // glow composites additively, so stacked layers need a smaller per-layer alpha.
+                var glow = getGlowPath(glowPool, glowTarget, poolIndex);
+                glow.Vertices = scratchVertices;
+                glow.Alpha = glowAlpha ?? alpha;
+                glow.Position = -glow.PositionInBoundingBox(Vector2.Zero);
+            }
+
+            poolIndex++;
         }
 
         scratchVertices.Clear();
@@ -539,6 +673,25 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         return pool[index];
     }
 
+    /// <summary>
+    /// Lazily grows the given glow-twin pool, returning the glow path at <paramref name="index"/>.
+    /// </summary>
+    private GlowPath getGlowPath(List<GlowPath> pool, Container<GlowPath> container, int index)
+    {
+        while (pool.Count <= index)
+        {
+            var glow = new GlowPath(Thickness / 2, GlowBlurSigma, GlowStrength, GlowFalloff)
+            {
+                Anchor = Anchor.Centre,
+            };
+
+            pool.Add(glow);
+            container.Add(glow);
+        }
+
+        return pool[index];
+    }
+
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
         // Wait until the path has fully played out (timeOffset >= 0, i.e. Time.Current >= EndTime) AND
@@ -559,25 +712,16 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     protected override void UpdateHitStateTransforms(ArmedState state)
     {
-        const double duration = 1000;
-
+        // The body's result is always the unscored IgnoreHit sentinel (see CheckForResult), and
+        // IgnoreHit counts as hit — so ArmedState.Miss is unreachable here. Failure presentation is
+        // carried by the per-child judgement feedback, the uncaught dim, and the escaping dissolve.
         switch (state)
         {
             case ArmedState.Hit:
-                escapeContainer.FadeOut(350, Easing.OutQuint);
+                escapeVisual.FadeOut(350, Easing.OutQuint);
                 tipBox.FadeOut(350, Easing.OutQuint);
                 headContainer.FadeOut(350, Easing.OutQuint);
-                pathContainer.FadeOut(350, Easing.OutQuint).OnComplete(_ => Expire());
-                break;
-
-            case ArmedState.Miss:
-                pathContainer.FadeColour(Colour4.Red, duration);
-                escapeContainer.FadeColour(Colour4.Red, duration);
-                escapeContainer.FadeOut(duration, Easing.InQuint);
-                tipBox.FadeOut(duration, Easing.InQuint);
-                headContainer.FadeColour(Colour4.Red, duration);
-                headContainer.FadeOut(duration, Easing.InQuint);
-                pathContainer.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
+                bodyVisual.FadeOut(350, Easing.OutQuint).OnComplete(_ => Expire());
                 break;
         }
     }
