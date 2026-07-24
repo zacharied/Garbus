@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Configuration;
 using Garbus.Game.Gameplay.UI.Scrolling;
@@ -13,6 +14,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Input;
+using osu.Framework.Input.Handlers.Joystick;
 using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 using osuTK;
@@ -61,6 +63,15 @@ namespace Garbus.Game
             // Garbus never requires relative mouse input, so the cursor should remain free to leave
             // the window even in fullscreen mode. Override persisted framework configuration too.
             frameworkConfig.SetValue(FrameworkSetting.ConfineMouseMode, ConfineMouseMode.Never);
+
+            // Disable the framework's independent per-axis joystick deadzone. It clamps whichever of
+            // X/Y is individually below the threshold to zero, which flattens a wedge around each
+            // cardinal onto exactly N/E/S/W (the analog sticks "snap"). AnalogInputManager.SliderCatcher
+            // gates activation *radially* (Position.Length() > DEADZONE), which preserves the true
+            // angle, so the framework's per-axis clamp is pure distortion here.
+            var joystickHandler = Host.AvailableInputHandlers.OfType<JoystickHandler>().SingleOrDefault();
+            if (joystickHandler != null)
+                joystickHandler.DeadzoneThreshold.Value = 0;
 
             Resources.AddStore(new DllResourceStore(typeof(GarbusResources).Assembly));
 
