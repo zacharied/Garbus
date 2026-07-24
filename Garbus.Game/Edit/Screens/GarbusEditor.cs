@@ -342,10 +342,6 @@ namespace Garbus.Game.Edit.Screens
         /// </summary>
         public void StartTestMode()
         {
-            // Unconditional: suspend the mini preview before any early-return below, so a test-mode
-            // launch that bails out (no track available) never leaves the preview stuck visible.
-            suspendPreview();
-
             // Determine which track to use.
             Track? freshTrack = null;
 
