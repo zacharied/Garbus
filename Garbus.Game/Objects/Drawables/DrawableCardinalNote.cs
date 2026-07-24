@@ -44,6 +44,18 @@ namespace Garbus.Game.Objects.Drawables
             Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
         }
 
+        protected override void Update()
+        {
+            base.Update();
+
+            // Under autoHit (the editor Mini preview) the chart is edited live, so chord membership can
+            // change while this drawable is already spawned — PrepareForUse fires only once. Recompute the
+            // tint each frame, mirroring the editor's own EditorDrawableCardinalNote. No cost in normal
+            // gameplay (AutoHitActive is false there; the chart is static, PrepareForUse suffices).
+            if (AutoHitActive)
+                Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
+        }
+
         protected override void UpdateInitialTransforms()
         {
             base.UpdateInitialTransforms();

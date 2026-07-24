@@ -558,6 +558,10 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// </summary>
     private bool isLeadingEdgeCaught()
     {
+        // Auto-hit takes no input, so the body is treated as continuously caught for its active span.
+        if (AutoHitEngaged)
+            return true;
+
         int angleDeg = (int)MathF.Round(AngleDegAt(Time.Current));
         return analogInput.SliderCatchers[HitObject.Side].IsCatchingAt(angleDeg);
     }

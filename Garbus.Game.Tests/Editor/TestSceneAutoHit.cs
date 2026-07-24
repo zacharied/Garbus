@@ -15,7 +15,9 @@ using Garbus.Game.UI;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Lines;
 using osu.Framework.Testing;
 using osu.Framework.Timing;
 using osuTK;
@@ -156,6 +158,68 @@ namespace Garbus.Game.Tests.Editor
             AddStep("rewind before slider", () => manualClock.CurrentTime = 0);
             AddStep("seek past again", () => manualClock.CurrentTime = 5100);
             AddAssert("still no results after scrub", () => results.Count, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestAutoHitHoldNotePresentsAsHeld()
+        {
+            // A hold's "held" presentation is input-derived (Holding); auto-hit takes no input, so without
+            // the root-level engagement seam the body renders dropped (gray) and the head never pops.
+            AddStep("clear + add autoHit hold note", () =>
+            {
+                foreach (var d in playfield.AllHitObjects.ToList())
+                    playfield.Remove(d);
+
+                var hold = new CardinalHoldNote { StartTime = 2000, AngleDeg = CardinalDirection.North.ToDegrees(), Duration = 1000 };
+                hold.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(hold, autoHit: true));
+            });
+
+            DrawableCardinalHoldNote hold() => playfield.AllHitObjects.OfType<DrawableCardinalHoldNote>().Single();
+
+            AddStep("seek mid-hold", () => manualClock.CurrentTime = 2500);
+            AddUntilStep("hold alive", () => hold().IsAlive);
+            // held_colour is white; dropped_colour is gray. This is the discriminating check.
+            AddUntilStep("body renders held (white), not dropped (gray)", () =>
+            {
+                var body = hold().ChildrenOfType<SmoothPath>().FirstOrDefault();
+                return body != null && body.Colour.Equals((ColourInfo)Colour4.White);
+            });
+        }
+
+        [Test]
+        public void TestAutoHitSliderPresentsAsCaught()
+        {
+            // updateBodyVisual dims an uncaught body to 0.4 alpha; a caught one stays full. Auto-hit has no
+            // analog catcher, so the root-level engagement seam is what makes the body read as caught.
+            AddStep("clear + add autoHit slider", () =>
+            {
+                foreach (var d in playfield.AllHitObjects.ToList())
+                    playfield.Remove(d);
+
+                var slider = new SliderBody
+                {
+                    StartTime = 4000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 0, RotationOffset = 0 },
+                            new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 90 },
+                        },
+                    },
+                };
+                slider.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(slider, autoHit: true));
+            });
+
+            DrawableSliderBody body() => playfield.AllHitObjects.OfType<DrawableSliderBody>().Single();
+
+            AddStep("seek mid-slider (past start, body active)", () => manualClock.CurrentTime = 4500);
+            AddUntilStep("slider alive", () => body().IsAlive);
+            AddUntilStep("body renders at full alpha (caught, not dimmed)", () => body().Alpha >= 0.99f);
         }
 
         private DrawableCardinalNote addNote(bool autoHit, bool playsSamples)

@@ -15,6 +15,7 @@ using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Gameplay.UI.Scrolling;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
+using Garbus.Game.Objects.Drawables;
 using Garbus.Game.Screens;
 using Garbus.Game.Tests.Visual;
 using Garbus.Game.UI;
@@ -22,6 +23,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
@@ -130,6 +132,73 @@ namespace Garbus.Game.Tests.Editor
             AddStep("seek past the (moved) hit + animation", () => host.EditorClock.Seek(3050));
             AddUntilStep("autoHit animation still plays after the live edit (faded out)", () =>
                 drawable() != null && drawable()!.ChildrenOfType<Sprite>().First().Alpha < 0.05f);
+        }
+
+        [Test]
+        public void TestChordNotesTintedYellowInPreview()
+        {
+            // Root cause of the reported bug: MiniPreview never fed the playfield's ChordHighlighter
+            // (no SetHitObjects call), so IsInChord was always false and chord notes rendered white.
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddStep("place a two-note chord at 2000ms", () =>
+            {
+                host.AddCardinal(2000, 90);
+                host.AddCardinal(2000, 270);
+            });
+            AddStep("seek so the chord is alive (pre-hit)", () => host.EditorClock.Seek(1900));
+
+            DrawableCardinalNote cardinalAt(int angle) =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().Single(d => d.HitObject.AngleDeg == angle);
+
+            AddUntilStep("both chord notes alive", () =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().Count(d => d.IsAlive) == 2);
+            AddUntilStep("first chord note yellow", () => cardinalAt(90).Colour.Equals((ColourInfo)ChordColours.Highlight));
+            AddUntilStep("second chord note yellow", () => cardinalAt(270).Colour.Equals((ColourInfo)ChordColours.Highlight));
+        }
+
+        [Test]
+        public void TestLiveChordFormationRetintsExistingNote()
+        {
+            // A lone note starts white; adding a same-time neighbour forms a chord and must retint the
+            // ALREADY-SPAWNED note yellow live (rebuild the highlighter on edit + per-frame recompute
+            // under autoHit — PrepareForUse alone fires once and would leave the existing note white).
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddStep("place a lone note at 2000ms", () => host.AddCardinal(2000, 90));
+            AddStep("seek so it is alive (pre-hit)", () => host.EditorClock.Seek(1900));
+
+            DrawableCardinalNote cardinalAt(int angle) =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().Single(d => d.HitObject.AngleDeg == angle);
+
+            AddUntilStep("lone note alive and white", () =>
+                cardinalAt(90).IsAlive && cardinalAt(90).Colour.Equals((ColourInfo)Colour4.White));
+
+            AddStep("add a same-time neighbour (forms a chord)", () => host.AddCardinal(2000, 270));
+            AddUntilStep("the pre-existing note retints yellow live", () =>
+                cardinalAt(90).Colour.Equals((ColourInfo)ChordColours.Highlight));
+        }
+
+        [Test]
+        public void TestContentScaledDownToFitPanel()
+        {
+            // The reported bug: hit-object sprites (fixed 80px) were not scaled down, swamping the small
+            // ring. The preview must render the playfield at a gameplay-faithful reference size and scale
+            // it uniformly to fit the panel, so a 190px panel shows ~gameplay proportions.
+            MiniPreviewTestHost host = null!;
+            AddStep("host the preview in a panel-sized (190) box", () =>
+                Child = host = new MiniPreviewTestHost(new Vector2(InlineChartPreviewPanel.SIZE)));
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddUntilStep("content scaled well below 1:1", () =>
+                Precision.AlmostEquals(host.Preview.ContentScaleForTests, InlineChartPreviewPanel.SIZE / MiniPreview.ReferenceSize, 0.02f)
+                && host.Preview.ContentScaleForTests < 0.5f);
         }
 
         [Test]
@@ -414,6 +483,14 @@ namespace Garbus.Game.Tests.Editor
 
             private CardinalNote? lastAdded;
             private DependencyContainer dependencies = null!;
+            private readonly Vector2? previewSize;
+
+            // previewSize: when set, hosts the MiniPreview at a fixed centred size (for the content-scale
+            // test); otherwise the preview fills the host (RelativeSizeAxes.Both), as the panel does.
+            public MiniPreviewTestHost(Vector2? previewSize = null)
+            {
+                this.previewSize = previewSize;
+            }
 
             protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
             {
@@ -438,7 +515,16 @@ namespace Garbus.Game.Tests.Editor
             private void load()
             {
                 RelativeSizeAxes = Axes.Both;
-                InternalChild = Preview = new MiniPreview { RelativeSizeAxes = Axes.Both };
+
+                // MiniPreview always fills its parent (its load() sets RelativeSizeAxes.Both), exactly as it
+                // does inside the 190px InlineChartPreviewPanel. To exercise the content-scaling in a panel-
+                // sized box, wrap it in a fixed-size centred container rather than sizing the preview itself.
+                Preview = new MiniPreview { RelativeSizeAxes = Axes.Both };
+
+                InternalChild = previewSize is { } sz
+                    ? new Container { Size = sz, Anchor = Anchor.Centre, Origin = Anchor.Centre, Child = Preview }
+                    : Preview;
+
                 // EditorClock must be in the hierarchy to tick; add it alongside the preview.
                 AddInternal(EditorClock);
             }
@@ -447,6 +533,14 @@ namespace Garbus.Game.Tests.Editor
             {
                 lastAdded = new CardinalNote { StartTime = time, AngleDeg = 90 };
                 EditorChart.Add(lastAdded);
+            }
+
+            /// <summary>Adds a cardinal note at a given time/angle without disturbing lastAdded tracking.</summary>
+            public CardinalNote AddCardinal(double time, int angle)
+            {
+                var note = new CardinalNote { StartTime = time, AngleDeg = angle };
+                EditorChart.Add(note);
+                return note;
             }
 
             public void RemoveLastAddedNote()

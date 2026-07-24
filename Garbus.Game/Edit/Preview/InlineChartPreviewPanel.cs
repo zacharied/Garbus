@@ -6,6 +6,7 @@ using Garbus.Game.Configuration;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
 using osuTK;
 using osuTK.Graphics;
@@ -53,6 +54,14 @@ namespace Garbus.Game.Edit.Preview
         [BackgroundDependencyLoader]
         private void load(GarbusConfigManager config)
         {
+            // Solid backdrop so the preview isn't see-through onto the compose grid and the border reads
+            // against it. Sits behind the lazily-added MiniPreview (added via AddInternal in SetVisible).
+            AddInternal(new Box
+            {
+                RelativeSizeAxes = Axes.Both,
+                Colour = new Color4(15, 15, 20, 255),
+            });
+
             this.config = config;
             offset = new Vector2(
                 Math.Max(0, config.Get<float>(GarbusSetting.MiniPreviewX)),

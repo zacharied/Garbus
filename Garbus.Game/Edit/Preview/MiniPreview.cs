@@ -3,6 +3,7 @@
 // clock slaved to the EditorClock, so the preview always shows exactly what the chart currently
 // contains — including in-flight edits — without any cloning or shadow state.
 
+using System;
 using System.Collections.Generic;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Objects;
@@ -11,6 +12,7 @@ using Garbus.Game.UI;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osuTK;
 
 namespace Garbus.Game.Edit.Preview
 {
@@ -29,20 +31,34 @@ namespace Garbus.Game.Edit.Preview
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
 
+        /// <summary>
+        /// The logical size the playfield renders at before it is scaled to fit the panel. The hit-object
+        /// sprites are fixed pixel sizes (e.g. an 80px cardinal note), so to reproduce real gameplay
+        /// proportions the whole playfield is rendered at the canonical draw height (the ring's natural
+        /// extent, <see cref="GarbusGameBase"/>'s 1366×768 target) and scaled down uniformly to fit.
+        /// </summary>
+        internal const float ReferenceSize = 768f;
+
         private GarbusPlayfield playfield = null!;
+        private Container scaleContainer = null!;
         private readonly Dictionary<GarbusHitObject, DrawableHitObject> drawableMap = new Dictionary<GarbusHitObject, DrawableHitObject>();
 
         internal GarbusPlayfield PlayfieldForTests => playfield;
+        internal float ContentScaleForTests => scaleContainer.Scale.X;
 
         [BackgroundDependencyLoader]
         private void load()
         {
             RelativeSizeAxes = Axes.Both;
 
-            // Slave the whole preview subtree to the editor clock (matches ComposeTab's composer wiring).
-            InternalChild = new Container
+            // Render the playfield at a fixed gameplay-faithful reference size, then scale the whole thing
+            // to fit the panel every frame (Update). Slave the subtree to the editor clock (matches
+            // ComposeTab's composer wiring).
+            InternalChild = scaleContainer = new Container
             {
-                RelativeSizeAxes = Axes.Both,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                Size = new Vector2(ReferenceSize),
                 Clock = editorClock,
                 Child = playfield = new GarbusPlayfield(interactive: false) { RelativeSizeAxes = Axes.Both },
             };
@@ -50,11 +66,44 @@ namespace Garbus.Game.Edit.Preview
             foreach (var hitObject in editorChart.HitObjects)
                 addDrawable(hitObject);
 
-            editorChart.HitObjectAdded += addDrawable;
-            editorChart.HitObjectRemoved += removeDrawable;
-            // Updated needs no explicit work: the shared instance's ApplyDefaults fires DefaultsApplied,
-            // which re-applies the drawable in place (DrawableHitObject.onDefaultsApplied).
+            // Feed the playfield's chord highlighter / warning schedule so chord notes tint correctly.
+            refreshChartState();
+
+            editorChart.HitObjectAdded += onHitObjectAdded;
+            editorChart.HitObjectRemoved += onHitObjectRemoved;
+            editorChart.HitObjectUpdated += onHitObjectUpdated;
+            // Adds/removes/updates each rebuild the chord index below; the drawable itself refreshes in
+            // place via the shared instance's DefaultsApplied → DrawableHitObject.onDefaultsApplied.
         }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            // Fit the reference-sized playfield uniformly into the panel (square panel → min dimension).
+            float fit = MathF.Min(DrawWidth, DrawHeight) / ReferenceSize;
+            scaleContainer.Scale = new Vector2(fit);
+        }
+
+        private void onHitObjectAdded(GarbusHitObject hitObject)
+        {
+            addDrawable(hitObject);
+            refreshChartState();
+        }
+
+        private void onHitObjectRemoved(GarbusHitObject hitObject)
+        {
+            removeDrawable(hitObject);
+            refreshChartState();
+        }
+
+        // A move/re-default can change chord membership (same start time), so rebuild the index; the
+        // drawable re-applies itself in place via DefaultsApplied.
+        private void onHitObjectUpdated(GarbusHitObject hitObject) => refreshChartState();
+
+        // Rebuild the chord highlight index and warning schedule from the live editor objects. Cheap and
+        // idempotent (both just replace their snapshot), so it is safe to call on every edit.
+        private void refreshChartState() => playfield.SetHitObjects(editorChart.HitObjects);
 
         private void addDrawable(GarbusHitObject hitObject)
         {
@@ -81,8 +130,9 @@ namespace Garbus.Game.Edit.Preview
         {
             if (editorChart != null)
             {
-                editorChart.HitObjectAdded -= addDrawable;
-                editorChart.HitObjectRemoved -= removeDrawable;
+                editorChart.HitObjectAdded -= onHitObjectAdded;
+                editorChart.HitObjectRemoved -= onHitObjectRemoved;
+                editorChart.HitObjectUpdated -= onHitObjectUpdated;
             }
 
             base.Dispose(isDisposing);

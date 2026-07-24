@@ -66,6 +66,17 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
         Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
     }
 
+    protected override void Update()
+    {
+        base.Update();
+
+        // Under autoHit (the editor Mini preview) chord membership can change live while spawned;
+        // PrepareForUse fires only once. Recompute the tint each frame (matches EditorDrawableCardinalNote).
+        // No cost in normal gameplay (AutoHitActive is false; PrepareForUse suffices for the static chart).
+        if (AutoHitActive)
+            Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
+    }
+
     protected override void UpdateInitialTransforms()
     {
         base.UpdateInitialTransforms();

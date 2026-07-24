@@ -62,6 +62,17 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// <summary>The effective auto-hit state, inherited by nested drawables from their parent.</summary>
         internal bool AutoHitActive => AutoHit || (ParentHitObject?.AutoHitActive ?? false);
 
+        /// <summary>
+        /// While an auto-hit drawable is at or past its start time it is treated as continuously and
+        /// successfully <em>engaged</em> — held, caught, contacted — as a pure function of the clock, since
+        /// auto-hit consumes no input. This is the root-level seam for auto-hit "on-hit" behaviour on
+        /// durationed objects: families whose engagement is otherwise input-derived (hold notes' button
+        /// hold, sliders' analog catcher) read this in their single engagement predicate so the
+        /// deterministic auto-hit presentation replaces the live one. Instantaneous notes need only the
+        /// forced Hit transform (see <see cref="updateStateFromResult"/>) and ignore this.
+        /// </summary>
+        protected bool AutoHitEngaged => AutoHitActive && Time.Current >= HitObject.StartTime;
+
         // Auto-hit drawables derive presence purely from time; the scrolling container owns their
         // lifetime window (GetEndTime() + timeRange — deterministic). Swallow drawable-side writes
         // from UpdateState / Expire so a scrub or rewind can't pin lifetime to a clock-moment value.

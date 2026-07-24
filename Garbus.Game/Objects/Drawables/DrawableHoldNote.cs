@@ -44,8 +44,9 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     private bool? activatedAtEnd;
     private bool headPopPlayed;
 
-    /// <summary>Whether the hold's button is currently held.</summary>
-    protected bool Holding => holdPresses > 0;
+    /// <summary>Whether the hold's button is currently held. Under auto-hit there is no input, so the hold
+    /// is treated as continuously held for its whole active span (<see cref="AutoHitEngaged"/>).</summary>
+    protected bool Holding => holdPresses > 0 || AutoHitEngaged;
 
     /// <summary>Whether one or more bindings for this hold are currently pressed.</summary>
     public bool IsHolding => Holding;
@@ -98,7 +99,9 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         updateActivation();
         base.Update();
 
-        if (Head.IsHit && !headPopPlayed)
+        // Under auto-hit the head produces no result (Head.IsHit stays false), so drive the pop off the
+        // deterministic engagement instead — it turns true as the clock reaches the head at StartTime.
+        if ((Head.IsHit || AutoHitEngaged) && !headPopPlayed)
         {
             headPopPlayed = true;
             OnHeadHit();
