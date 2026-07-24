@@ -1,3 +1,4 @@
+using System.Linq;
 using Garbus.Game.Core;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
@@ -6,6 +7,7 @@ using NUnit.Framework;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Testing;
 using osu.Framework.Timing;
 using osuTK;
@@ -114,6 +116,70 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("seek into window", () => manualClock.CurrentTime = 4700);
             AddUntilStep("warning revealed", () => playfield.WarningIndicators.RevealedAngleDeg(HorizontalDirection.Left) == 90);
+        }
+
+        /// <summary>
+        /// The default (gameplay) display draws the blurred under-ring glow — a <see cref="BufferedContainer"/>
+        /// per side blurs the arc and a <see cref="Circle"/> masks the disc interior. The mini-preview style
+        /// (<see cref="MiniWarningIndicatorDisplay"/>) instead draws a plain, unblurred <see cref="Arc"/> of the
+        /// side's colour directly on the ring — so it has neither the blur buffers nor the clip mask.
+        /// </summary>
+        [Test]
+        public void TestMiniStyleDrawsPlainArcNotBlurredGlow()
+        {
+            WarningIndicatorDisplay glow = null!;
+            WarningIndicatorDisplay mini = null!;
+
+            AddStep("create both displays", () =>
+            {
+                Child = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Children = new Drawable[]
+                    {
+                        glow = new WarningIndicatorDisplay(),
+                        mini = new MiniWarningIndicatorDisplay(),
+                    },
+                };
+            });
+
+            AddUntilStep("both loaded", () => glow.IsLoaded && mini.IsLoaded);
+
+            // Gameplay glow: blurred + clipped, so buffers and a mask circle exist.
+            AddAssert("glow uses blur buffers", () => glow.ChildrenOfType<BufferedContainer>().Any());
+            AddAssert("glow uses a clip mask", () => glow.ChildrenOfType<Circle>().Any());
+
+            // Mini: a plain arc per side, no blur buffer and no clip mask.
+            AddAssert("mini has no blur buffer", () => !mini.ChildrenOfType<BufferedContainer>().Any());
+            AddAssert("mini has no clip mask", () => !mini.ChildrenOfType<Circle>().Any());
+            AddAssert("mini draws one arc per side", () => mini.ChildrenOfType<Arc>().Count() == 2);
+        }
+
+        [Test]
+        public void TestMiniStylePlayfieldUsesMiniDisplay()
+        {
+            GarbusPlayfield gameplay = null!;
+            GarbusPlayfield preview = null!;
+
+            AddStep("create gameplay and mini-style playfields", () =>
+            {
+                Child = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Children = new Drawable[]
+                    {
+                        gameplay = new GarbusPlayfield { Size = Vector2.One },
+                        preview = new GarbusPlayfield(interactive: false, miniStyle: true) { Size = Vector2.One },
+                    },
+                };
+            });
+
+            AddUntilStep("both loaded", () => gameplay.IsLoaded && preview.IsLoaded);
+
+            AddAssert("gameplay uses the blurred glow display",
+                () => gameplay.WarningIndicators is not MiniWarningIndicatorDisplay);
+            AddAssert("mini-style playfield uses the mini display",
+                () => preview.WarningIndicators is MiniWarningIndicatorDisplay);
         }
 
         /// <summary>

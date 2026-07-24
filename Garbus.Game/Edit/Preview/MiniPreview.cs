@@ -51,6 +51,13 @@ namespace Garbus.Game.Edit.Preview
         {
             RelativeSizeAxes = Axes.Both;
 
+            // Clip the playfield to the preview bounds. The reference-sized playfield is scaled down and
+            // centred, so slider paths / warning arcs near the playfield edge would otherwise draw out to the
+            // panel border and fight its rounded stroke. The CornerRadius matches the host panel chrome
+            // (InlineChartPreviewPanel) so the clipped content rounds cleanly inside the border.
+            Masking = true;
+            CornerRadius = 8;
+
             // Render the playfield at a fixed gameplay-faithful reference size, then scale the whole thing
             // to fit the panel every frame (Update). Slave the subtree to the editor clock (matches
             // ComposeTab's composer wiring).
@@ -60,7 +67,7 @@ namespace Garbus.Game.Edit.Preview
                 Origin = Anchor.Centre,
                 Size = new Vector2(ReferenceSize),
                 Clock = editorClock,
-                Child = playfield = new GarbusPlayfield(interactive: false) { RelativeSizeAxes = Axes.Both },
+                Child = playfield = new GarbusPlayfield(interactive: false, miniStyle: true) { RelativeSizeAxes = Axes.Both },
             };
 
             foreach (var hitObject in editorChart.HitObjects)

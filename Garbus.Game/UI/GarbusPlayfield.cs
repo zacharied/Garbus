@@ -25,7 +25,7 @@ public partial class GarbusPlayfield : Playfield
     private readonly Drawable stickIndicatorL = new StickIndicator() { Side = HorizontalDirection.Left };
     private readonly Drawable stickIndicatorR = new StickIndicator() { Side = HorizontalDirection.Right };
 
-    private readonly WarningIndicatorDisplay warningIndicators = new WarningIndicatorDisplay();
+    private readonly WarningIndicatorDisplay warningIndicators;
 
     [Cached]
     private AnalogInputManager analogInputManager { get; set; } = new AnalogInputManager();
@@ -41,9 +41,14 @@ public partial class GarbusPlayfield : Playfield
 
     private readonly bool interactive;
 
-    public GarbusPlayfield(bool interactive = true)
+    /// <param name="interactive">When false, no analog input manager or stick indicators are installed
+    /// (used by the read-only editor mini preview).</param>
+    /// <param name="miniStyle">When true, the warning indicator draws as a plain arc on the ring
+    /// (<see cref="MiniWarningIndicatorDisplay"/>) rather than the gameplay blurred glow — for the mini preview.</param>
+    public GarbusPlayfield(bool interactive = true, bool miniStyle = false)
     {
         this.interactive = interactive;
+        warningIndicators = miniStyle ? new MiniWarningIndicatorDisplay() : new WarningIndicatorDisplay();
         Padding = new MarginPadding(30);
         AddNested(ring);
     }
@@ -51,9 +56,11 @@ public partial class GarbusPlayfield : Playfield
     [BackgroundDependencyLoader]
     private void load()
     {
-        // warningIndicators sits before the ring so the ring's white stroke draws on top of the glow's
-        // clipped inner edge — the glow reads as light emanating from under the ring.
-        var children = new List<Drawable> { warningIndicators, ring };
+        // The gameplay glow sits BEFORE the ring so the ring's white stroke draws on top of the glow's
+        // clipped inner edge — it reads as light emanating from under the ring. The mini-preview style is
+        // instead a plain arc drawn directly ON the ring, so it goes AFTER the ring to sit on top of the stroke.
+        bool warningOnTop = warningIndicators is MiniWarningIndicatorDisplay;
+        var children = warningOnTop ? new List<Drawable> { ring, warningIndicators } : new List<Drawable> { warningIndicators, ring };
 
         if (interactive)
         {
