@@ -220,6 +220,41 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     }
 
     [Test]
+    public void TestMiniWarningAlphaAtBreatheBoundaries()
+    {
+        const int angle = 135;
+        const double start_time = 5000;
+        const double breathe_period = 1000d / 2.7d;
+        const float breathe_min_alpha = 0.35f;
+        double warningStart = start_time - WarningIndicatorDisplay.WARNING_TIME;
+        WarningIndicatorDisplay warning = null!;
+
+        AddStep("seek to exact warning start", () =>
+        {
+            Assert.That(preview.Apply(fullState(
+                1,
+                chartWith(warningSlider(angle, start_time)),
+                [1],
+                warningStart,
+                700)), Is.True);
+            warning = preview.PlayfieldForTests.WarningIndicators;
+        });
+        AddUntilStep("warning start is transparent", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
+            && warningEffectBuffer(warning).Alpha == 0);
+
+        AddStep("seek to initial half-period", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(2, warningStart + breathe_period / 2, false, 1, 0)), Is.True));
+        AddUntilStep("initial half-period is full alpha", () =>
+            warningEffectBuffer(warning).Alpha == 1);
+
+        AddStep("seek to full-period boundary", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(3, warningStart + breathe_period, false, 1, 0)), Is.True));
+        AddUntilStep("full-period boundary is minimum alpha", () =>
+            warningEffectBuffer(warning).Alpha == breathe_min_alpha);
+    }
+
+    [Test]
     public void TestMiniWarningAlphaIsIndependentOfSeekHistory()
     {
         const int angle = 135;

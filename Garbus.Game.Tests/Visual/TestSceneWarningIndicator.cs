@@ -82,6 +82,59 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestOrdinaryGameplayWarningBreathesAndFadesOverTime()
+        {
+            const double start = 5000;
+            const double breathe_period = 1000d / 2.7d;
+            const double fade_duration = 150;
+            double warningStart = start - WarningIndicatorDisplay.WARNING_TIME;
+            float alphaBeforeFade = 0;
+
+            AddStep("set warning slider", () => display.SetHitObjects(new GarbusHitObject[]
+            {
+                new SliderBody
+                {
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Left,
+                    StartTime = start,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                },
+            }));
+
+            AddStep("seek to warning start", () => manualClock.CurrentTime = warningStart);
+            AddUntilStep("warning begins transparent", () =>
+                display.RevealedAngleDeg(HorizontalDirection.Left) == 90
+                && warningEffectBuffer(display).Alpha == 0);
+
+            AddStep("advance through initial fade-in", () => manualClock.CurrentTime = warningStart + breathe_period / 2);
+            AddUntilStep("warning reaches full alpha", () => warningEffectBuffer(display).Alpha == 1);
+
+            AddStep("advance through breathe-down", () => manualClock.CurrentTime = warningStart + breathe_period);
+            AddUntilStep("warning breathes below full alpha", () =>
+                warningEffectBuffer(display).Alpha is > 0 and < 1);
+
+            AddStep("cross warning hide edge", () => manualClock.CurrentTime = start);
+            AddUntilStep("warning starts fade while hidden", () =>
+                display.RevealedAngleDeg(HorizontalDirection.Left) == null
+                && warningEffectBuffer(display).Alpha > 0);
+            AddStep("record fade start alpha", () => alphaBeforeFade = warningEffectBuffer(display).Alpha);
+
+            AddStep("advance halfway through fade", () => manualClock.CurrentTime = start + fade_duration / 2);
+            AddUntilStep("warning fades over time", () =>
+                warningEffectBuffer(display).Alpha > 0
+                && warningEffectBuffer(display).Alpha < alphaBeforeFade);
+
+            AddStep("complete fade", () => manualClock.CurrentTime = start + fade_duration);
+            AddUntilStep("warning finishes transparent", () => warningEffectBuffer(display).Alpha == 0);
+        }
+
+        [Test]
         public void TestPlayfieldForwardsWarnings()
         {
             GarbusPlayfield playfield = null!;
