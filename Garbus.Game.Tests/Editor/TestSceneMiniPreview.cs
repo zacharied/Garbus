@@ -1,6 +1,7 @@
 // The editor Mini preview: a non-interactive autoHit playfield hosted over the compose workspace,
 // mirroring the editor's live hit objects on a clock slaved to the EditorClock.
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Garbus.Game.Charts;
@@ -10,6 +11,7 @@ using Garbus.Game.Edit;
 using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Gameplay.UI.Scrolling;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
@@ -128,6 +130,46 @@ namespace Garbus.Game.Tests.Editor
             AddStep("seek past the (moved) hit + animation", () => host.EditorClock.Seek(3050));
             AddUntilStep("autoHit animation still plays after the live edit (faded out)", () =>
                 drawable() != null && drawable()!.ChildrenOfType<Sprite>().First().Alpha < 0.05f);
+        }
+
+        [Test]
+        public void TestDisposingPreviewReleasesLifetimeRefreshSubscriptions()
+        {
+            // Pins the Task 9 review fix: GarbusScrollingHitObjectContainer.Add subscribes
+            // HitObject.DefaultsApplied per entry, previously unsubscribed only on explicit
+            // per-object Remove — never on container disposal. MiniPreview shares the editor's
+            // long-lived HitObject instances (no clone), so a disposed-but-still-subscribed handler
+            // would otherwise leak the whole preview subtree forever.
+            //
+            // A cardinal note is routed to its own Lane's container (Ring.laneFor), not Ring's own
+            // ScrollingContainer, so every GarbusScrollingHitObjectContainer in the nested-playfield
+            // tree (ring + lanes) must be swept, not just the ring's.
+            MiniPreviewTestHost host = null!;
+            List<GarbusScrollingHitObjectContainer> containers = null!;
+
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+            AddStep("add a note", () => host.AddNote(9000));
+            AddStep("capture every scrolling container in the preview's playfield tree", () =>
+                containers = allPlayfields(host.Preview.PlayfieldForTests)
+                    .Select(p => p.HitObjectContainer)
+                    .OfType<GarbusScrollingHitObjectContainer>()
+                    .ToList());
+
+            AddAssert("handlers registered while alive", () => containers.Sum(c => c.LifetimeRefreshHandlerCountForTests) > 0);
+
+            AddStep("dispose the preview host", () => Remove(host, true));
+
+            AddAssert("handlers released on disposal", () => containers.Sum(c => c.LifetimeRefreshHandlerCountForTests) == 0);
+
+            static IEnumerable<Playfield> allPlayfields(Playfield root)
+            {
+                yield return root;
+
+                foreach (var nested in root.NestedPlayfields)
+                foreach (var descendant in allPlayfields(nested))
+                    yield return descendant;
+            }
         }
 
         [Test]

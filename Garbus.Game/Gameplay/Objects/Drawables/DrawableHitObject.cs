@@ -301,15 +301,15 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
                 // Presentation only: play the Hit animation at the natural hit time (HitStateUpdateTime
                 // → GetEndTime() with no result). Forced, so no hitsound fires and no result is produced.
                 //
-                // Deferred one tick via ScheduleAfterChildren rather than called inline: this can run as
-                // early as LoadComplete, which races PoolableDrawable's own PrepareForUse() (invoked on the
-                // very next Update() for a freshly-used, non-pooled drawable — the only kind PlayScreen ever
-                // constructs). If PrepareForUse schedules its own transform on a property this drawable's Hit
-                // transforms also target (e.g. DrawableCardinalNote's spawn-in ScaleTo), osu-framework's
-                // same-target-member transform pruning removes the earlier Hit-state member — and aborting
-                // one member of a chained TransformSequence (Spin+FadeOut+ScaleTo here) aborts the whole
-                // chain, silently discarding the entire animation. Scheduling after children guarantees
-                // PrepareForUse has already run this same frame before the Hit state is forced.
+                // Deferred one tick via ScheduleAfterChildren: originally this guarded against a race with
+                // PoolableDrawable's own PrepareForUse() scheduling a same-target-member transform (e.g.
+                // DrawableCardinalNote's spawn-in ScaleTo) that osu-framework's same-target-member transform
+                // pruning would collide with the Hit-state transforms, aborting the whole chained
+                // TransformSequence. As of Task 9 the spawn-in transform moved out of PrepareForUse into
+                // UpdateInitialTransforms, so that collision can no longer occur. The deferral is kept
+                // anyway as harmless belt-and-suspenders — the forced Hit transforms are absolute-anchored
+                // regardless of ordering, so scheduling after children costs nothing and removing it is a
+                // separate, unneeded change.
                 ScheduleAfterChildren(() => UpdateState(ArmedState.Hit, true));
                 return;
             }

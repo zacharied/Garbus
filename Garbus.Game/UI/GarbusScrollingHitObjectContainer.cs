@@ -53,6 +53,10 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     /// <summary>The visible time range currently in effect (ms). Exposed for tests.</summary>
     internal double CurrentTimeRange => timeRange.Value;
 
+    /// <summary>The number of live <see cref="Gameplay.Objects.HitObject.DefaultsApplied"/> subscriptions
+    /// held by this container. Exposed for disposal-leak tests.</summary>
+    internal int LifetimeRefreshHandlerCountForTests => lifetimeRefreshHandlers.Count;
+
     // Responds to changes in the layout. When the layout changes, all hit object states must be recomputed.
     private readonly LayoutValue layoutCache = new LayoutValue(Invalidation.RequiredParentSizeToFit | Invalidation.DrawInfo);
 
@@ -144,6 +148,21 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
             entry.HitObject.DefaultsApplied -= handler;
 
         return base.Remove(entry);
+    }
+
+    // Garbus: Remove() above only unsubscribes on explicit per-object removal — if this container
+    // (and its subtree, e.g. the editor MiniPreview) is disposed with entries still present, those
+    // DefaultsApplied handlers were never released. Since MiniPreview shares the editor's long-lived
+    // HitObject instances (no clone), each retained handler kept the disposed container + subtree
+    // alive indefinitely — a leak that recurs on every preview recreation. Release everything left
+    // over here.
+    protected override void Dispose(bool isDisposing)
+    {
+        foreach (var (entry, handler) in lifetimeRefreshHandlers)
+            entry.HitObject.DefaultsApplied -= handler;
+        lifetimeRefreshHandlers.Clear();
+
+        base.Dispose(isDisposing);
     }
 
     protected override void AddDrawable(HitObjectLifetimeEntry entry, DrawableHitObject drawable)
