@@ -107,5 +107,40 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("lifetime end unchanged (path-independent)",
                 () => Math.Abs(note()!.Entry!.LifetimeEnd - endAfterForward) < 0.001);
         }
+
+        [Test]
+        public void TestAutoHitPropagatesToSliderChildren()
+        {
+            AddStep("add autoHit slider", () =>
+            {
+                var slider = new SliderBody
+                {
+                    StartTime = 4000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 0, RotationOffset = 0 },
+                            new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 90 },
+                        },
+                    },
+                };
+                slider.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(slider, autoHit: true));
+            });
+
+            DrawableSliderBody body() => playfield.AllHitObjects.OfType<DrawableSliderBody>().Single();
+
+            AddStep("seek past the slider", () => manualClock.CurrentTime = 5100);
+            AddUntilStep("slider + children present", () => body().NestedHitObjects.Count > 0);
+            AddAssert("children are auto-hit (unjudged)", () => body().NestedHitObjects.All(n => !n.Judged));
+            AddAssert("no results emitted from slider path", () => results.Count, () => Is.Zero);
+
+            AddStep("rewind before slider", () => manualClock.CurrentTime = 0);
+            AddStep("seek past again", () => manualClock.CurrentTime = 5100);
+            AddAssert("still no results after scrub", () => results.Count, () => Is.Zero);
+        }
     }
 }
