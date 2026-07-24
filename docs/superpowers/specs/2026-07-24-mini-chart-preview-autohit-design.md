@@ -82,6 +82,31 @@ is a self-contained property of the drawable, meaningful with no editor present 
 `if (autoHit)` on the base is the sanctioned general capability, not the
 `if (previewContext != null)` editor-back-reference the design deletes.
 
+### Spawn / intro animations must be clock-addressable
+
+The concrete drawables schedule their spawn pop (`sprite.ScaleTo(0).ScaleTo(1, 125)`,
+`FadeInFromZero`) in **`PrepareForUse`**, using *relative* transforms. For a
+non-pooled drawable `PrepareForUse` fires exactly once — on the first frame it is
+alive (`Update` doesn't run until then), i.e. at scroll-in — and never again; the
+child sprite then discards the completed transform (`RemoveCompletedTransforms`
+defaults `true` on a plain `Sprite`; only the DHO itself sets it `false`). This is
+why pressing **R** to restart currently leaves already-spawned notes with no spawn
+animation on replay — the same root cause that would make the stateless preview
+misfire on every scrub (spawn plays at the *seek* moment on first encounter, then
+vanishes for any note already seen).
+
+The fix (a real gameplay bugfix that also unblocks the preview): **rehome the spawn
+into `UpdateInitialTransforms`** — the hook `updateState` wraps in
+`BeginAbsoluteSequence(StartTime − InitialLifetimeOffset)` — with two supporting
+changes: (1) override `InitialLifetimeOffset` on the shared `DrawableGarbusHitObject<T>`
+base to the scroll `TimeRange` so the anchor is the note's centre-spawn / scroll-in
+time (the base `10000` would fire it 10 s early / invisibly), and (2) set
+`RemoveCompletedTransforms = false` on the scaled/faded child targets (the DHO
+already is `false`) so the absolute transform persists and replays under pure rewind
+— an `autoHit` note produces no result, so nothing re-runs `updateState` on a scrub;
+the transform must survive on its own. Pinned by a restart-replays-spawn test and an
+`autoHit`-rescrub-replays-spawn test.
+
 ## Non-interactive playfield
 
 `GarbusPlayfield` gains a construction option to **not install the input manager**

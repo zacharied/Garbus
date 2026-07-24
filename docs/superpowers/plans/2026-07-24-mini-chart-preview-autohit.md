@@ -39,6 +39,8 @@
 - `Garbus.Game/Configuration/GarbusConfigManager.cs` — their `SetDefault`s.
 - `Garbus.Game/Edit/Screens/ComposeTab.cs` — accept + dock the panel.
 - `Garbus.Game/Edit/Screens/GarbusEditor.cs` — `MiniPreviewEnabled` bindable, View menu item, visibility gating, suspend/restore.
+- `Garbus.Game/Objects/Drawables/DrawableGarbusHitObject.cs` — `InitialLifetimeOffset` override (scroll-in anchor for intro transforms). *(Task 9)*
+- `Garbus.Game/Objects/Drawables/DrawableCardinalNote.cs`, `DrawableCardinalHoldNote.cs`, `DrawableShoulderNote.cs`, `DrawableShoulderHoldNote.cs`, `DrawableSlamCentered.cs`, `DrawableSlamEdge.cs`, `DrawableSliderBody.cs` — rehome spawn pop `PrepareForUse` → `UpdateInitialTransforms` + `RemoveCompletedTransforms = false` on scaled targets. *(Task 9)*
 
 **Explicitly NOT touched (reverted-to-master parity, verified this branch is already clean):** `Garbus.Game/Gameplay/UI/Playfield.cs`, `EditorClock.cs` (no seek events needed — statelessness), `JudgementResult.cs`, `ChordConnectorOverlay.cs`, `WarningIndicatorDisplay.cs`. The existing gameplay test suite is the regression guard.
 
@@ -1273,7 +1275,151 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 ---
 
-### Task 9: Regression + manual verification
+### Task 9: Rehome spawn animation to `UpdateInitialTransforms` (fixes restart-R + enables stateless preview)
+
+**Why:** the spawn pop is scheduled in `PrepareForUse` with *relative* transforms. For a non-pooled drawable `PrepareForUse` fires exactly once (first alive = scroll-in) and never again, and the child `Sprite` discards the completed transform (`RemoveCompletedTransforms` defaults `true`). Result: pressing **R** leaves already-spawned notes with no animation on replay, and the stateless preview would misfire the spawn on every scrub. Fix: move the spawn into the clock-addressable `UpdateInitialTransforms` hook, anchored at scroll-in, on targets that persist. This is an independent gameplay bugfix; do it before Task 10's manual verification (it doesn't depend on the preview host).
+
+**Files:**
+- Modify: `Garbus.Game/Objects/Drawables/DrawableGarbusHitObject.cs`
+- Modify: `DrawableCardinalNote.cs`, `DrawableCardinalHoldNote.cs`, `DrawableShoulderNote.cs`, `DrawableShoulderHoldNote.cs`, `DrawableSlamCentered.cs`, `DrawableSlamEdge.cs`, `DrawableSliderBody.cs` (all under `Garbus.Game/Objects/Drawables/`)
+- Test: `Garbus.Game.Tests/Visual/TestSceneGameplay.cs` (restart replay), `Garbus.Game.Tests/Editor/TestSceneAutoHit.cs` (autoHit re-scrub replay)
+
+**Interfaces:**
+- Consumes: `GarbusScrollingInfo.TimeRange` (`Garbus.Game.Gameplay.UI.Scrolling`), `AutoHitActive` (Task 1).
+- Produces: intro spawn transforms are absolute-anchored at `StartTime − TimeRange` (scroll-in) and survive rewind, in gameplay and the preview.
+
+Facts (verified): `updateState` wraps `UpdateInitialTransforms()` in `BeginAbsoluteSequence(StartTime − InitialLifetimeOffset)` (`DrawableHitObject.cs:401-404`); base `InitialLifetimeOffset` is `10000` (`:528`). The scrolling container sets the alive window from its own `displayStart ≈ StartTime − TimeRange` regardless, so overriding the drawable's `InitialLifetimeOffset` only re-anchors the intro transforms (the container still owns lifetime). Only the DHO has `RemoveCompletedTransforms = false`; plain child `Sprite`/`Container` targets default `true`.
+
+- [ ] **Step 1: Write the failing gameplay restart test**
+
+Append to `Garbus.Game.Tests/Visual/TestSceneGameplay.cs` (uses the existing `manualClock` / `playfield` / `playThrough` harness; `scrollingInfo.TimeRange` is pinned to `700` in its `SetUpSteps`, so the first cardinal at `StartTime = 2000` scrolls in at `1300`):
+
+```csharp
+        [Test]
+        public void TestSpawnAnimationReplaysAfterRestart()
+        {
+            // Play past the first cardinal's hit so it spawns and judges, then "restart" (clock → 0).
+            playThrough(2200);
+            AddUntilStep("first cardinal judged", () => firstCardinal()?.Judged == true);
+
+            AddStep("restart (clock to 0)", () => manualClock.CurrentTime = 0);
+
+            // Re-enter the spawn window: scroll-in 1300 + 60ms = 1360, mid-scale-in.
+            AddStep("seek into spawn window", () => manualClock.CurrentTime = 1360);
+            AddUntilStep("spawn animation replays (scale mid-way)", () =>
+            {
+                var sprite = firstCardinal()?.ChildrenOfType<osu.Framework.Graphics.Sprites.Sprite>().FirstOrDefault();
+                return sprite != null && sprite.Scale.X < 0.9f;
+            });
+        }
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter "FullyQualifiedName~TestSceneGameplay.TestSpawnAnimationReplaysAfterRestart"`
+Expected: FAIL — after restart the sprite scale is `1` (the once-only `PrepareForUse` didn't re-fire; the old transform is gone).
+
+- [ ] **Step 3: Anchor the intro transforms at scroll-in**
+
+In `Garbus.Game/Objects/Drawables/DrawableGarbusHitObject.cs`, add `using Garbus.Game.Gameplay.UI.Scrolling;` and `using osu.Framework.Allocation;`, then:
+
+```csharp
+    [Resolved(CanBeNull = true)]
+    private GarbusScrollingInfo? scrollingInfo { get; set; }
+
+    // Anchor UpdateInitialTransforms at the note's centre-spawn / scroll-in time (StartTime − TimeRange)
+    // so the spawn animation plays as the note appears and, being absolute-sequenced, replays on
+    // rewind/restart and under editor-preview scrubbing. Base 10000 would fire it ~10s early / invisibly.
+    protected override double InitialLifetimeOffset => scrollingInfo?.TimeRange.Value ?? 700;
+```
+
+- [ ] **Step 4: Rehome each drawable's spawn into `UpdateInitialTransforms` + persist the target**
+
+For each drawable: (a) delete the spawn transform line(s) from `PrepareForUse` (keep the `Colour = …` line and any `base.PrepareForUse()`), (b) add `RemoveCompletedTransforms = false` where each scaled/faded **child** target is constructed (targets that are `this` need nothing — the DHO already is), (c) add an `UpdateInitialTransforms` override calling `base` then the moved transforms.
+
+Representative — `DrawableCardinalNote.cs`. Add `RemoveCompletedTransforms = false` to the sprite initializer:
+
+```csharp
+            sprite = new Sprite
+            {
+                RelativeSizeAxes = Axes.Both,
+                FillMode = FillMode.Fit,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                RemoveCompletedTransforms = false,
+            };
+```
+
+Trim `PrepareForUse` to just the colour line, and add the override:
+
+```csharp
+        protected override void PrepareForUse()
+        {
+            Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
+        }
+
+        protected override void UpdateInitialTransforms()
+        {
+            base.UpdateInitialTransforms();
+            sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+        }
+```
+
+Apply the same shape to the rest, per this table (target(s) = where to set `RemoveCompletedTransforms = false` and what moves into `UpdateInitialTransforms` after `base.UpdateInitialTransforms();`):
+
+| File | Moved transform(s) | `RemoveCompletedTransforms = false` on |
+|---|---|---|
+| `DrawableSlamCentered.cs` | `sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);` | `sprite` |
+| `DrawableSlamEdge.cs` | `sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);` | `sprite` |
+| `DrawableShoulderNote.cs` | `this.ScaleTo(0).ScaleTo(1, 125, Easing.In);` | *(none — `this`)* |
+| `DrawableShoulderHoldNote.cs` | `this.ScaleTo(0).ScaleTo(1, 125, Easing.In);` | *(none — `this`)* |
+| `DrawableCardinalHoldNote.cs` | `headSprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);` and `body.FadeInFromZero(100, Easing.In);` | `headSprite`, `body` |
+| `DrawableSliderBody.cs` | `pathContainer.FadeInFromZero(100, Easing.In);` `escapeContainer.FadeInFromZero(100, Easing.In);` `headContainer.FadeInFromZero(100, Easing.In);` | `pathContainer`, `escapeContainer`, `headContainer` |
+
+For `DrawableShoulderNote`/`DrawableShoulderHoldNote`, `PrepareForUse` may become empty except `base.PrepareForUse()` + its `Colour` line — keep those; only the `this.ScaleTo(...)` line moves. For `DrawableSliderBody`, keep its existing `OnApply` (`rebuildNodes`) and the `base.PrepareForUse()`; only the three `FadeInFromZero` lines move into a new `UpdateInitialTransforms` override.
+
+- [ ] **Step 5: Run the gameplay restart test to verify it passes**
+
+Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter "FullyQualifiedName~TestSceneGameplay.TestSpawnAnimationReplaysAfterRestart"`
+Expected: PASS.
+
+- [ ] **Step 6: Add the autoHit re-scrub persistence test**
+
+Append to `Garbus.Game.Tests/Editor/TestSceneAutoHit.cs` (its `SetUpSteps` pins `TimeRange = 700` and adds a single autoHit cardinal at `StartTime = 2000` → scroll-in `1300`):
+
+```csharp
+        [Test]
+        public void TestAutoHitSpawnReplaysAfterScrubPastCompletion()
+        {
+            // Seek past spawn completion (1300 + 125 = 1425), so a Sprite that discarded its transform
+            // would show scale 1 on return. With RemoveCompletedTransforms=false it persists and replays.
+            AddStep("seek past spawn completion", () => manualClock.CurrentTime = 1600);
+            AddStep("rewind to start", () => manualClock.CurrentTime = 0);
+            AddStep("seek back into spawn window", () => manualClock.CurrentTime = 1360);
+            AddUntilStep("spawn replays (scale mid-way)", () =>
+            {
+                var sprite = note()?.ChildrenOfType<osu.Framework.Graphics.Sprites.Sprite>().FirstOrDefault();
+                return sprite != null && sprite.Scale.X < 0.9f;
+            });
+        }
+```
+
+- [ ] **Step 7: Run the autoHit test + the full gameplay suite**
+
+Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter "FullyQualifiedName~TestSceneAutoHit|FullyQualifiedName~TestSceneGameplay"`
+Expected: PASS (autoHit re-scrub replays; no gameplay regression — existing lifetime/judgement tests still green since the container still owns lifetime).
+
+- [ ] **Step 8: Commit**
+
+```
+fix: rehome note spawn to UpdateInitialTransforms so it survives rewind/restart
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+```
+
+---
+
+### Task 10: Regression + manual verification
 
 **Files:** none (verification only).
 
@@ -1288,6 +1434,7 @@ Run: `dotnet run --project Garbus.Desktop`
 Verify by driving the real editor:
 - Open the editor → Compose tab shows the ~190×190 preview docked bottom-right, playing the chart at the playhead.
 - Scrub the editor timeline → preview notes scroll and animate their hit at the ring in sync; rewind → animations unplay. No judgement feedback halos appear in the preview.
+- Scrub back and forth across a note's centre-spawn → its spawn pop replays each pass (not a one-time or seek-anchored pop). In gameplay, press **R** to restart → notes that already spawned still show their spawn animation on replay (the restart-R fix).
 - Place / move / delete a note → preview reflects it live; dragging a slider node does not stutter (in-place refresh, no recreation).
 - Drag the panel → it clamps to the workspace and its position persists across an editor reopen.
 - `View › Mini Preview` unchecks → preview hides; recheck → reappears.
@@ -1312,7 +1459,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 
 ## Self-Review Notes
 
-- **Spec coverage:** `autoHit` capability (Tasks 1-3), non-interactive playfield (Tasks 1/4), `MiniPreview` host over live instances with in-place refresh (Task 5), panel chrome + config (Task 6), ComposeTab dock (Task 7), enable toggle + gating + suspend/restore + View menu (Task 8), reverted-gameplay regression guard (Task 9). The design's "failure dialog" and `EditorClock` seek events are intentionally dropped — they were PR-4 artifacts with no failure mode / no need under the stateless shared-instance design (noted in the design doc supersession).
+- **Spec coverage:** `autoHit` capability (Tasks 1-3), non-interactive playfield (Tasks 1/4), `MiniPreview` host over live instances with in-place refresh (Task 5), panel chrome + config (Task 6), ComposeTab dock (Task 7), enable toggle + gating + suspend/restore + View menu (Task 8), spawn-animation rehome / restart-R fix (Task 9), reverted-gameplay regression guard (Task 10). The design's "failure dialog" and `EditorClock` seek events are intentionally dropped — they were PR-4 artifacts with no failure mode / no need under the stateless shared-instance design (noted in the design doc supersession).
+- **Spawn statelessness** pinned by `TestSpawnAnimationReplaysAfterRestart` (gameplay revert-reschedule path) + `TestAutoHitSpawnReplaysAfterScrubPastCompletion` (autoHit persistence path). Task 9 is independent of the preview host and can be executed anytime before Task 10.
 - **Read-only invariant** pinned by `TestAutoHitProducesNoJudgementResult` + `TestAutoHitPropagatesToSliderChildren` (zero results across scrub).
 - **Statelessness** pinned by `TestAutoHitPlaysHitVisualAtHitTimeAndRevertsOnRewind` + `TestAutoHitLifetimeEndIsDeterministicAcrossScrub`.
 - **Type consistency:** `AutoHit`/`AutoHitActive`/`AutoHitPlaysSamples` (base), `CreateDrawableRepresentation(h, autoHit)` (factory), `GarbusPlayfield(bool interactive)`, `MiniPreview.PlayfieldForTests`, `InlineChartPreviewPanel.SetVisible`/`OffsetForTests`, `GarbusEditor.MiniPreviewEnabled`, `ComposeTab(InlineChartPreviewPanel?)` — used consistently across tasks.
