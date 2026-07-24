@@ -5,6 +5,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using Garbus.Game.Core;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Objects;
 using Garbus.Game.Utils;
 using osuTK;
@@ -42,6 +43,12 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
     private WarningIndicatorSchedule? schedule;
 
     private readonly Dictionary<HorizontalDirection, SideArc> sideArcs = new();
+
+    [Resolved(CanBeNull = true)]
+    private ChartPreviewContext? previewContext { get; set; }
+
+    [Resolved(CanBeNull = true)]
+    private GarbusPlayfield? playfield { get; set; }
 
     public WarningIndicatorDisplay()
     {
@@ -89,7 +96,9 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
             // Outer buffer composites the crisp mask over the blurred glow (no blur of its own).
             var clipped = new BufferedContainer
             {
-                RelativeSizeAxes = Axes.Both,
+                RelativeSizeAxes = previewContext == null ? Axes.Both : Axes.None,
+                Anchor = previewContext == null ? Anchor.TopLeft : Anchor.Centre,
+                Origin = previewContext == null ? Anchor.TopLeft : Anchor.Centre,
                 Alpha = 0,
                 Children = new Drawable[] { blurred, mask },
             };
@@ -111,9 +120,26 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
         base.Update();
 
         float diameter = MathF.Min(DrawWidth, DrawHeight);
+        Vector2 previewBufferSize = Vector2.Zero;
+
+        if (previewContext != null)
+        {
+            MarginPadding padding = playfield!.Padding;
+            previewBufferSize = DrawSize + new Vector2(padding.TotalHorizontal, padding.TotalVertical);
+        }
 
         foreach (var (side, s) in sideArcs)
         {
+            if (previewContext != null)
+            {
+                // Preview framebuffers consume the playfield's symmetric outer padding, while the arc
+                // remains sized from the unchanged ring diameter rather than the enlarged buffer.
+                s.Buffer.Size = previewBufferSize;
+                s.Arc.Size = new Vector2(
+                    diameter * radius_scale / previewBufferSize.X,
+                    diameter * radius_scale / previewBufferSize.Y);
+            }
+
             // Keep the mask a true ring-sized circle regardless of aspect ratio.
             s.Mask.Size = new Vector2(diameter);
 

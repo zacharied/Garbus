@@ -18,6 +18,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Pooling;
 using osu.Framework.Allocation;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -95,7 +96,10 @@ namespace Garbus.Game.Gameplay.UI
 
         private readonly HitObjectEntryManager entryManager = new HitObjectEntryManager();
 
-        private readonly Stack<HitObjectLifetimeEntry> judgedEntries;
+        private readonly List<HitObjectLifetimeEntry> judgedEntries;
+
+        [Resolved(CanBeNull = true)]
+        private ChartPreviewContext previewContext { get; set; }
 
         /// <summary>
         /// Creates a new <see cref="Playfield"/>.
@@ -114,7 +118,7 @@ namespace Garbus.Game.Gameplay.UI
             entryManager.OnEntryAdded += onEntryAdded;
             entryManager.OnEntryRemoved += onEntryRemoved;
 
-            judgedEntries = new Stack<HitObjectLifetimeEntry>();
+            judgedEntries = new List<HitObjectLifetimeEntry>();
         }
 
         private void onNewDrawableHitObject(DrawableHitObject d)
@@ -217,16 +221,20 @@ namespace Garbus.Game.Gameplay.UI
         {
             base.Update();
 
+            double currentTime = Time.Current;
+
             // When rewinding, revert future judgements in the reverse order.
             while (judgedEntries.Count > 0)
             {
-                var result = judgedEntries.Peek().Result;
+                HitObjectLifetimeEntry entry = judgedEntries[judgedEntries.Count - 1];
+                var result = entry.Result;
                 Debug.Assert(result?.RawTime != null);
 
-                if (Time.Current >= result.RawTime.Value)
+                if (currentTime >= result.RawTime.Value)
                     break;
 
-                revertResult(judgedEntries.Pop());
+                removeJudgedEntryAt(judgedEntries.Count - 1);
+                revertResult(entry);
             }
         }
 
@@ -275,6 +283,9 @@ namespace Garbus.Game.Gameplay.UI
 
         private void onEntryRemoved(HitObjectLifetimeEntry entry, [CanBeNull] HitObject parentHitObject)
         {
+            if (previewContext != null)
+                untrackJudgedEntry(entry);
+
             if (parentHitObject != null) return;
 
             HitObjectContainer.Remove(entry);
@@ -373,9 +384,141 @@ namespace Garbus.Game.Gameplay.UI
         private void onNewResult(DrawableHitObject drawable, JudgementResult result)
         {
             Debug.Assert(result != null && drawable.Entry?.Result == result && result.RawTime != null);
-            judgedEntries.Push(drawable.Entry.AsNonNull());
+            HitObjectLifetimeEntry entry = drawable.Entry.AsNonNull();
+
+            if (previewContext == null)
+                judgedEntries.Add(entry);
+            else
+                trackPreviewJudgedEntry(entry);
 
             NewResult?.Invoke(drawable, result);
+        }
+
+        private void trackPreviewJudgedEntry(HitObjectLifetimeEntry entry)
+        {
+            Debug.Assert(entry.Result?.RawTime != null);
+
+            if (judgedEntries.Contains(entry))
+                return;
+
+            // Nested preview drawables are traversed by hierarchy, not result time; rewind must follow exact chronology.
+            insertJudgedEntryChronologically(entry);
+            entry.Result.RawTimeChanged += onResultRawTimeChanged;
+        }
+
+        private void insertJudgedEntryChronologically(HitObjectLifetimeEntry entry)
+        {
+            var result = entry.Result;
+            Debug.Assert(result?.RawTime != null);
+
+            if (judgedEntries.Count == 0
+                || judgedEntries[judgedEntries.Count - 1].Result.RawTime.Value <= result.RawTime.Value)
+            {
+                judgedEntries.Add(entry);
+                return;
+            }
+
+            int lower = 0;
+            int upper = judgedEntries.Count;
+
+            while (lower < upper)
+            {
+                int middle = lower + (upper - lower) / 2;
+
+                if (judgedEntries[middle].Result.RawTime.Value <= result.RawTime.Value)
+                    lower = middle + 1;
+                else
+                    upper = middle;
+            }
+
+            judgedEntries.Insert(lower, entry);
+        }
+
+        private void onResultRawTimeChanged(JudgementResult result)
+        {
+            int index = judgedEntries.FindIndex(entry => ReferenceEquals(entry.Result, result));
+
+            if (index < 0)
+                return;
+
+            HitObjectLifetimeEntry entry = judgedEntries[index];
+            judgedEntries.RemoveAt(index);
+
+            if (result.RawTime == null)
+            {
+                result.RawTimeChanged -= onResultRawTimeChanged;
+                return;
+            }
+
+            insertJudgedEntryChronologically(entry);
+        }
+
+        private void untrackJudgedEntry(HitObjectLifetimeEntry entry)
+        {
+            int index = judgedEntries.IndexOf(entry);
+
+            if (index >= 0)
+                removeJudgedEntryAt(index);
+        }
+
+        private HitObjectLifetimeEntry removeJudgedEntryAt(int index)
+        {
+            HitObjectLifetimeEntry entry = judgedEntries[index];
+            judgedEntries.RemoveAt(index);
+            entry.Result.RawTimeChanged -= onResultRawTimeChanged;
+            return entry;
+        }
+
+        internal void UntrackJudgedResult(DrawableHitObject drawable)
+        {
+            if (drawable.Entry == null)
+                return;
+
+            untrackJudgedEntryTree(drawable.Entry);
+
+            foreach (Playfield nestedPlayfield in nestedPlayfields)
+                nestedPlayfield.UntrackJudgedResult(drawable);
+        }
+
+        internal void TrackJudgedResult(DrawableHitObject drawable)
+        {
+            if (drawable.Entry == null)
+                return;
+
+            findOwningPlayfield(drawable)?.trackJudgedEntryTree(drawable.Entry);
+        }
+
+        private Playfield findOwningPlayfield(DrawableHitObject drawable)
+        {
+            if (HitObjectContainer.Objects.Contains(drawable))
+                return this;
+
+            foreach (Playfield nestedPlayfield in nestedPlayfields)
+            {
+                Playfield owner = nestedPlayfield.findOwningPlayfield(drawable);
+
+                if (owner != null)
+                    return owner;
+            }
+
+            return null;
+        }
+
+        private void trackJudgedEntryTree(HitObjectLifetimeEntry entry)
+        {
+            if (entry.Judged)
+                trackPreviewJudgedEntry(entry);
+
+            foreach (HitObjectLifetimeEntry nestedEntry in entry.NestedEntries)
+                trackJudgedEntryTree(nestedEntry);
+        }
+
+        private void untrackJudgedEntryTree(HitObjectLifetimeEntry entry)
+        {
+            untrackJudgedEntry(entry);
+
+            foreach (HitObjectLifetimeEntry nestedEntry in entry.NestedEntries)
+                untrackJudgedEntryTree(nestedEntry);
         }
 
         private void revertResult(HitObjectLifetimeEntry entry)
@@ -387,6 +530,14 @@ namespace Garbus.Game.Gameplay.UI
             entry.OnRevertResult();
 
             result.Reset();
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            while (judgedEntries.Count > 0)
+                removeJudgedEntryAt(judgedEntries.Count - 1);
+
+            base.Dispose(isDisposing);
         }
 
         #region Editor logic

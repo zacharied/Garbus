@@ -37,12 +37,29 @@ public static class GarbusChartSerializer
 
     public static string Encode(GarbusChart chart) => JsonSerializer.Serialize(toDto(chart), options);
 
+    internal static string EncodeStructural(GarbusChart chart)
+    {
+        ChartFileDto dto = toDto(chart);
+        dto.HitObjects.Clear();
+        return JsonSerializer.Serialize(dto, options);
+    }
+
     /// <summary>
     /// Encodes a single hit object to a compact JSON string used for per-object identity comparison
     /// in the undo/redo diff (GarbusChartChangeHandler.ApplyStateChange).
     /// </summary>
     internal static string EncodeHitObject(GarbusHitObject hitObject)
         => JsonSerializer.Serialize(toDto(hitObject), hitObjectOptions);
+
+    /// <summary>
+    /// Decodes one hit object encoded by <see cref="EncodeHitObject"/>.
+    /// </summary>
+    internal static GarbusHitObject DecodeHitObject(string json)
+    {
+        var dto = JsonSerializer.Deserialize<HitObjectDto>(json, hitObjectOptions)
+                  ?? throw new InvalidDataException("Preview data contained no hit object.");
+        return fromDto(dto);
+    }
 
     /// <summary>
     /// Encodes a collection of hit objects to a JSON array string, reusing the same DTO mapping

@@ -64,13 +64,26 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
 
     protected override void PrepareForUse()
     {
+        if (IsInPreview)
+            return;
+
         base.PrepareForUse();
 
-        Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
+        updateChordColour();
 
         headSprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
         body.FadeInFromZero(100, Easing.In);
     }
+
+    protected override void OnApply()
+    {
+        base.OnApply();
+
+        if (chords != null)
+            updateChordColour();
+    }
+
+    private void updateChordColour() => Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
 
     protected override void OnHeadHit()
     {
@@ -118,14 +131,14 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
                 headSprite.Spin(700, RotationDirection.Clockwise)
                           .FadeOut(350, Easing.OutQuint)
                           .ScaleTo(new Vector2(2), 350, Easing.OutQuint)
-                          .OnComplete(_ => Expire());
+                          .OnComplete(_ => ExpireAfterTransforms());
                 break;
 
             case ArmedState.Miss:
                 body.FadeColour(Color4.Red, duration);
                 body.FadeOut(duration, Easing.InQuint);
                 headSprite.FadeColour(Color4.Red, duration);
-                headSprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
+                headSprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => ExpireAfterTransforms());
                 break;
         }
     }

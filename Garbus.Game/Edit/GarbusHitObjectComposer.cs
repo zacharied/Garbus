@@ -113,8 +113,8 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
             Child = new Inspector(),
         });
 
-        PlayfieldContentContainer.Add(flipPivotOverlay = new FlipPivotOverlay(x => EditorAngleMapping.SnapX(x, AngleSnap.Value)));
-        PlayfieldContentContainer.Add(new AngleDirectionToggleButton());
+        PlayfieldOverlayContainer.Add(flipPivotOverlay = new FlipPivotOverlay(x => EditorAngleMapping.SnapX(x, AngleSnap.Value)));
+        PlayfieldOverlayContainer.Add(new AngleDirectionToggleButton());
 
         // This subscriber keeps the static Direction (read by the per-frame drawable x-mapping and reset
         // per scene) in sync with the bindable. The AngleGrid does NOT read this static — it derives its

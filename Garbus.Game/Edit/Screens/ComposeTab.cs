@@ -23,6 +23,7 @@ using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit.Compose;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens.Timeline;
 
 namespace Garbus.Game.Edit.Screens
@@ -34,11 +35,17 @@ namespace Garbus.Game.Edit.Screens
 
         private GarbusHitObjectComposer composer = null!;
         private TimelineStrip timelineStrip = null!;
+        private readonly InlineChartPreviewPanel? inlinePreviewPanel;
 
         // Stored as a field so the config bound copy is not garbage-collected after load() returns —
         // GetBindable's copy is held by the config only via a weak reference, so a local variable would
         // be collected and the menu toggle would stop propagating until an editor reload.
         private Bindable<bool>? autoSeekOnPlacement;
+
+        internal ComposeTab(InlineChartPreviewPanel? inlinePreviewPanel = null)
+        {
+            this.inlinePreviewPanel = inlinePreviewPanel;
+        }
 
         [BackgroundDependencyLoader]
         private void load(GarbusConfigManager config)
@@ -55,10 +62,13 @@ namespace Garbus.Game.Edit.Screens
             const float zoom_column_width = 35;
             const float divisor_column_width = 120;
 
-            InternalChild = new PopoverContainer
+            PopoverContainer popover;
+            Container content;
+
+            InternalChild = popover = new PopoverContainer
             {
                 RelativeSizeAxes = Axes.Both,
-                Child = new Container
+                Child = content = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
                     Children = new Drawable[]
@@ -101,12 +111,22 @@ namespace Garbus.Game.Edit.Screens
                             {
                                 RelativeSizeAxes = Axes.Both,
                                 Masking = true,
-                                Child = composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
+                                Child = composer = new GarbusHitObjectComposer
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                },
                             },
                         },
                     },
                 },
             };
+
+            // PopoverContainer routes public children through this full-size content container.
+            // Keep Mini last so it draws above both the timeline and composer without claiming
+            // positional input outside the panel itself.
+            content.Parent!.Name = "Mini preview workspace overlay";
+            if (inlinePreviewPanel != null)
+                popover.Add(inlinePreviewPanel);
 
             // AutoSeekOnPlacement config → composer.
             autoSeekOnPlacement = config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement);

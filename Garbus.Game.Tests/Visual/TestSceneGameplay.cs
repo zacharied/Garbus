@@ -105,6 +105,26 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestGameplayMountsAnalogInputManager()
+        {
+            AnalogInputManager analogInputManager = null!;
+
+            AddStep("capture analog input manager", () => analogInputManager = playfield.ChildrenOfType<AnalogInputManager>().Single());
+            AddAssert("one analog input manager", () => playfield.ChildrenOfType<AnalogInputManager>().Count(), () => Is.EqualTo(1));
+            AddAssert("analog input manager loaded", () => analogInputManager.IsLoaded);
+            AddAssert("analog input manager mounted", () => analogInputManager.Parent, () => Is.SameAs(playfield));
+            AddAssert("analog input manager remains alive", () => isDisposed(analogInputManager), () => Is.False);
+            AddAssert("gameplay child ordering unchanged", () => new[]
+            {
+                childId(analogInputManager),
+                childId(playfield.ChildrenOfType<WarningIndicatorDisplay>().Single()),
+                childId(playfield.ChildrenOfType<Ring>().Single()),
+                childId(playfield.ChildrenOfType<StickIndicator>().Single(s => s.Side == HorizontalDirection.Left)),
+                childId(playfield.ChildrenOfType<StickIndicator>().Single(s => s.Side == HorizontalDirection.Right)),
+            }, () => Is.Ordered.Ascending);
+        }
+
+        [Test]
         public void TestSliderContactSpikesFollowRingContact()
         {
             Objects.Drawables.DrawableSliderBody rightBody = null!;
@@ -687,6 +707,16 @@ namespace Garbus.Game.Tests.Visual
         private ComboDisplay? comboDisplay() => playfield.ChildrenOfType<ComboDisplay>().SingleOrDefault();
 
         private JudgementFeedbackDisplay? judgementFeedback() => playfield.ChildrenOfType<JudgementFeedbackDisplay>().SingleOrDefault();
+
+        private static ulong childId(Drawable drawable) =>
+            (ulong)typeof(Drawable).GetProperty("ChildID",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(drawable)!;
+
+        private static bool isDisposed(Drawable drawable) =>
+            (bool)typeof(Drawable).GetProperty("IsDisposed",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!
+                .GetValue(drawable)!;
 
         [Test]
         public void TestHitSampleResolves()

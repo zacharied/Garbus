@@ -13,10 +13,12 @@
 //   3. Exiting PlayScreen seeks the editor clock to PlayScreen.ExitTime.
 //   4. Test button disabled when the chart has no real track (TrackVirtual).
 
+using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Edit;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.BottomBar;
 using Garbus.Game.Objects;
@@ -25,7 +27,6 @@ using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
-using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
@@ -56,23 +57,27 @@ namespace Garbus.Game.Tests.Editor
         /// Create a saved ChartFile (temp path) and set the TrackFactoryOverride on the editor
         /// so that the push-path tests can proceed headlessly.
         /// </summary>
-        private GarbusEditor buildEditorWithVirtualTrack(GarbusChart chart)
+        private GarbusEditor buildEditorWithVirtualTrack(
+            GarbusChart chart,
+            System.Func<ChartFile, GarbusEditor>? editorFactory = null)
         {
             var chartFile = new ChartFile(chart);
             string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
                 System.IO.Path.GetRandomFileName() + ".garbus");
             chartFile.Save(tempPath);
 
-            var ed = new GarbusEditor(chartFile);
+            var ed = editorFactory?.Invoke(chartFile) ?? new GarbusEditor(chartFile);
             // Inject a fresh TrackVirtual for every test-mode push — bypasses the need for a real audio file.
             ed.TrackFactoryOverride = () => new TrackVirtual(60_000);
             return ed;
         }
 
-        private void setupEditorWithVirtualTrack(int hitObjectCount = 3) => Schedule(() =>
+        private void setupEditorWithVirtualTrack(
+            int hitObjectCount = 3,
+            System.Func<ChartFile, GarbusEditor>? editorFactory = null) => Schedule(() =>
         {
             var chart = buildChart(hitObjectCount);
-            editor = buildEditorWithVirtualTrack(chart);
+            editor = buildEditorWithVirtualTrack(chart, editorFactory);
 
             Child = input = new ManualInputManager
             {
@@ -99,6 +104,25 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("press F5", () => input.Key(osuTK.Input.Key.F5));
 
+            AddUntilStep("PlayScreen pushed", () => stack.CurrentScreen is PlayScreen);
+        }
+
+        [Test]
+        public void TestF5ClosesMiniPreviewBeforePlayScreenPush()
+        {
+            SuspensionObservingEditor observingEditor = null!;
+
+            setupEditorWithVirtualTrack(
+                hitObjectCount: 3,
+                editorFactory: chartFile => observingEditor = new SuspensionObservingEditor(chartFile));
+            waitForEditor();
+            AddUntilStep("mini preview visible", () =>
+                editor.ChildrenOfType<InlineChartPreviewPanel>().SingleOrDefault()?.Alpha == 1);
+
+            AddStep("press F5", () => input.Key(osuTK.Input.Key.F5));
+            AddAssert("mini closed at PlayScreen suspension boundary", () =>
+                observingEditor.MiniClosedAtPlayScreenSuspension);
+            AddAssert("mini preview is disabled", () => !editor.MiniPreviewEnabled.Value);
             AddUntilStep("PlayScreen pushed", () => stack.CurrentScreen is PlayScreen);
         }
 
@@ -273,6 +297,102 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        [Test]
+        public void TestMiniPreviewRestoredAtReturnedPlayTime()
+        {
+            setupEditorWithVirtualTrack(hitObjectCount: 3);
+            waitForEditor();
+
+            InlineChartPreviewPanel panel = null!;
+            PlayScreen playScreen = null!;
+            long acceptedRevisionBeforeClose = 0;
+            var reopenedFullStates = new List<ChartPreviewFullState>();
+
+            AddUntilStep("mini preview loaded", () =>
+                (panel = editor.ChildrenOfType<InlineChartPreviewPanel>().SingleOrDefault()!)?.ViewForTests.IsLoaded == true);
+            AddStep("seek editor to 5000", () => editor.ChildrenOfType<EditorClock>().First().Seek(5000));
+            AddUntilStep("mini accepts pre-close seek", () => panel.ViewForTests.ClockTimeForTests >= 4800);
+            AddStep("capture mini lifecycle state", () =>
+            {
+                acceptedRevisionBeforeClose = panel.ViewForTests.AcceptedRevisionForTests;
+                panel.ViewForTests.FullStateReceivedForTests += reopenedFullStates.Add;
+            });
+            AddStep("start test mode", () => editor.StartTestMode());
+            AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
+            AddAssert("preview suspended", () => !editor.MiniPreviewEnabled.Value);
+            AddStep("edit chart while preview suspended", () =>
+                editor.EditorChart.Add(new CardinalNote { StartTime = 4000, AngleDeg = 270 }));
+            AddStep("capture PlayScreen and exit", () =>
+            {
+                playScreen = (PlayScreen)stack.CurrentScreen;
+                playScreen.Exit();
+            });
+
+            AddUntilStep("editor is current screen again", () => ReferenceEquals(stack.CurrentScreen, editor));
+            AddUntilStep("mini restored", () =>
+                editor.MiniPreviewEnabled.Value && panel.Alpha == 1);
+            AddAssert("mini checkbox restored checked", () =>
+                ((ToggleMenuItem)editor.ChildrenOfType<GarbusMenu>().Single().Items
+                    .Single(item => item.Text.Value.ToString() == "View").Items
+                    .Single(item => item.Text.Value.ToString() == "Mini Preview")).State.Value);
+            AddUntilStep("mini receives first reopen full state", () => reopenedFullStates.Count > 0);
+            AddAssert("first reopen full state advances retained revision", () =>
+                reopenedFullStates[0].Revision, () => Is.GreaterThan(acceptedRevisionBeforeClose));
+            AddAssert("reopen full state contains current chart", () =>
+                reopenedFullStates[0].ObjectIds.Length, () => Is.EqualTo(4));
+            AddAssert("first reopen full state uses returned play time", () =>
+                playScreen.ExitTime.HasValue
+                && System.Math.Abs(reopenedFullStates[0].Transport.Time - playScreen.ExitTime.Value) < 0.001);
+            AddUntilStep("mini displays current chart", () => panel.ViewForTests.ObjectCountForTests == 4);
+            AddUntilStep("mini restored at returned play time", () =>
+                playScreen.ExitTime.HasValue
+                && System.Math.Abs(panel.ViewForTests.ClockTimeForTests - playScreen.ExitTime.Value) < 200);
+            AddAssert("mini reopen needs no stale-revision retry", () => reopenedFullStates.Count, () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestHiddenPreviewRemainsHiddenAfterTestMode()
+        {
+            setupEditorWithVirtualTrack(hitObjectCount: 3);
+            waitForEditor();
+
+            PlayScreen playScreen = null!;
+
+            AddStep("disable mini preview", () => editor.MiniPreviewEnabled.Value = false);
+            AddStep("start test mode", () => editor.StartTestMode());
+            AddUntilStep("PlayScreen pushed and loaded", () => stack.CurrentScreen is PlayScreen ps && ps.IsLoaded);
+            AddStep("capture PlayScreen and exit", () =>
+            {
+                playScreen = (PlayScreen)stack.CurrentScreen;
+                playScreen.Exit();
+            });
+
+            AddUntilStep("editor is current screen again", () => ReferenceEquals(stack.CurrentScreen, editor));
+            AddAssert("preview remains disabled", () => !editor.MiniPreviewEnabled.Value);
+            AddAssert("test mode returned a play time", () => playScreen.ExitTime.HasValue);
+        }
+
+        [Test]
+        public void TestFailedTestModeStartPreservesMiniPreviewSetting()
+        {
+            Schedule(() =>
+            {
+                var chart = buildChart(hitObjectCount: 1);
+                editor = new GarbusEditor(new ChartFile(chart));
+
+                Child = stack = new ScreenStack(editor)
+                {
+                    RelativeSizeAxes = Axes.Both,
+                };
+            });
+            waitForEditor();
+
+            AddAssert("mini enabled before failed start", () => editor.MiniPreviewEnabled.Value);
+            AddStep("start test mode without a track", () => editor.StartTestMode());
+            AddAssert("editor remains current", () => ReferenceEquals(stack.CurrentScreen, editor));
+            AddAssert("mini remains enabled", () => editor.MiniPreviewEnabled.Value);
+        }
+
         // ------------------------------------------------------------------
         // 4. Test button disabled when track is TrackVirtual (no real track)
         // ------------------------------------------------------------------
@@ -289,7 +409,10 @@ namespace Garbus.Game.Tests.Editor
 
                 editor = new GarbusEditor(chartFile);   // no TrackFactoryOverride
 
-                Child = stack = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both };
+                Child = stack = new ScreenStack(editor)
+                {
+                    RelativeSizeAxes = Axes.Both,
+                };
             });
 
             AddUntilStep("editor + bottom bar loaded",
@@ -313,6 +436,25 @@ namespace Garbus.Game.Tests.Editor
                 var testButton = editor.ChildrenOfType<TestButton>().FirstOrDefault();
                 return testButton != null && testButton.Enabled.Value;
             });
+        }
+
+        private partial class SuspensionObservingEditor : GarbusEditor
+        {
+            public SuspensionObservingEditor(ChartFile chartFile)
+                : base(chartFile)
+            {
+            }
+
+            public bool MiniClosedAtPlayScreenSuspension { get; private set; }
+
+            public override void OnSuspending(ScreenTransitionEvent e)
+            {
+                if (e.Next is PlayScreen)
+                    MiniClosedAtPlayScreenSuspension = !MiniPreviewEnabled.Value
+                                                       && this.ChildrenOfType<InlineChartPreviewPanel>().Single().Alpha == 0;
+
+                base.OnSuspending(e);
+            }
         }
     }
 }

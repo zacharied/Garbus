@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Input;
@@ -111,8 +112,40 @@ namespace Garbus.Game.Tests.Visual.HitObjects
             AddUntilStep("connector cleared", () => !visiblePaths().Any());
         }
 
+        [Test]
+        public void ConnectorIsRemovedWhenChordDisappearsFromIndex()
+        {
+            osu.Framework.Graphics.Lines.SmoothPath stalePath = null!;
+
+            AddStep("two cardinals at 2000ms", () => buildScene(
+                new CardinalNote { AngleDeg = 90, StartTime = 2000 },
+                new CardinalNote { AngleDeg = 270, StartTime = 2000 }));
+            AddUntilStep("loaded", () => playfield.IsLoaded);
+
+            AddStep("seek to make alive", () => manualClock.CurrentTime = 2000);
+            AddUntilStep("both alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => d.IsAlive));
+            AddUntilStep("connector visible", () => visiblePaths().Count() == 1);
+            AddStep("capture connector", () => stalePath = singlePath());
+
+            AddStep("remove chord synchronously", () =>
+            {
+                playfield.SetHitObjects(Array.Empty<GarbusHitObject>());
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(overlay.ChildrenOfType<osu.Framework.Graphics.Lines.SmoothPath>(), Is.Empty);
+                    Assert.That(isDisposed(stalePath), Is.True);
+                });
+            });
+        }
+
         private osu.Framework.Graphics.Lines.SmoothPath singlePath() =>
             overlay.ChildrenOfType<osu.Framework.Graphics.Lines.SmoothPath>().Single();
+
+        private static bool isDisposed(Drawable drawable) =>
+            (bool)typeof(Drawable).GetProperty("IsDisposed",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)!
+                .GetValue(drawable)!;
 
         [Test]
         public void ConnectorFadesOutAtJudgementWhileNotesStillAlive()

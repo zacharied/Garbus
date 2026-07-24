@@ -1,3 +1,4 @@
+using System.Reflection;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Configuration;
 using Garbus.Game.Edit;
@@ -8,6 +9,7 @@ using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Timing;
 using osu.Framework.Utils;
 
 namespace Garbus.Game.Tests.Editor
@@ -78,6 +80,82 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("snapped to 125 (1/4 of 500ms beat)", () => Precision.AlmostEquals(clock.CurrentTime, 125, 1));
             AddStep("seek forward snapped", () => clock.SeekForward(true, 1));
             AddAssert("advanced by one divisor step", () => clock.CurrentTime > 125);
+        }
+
+        [Test]
+        public void TestDiscreteSeekedOnlyEmittedForAcceptedSeek()
+        {
+            var cpi = new ControlPointInfo();
+            EditorClock clock = null!;
+            int discreteSeekCount = 0;
+            int seekingStateChangeCount = 0;
+            bool rejectedResult = true;
+            bool firstAcceptedResult = false;
+            bool samePositionResult = false;
+
+            AddStep("create clock", () =>
+            {
+                Child = clock = new EditorClock(cpi, 60000);
+                clock.DiscreteSeeked += () => discreteSeekCount++;
+                clock.SeekingOrStopped.ValueChanged += _ => seekingStateChangeCount++;
+            });
+            AddUntilStep("clock loaded", () => clock.IsLoaded);
+            AddStep("use rejecting clock source", () =>
+            {
+                var underlyingClock = (FramedChartClock)typeof(EditorClock)
+                    .GetField("underlyingClock", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(clock)!;
+                underlyingClock.ChangeSource(new RejectingAdjustableClock());
+                object decoupledTrack = typeof(FramedChartClock)
+                    .GetField("decoupledTrack", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(underlyingClock)!;
+                decoupledTrack.GetType().GetProperty("AllowDecoupling")!.SetValue(decoupledTrack, false);
+                seekingStateChangeCount = 0;
+            });
+            AddStep("reject seek", () => rejectedResult = clock.Seek(1000));
+            AddAssert("seek rejected", () => rejectedResult, () => Is.False);
+            AddAssert("rejected seek emits no event", () => discreteSeekCount, () => Is.Zero);
+            AddAssert("rejected seek does not enter seeking", () => clock.IsSeeking, () => Is.False);
+            AddAssert("rejected stopped seek does not change seeking state", () => seekingStateChangeCount, () => Is.Zero);
+
+            AddStep("use accepting clock source", () =>
+            {
+                var underlyingClock = (FramedChartClock)typeof(EditorClock)
+                    .GetField("underlyingClock", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(clock)!;
+                underlyingClock.ChangeSource(new TrackVirtual(60000));
+            });
+            AddStep("accept seek", () => firstAcceptedResult = clock.Seek(1000));
+            AddStep("accept same-position seek", () => samePositionResult = clock.Seek(1000));
+            AddAssert("both seeks accepted", () => firstAcceptedResult && samePositionResult);
+            AddAssert("both accepted seeks emit events", () => discreteSeekCount, () => Is.EqualTo(2));
+        }
+
+        private sealed class RejectingAdjustableClock : IAdjustableClock
+        {
+            public double CurrentTime => 0;
+
+            public bool IsRunning => false;
+
+            public double Rate { get; set; } = 1;
+
+            public bool Seek(double position) => false;
+
+            public void Start()
+            {
+            }
+
+            public void Stop()
+            {
+            }
+
+            public void Reset()
+            {
+            }
+
+            public void ResetSpeedAdjustments()
+            {
+            }
         }
     }
 }

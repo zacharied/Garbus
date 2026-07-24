@@ -43,13 +43,26 @@ namespace Garbus.Game.Objects.Drawables
 
         protected override void PrepareForUse()
         {
+            if (IsInPreview)
+                return;
+
             // Pooled/reused drawables must set an explicit colour every time (yellow if this note shares its
             // start time with another cardinal note, else reset to white).
-            Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
+            updateChordColour();
 
             // Apply note spawn effect
             sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
         }
+
+        protected override void OnApply()
+        {
+            base.OnApply();
+
+            if (chords != null)
+                updateChordColour();
+        }
+
+        private void updateChordColour() => Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
 
         protected override void UpdateHitStateTransforms(ArmedState state)
         {
@@ -62,12 +75,12 @@ namespace Garbus.Game.Objects.Drawables
                         .Spin(700, RotationDirection.Clockwise)
                         .FadeOut(350, Easing.OutQuint)
                         .ScaleTo(new Vector2(2), 350, Easing.OutQuint)
-                        .OnComplete(_ => Expire());
+                        .OnComplete(_ => ExpireAfterTransforms());
                     break;
 
                 case ArmedState.Miss:
                     sprite.FadeColour(Color4.Red, duration);
-                    sprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
+                    sprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => ExpireAfterTransforms());
                     break;
             }
         }

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Garbus.Game.Core;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
@@ -6,6 +8,7 @@ using NUnit.Framework;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Testing;
 using osu.Framework.Timing;
 using osuTK;
@@ -94,6 +97,25 @@ namespace Garbus.Game.Tests.Visual
             });
 
             AddUntilStep("playfield loaded", () => playfield.IsLoaded);
+            AddAssert("gameplay effect buffer still fills warning display", () =>
+                warningEffectBuffer(playfield.WarningIndicators).DrawSize,
+                () => Is.EqualTo(playfield.WarningIndicators.DrawSize));
+            AddAssert("gameplay blur buffer still fills warning display", () =>
+                warningBlurBuffer(playfield.WarningIndicators).DrawSize,
+                () => Is.EqualTo(playfield.WarningIndicators.DrawSize));
+            AddAssert("gameplay mask still matches ring diameter", () =>
+                warningRingMask(playfield.WarningIndicators).DrawSize,
+                () => Is.EqualTo(new Vector2(MathF.Min(
+                    playfield.WarningIndicators.DrawWidth,
+                    playfield.WarningIndicators.DrawHeight))));
+            AddAssert("gameplay arc keeps ring-relative diameter", () =>
+                    MathF.Min(warningArc(playfield.WarningIndicators).DrawWidth, warningArc(playfield.WarningIndicators).DrawHeight)
+                    / warningRingMask(playfield.WarningIndicators).DrawWidth,
+                () => Is.EqualTo(1.1f).Within(0.001f));
+            AddAssert("gameplay buffer and ring stay centred", () =>
+                (warningEffectBuffer(playfield.WarningIndicators).ScreenSpaceDrawQuad.Centre
+                 - warningRingMask(playfield.WarningIndicators).ScreenSpaceDrawQuad.Centre).Length,
+                () => Is.LessThan(0.01f));
 
             AddStep("hand over a left slider at 5000", () => playfield.SetHitObjects(new GarbusHitObject[]
             {
@@ -152,6 +174,18 @@ namespace Garbus.Game.Tests.Visual
                 playfield.WarningIndicators.RevealedAngleDeg(HorizontalDirection.Left) == 180 &&
                 playfield.WarningIndicators.RevealedAngleDeg(HorizontalDirection.Right) == 0);
         }
+
+        private static Circle warningRingMask(WarningIndicatorDisplay warning) =>
+            warning.ChildrenOfType<Circle>().First();
+
+        private static BufferedContainer warningEffectBuffer(WarningIndicatorDisplay warning) =>
+            (BufferedContainer)warningRingMask(warning).Parent!;
+
+        private static Arc warningArc(WarningIndicatorDisplay warning) =>
+            warning.ChildrenOfType<Arc>().First();
+
+        private static BufferedContainer warningBlurBuffer(WarningIndicatorDisplay warning) =>
+            (BufferedContainer)warningArc(warning).Parent!;
 
         /// <summary>
         /// Re-feeds the playfield two isolated sliders every frame with a StartTime a fixed lead ahead of the

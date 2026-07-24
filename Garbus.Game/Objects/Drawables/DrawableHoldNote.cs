@@ -5,6 +5,7 @@
 // and shoulder hold drawables share it; subclasses supply only visuals.
 
 using System;
+using System.Linq;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Bindings;
@@ -205,7 +206,14 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
 
     protected override void ClearNestedHitObjects()
     {
+        var syntheticChildren = headContainer.Children
+                                             .Where(child => child.Entry is SyntheticHitObjectEntry)
+                                             .ToArray();
+
         headContainer.Clear(false);
+
+        foreach (DrawableHitObject child in syntheticChildren)
+            child.Dispose();
     }
 
 }

@@ -8,6 +8,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using Garbus.Game.Core;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
@@ -37,6 +38,9 @@ public partial class GarbusPlayfield : Playfield
     [Cached]
     private ChordHighlighter chordHighlighter { get; set; } = new ChordHighlighter();
 
+    [Resolved(CanBeNull = true)]
+    private ChartPreviewContext? previewContext { get; set; }
+
     /// <summary>
     /// The current combo, surfaced for the centre <see cref="ComboDisplay"/> to bind to. Driven by the
     /// screen that owns scoring (<see cref="Screens.PlayScreen"/>), which pushes the value each frame.
@@ -54,13 +58,13 @@ public partial class GarbusPlayfield : Playfield
     {
         // warningIndicators sits before the ring so the ring's white stroke draws on top of the glow's
         // clipped inner edge — the glow reads as light emanating from under the ring.
-        AddRangeInternal([
-            analogInputManager,
-            warningIndicators,
-            ring,
-            stickIndicatorL,
-            stickIndicatorR,
-        ]);
+        if (previewContext == null)
+            AddInternal(analogInputManager);
+        else
+            // Mini is read-only and must not install an input manager that can claim gameplay bindings.
+            analogInputManager.Dispose();
+
+        AddRangeInternal([warningIndicators, ring, stickIndicatorL, stickIndicatorR]);
     }
 
     public override void Add(HitObject hitObject) => ring.Add(hitObject);

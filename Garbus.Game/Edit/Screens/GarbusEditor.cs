@@ -6,6 +6,7 @@ using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens.BottomBar;
 using Garbus.Game.Edit.Screens.Dialogs;
 using Garbus.Game.Screens;
@@ -52,6 +53,8 @@ namespace Garbus.Game.Edit.Screens
 
         public EditorChart EditorChart { get; private set; } = null!;
 
+        internal BindableBool MiniPreviewEnabled { get; } = new(true);
+
         /// <summary>
         /// Whether the editor currently has a real (non-virtual) track loaded.
         /// Bound to the Test button's enabled state.
@@ -92,9 +95,12 @@ namespace Garbus.Game.Edit.Screens
 
         /// <summary>Exposed for tests that drive clipboard operations directly.</summary>
         internal EditorClipboard ClipboardForTests => clipboard;
+
         private BindableBeatDivisor beatDivisor = null!;
         private AudioManager audioManager = null!;
         private EditorClipboard clipboard = null!;
+        private InlineChartPreviewPanel inlinePreviewPanel = null!;
+        private bool? miniPreviewEnabledBeforeSuspension;
 
         private string hashAtLastSave = string.Empty;
 
@@ -183,6 +189,9 @@ namespace Garbus.Game.Edit.Screens
             // Load track.
             ReloadTrack(audioManager);
 
+            inlinePreviewPanel = new InlineChartPreviewPanel();
+            inlinePreviewPanel.PreviewFailed += onMiniPreviewFailed;
+
             // Build layout.
             // Use a plain Container with Padding rather than a FillFlowContainer:
             // a child with RelativeSizeAxes.Both inside a vertical FillFlowContainer resolves to
@@ -225,7 +234,7 @@ namespace Garbus.Game.Edit.Screens
             tabContainer.Children = new Drawable[]
             {
                 setupTab = new SetupTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
-                composeTab = new ComposeTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
+                composeTab = new ComposeTab(inlinePreviewPanel) { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 timingTab = new TimingTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 designTab = new DesignTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
                 verifyTab = new VerifyTab { RelativeSizeAxes = Axes.Both, State = { Value = Visibility.Hidden } },
@@ -240,6 +249,7 @@ namespace Garbus.Game.Edit.Screens
             base.LoadComplete();
 
             Tab.BindValueChanged(e => updateTabVisibility(e.NewValue), true);
+            MiniPreviewEnabled.BindValueChanged(_ => updateInlinePreviewVisibility(), true);
         }
 
         // --- Tab management ---
@@ -251,7 +261,11 @@ namespace Garbus.Game.Edit.Screens
             timingTab.State.Value = activeTab == EditorTab.Timing ? Visibility.Visible : Visibility.Hidden;
             designTab.State.Value = activeTab == EditorTab.Design ? Visibility.Visible : Visibility.Hidden;
             verifyTab.State.Value = activeTab == EditorTab.Verify ? Visibility.Visible : Visibility.Hidden;
+            updateInlinePreviewVisibility();
         }
+
+        private void updateInlinePreviewVisibility()
+            => inlinePreviewPanel.SetVisible(MiniPreviewEnabled.Value && Tab.Value == EditorTab.Compose);
 
         // --- Save / SaveAs ---
 
@@ -347,7 +361,14 @@ namespace Garbus.Game.Edit.Screens
             // editor no longer needs its own ad-hoc pre-roll offset.
             double startTime = Math.Max(0, editorClock.CurrentTime);
 
+            suspendPreview();
             this.Push(new PlayScreen(clonedChart, freshTrack, startTime));
+        }
+
+        public override void OnSuspending(ScreenTransitionEvent e)
+        {
+            suspendPreview();
+            base.OnSuspending(e);
         }
 
         public override void OnResuming(ScreenTransitionEvent e)
@@ -357,6 +378,18 @@ namespace Garbus.Game.Edit.Screens
             // If returning from a PlayScreen, seek the editor clock to where gameplay ended.
             if (e.Last is PlayScreen playScreen && playScreen.ExitTime.HasValue)
                 editorClock.Seek(playScreen.ExitTime.Value);
+
+            bool? miniPreviewEnabled = miniPreviewEnabledBeforeSuspension;
+            miniPreviewEnabledBeforeSuspension = null;
+
+            if (miniPreviewEnabled.HasValue)
+                MiniPreviewEnabled.Value = miniPreviewEnabled.Value;
+        }
+
+        private void suspendPreview()
+        {
+            miniPreviewEnabledBeforeSuspension ??= MiniPreviewEnabled.Value;
+            MiniPreviewEnabled.Value = false;
         }
 
         // --- Layout helpers ---
@@ -444,13 +477,16 @@ namespace Garbus.Game.Edit.Screens
 
             // EditorContractSidebars config exists; menu item returns when ExpandingToolboxContainer wires it (Phase 5).
 
-            return new MenuItem[]
+            var items = new List<MenuItem>
             {
                 new ToggleMenuItem("Show Beat Ticks", config.GetBindable<bool>(GarbusSetting.EditorShowTicks)),
                 new ToggleMenuItem("Show Timing Changes", config.GetBindable<bool>(GarbusSetting.EditorShowTimingChanges)),
                 new ToggleMenuItem("Show Design Regions", config.GetBindable<bool>(GarbusSetting.EditorShowDesignRegions)),
                 new ToggleMenuItem("Auto-Seek on Placement", config.GetBindable<bool>(GarbusSetting.EditorAutoSeekOnPlacement)),
+                new ToggleMenuItem("Mini Preview", MiniPreviewEnabled),
             };
+
+            return items;
         }
 
         private IReadOnlyList<MenuItem> createFileMenuItems() => new[]
@@ -582,6 +618,7 @@ namespace Garbus.Game.Edit.Screens
                 return true;
             }
 
+            MiniPreviewEnabled.Value = false;
             return base.OnExiting(e);
         }
 
@@ -750,12 +787,23 @@ namespace Garbus.Game.Edit.Screens
 
         protected override void Dispose(bool isDisposing)
         {
+            if (inlinePreviewPanel != null)
+                inlinePreviewPanel.PreviewFailed -= onMiniPreviewFailed;
+
             base.Dispose(isDisposing);
             // ChartFile owns a cached ITrackStore; the framework won't auto-dispose it since it's
             // a plain DI-cached object (not an AddInternal child).  Dispose here so every editor
             // pushed onto the ScreenStack releases its track store when popped and disposed.
             ChartFile.Dispose();
             SongFile.Dispose();
+        }
+
+        private void onMiniPreviewFailed(string error)
+        {
+            MiniPreviewEnabled.Value = false;
+            var dialog = new ConfirmDialog($"Mini preview failed:\n{error}", ("OK", () => { }));
+            dialogOverlay.Child = dialog;
+            dialog.Show();
         }
 
         // --- Dialog helpers ---

@@ -35,6 +35,10 @@ namespace Garbus.Game.Edit
     {
         public event Action TrackChanged;
 
+        internal event Action DiscreteSeeked;
+
+        internal event Action SmoothSeekStarted;
+
         private readonly Bindable<Track> track = new Bindable<Track>();
 
         private readonly double fallbackTrackLength;
@@ -217,13 +221,18 @@ namespace Garbus.Game.Edit
 
         public bool Seek(double position)
         {
-            seekingOrStopped.Value = IsSeeking = true;
-
             ClearTransforms();
 
             // Ensure the sought point is within the boundaries
             position = Math.Clamp(position, 0, TrackLength);
-            return underlyingClock.Seek(position);
+            bool result = underlyingClock.Seek(position);
+
+            if (!result)
+                return false;
+
+            seekingOrStopped.Value = IsSeeking = true;
+            DiscreteSeeked?.Invoke();
+            return true;
         }
 
         /// <summary>
@@ -245,6 +254,8 @@ namespace Garbus.Game.Edit
                 return;
             }
 
+            IsSeeking = true;
+            SmoothSeekStarted?.Invoke();
             transformSeekTo(seekDestination, transform_time, Easing.OutQuint);
         }
 

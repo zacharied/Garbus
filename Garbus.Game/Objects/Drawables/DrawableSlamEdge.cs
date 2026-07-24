@@ -29,10 +29,9 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
             FillMode = FillMode.Fit,
             Anchor = Anchor.Centre,
             Origin = Anchor.Centre,
-            Colour = hitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour
         };
         Origin = Anchor.Centre;
-        Rotation = 270 - HitObject.AngleDeg + (hitObject.Direction == RotationalDirection.Anticlockwise ? 90 : -90);
+        updateVisuals();
     }
 
     [BackgroundDependencyLoader]
@@ -44,8 +43,23 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
 
     protected override void PrepareForUse()
     {
+        if (IsInPreview)
+            return;
+
         // Apply note spawn effect
         sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+    }
+
+    protected override void OnApply()
+    {
+        base.OnApply();
+        updateVisuals();
+    }
+
+    private void updateVisuals()
+    {
+        sprite.Colour = HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
+        Rotation = 270 - HitObject.AngleDeg + (HitObject.Direction == RotationalDirection.Anticlockwise ? 90 : -90);
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)
@@ -59,12 +73,12 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
                     .Spin(700, RotationDirection.Clockwise)
                     .FadeOut(350, Easing.OutQuint)
                     .ScaleTo(new Vector2(2), 350, Easing.OutQuint)
-                    .OnComplete(_ => Expire());
+                    .OnComplete(_ => ExpireAfterTransforms());
                 break;
 
             case ArmedState.Miss:
                 sprite.FadeColour(Color4.Red, duration);
-                sprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
+                sprite.FadeOut(duration, Easing.InQuint).OnComplete(_ => ExpireAfterTransforms());
                 break;
         }
     }

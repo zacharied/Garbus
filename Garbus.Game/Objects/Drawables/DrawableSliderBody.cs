@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
@@ -251,11 +252,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
         var sideColour = HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
         contactSpikes = new SliderContactSpikes(sideColour);
-        bodyVisual.Colour = sideColour;
-        escapeVisual.Colour = sideColour;
-        tipBox.Colour = sideColour;
-
-        headContainer.Colour = sideColour;
+        updateSideColour();
         headContainer.Add(headCircle);
     }
 
@@ -294,6 +291,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     protected override void OnApply()
     {
         base.OnApply();
+        updateSideColour();
         rebuildNodes();
 
         // Reset the eased uncaught-dim state for (re)use.
@@ -301,8 +299,21 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         Alpha = 1;
     }
 
+    private void updateSideColour()
+    {
+        var sideColour = HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
+        bodyVisual.Colour = sideColour;
+        escapeVisual.Colour = sideColour;
+        tipBox.Colour = sideColour;
+        headContainer.Colour = sideColour;
+        contactSpikes.SetSideColour(sideColour);
+    }
+
     protected override void PrepareForUse()
     {
+        if (IsInPreview)
+            return;
+
         base.PrepareForUse();
         bodyVisual.FadeInFromZero(100, Easing.In);
         escapeVisual.FadeInFromZero(100, Easing.In);
@@ -844,6 +855,13 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     protected override void ClearNestedHitObjects()
     {
+        var syntheticChildren = nestedContainer.Children
+                                               .Where(child => child.Entry is SyntheticHitObjectEntry)
+                                               .ToArray();
+
         nestedContainer.Clear(false);
+
+        foreach (DrawableHitObject child in syntheticChildren)
+            child.Dispose();
     }
 }

@@ -25,6 +25,8 @@ namespace Garbus.Game.Configuration
             SetDefault(GarbusSetting.EditorWaveformOpacity, 0.25, 0.0, 1.0);
             SetDefault(GarbusSetting.EditorAutoSeekOnPlacement, true);
             SetDefault(GarbusSetting.EditorContractSidebars, false);
+            SetDefault(GarbusSetting.MiniPreviewX, 5f);
+            SetDefault(GarbusSetting.MiniPreviewY, 5f);
             SetDefault(GarbusSetting.EditorLastFileDirectory, string.Empty);
 
             // Song select.

@@ -26,6 +26,7 @@ using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects.Pooling;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Gameplay.UI;
+using Garbus.Game.Edit.Preview;
 using Garbus.Game.Timing;
 using osuTK.Graphics;
 
@@ -34,6 +35,9 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
     [Cached(typeof(DrawableHitObject))]
     public abstract partial class DrawableHitObject : PoolableDrawableWithLifetime<HitObjectLifetimeEntry>
     {
+        // Covers the longest current result animation while keeping judged preview objects finite.
+        private const double preview_result_lifetime = 1000;
+
         /// <summary>
         /// Invoked after this <see cref="DrawableHitObject"/>'s applied <see cref="HitObject"/> has had its defaults applied.
         /// </summary>
@@ -135,7 +139,18 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
         protected override bool RequiresChildrenUpdate => true;
 
-        public override bool IsPresent => base.IsPresent || (State.Value == ArmedState.Idle && Clock.IsNotNull() && Clock.CurrentTime >= LifetimeStart);
+        public override bool IsPresent
+        {
+            get
+            {
+                // Preview seeks need deterministic expiry; the ordinary idle-state fallback intentionally stays present.
+                if (previewContext != null && Clock.IsNotNull() && Clock.CurrentTime >= LifetimeEnd)
+                    return false;
+
+                return base.IsPresent
+                       || (State.Value == ArmedState.Idle && Clock.IsNotNull() && Clock.CurrentTime >= LifetimeStart);
+            }
+        }
 
         private readonly Bindable<ArmedState> state = new Bindable<ArmedState>();
 
@@ -149,6 +164,11 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
         [Resolved(CanBeNull = true)]
         private IPooledHitObjectProvider pooledObjectProvider { get; set; }
+
+        [Resolved(CanBeNull = true)]
+        private ChartPreviewContext previewContext { get; set; }
+
+        protected bool IsInPreview => previewContext != null;
 
         /// <summary>
         /// Whether the initialization logic in <see cref="Playfield" /> has applied.
@@ -310,6 +330,8 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         {
         }
 
+        internal void RefreshVisualState() => OnApply();
+
         /// <summary>
         /// Invoked for this <see cref="DrawableHitObject"/> to revert any values previously taken on from the currently-applied <see cref="HitObject"/>.
         /// This is also fired after any changes which occurred via an <see cref="Objects.HitObject.ApplyDefaults"/> call.
@@ -411,13 +433,20 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
             state.Value = newState;
 
-            if (LifetimeEnd == double.MaxValue && (state.Value != ArmedState.Idle || HitObject.HitWindows == null))
+            // Preview lifetime is clock-derived so seeking can reconstruct visuals without replaying frame history.
+            if (previewContext != null)
+            {
+                LifetimeEnd = state.Value == ArmedState.Idle
+                    ? previewContext.LifetimeEndFor(HitObject)
+                    : Math.Max(LatestTransformEndTime, HitStateUpdateTime + preview_result_lifetime);
+            }
+            else if (LifetimeEnd == double.MaxValue && (state.Value != ArmedState.Idle || HitObject.HitWindows == null))
                 LifetimeEnd = Math.Max(LatestTransformEndTime, HitStateUpdateTime + (Samples?.Length ?? 0));
 
             // apply any custom state overrides
             ApplyCustomUpdateState?.Invoke(this, newState);
 
-            if (!force && newState == ArmedState.Hit)
+            if (!force && newState == ArmedState.Hit && previewContext == null)
                 PlaySamples();
         }
 
@@ -556,6 +585,19 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         protected void ApplyMaxResult() => ApplyResult((r, _) => r.Type = r.Judgement.MaxResult);
         protected void ApplyMinResult() => ApplyResult((r, _) => r.Type = r.Judgement.MinResult);
 
+        protected void ExpireAfterTransforms()
+        {
+            // Transform callbacks must not permanently expire preview drawables that a rewind can restore.
+            if (!IsInPreview)
+                Expire();
+        }
+
+        internal void ApplyPreviewResult()
+        {
+            if (previewContext != null && !Judged)
+                ApplyMaxResult();
+        }
+
         protected void ApplyResult(HitResult type) => ApplyResult(static (result, state) => result.Type = state, type);
 
         protected void ApplyResult(Action<JudgementResult, DrawableHitObject> application) => ApplyResult(application, this);
@@ -586,7 +628,7 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
                     $"{GetType().ReadableName()} applied an invalid hit result (was: {Result.Type}, expected: [{Result.Judgement.MinResult} ... {Result.Judgement.MaxResult}]).");
             }
 
-            Result.RawTime = Time.Current;
+            Result.RawTime = previewContext?.ResultTimeFor(HitObject) ?? Time.Current;
             Result.GameplayRate = Clock.Rate;
 
             if (Result.HasResult)
@@ -602,6 +644,10 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// <returns>Whether a scoring result has occurred from this <see cref="DrawableHitObject"/> or any nested <see cref="DrawableHitObject"/>.</returns>
         protected bool UpdateResult(bool userTriggered)
         {
+            // ChartPreviewContent applies exact end-time results; input-driven checks would make seeks history-dependent.
+            if (previewContext != null)
+                return Judged;
+
             // It's possible for input to get into a bad state when rewinding gameplay, so results should not be processed
             if ((Clock as IGameplayClock)?.IsRewinding == true)
                 return false;

@@ -125,6 +125,9 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
 
     protected override void PrepareForUse()
     {
+        if (IsInPreview)
+            return;
+
         base.PrepareForUse();
         this.ScaleTo(0).ScaleTo(1, 125, Easing.In);
     }
@@ -138,12 +141,12 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
             case ArmedState.Hit:
                 this.FadeOut(350, Easing.OutQuint)
                     .ScaleTo(new Vector2(1.4f), 350, Easing.OutQuint)
-                    .OnComplete(_ => Expire());
+                    .OnComplete(_ => ExpireAfterTransforms());
                 break;
 
             case ArmedState.Miss:
                 this.FadeColour(Color4.Red, duration);
-                this.FadeOut(duration, Easing.InQuint).OnComplete(_ => Expire());
+                this.FadeOut(duration, Easing.InQuint).OnComplete(_ => ExpireAfterTransforms());
                 break;
         }
     }

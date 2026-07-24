@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Objects;
 using NUnit.Framework;
@@ -28,6 +29,23 @@ namespace Garbus.Game.Tests
             highlighter.Rebuild(new[] { a, b });
             Assert.That(highlighter.IsInChord(a), Is.False);
             Assert.That(highlighter.Groups, Is.Empty);
+        }
+
+        [Test]
+        public void RebuildNotifiesAfterPublishingNewIndex()
+        {
+            var highlighter = new ChordHighlighter();
+            var a = cardinal(1000, 90);
+            var b = cardinal(1000, 270);
+            var observedGroupCounts = new List<int>();
+
+            highlighter.IndexChanged += () => observedGroupCounts.Add(highlighter.Groups.Count);
+
+            highlighter.Rebuild(new[] { a, b });
+            b.StartTime = 2000;
+            highlighter.Rebuild(new[] { a, b });
+
+            Assert.That(observedGroupCounts, Is.EqualTo(new[] { 1, 0 }));
         }
     }
 }

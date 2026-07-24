@@ -22,7 +22,7 @@ public partial class SliderContactSpikes : Container
 
     public bool Active { get; private set; }
     public float ContactAngleRadians { get; private set; }
-    public ColourInfo SideColour { get; }
+    public ColourInfo SideColour { get; private set; }
 
     private SpikeBlade[] blades = null!;
 
@@ -30,10 +30,10 @@ public partial class SliderContactSpikes : Container
 
     public SliderContactSpikes(ColourInfo colour)
     {
-        SideColour = colour;
         RelativeSizeAxes = Axes.Both;
         AlwaysPresent = true;
         Alpha = 0;
+        SetSideColour(colour);
     }
 
     [BackgroundDependencyLoader]
@@ -41,9 +41,15 @@ public partial class SliderContactSpikes : Container
     {
         AddRangeInternal(blades =
         [
-            new SpikeBlade(SideColour),
-            new SpikeBlade(SideColour),
+            new SpikeBlade(Colour4.White),
+            new SpikeBlade(Colour4.White),
         ]);
+    }
+
+    internal void SetSideColour(ColourInfo colour)
+    {
+        SideColour = colour;
+        Colour = colour;
     }
 
     public void SetContact(float angleRadians, float ringRadius, bool active)

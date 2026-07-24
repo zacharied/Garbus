@@ -25,6 +25,7 @@ public class ToggleMenuItem : MenuItem
         State.BindTo(state);
         Action.Value = () => State.Value = !State.Value;
     }
+
 }
 
 /// <summary>
@@ -45,7 +46,11 @@ public partial class GarbusMenu : BasicMenu
     };
 
     protected override DrawableMenuItem CreateDrawableMenuItem(MenuItem item)
-        => item is ToggleMenuItem toggle ? new DrawableToggleMenuItem(toggle) : base.CreateDrawableMenuItem(item);
+        => item switch
+        {
+            ToggleMenuItem toggle => new DrawableToggleMenuItem(toggle),
+            _ => base.CreateDrawableMenuItem(item),
+        };
 
     internal partial class DrawableToggleMenuItem : BasicDrawableMenuItem
     {

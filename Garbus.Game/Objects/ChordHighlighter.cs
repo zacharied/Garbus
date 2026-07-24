@@ -11,7 +11,13 @@ public sealed class ChordHighlighter
 {
     private ChordIndex index = new ChordIndex(Array.Empty<HitObject>());
 
-    public void Rebuild(IEnumerable<HitObject> hitObjects) => index = new ChordIndex(hitObjects);
+    public event Action? IndexChanged;
+
+    public void Rebuild(IEnumerable<HitObject> hitObjects)
+    {
+        index = new ChordIndex(hitObjects);
+        IndexChanged?.Invoke();
+    }
 
     public bool IsInChord(HitObject hitObject) => index.IsInChord(hitObject);
 

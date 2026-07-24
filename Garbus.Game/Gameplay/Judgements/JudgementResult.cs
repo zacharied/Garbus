@@ -37,7 +37,22 @@ namespace Garbus.Game.Gameplay.Judgements
         /// <remarks>
         /// This is used instead of <see cref="TimeAbsolute"/> to check whether this <see cref="JudgementResult"/> should be reverted.
         /// </remarks>
-        internal double? RawTime { get; set; }
+        private double? rawTime;
+
+        internal double? RawTime
+        {
+            get => rawTime;
+            set
+            {
+                if (Nullable.Equals(rawTime, value))
+                    return;
+
+                rawTime = value;
+                RawTimeChanged?.Invoke(this);
+            }
+        }
+
+        internal event Action<JudgementResult>? RawTimeChanged;
 
         /// <summary>
         /// The offset of <see cref="TimeAbsolute"/> from the end time of <see cref="HitObject"/>, clamped by <see cref="Objects.HitObject.MaximumJudgementOffset"/>.
