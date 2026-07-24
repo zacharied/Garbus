@@ -142,5 +142,47 @@ namespace Garbus.Game.Tests.Editor
             AddStep("seek past again", () => manualClock.CurrentTime = 5100);
             AddAssert("still no results after scrub", () => results.Count, () => Is.Zero);
         }
+
+        private DrawableCardinalNote addNote(bool autoHit, bool playsSamples)
+        {
+            var note = new CardinalNote { StartTime = 2000, AngleDeg = CardinalDirection.North.ToDegrees() };
+            note.ApplyDefaults();
+            var drawable = new DrawableCardinalNote(note) { AutoHit = autoHit, AutoHitPlaysSamples = playsSamples };
+            playfield.Add(drawable);
+            return drawable;
+        }
+
+        [Test]
+        public void TestAutoHitHitsoundFlagOffIsSilent()
+        {
+            // Remove the default-setup note, add a silent-flag one.
+            AddStep("clear + add silent autoHit note", () =>
+            {
+                foreach (var d in playfield.AllHitObjects.ToList())
+                    playfield.Remove(d);
+                addNote(autoHit: true, playsSamples: false);
+            });
+            AddStep("play through the hit", () => manualClock.CurrentTime = 3000);
+            AddAssert("no samples played", () => note()!.SamplesPlayCount, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestAutoHitHitsoundFiresOnceOnForwardCrossingNotOnRewind()
+        {
+            AddStep("clear + add audible autoHit note", () =>
+            {
+                foreach (var d in playfield.AllHitObjects.ToList())
+                    playfield.Remove(d);
+                addNote(autoHit: true, playsSamples: true);
+            });
+
+            AddStep("step clock up to before hit", () => manualClock.CurrentTime = 1990);
+            AddStep("step across hit forward", () => manualClock.CurrentTime = 2010);
+            AddUntilStep("played exactly once", () => note()!.SamplesPlayCount == 1);
+
+            AddStep("rewind across hit backward", () => manualClock.CurrentTime = 1990);
+            AddStep("hold before hit a frame", () => manualClock.CurrentTime = 1991);
+            AddAssert("still exactly once (no rewind fire)", () => note()!.SamplesPlayCount, () => Is.EqualTo(1));
+        }
     }
 }

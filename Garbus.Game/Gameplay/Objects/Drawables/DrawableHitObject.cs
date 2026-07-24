@@ -47,6 +47,18 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// </summary>
         public bool AutoHit { get; init; }
 
+        /// <summary>
+        /// When set together with <see cref="AutoHit"/>, plays the hitsound once as the clock crosses the
+        /// hit time going forward. A one-shot side effect: it does nothing on rewind or backward scrub.
+        /// Set at construction time (object initializer); read-only thereafter. Off by default — wired to
+        /// <c>false</c> by the silent gameplay preview, reserved for a future audible auto-hit mode.
+        /// </summary>
+        public bool AutoHitPlaysSamples { get; init; }
+
+        /// <summary>The clock time observed on the previous <see cref="Update"/>, used to detect a forward
+        /// crossing of the hit time for <see cref="AutoHitPlaysSamples"/>. Null until the first update.</summary>
+        private double? autoHitLastTime;
+
         /// <summary>The effective auto-hit state, inherited by nested drawables from their parent.</summary>
         internal bool AutoHitActive => AutoHit || (ParentHitObject?.AutoHitActive ?? false);
 
@@ -548,6 +560,25 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
             {
                 samplesLoaded = true;
                 LoadSamples();
+            }
+
+            if (AutoHitActive && AutoHitPlaysSamples)
+            {
+                double hitTime = HitObject.GetEndTime();
+
+                // Forward crossing only: previous frame strictly before the hit, this frame at/after it.
+                // Guards against firing on rewind/backward scrub, and against repeat fires on later frames.
+                //
+                // Plays via Samples directly rather than the virtual PlaySamples(): concrete overrides
+                // (e.g. DrawableGarbusHitObject<T>, DrawableSliderChild) route through
+                // GarbusHitSoundPlayback.Play, which gates on a judged Hit JudgementResult to resolve an
+                // accuracy-specific sample variant — a result that presentation-only autoHit drawables
+                // never produce. There is no accuracy to resolve here, so play the object's assigned
+                // samples as-is (the same behaviour the base, un-overridden PlaySamples() provides).
+                if (autoHitLastTime is double prev && prev < hitTime && Time.Current >= hitTime)
+                    Samples?.Play();
+
+                autoHitLastTime = Time.Current;
             }
 
             base.Update();
