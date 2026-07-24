@@ -123,6 +123,11 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
     protected override void PrepareForUse()
     {
         base.PrepareForUse();
+    }
+
+    protected override void UpdateInitialTransforms()
+    {
+        base.UpdateInitialTransforms();
         this.ScaleTo(0).ScaleTo(1, 125, Easing.In);
     }
 

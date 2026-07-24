@@ -30,6 +30,21 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     /// </summary>
     private readonly HashSet<DrawableHitObject> layoutComputed = new HashSet<DrawableHitObject>();
 
+    // Garbus (Task 9): a live edit re-applies HitObject defaults (DefaultsApplied) which can change
+    // StartTime, but setComputedLifetime otherwise only runs once, on Add, plus on a full layout
+    // invalidation (resize/scroll-speed change) — never per edit. Before Task 9 re-anchored
+    // DrawableGarbusHitObject.InitialLifetimeOffset to the note's scroll-in time, DrawableHitObject.OnApply's
+    // own Entry.LifetimeStart reset (using that same offset) was a deeply negative safety net (~10000ms),
+    // so an edited entry was always immediately alive regardless of staleness, giving
+    // updateLayoutRecursive's AliveEntries-gated LifetimeEnd refresh a chance to correct it before any
+    // later seek. With the tighter, scroll-in-anchored offset an entry can genuinely not be alive yet at
+    // edit time, so that refresh never fires, and a stale LifetimeStart/LifetimeEnd computed from the
+    // pre-edit StartTime can straddle a window the current time never re-enters (e.g. a single large seek
+    // landing past the stale end) — permanently stranding the entry as not-alive. Recomputing directly off
+    // HitObject.DefaultsApplied (unlike the AddDrawable/RemoveDrawable alive-transition hooks, which the
+    // non-pooled Add(DrawableHitObject) path bypasses entirely) fires regardless of pooling or alive state.
+    private readonly Dictionary<HitObjectLifetimeEntry, Action<Gameplay.Objects.HitObject>> lifetimeRefreshHandlers = new();
+
     [Resolved(CanBeNull = true)]
     private GarbusScrollingInfo? scrollingInfo { get; set; }
 
@@ -115,7 +130,20 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
         if (IsLoaded)
             setComputedLifetime(entry);
 
+        void onDefaultsApplied(Gameplay.Objects.HitObject _) => setComputedLifetime(entry);
+
+        entry.HitObject.DefaultsApplied += onDefaultsApplied;
+        lifetimeRefreshHandlers[entry] = onDefaultsApplied;
+
         base.Add(entry);
+    }
+
+    public override bool Remove(HitObjectLifetimeEntry entry)
+    {
+        if (lifetimeRefreshHandlers.Remove(entry, out var handler))
+            entry.HitObject.DefaultsApplied -= handler;
+
+        return base.Remove(entry);
     }
 
     protected override void AddDrawable(HitObjectLifetimeEntry entry, DrawableHitObject drawable)

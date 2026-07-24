@@ -122,8 +122,9 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     // Tinted/faded as a unit (fade-in, red-on-miss): holds the crisp paths and their glow twins.
     // SmoothPath forces its own draw colour to white, so colour applied here is what tints the
-    // paths via their framebuffer blits.
-    private readonly Container bodyVisual = new()
+    // paths via their framebuffer blits. Persistent so the spawn fade-in (UpdateInitialTransforms)
+    // survives rewind — auto-hit statelessness needs the completed transform kept, not pruned.
+    private readonly Container bodyVisual = new PersistentContainer
     {
         RelativeSizeAxes = Axes.Both,
     };
@@ -143,8 +144,9 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     // The portion of the body beyond the ring. Kept separate from bodyVisual so each pooled slice can
     // carry its own alpha for the escape fade; tinted/faded as a unit on hit independently of the body.
     // Mirrors bodyVisual's structure: crisp slices (gated by ShowLine) plus glow twins, so the tube
-    // keeps its look as it crosses the ring instead of degrading to a thin crisp line.
-    private readonly Container escapeVisual = new()
+    // keeps its look as it crosses the ring instead of degrading to a thin crisp line. Persistent so
+    // the spawn fade-in survives rewind (auto-hit statelessness), matching bodyVisual.
+    private readonly Container escapeVisual = new PersistentContainer
     {
         RelativeSizeAxes = Axes.Both,
     };
@@ -199,7 +201,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     // A head-only slider (no control points) has no line to draw; render its single node as a filled
     // circle of the body's own line radius so it stays visible. Wrapped in a fade-managed container
     // (like pathContainer) so it fades/tints as a unit, while the circle carries per-frame band alpha.
-    private readonly Container headContainer = new()
+    private readonly Container headContainer = new PersistentContainer
     {
         RelativeSizeAxes = Axes.Both,
     };
@@ -302,6 +304,13 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     protected override void PrepareForUse()
     {
         base.PrepareForUse();
+    }
+
+    protected override void UpdateInitialTransforms()
+    {
+        base.UpdateInitialTransforms();
+        // Fade the unit wrappers (crisp + glow together), rehomed from PrepareForUse so the spawn
+        // replays under rewind. Targets are Persistent containers, so the transform is not pruned.
         bodyVisual.FadeInFromZero(100, Easing.In);
         escapeVisual.FadeInFromZero(100, Easing.In);
         headContainer.FadeInFromZero(100, Easing.In);

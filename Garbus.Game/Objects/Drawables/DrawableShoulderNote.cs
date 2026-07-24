@@ -91,8 +91,10 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>, ISelfPos
         arc.EndRadians.Value = ShoulderNoteGeometry.ToRadians(baseAngleDeg + ShoulderNoteGeometry.DiagonalOffsetDeg);
     }
 
-    protected override void PrepareForUse()
+    protected override void UpdateInitialTransforms()
     {
+        base.UpdateInitialTransforms();
+
         // Spawn pop, scaled about the playfield centre (this drawable's centre origin).
         this.ScaleTo(0).ScaleTo(1, 125, Easing.In);
     }

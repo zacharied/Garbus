@@ -11,7 +11,7 @@ namespace Garbus.Game.Objects.Drawables
 {
     public partial class DrawableCardinalNote : DrawableNote<CardinalNote>
     {
-        private readonly Sprite sprite;
+        private readonly PersistentSprite sprite;
 
         [Resolved]
         private ChordHighlighter chords { get; set; } = null!;
@@ -20,12 +20,12 @@ namespace Garbus.Game.Objects.Drawables
             : base(hitObject)
         {
             Size = new Vector2(80);
-            sprite = new Sprite
+            sprite = new PersistentSprite
             {
                 RelativeSizeAxes = Axes.Both,
                 FillMode = FillMode.Fit,
                 Anchor = Anchor.Centre,
-                Origin = Anchor.Centre
+                Origin = Anchor.Centre,
             };
             Origin = Anchor.Centre;
         }
@@ -42,8 +42,11 @@ namespace Garbus.Game.Objects.Drawables
             // Pooled/reused drawables must set an explicit colour every time (yellow if this note shares its
             // start time with another cardinal note, else reset to white).
             Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Color4.White;
+        }
 
-            // Apply note spawn effect
+        protected override void UpdateInitialTransforms()
+        {
+            base.UpdateInitialTransforms();
             sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
         }
 

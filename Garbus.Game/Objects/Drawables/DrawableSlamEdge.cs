@@ -14,7 +14,7 @@ namespace Garbus.Game.Objects.Drawables;
 
 public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
 {
-    private readonly Sprite sprite;
+    private readonly PersistentSprite sprite;
 
     [Resolved]
     private AnalogInputManager analogInput { get; set; } = null!;
@@ -23,13 +23,13 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
         : base(hitObject)
     {
         Size = new Vector2(80);
-        sprite = new Sprite
+        sprite = new PersistentSprite
         {
             RelativeSizeAxes = Axes.Both,
             FillMode = FillMode.Fit,
             Anchor = Anchor.Centre,
             Origin = Anchor.Centre,
-            Colour = hitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour
+            Colour = hitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour,
         };
         Origin = Anchor.Centre;
         Rotation = 270 - HitObject.AngleDeg + (hitObject.Direction == RotationalDirection.Anticlockwise ? 90 : -90);
@@ -42,8 +42,10 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
         AddInternal(sprite);
     }
 
-    protected override void PrepareForUse()
+    protected override void UpdateInitialTransforms()
     {
+        base.UpdateInitialTransforms();
+
         // Apply note spawn effect
         sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
     }

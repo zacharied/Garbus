@@ -81,6 +81,21 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestAutoHitSpawnReplaysAfterScrubPastCompletion()
+        {
+            // Seek past spawn completion (1300 + 125 = 1425), so a Sprite that discarded its transform
+            // would show scale 1 on return. With RemoveCompletedTransforms=false it persists and replays.
+            AddStep("seek past spawn completion", () => manualClock.CurrentTime = 1600);
+            AddStep("rewind to start", () => manualClock.CurrentTime = 0);
+            AddStep("seek back into spawn window", () => manualClock.CurrentTime = 1360);
+            AddUntilStep("spawn replays (scale mid-way)", () =>
+            {
+                var sprite = note()?.ChildrenOfType<osu.Framework.Graphics.Sprites.Sprite>().FirstOrDefault();
+                return sprite != null && sprite.Scale.X < 0.9f;
+            });
+        }
+
+        [Test]
         public void TestAutoHitProducesNoJudgementResult()
         {
             AddStep("seek far past the note", () => manualClock.CurrentTime = 10000);

@@ -26,8 +26,8 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
     private static readonly Colour4 held_colour = Colour4.White;
     private static readonly Colour4 dropped_colour = Colour4.Gray;
 
-    private readonly Sprite headSprite;
-    private readonly SmoothPath body;
+    private readonly PersistentSprite headSprite;
+    private readonly PersistentSmoothPath body;
 
     [Resolved]
     private ChordHighlighter chords { get; set; } = null!;
@@ -35,14 +35,14 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
     public DrawableCardinalHoldNote(CardinalHoldNote hitObject)
         : base(hitObject)
     {
-        body = new SmoothPath
+        body = new PersistentSmoothPath
         {
             Anchor = Anchor.Centre,
             PathRadius = body_thickness / 2,
             Colour = held_colour,
         };
 
-        headSprite = new Sprite
+        headSprite = new PersistentSprite
         {
             Size = new Vector2(head_size),
             Anchor = Anchor.Centre,
@@ -64,6 +64,11 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
         base.PrepareForUse();
 
         Colour = chords.IsInChord(HitObject) ? ChordColours.Highlight : Colour4.White;
+    }
+
+    protected override void UpdateInitialTransforms()
+    {
+        base.UpdateInitialTransforms();
 
         headSprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
         body.FadeInFromZero(100, Easing.In);

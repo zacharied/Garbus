@@ -388,6 +388,24 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestSpawnAnimationReplaysAfterRestart()
+        {
+            // Play past the first cardinal's hit so it spawns and judges, then "restart" (clock → 0).
+            playThrough(2200);
+            AddUntilStep("first cardinal judged", () => firstCardinal()?.Judged == true);
+
+            AddStep("restart (clock to 0)", () => manualClock.CurrentTime = 0);
+
+            // Re-enter the spawn window: scroll-in 1300 + 60ms = 1360, mid-scale-in.
+            AddStep("seek into spawn window", () => manualClock.CurrentTime = 1360);
+            AddUntilStep("spawn animation replays (scale mid-way)", () =>
+            {
+                var sprite = firstCardinal()?.ChildrenOfType<osu.Framework.Graphics.Sprites.Sprite>().FirstOrDefault();
+                return sprite != null && sprite.Scale.X < 0.9f;
+            });
+        }
+
+        [Test]
         public void TestCardinalHoldActivationDebugDisplay()
         {
             Objects.Drawables.DrawableCardinalHoldNote hold = null!;
