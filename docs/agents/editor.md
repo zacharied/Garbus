@@ -1,0 +1,157 @@
+# Editor
+
+## Purpose & scope
+
+The chart authoring tool under `Garbus.Game/Edit/`, reached from the main menu. Covers the editor
+shell (tabs, menus, hotkeys, undo/redo), the compose surface (blueprints, angle mapping, editor
+drawables, selection/placement), the timeline strip, transport/test mode, and the Setup/Timing/Verify
+tabs. This is the domain with the most hard-won gotchas — read the gotcha section before touching
+compose or timeline code. The disk model (`ChartFile`, serializers) is in [charts.md](charts.md);
+the general framework traps these gotchas instantiate are in [osu-framework.md](osu-framework.md).
+
+## Shell & core
+
+- `Edit/Screens/GarbusEditor.cs` — the shell: four `EditorTab`s (Setup / Compose / Timing / Verify;
+  `EditorTab.cs`, `EditorTabScreen.cs`), a menu bar (File / Edit / View / Timing), a dialog overlay,
+  hotkeys (Ctrl+S/Z/Y/X/C/V/D, F5, Space, transport keys), and dirty tracking (`HasUnsavedChanges` =
+  current state hash vs hash-at-last-save). It DI-caches the editor clock, editor chart, change
+  handler (also as `IEditorChangeHandler`), beat divisor, clipboard, `ChartFile`, and
+  `ControlPointInfo`.
+- `Edit/EditorClock.cs` + `Edit/BindableBeatDivisor.cs` — vendored transport/beat-snap core.
+- `Edit/EditorChart.cs` — the `EditorBeatmap` counterpart. It **aliases `Chart.HitObjects` directly**
+  — no shadow copy; every mutation is exactly what serialization reads. `ApplyDefaults` takes no
+  arguments (Garbus hit windows are fixed — no `ControlPointInfo`/difficulty). Its `Update` refreshes
+  drawables **in place** (see gotchas).
+- Undo/redo: `Edit/EditorChangeHandler.cs` + `Edit/GarbusChartChangeHandler.cs`. State is snapshotted
+  as JSON; changes apply by a **per-object JSON-identity diff** (not osu's `.osu`-line diff), using
+  `GarbusChartSerializer.EncodeHitObject` for the identity strings.
+
+## Compose
+
+- `Edit/EditorAngleMapping.cs` — the **sole angle↔timeline-x authority**. Grid left edge = 135°, the
+  seam is on the 315° diagonal, with ghost wrap bands. `Direction` (`+1`/`-1`) sets normal vs
+  reversed ("clockwise") view.
+- `Edit/GarbusEditorPlayfield.cs` — the compose playfield. The judgement line is raised
+  `JUDGEMENT_LINE_OFFSET` (40px) above the playfield bottom, leaving a hit zone objects scroll into
+  after passing it.
+- `Edit/Drawables/` — simplified editor sprites (separate from the gameplay polar drawables); x is
+  driven from angle every frame plus a ±360° ghost twin near grid edges. **Non-pooled**, tracked in
+  the composer's per-hit-object `drawableMap`.
+- `Edit/Compose/` — the vendored blueprint/composer stack: `BlueprintContainer`,
+  `ComposeBlueprintContainer`, `HitObjectComposer`/`ScrollingHitObjectComposer`, placement/selection
+  blueprints, `SelectionBox`, `BeatSnapGrid`, drag box, radio-button toolbox, `GarbusMenu`/toggle
+  menu items.
+- `Edit/GarbusSelectionHandler.cs` — group move/rotate; `Edit/Tools/` — composition tools.
+- Slider **node selection** is local to `SliderSelectionBlueprint` (a `HashSet` of control points by
+  reference) — not part of `EditorChart.SelectedHitObjects`/undo/clipboard.
+
+## Timeline, transport, tabs
+
+- `Edit/Screens/Timeline/` — the timeline strip (waveform, ticks, timing-change markers, zoom-synced
+  scroll speed, View toggles).
+- `Edit/Screens/BottomBar/` — transport, summary timeline, Test button. F5/Test launches a
+  `PlayScreen` with a serializer deep-clone of the WIP chart, starting 1500 ms before the playhead;
+  returning seeks the editor clock to the gameplay exit time. Escape exits back to the editor.
+- `Edit/Screens/Setup/` — metadata/resources/difficulty form. `Edit/Screens/Timing/` — timing-point
+  list + settings + tap-timing + metronome (full osu timing-screen feature set: chip table, time
+  signature / omit-barline, repeat nudge, use-current-time group move, section-wide object
+  adjustment, tap-timing rows). `Edit/Screens/Verify/` — runs `ICheck`s (audio/background present,
+  objects before time zero / beyond track end) and lists clickable seeking issues.
+  `Edit/Screens/Design/` + `DesignTab` author tutorial-message design points.
+- `Edit/EditorClipboard.cs` — cut/copy/paste/clone (clone deliberately does **not** touch clipboard
+  content, matching osu).
+
+## osu-framework background
+
+DI/BDL caching, drawable lifetime + transforms (editor drawables refresh in place on
+`HitObject.DefaultsApplied`), positional input + child-order precedence, `ScrollContainer` content vs
+viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. All covered in
+[osu-framework.md](osu-framework.md) — the gotchas below are the editor-specific instances.
+
+## Gotchas
+
+- **Vertical `FillFlowContainer` collapses the tab content to zero height.** The tab area is a padded
+  plain `Container` (bar heights reserved via `Padding`), never a fill flow. Pin:
+  `TestSceneEditorShell.TestTabContentHasHeight`.
+- **`EditorChart` aliases `Chart.HitObjects`** — never build a second list; mutating the alias is
+  what `Save` serializes.
+- **Removed composer drawables must be explicitly `Dispose()`d.** `HitObjectContainer` detaches with
+  `RemoveInternal(…, false)` (correct for the pooled path); an undisposed editor drawable stays
+  subscribed to `HitObject.DefaultsApplied` and re-runs `Apply()` on every later update — zombies
+  pile up quadratically into a GC storm. Pin: `TestSceneComposeSelection.TestRemovedObjectDrawableIsDisposed`.
+- **`EditorChart.Update` refreshes drawables IN PLACE** (`DefaultsApplied` → drawable re-`Apply()` +
+  scrolling relayout) — never remove+recreate on update; recreating tore down framebuffer-backed
+  slider visuals per drag event (the node-drag GC storm). Two dependencies: editor drawables must
+  swallow drawable-side `LifetimeEnd` writes (else judged objects with no hit-state transforms expire
+  at their own start time on re-apply and never come back — the scrolling container only re-lays-out
+  ALIVE entries), and node/handle drags must skip `EditorChart.Update` when nothing changed. Pins:
+  `TestSceneComposerLifecycle`, `TestSliderNodeDragDoesNotRecreateDrawable`,
+  `TestUpdateRefreshesDrawableInPlace`.
+- **Drag deltas can be a full wrap (±360°) off** when the cursor sits over a ghost twin —
+  `GarbusSelectionHandler.HandleMovement` must reduce the degree delta via `MinimalDiff` so "already
+  there" is 0, not a spurious ±360 that rebuilds every selected object per mouse-move. Pinned by the
+  incremental-drag tests in `TestSceneComposeSelection`.
+- **The horizontal drag delta is in GRID degrees, not absolute angle.** In the reversed view
+  (`EditorAngleMapping.Direction == -1`) grid degrees run opposite to absolute angle, so
+  `HandleMovement` must map the screen-derived delta through `Direction` before adding it to
+  `AngleDeg` — otherwise a rightward drag rotates the wrong way and the object bounces. Pin:
+  `TestDragRotatesTowardCursorInReversedView` (assert a *partial* drag direction — a full clean drag
+  re-resolves to the cursor by coincidence and hides the bug).
+- **Lambda event subscriptions leak.** Timeline/metronome components subscribe to
+  `ControlPointInfo.ControlPointsChanged`, the clock, selection, `HitObjectUpdated`. Keep a field
+  reference and unsubscribe in `Dispose`.
+- **The top/bottom bars must come AFTER the tab container in `GarbusEditor`'s child list** (osu's
+  order: content first, bars after). The compose blueprint stack claims positional input over the
+  whole screen (`ReceivePositionalInputAt => true`), so bars listed earlier never receive clicks and
+  menu dropdowns draw behind the tab content. Pins: `TestSceneEditorShell.TestTabSwitchingViaClick`,
+  `TestFileMenuSaveViaClick`.
+- **Wheel-seek convention:** wheel-down (negative `ScrollDelta.Y`) = forward in time, wheel-up =
+  backward (matches osu's `Editor.cs`).
+- **Fixed overlays on the `TimelineStrip` must use `AddInternal`, not `base.Content.Add`.** A
+  `ScrollContainer`'s `base.Content` scrolls and auto-sizes to the full track width, so
+  `Anchor.TopCentre` there pins to the track midpoint and drifts. The centre-marker playhead lives in
+  `AddInternal`. Pin: `TestSceneTimeline.TestCentreMarkerPinnedToViewportCentre`.
+- **`TransferBlueprintFor` runs on `HitObjectUpdated`** so a re-defaulted object keeps its selection
+  blueprint (updating an object regenerates nested objects, so the blueprint must be re-pointed).
+- **Placement auto-seek:** `HitObjectPlacementBlueprint.EndPlacement` seeks the clock to the placed
+  object — wait for the seek before asserting screen positions in tests.
+- **Slider node selection is local to the blueprint.** Node handles receive input only while the
+  slider is selected, so clicking a node on an unselected slider selects the whole slider; once
+  selected, click picks a node (Ctrl toggles), and dragging one moves the whole node selection.
+  Delete (via `IKeyBindingHandler<PlatformAction>`, seen before `SelectionHandler`) and
+  `HandleQuickDeletion` (Shift+RightClick) remove nodes; emptying the path removes the slider.
+- **A head-only slider (zero control points) is ineligible for head-node selection** — its head *is*
+  the whole object, so the head handle disables interaction (in `Update`, gated on
+  `controlPoints.Count > 0`) and declines mouse-down/drag, letting the click/drag flow to
+  `BlueprintContainer` for whole-object select + group move. Without this, dragging one of several
+  selected head-only sliders moved only that one. Pin:
+  `TestDraggingOneOfSeveralSelectedHeadOnlySlidersMovesAll`.
+- **A drag handle disposed mid-drag drops its `OnDragEnd`, stranding the change transaction.** A
+  node/head drag opens a transaction (`changeHandler.BeginChange()`) closed on `DragEnded`.
+  `SliderSelectionBlueprint.Update` rebuilds the handle set every frame and disposes trailing handles
+  when a wrap copy drops — which can dispose the handle *currently* being dragged as the node crosses
+  the seam. The framework never delivers `OnDragEnd` to a disposed drawable, so `EndChange` never runs
+  and `TransactionActive` sticks `true` forever, silently killing Undo/Redo. Fix: the drag pieces
+  (`NodeDragPiece`/`EditSquarePiece`/`HoldEndDragPiece`) fire `DragEnded` from *either* `OnDragEnd` or
+  `Dispose`, whichever comes first, guarded to fire exactly once (a double `EndChange` throws). Pin:
+  `TestNodeDragThatDropsWrapCopyDoesNotStrandTransaction`.
+- **The compose judgement line is raised 40px above the playfield bottom** (`JUDGEMENT_LINE_OFFSET`).
+  Every time-scrolling layer keys its trailing edge off its own `DrawHeight`, so ALL must share that
+  bottom inset or they desync: the `HitObjectContainer` (inner padded container), `EditorBarLineDisplay`,
+  and the beat-snap grid's `UnderlayElements`. The static grid backdrop stays full height. The exposed
+  negative-time region is why `HitObjectPlacementBlueprint` rejects `StartTime < 0`. Pin:
+  `TestSceneComposePlacement.TestPlacementInHitZoneRejectsNegativeTime`.
+- **A hold note's head sprite straddles the start line**, so hit-testing must explicitly cover the
+  head sprites (incl. the ghost twin) or the head's bottom half hangs outside the hit rectangle and
+  can't be clicked. Pin: `TestHoldNoteSelectableByHead`.
+- **Editor drawables only play samples while their clock (the `EditorClock`) is running**, so
+  scrub-seeks past objects are silent while normal playback still sounds. Slider-node / hold-head
+  stubs (`EditorDrawableNestedStub`) need the same gate — they don't derive from the gated editor
+  base.
+
+### Test harness note
+
+The compose placement/selection harnesses must wire the composer subtree's `Clock` to the
+`EditorClock` (as `ComposeTab` does), or the playfield maps time↔position against the ambient wall
+clock and editor-time-relative behaviour (e.g. the hit zone at time 0 mapping to negative times)
+can't be reproduced. See [testing.md](testing.md).
