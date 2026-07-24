@@ -220,6 +220,68 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     }
 
     [Test]
+    public void TestMiniWarningAlphaIsIndependentOfSeekHistory()
+    {
+        const int angle = 135;
+        const double start_time = 5000;
+        const double first_sample_time = 3250;
+        const double phase_sample_time = 4100;
+        WarningIndicatorDisplay warning = null!;
+        float firstSampleAlpha = 0;
+        float rewindAlpha = 0;
+
+        AddStep("seek stopped preview into warning", () =>
+        {
+            Assert.That(preview.Apply(fullState(
+                1,
+                chartWith(warningSlider(angle, start_time)),
+                [1],
+                first_sample_time,
+                700)), Is.True);
+            warning = preview.PlayfieldForTests.WarningIndicators;
+        });
+        AddUntilStep("interior warning revealed", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == angle);
+        AddAssert("interior seek-in has alpha", () => warningEffectBuffer(warning).Alpha,
+            () => Is.GreaterThan(0));
+        AddStep("record first alpha", () => firstSampleAlpha = warningEffectBuffer(warning).Alpha);
+
+        AddStep("seek before warning", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(2, start_time - WarningIndicatorDisplay.WARNING_TIME - 1, false, 1, 0)), Is.True));
+        AddUntilStep("before interval is transparent", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == null
+            && warningEffectBuffer(warning).Alpha == 0);
+
+        AddStep("seek back to first sample", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(3, first_sample_time, false, 1, 0)), Is.True));
+        AddUntilStep("first alpha restored exactly", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
+            && warningEffectBuffer(warning).Alpha == firstSampleAlpha);
+
+        AddStep("seek after warning", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(4, start_time + 1, false, 1, 0)), Is.True));
+        AddUntilStep("after interval is transparent", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == null
+            && warningEffectBuffer(warning).Alpha == 0);
+
+        AddStep("rewind into warning", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(5, phase_sample_time, false, 1, 0)), Is.True));
+        AddUntilStep("rewind restores angle and phase", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
+            && warningEffectBuffer(warning).Alpha > 0);
+        AddStep("record rewind alpha", () => rewindAlpha = warningEffectBuffer(warning).Alpha);
+
+        AddStep("seek before warning again", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(6, start_time - WarningIndicatorDisplay.WARNING_TIME - 1, false, 1, 0)), Is.True));
+        AddUntilStep("warning clears again", () => warningEffectBuffer(warning).Alpha == 0);
+        AddStep("advance to same phase sample", () => Assert.That(preview.Apply(
+            new ChartPreviewTransport(7, phase_sample_time, false, 1, 0)), Is.True));
+        AddUntilStep("forward and backward histories match", () =>
+            warning.RevealedAngleDeg(HorizontalDirection.Left) == angle
+            && warningEffectBuffer(warning).Alpha == rewindAlpha);
+    }
+
+    [Test]
     public void TestSameTypeUpsertRetainsDrawableAndRecalculatesRouting()
     {
         DrawableHitObject before = null!;

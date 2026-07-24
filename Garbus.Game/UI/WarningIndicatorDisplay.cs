@@ -9,6 +9,7 @@ using Garbus.Game.Gameplay;
 using Garbus.Game.Objects;
 using Garbus.Game.Utils;
 using osuTK;
+using Interpolation = osu.Framework.Utils.Interpolation;
 
 namespace Garbus.Game.UI;
 
@@ -155,14 +156,24 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
                     s.Arc.EndRadians.Value = centre + half;
                 }
 
-                if (s.RevealedAngleDeg == null)
+                if (presentationPolicy?.UsesClockDrivenVisuals == true)
+                {
+                    s.Buffer.ClearTransforms();
+                    s.Buffer.Alpha = clockDrivenAlpha(x.StartTime, Time.Current);
+                }
+                else if (s.RevealedAngleDeg == null)
                     startBreathing(s.Buffer);
 
                 s.RevealedAngleDeg = x.AngleDeg;
             }
             else
             {
-                if (s.RevealedAngleDeg != null)
+                if (presentationPolicy?.UsesClockDrivenVisuals == true)
+                {
+                    s.Buffer.ClearTransforms();
+                    s.Buffer.Alpha = 0;
+                }
+                else if (s.RevealedAngleDeg != null)
                 {
                     // Drop the breathing loop, then fade from wherever the pulse currently sits.
                     s.Buffer.ClearTransforms();
@@ -172,6 +183,39 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
                 s.RevealedAngleDeg = null;
             }
         }
+    }
+
+    private static float clockDrivenAlpha(double startTime, double currentTime)
+    {
+        double elapsed = currentTime - (startTime - WARNING_TIME);
+
+        if (elapsed < 0 || currentTime >= startTime)
+            return 0;
+
+        const double half = breathe_period_ms / 2;
+
+        if (elapsed < half)
+            return (float)Interpolation.ApplyEasing(Easing.InOutSine, elapsed / half);
+
+        double phase = elapsed % breathe_period_ms;
+        double progress;
+        float from;
+        float to;
+
+        if (phase < half)
+        {
+            progress = phase / half;
+            from = breathe_min_alpha;
+            to = 1;
+        }
+        else
+        {
+            progress = (phase - half) / half;
+            from = 1;
+            to = breathe_min_alpha;
+        }
+
+        return from + (to - from) * (float)Interpolation.ApplyEasing(Easing.InOutSine, progress);
     }
 
     /// <summary>
