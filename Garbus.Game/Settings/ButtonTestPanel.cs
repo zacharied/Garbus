@@ -182,8 +182,8 @@ namespace Garbus.Game.Settings
             base.Dispose(isDisposing);
         }
 
-        // One labelled button that lights while the action bound to it is held. Observes only
-        // (OnPressed returns false), mirroring PlayfieldKeybeam.
+        // One labelled button that lights while the action bound to it is held. Consumes the press for
+        // the action it owns (OnPressed returns true) so button-testing can't leak input to the screen behind.
         private partial class ButtonCell : CompositeDrawable, IKeyBindingHandler<GarbusAction>
         {
             private static readonly Color4 idle_colour = new Color4(40, 40, 52, 255);
@@ -220,14 +220,15 @@ namespace Garbus.Game.Settings
 
             public bool OnPressed(KeyBindingPressEvent<GarbusAction> e)
             {
-                if (e.Action == Action)
-                {
-                    Lit = true;
-                    background.Colour = lit_colour;
-                }
+                if (e.Action != Action)
+                    return false;
 
-                // Observe only — this panel never consumes input.
-                return false;
+                Lit = true;
+                background.Colour = lit_colour;
+
+                // Consume the action this cell owns: returning true marks the raw key/joystick event
+                // handled, so a press tested here stops at the panel instead of reaching the screen behind.
+                return true;
             }
 
             public void OnReleased(KeyBindingReleaseEvent<GarbusAction> e)
