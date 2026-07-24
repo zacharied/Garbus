@@ -1,7 +1,6 @@
-// The minimal game loop replacing osu.Game's Player/DrawableRuleset/ScoreProcessor/HUD stack (see
-// PLAN-port.md — Player is a 1.3k-line megaclass with realm/online/mod dependencies we don't want).
-// Responsibilities: drive the vendored gameplay clock, host the playfield inside the action input
-// manager, tally results into score/combo/accuracy, and show a summary once the chart has played out.
+// The minimal game loop. Responsibilities: drive the vendored gameplay clock, host the playfield
+// inside the action input manager, tally results into score/combo/accuracy, and show a summary once
+// the chart has played out.
 
 using System;
 using System.Collections.Generic;
@@ -260,8 +259,7 @@ namespace Garbus.Game.Screens
         }
 
         /// <summary>
-        /// The drawable representation for each top-level hit object type, mirroring
-        /// BAC's <c>DrawableBigAssCircleRuleset.CreateDrawableRepresentation</c>.
+        /// The drawable representation for each top-level hit object type.
         /// </summary>
         public static DrawableHitObject CreateDrawableRepresentation(GarbusHitObject h) => h switch
         {
@@ -414,7 +412,7 @@ namespace Garbus.Game.Screens
             ExitTime = gameplayClock?.CurrentTime;
 
             // The track is this screen's own instance (a fresh one per play) — stop it so audio
-            // doesn't keep playing under the editor after exiting (ISSUES.md).
+            // doesn't keep playing under the editor after exiting.
             track?.Stop();
 
             return base.OnExiting(e);

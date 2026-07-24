@@ -1,9 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/SliderPlacementBlueprint.cs).
-// BacPath/BacPathControlPoint → GarbusPath/GarbusPathControlPoint; HorizontalDirection from
-// Garbus.Game.Core; placement previews use the slider's live side colour; EditorDrawableCardinalNote
-// from Edit.Drawables; SnapResult/GarbusSnapResult from Edit;
-// Composer/HitObject via GarbusPlacementBlueprint. Logic identical.
-
 using System;
 using System.Collections.Generic;
 using osu.Framework.Bindables;

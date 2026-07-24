@@ -4,8 +4,8 @@
 // Adapted for Garbus: namespace Garbus.Game.Edit.Compose; OsuContextMenuContainer dependency
 // dropped (Garbus uses BasicContextMenuContainer — no DI resolve needed, DeselectAll just clears
 // SelectedItems); IKeyBindingHandler<GlobalAction>/flip/reverse key bindings dropped (GlobalAction is
-// osu.Game-only; flip/reverse not used by BAC); SelectionRotationHandler/SelectionScaleHandler and
-// CreateChildDependencies override dropped entirely (BAC skips rotation/scale); OsuMenuItem
+// osu.Game-only; flip/reverse unused here); SelectionRotationHandler/SelectionScaleHandler and
+// CreateChildDependencies override dropped entirely (no rotation/scale); OsuMenuItem
 // → GarbusMenuItem; CommonStrings.ButtonsDelete → plain "Delete" string; Hotkey property dropped from
 // delete menu item; GetContextMenuItemsForSelection uses IEnumerable<SelectionBlueprint<T>> matching
 // osu's real virtual signature (IReadOnlyList would be a narrowing that breaks overrides).

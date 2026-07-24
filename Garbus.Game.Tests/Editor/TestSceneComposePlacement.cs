@@ -1,7 +1,7 @@
 // Placement tests for GarbusHitObjectComposer + tools + placement blueprints.
-// Ported from BigAssCircle's TestSceneBacEditor placement patterns (positionAtAngle/screenPositionOf
-// helpers). Hosts the full composer in a DI harness (the pattern from TestSceneComposerLifecycle /
-// TestSceneEditorPlayfield) and drives it with a nested ManualInputManager.
+// Hosts the full composer in a DI harness (the pattern from TestSceneComposerLifecycle /
+// TestSceneEditorPlayfield) and drives it with a nested ManualInputManager, using
+// positionAtAngle/screenPositionOf helpers.
 //
 // Auto-seek gotcha: HitObjectPlacementBlueprint.EndPlacement seeks the clock to the placed object,
 // which scrolls it toward the judgement line — wait for the seek before asserting screen positions.

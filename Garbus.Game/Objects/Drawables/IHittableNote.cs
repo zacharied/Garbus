@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/IHittableNote.cs).
-
 using System;
 using Garbus.Game.Gameplay.Objects.Drawables;
 

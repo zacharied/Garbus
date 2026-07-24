@@ -1,4 +1,4 @@
-// Ported from BigAssCircle (shoulder counterpart of the held cardinal note).
+// The shoulder counterpart of the held cardinal note.
 
 using System;
 using System.Threading;

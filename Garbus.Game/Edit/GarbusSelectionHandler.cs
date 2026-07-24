@@ -1,11 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacSelectionHandler.cs).
-// BacSelectionHandler → GarbusSelectionHandler; base EditorSelectionHandler is Garbus's vendored
-// Edit.Compose type; EditorBeatmap → EditorChart (resolved via base); BigAssCircleHitObjectComposer →
-// GarbusHitObjectComposer; HitObject → GarbusHitObject; BacSlamEdge → GarbusSlamEdge;
-// GetContextMenuItemsForSelection uses IEnumerable<SelectionBlueprint<GarbusHitObject>> matching osu's
-// real virtual signature on the vendored base; OsuColour/OsuSpriteText/OsuFont replaced by plain
-// SpriteText with the yellow/gray colours inlined (osu's OsuColour.YellowDark #E7CF43, Gray0 #000000).
-
 using System;
 using System.Collections.Generic;
 using System.Linq;

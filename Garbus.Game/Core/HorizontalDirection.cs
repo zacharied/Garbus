@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Core/HorizontalDirection.cs).
-
 using System;
 using osu.Framework.Graphics;
 

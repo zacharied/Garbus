@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Note.cs).
-
 using Garbus.Game.Input;
 
 namespace Garbus.Game.Objects;

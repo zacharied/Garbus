@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/SliderBody.cs).
-
 using System.Linq;
 using System.Threading;
 using Garbus.Game.Core;

@@ -1,7 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/SliderPolylineVisual.cs).
-// BacPathControlPoint → GarbusPathControlPoint; SliderBody → Garbus.Game.Objects.SliderBody;
-// Core.Constants → Garbus.Game.Constants; osu.Game.Rulesets.UI.Playfield → Garbus.Game.Gameplay.UI.Playfield.
-
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;

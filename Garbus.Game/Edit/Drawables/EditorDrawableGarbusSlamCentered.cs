@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableSlamCentered.cs).
-// BacSlamCentered → GarbusSlamCentered.
-
 using System.Collections.Generic;
 using Garbus.Game.Core;
 using osu.Framework.Graphics;

@@ -1,7 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableHoldNoteHead.cs).
-// Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: made generic over the head hit-object type so cardinal and shoulder holds share it.
+// Generic over the head hit-object type so cardinal and shoulder holds share it.
 
 using Garbus.Game.Gameplay.Scoring;
 

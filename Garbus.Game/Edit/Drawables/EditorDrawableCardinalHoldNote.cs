@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableCardinalHoldNote.cs).
-// BacHitObject → GarbusHitObject; DrawableHitObject import updated.
-
 using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
@@ -76,8 +73,8 @@ public partial class EditorDrawableCardinalHoldNote : EditorDrawableGarbusHitObj
         if (base.ReceivePositionalInputAt(screenSpacePos))
             return true;
 
-        // The head square straddles the start line; accept its full extent (ISSUES.md: hold notes
-        // must be selectable by the head, not just the body).
+        // The head square straddles the start line; accept its full extent so hold notes are
+        // selectable by the head, not just the body.
         foreach (var head in headPieces)
         {
             if (head.ScreenSpaceDrawQuad.Contains(screenSpacePos))

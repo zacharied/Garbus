@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/MathUtils/MathUtils.cs).
-
 using System;
 
 namespace Garbus.Game.Utils;

@@ -1,8 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/BacSelectionBlueprint.cs).
-// BacSelectionBlueprint → GarbusSelectionBlueprint; BacEditorPlayfield → GarbusEditorPlayfield;
-// HitObjectSelectionBlueprint<T> / EditSquarePiece from the Garbus Edit.Compose / Edit.Blueprints.Components;
-// ScrollingHitObjectContainer from Garbus.Game.Gameplay.UI.Scrolling; Playfield from Gameplay.UI.
-//
 // NOTE on the stale-DrawableObject gap: this base positions itself directly off the HitObjectContainer
 // (angle → x, time → y) every frame. Positional input still routes through DrawableObject (the base
 // accessors: ReceivePositionalInputAt / ScreenSpaceSelectionPoint / SelectionQuad all read it) — that

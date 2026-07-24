@@ -1,7 +1,6 @@
 // Selection tests for GarbusHitObjectComposer + selection blueprints + GarbusSelectionHandler.
-// Ported from BigAssCircle's TestSceneBacEditor selection coverage (TestSelectAndDragNote,
-// TestSelectViaGhostTwin, TestSliderSelectionIsPathPrecise, TestInsertSliderNodeWithHotkey,
-// TestSliderHidesSelectionBoxAndShowsChip) plus a delete + undo-restore proof.
+// Covers select-and-drag, select-via-ghost-twin, path-precise slider selection, insert-slider-node
+// hotkey, and slider selection-box/chip behaviour, plus a delete + undo-restore proof.
 //
 // Harness mirrors TestSceneComposePlacement but additionally caches a GarbusChartChangeHandler (for the
 // undo test) and drives the composer's scroll off the EditorClock (Composer input manager Clock =
@@ -312,7 +311,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
-        // Incremental drags (Phase4-Issues.md: drag positioning bug-out + GC churn).
+        // Incremental drags (drag positioning bug-out + GC churn).
         // A real drag is many small mouse moves, each of which may update the object and
         // (currently) recreate its drawable — unlike TestDragRotatesBySnappedIncrement's single jump.
         // ------------------------------------------------------------------
@@ -422,7 +421,7 @@ namespace Garbus.Game.Tests.Editor
             // itself in place via HitObject.DefaultsApplied (rebuilding nested drawables), the scrolling
             // container re-layouts through the same event, and the editor visuals read the hit object
             // live every frame. Recreation churned framebuffer-backed visuals per update — at drag rates
-            // that was the slider node-drag GC storm (ISSUES.md).
+            // that was the slider node-drag GC storm.
             waitForComposer();
             placeNoteAt(270);
 
@@ -453,7 +452,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestSliderNodeDragDoesNotRecreateDrawable()
         {
-            // The ISSUES.md repro: a slider wrapping past 360°, its child node dragged back and forth on
+            // The repro: a slider wrapping past 360°, its child node dragged back and forth on
             // the x-axis. Every drag event updates the slider; the drawable (whose polyline wrap copies
             // are framebuffer-backed) must survive the whole drag as the same instance instead of being
             // torn down and rebuilt per mouse-move event.
@@ -693,7 +692,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestHoldNoteSelectableByHead()
         {
-            // ISSUES.md: the hold head sprite is centred on the start line, so its bottom half hangs
+            // The hold head sprite is centred on the start line, so its bottom half hangs
             // below the drawable's duration rectangle — clicking there must still select the note.
             waitForComposer();
 
@@ -752,7 +751,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestNoHitsoundWhileScrubbing()
         {
-            // ISSUES.md: objects must not play hitsounds while the compose view is scrubbed (clock
+            // Objects must not play hitsounds while the compose view is scrubbed (clock
             // stopped, playhead seeking across objects) — only when the playhead crosses them with
             // the clock actually running.
             waitForComposer();
@@ -789,7 +788,7 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestNoHitsoundForSliderNodesWhileScrubbing()
         {
-            // ISSUES.md follow-up: slider nodes are nested-stub drawables that bypassed the editor
+            // Follow-up: slider nodes are nested-stub drawables that bypassed the editor
             // base's scrub gate and still sounded on wheel-seeks.
             waitForComposer();
 

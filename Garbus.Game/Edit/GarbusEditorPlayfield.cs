@@ -1,8 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacEditorPlayfield.cs).
-// BacEditorPlayfield → GarbusEditorPlayfield; BigAssCircleHitObjectComposer → (not resolved here;
-// AngleSnap default 45 is inlined). OsuSpriteText/OsuFont/OsuColour → osu.Framework SpriteText.
-// IScrollingInfo is resolved from DI; the composer-cached EditorScrollingInfo wins (no double-cache).
-
 using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -143,9 +138,8 @@ public partial class GarbusEditorPlayfield : ScrollingPlayfield
     /// labels, medium lines every 45°, and faint lines at the current angle-snap increment. Lines
     /// continue through the ghost bands.
     ///
-    /// Adapted for Garbus: OsuSpriteText/OsuFont/OsuColour replaced by osu.Framework SpriteText;
-    /// the snap increment binds to the composer's <see cref="GarbusHitObjectComposer.AngleSnap"/>
-    /// (resolved from DI, as BAC did) so the faint snap lines track the selected increment live.
+    /// The snap increment binds to the composer's <see cref="GarbusHitObjectComposer.AngleSnap"/>
+    /// (resolved from DI) so the faint snap lines track the selected increment live.
     /// </summary>
     private partial class AngleGrid : CompositeDrawable
     {

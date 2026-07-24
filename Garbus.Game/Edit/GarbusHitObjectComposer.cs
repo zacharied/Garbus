@@ -1,15 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BigAssCircleHitObjectComposer.cs).
-// BigAssCircleHitObjectComposer → GarbusHitObjectComposer; the base is Garbus's vendored
-// ScrollingHitObjectComposer<GarbusHitObject> (Edit/Compose), which has NO DrawableRuleset — so instead
-// of osu's CreateDrawableRuleset the composer implements CreatePlayfield() + CreateDrawableRepresentation()
-// directly (matching the drawable factory that lived on DrawableBigAssCircleEditorRuleset). The `: base(ruleset)`
-// ctor is dropped (no Ruleset). BAC synced scroll speed to the timeline zoom by resolving
-// EditorScreenWithTimeline; here the composer holds the constant TimelineTimeRange default (5000 ms) until
-// Task 17's timeline writes it — so the Update() zoom-sync loop is gone. BacSnapResult → GarbusSnapResult;
-// BacBlueprintContainer/BacBeatSnapGrid → GarbusBlueprintContainer/GarbusBeatSnapGrid; BacEditorPlayfield →
-// GarbusEditorPlayfield; icons in the composition tools became text labels. Public surface (AngleSnap,
-// FindSnappedAngleTimeAndPosition, typed Playfield) is preserved verbatim.
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +28,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
     /// <summary>
     /// Whether placing a hit object should automatically seek the editor clock to its start time.
-    /// Wired from <see cref="Configuration.GarbusSetting.EditorAutoSeekOnPlacement"/> via ComposeTab (Task 17).
+    /// Wired from <see cref="Configuration.GarbusSetting.EditorAutoSeekOnPlacement"/> via ComposeTab.
     /// Placement blueprints bind their own <c>AutoSeekOnPlacement</c> to this when the composer is
     /// in their DI hierarchy.
     /// </summary>
@@ -56,8 +44,7 @@ public partial class GarbusHitObjectComposer : ScrollingHitObjectComposer<Garbus
 
     public GarbusHitObjectComposer()
     {
-        // BAC synced this to the timeline zoom (mania-style). The timeline arrives in Task 17; until then
-        // hold a constant visible time range.
+        // Hold a constant visible time range until the timeline drives it from its zoom.
         TimelineTimeRange.Value = 5000;
     }
 

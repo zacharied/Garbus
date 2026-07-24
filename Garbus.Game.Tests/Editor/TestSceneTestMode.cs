@@ -137,7 +137,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// ISSUES.md: "charts don't make it to the test play scene; 0 objects show up". The chart
+        /// Regression guard: "charts don't make it to the test play scene; 0 objects show up". The chart
         /// DATA reaches the PlayScreen (tests above), so pin the display path: with gameplay running
         /// from t=0 and objects at 1000/1500/2000, alive drawables must appear in the playfield.
         /// </summary>
@@ -167,7 +167,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// ISSUES.md: "no way to exit test play" — Escape must return to the editor — and the
+        /// Regression guard: "no way to exit test play" — Escape must return to the editor — and the
         /// playtest's track must stop on exit rather than keep playing under the editor.
         /// </summary>
         [Test]

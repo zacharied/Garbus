@@ -1,7 +1,4 @@
-// Ported from BigAssCircle (shoulder counterpart of DrawableHoldNote).
-// Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: two-square-plus-arc head (as DrawableShoulderNote) plus a transparent CircularProgress
+// Two-square-plus-arc head (as DrawableShoulderNote) plus a transparent CircularProgress
 // sector body; judgement/input come from DrawableHoldNote<,>.
 
 using System;

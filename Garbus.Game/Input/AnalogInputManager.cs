@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Input/AnalogInputManager.cs).
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

@@ -1,7 +1,6 @@
-// The thin replacement for osu.Game's SkinnableSound/PausableSkinnableSound (which are skin-entangled
-// and deliberately not vendored — see PLAN-port.md). Plays a hit object's samples from the game's
-// single sample store via osu-framework's DrawableSample, so audio adjustments flow through the
-// drawable hierarchy exactly as they do for osu's skinnable sounds.
+// Plays a hit object's samples from the game's single sample store via osu-framework's
+// DrawableSample, so audio adjustments flow through the drawable hierarchy. A thin, skin-free
+// alternative to a skinnable-sound component (Garbus has one hitsound bank).
 
 using System.Collections.Generic;
 using System.Linq;

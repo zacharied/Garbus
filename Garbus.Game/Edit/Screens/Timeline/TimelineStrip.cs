@@ -2,7 +2,7 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // Adapted for Garbus: ZoomableScrollContainer subclass; drops WorkingBeatmap/IBeatSnapProvider/
 // OsuColour/OverlayColourProvider dependencies; derives zoom range from EditorClock.TrackLength;
-// drives composer TimelineTimeRange via BAC's exact formula:
+// drives composer TimelineTimeRange via the zoom formula:
 //   TimelineTimeRange = EditorClock.TrackLength / CurrentZoom / 2
 // Waveform layer: WaveformGraph fed from the song's shared track resource (null-safe).
 // Content width ∝ TrackLength × zoom; CentreMarker is a fixed overlay (non-scrolling).

@@ -1,5 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle.Tests/EditorAngleMappingTest.cs).
-// Extended with additional assertions for ToX, SnapX, and GhostTwinX.
+// Tests for EditorAngleMapping, covering ToX, SnapX, and GhostTwinX.
 
 using System;
 using System.Linq;
@@ -95,7 +94,7 @@ namespace Garbus.Game.Tests.Editor
             }
         }
 
-        // --- VisibleWrapCopies (ported from BAC EditorAngleMappingTest) ---
+        // --- VisibleWrapCopies ---
 
         [Test]
         public void TestWrapCopiesFullyOnGrid()

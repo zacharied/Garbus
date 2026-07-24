@@ -56,7 +56,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// Regression guard for Phase4-Issues.md: the top bar must receive positional input in front
+        /// Regression guard: the top bar must receive positional input in front
         /// of the compose blueprint stack (whose ReceivePositionalInputAt covers the whole screen).
         /// Clicking a tab button with the real input pipeline must switch tabs.
         /// </summary>
@@ -77,7 +77,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// Regression guard for Phase4-Issues.md: clicking a menu-bar item must open its dropdown
+        /// Regression guard: clicking a menu-bar item must open its dropdown
         /// (in front of the tab content), and clicking a dropdown item must run its action.
         /// Drives File → Save end-to-end and asserts the dirty flag clears.
         /// </summary>
@@ -113,7 +113,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// ISSUES.md: toggle menu options must render a checkbox reflecting their state. Clicking a
+        /// Toggle menu options must render a checkbox reflecting their state. Clicking a
         /// toggle flips its bound state and keeps the menu open for further toggling.
         /// </summary>
         [Test]
@@ -176,7 +176,7 @@ namespace Garbus.Game.Tests.Editor
         /// <summary>
         /// The composer subtree must be clipped: the scrolling container positions grid/bar lines
         /// outside the visible window with no masking of its own, so without a masking wrapper they
-        /// draw over the timeline strip above the playfield (ISSUES.md).
+        /// draw over the timeline strip above the playfield.
         /// </summary>
         [Test]
         public void TestComposerIsMasked()

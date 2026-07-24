@@ -9,7 +9,7 @@
 //   This ensures the playfield is frozen while the EditorClock is stopped.
 //
 // Zoom sync: TimelineStrip.CurrentZoom drives the composer's TimelineTimeRange via the formula
-//   TimelineTimeRange = EditorClock.TrackLength / CurrentZoom / 2  (BAC's exact formula).
+//   TimelineTimeRange = EditorClock.TrackLength / CurrentZoom / 2
 //
 // AutoSeekOnPlacement: wired from GarbusConfigManager.EditorAutoSeekOnPlacement to the composer's
 //   HitObjectPlacementBlueprint.AutoSeekOnPlacement via GarbusHitObjectComposer.AutoSeekOnPlacement.
@@ -156,7 +156,7 @@ namespace Garbus.Game.Edit.Screens
         {
             base.Update();
 
-            // Update() is the single source of truth for the zoom formula (BAC: TrackLength / zoom / 2).
+            // Update() is the single source of truth for the zoom formula (TrackLength / zoom / 2).
             // Using Update() rather than a BindValueChanged on CurrentZoom means TrackLength changes
             // (e.g. track reload via File → Open) are also picked up without a separate callback.
             float zoom = timelineStrip.CurrentZoom.Value;

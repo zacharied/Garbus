@@ -7,7 +7,7 @@
 // equivalent setting in Garbus); AlwaysShowWhenSelected kept; ShouldBeAlive delegates to
 // DrawableObject alive state as in osu; the typed subclass uses T HitObject (not "new T Item" as the
 // brief incorrectly states) — osu's real pattern, confirmed against osu source, and matches what
-// BacSelectionBlueprint<T> actually consumes.
+// GarbusSelectionBlueprint<T> actually consumes.
 
 using osu.Framework.Graphics.Primitives;
 using Garbus.Game.Objects;

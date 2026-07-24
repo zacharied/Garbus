@@ -1,6 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/Components/NodeDragPiece.cs).
-// OsuColour resolve removed — the border colour (osu's OsuColour.YellowDark) is inlined as
-// new Colour4(255, 196, 40, 255), matching EditSquarePiece.
+// The border colour is inlined as new Colour4(255, 196, 40, 255), matching EditSquarePiece.
 
 using System;
 using osu.Framework.Graphics;

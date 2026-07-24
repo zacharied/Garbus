@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/OutlineSelectionBlueprint.cs).
-// BacHitObject → GarbusHitObject; EditorDrawableCardinalNote / EditSquarePiece from the Garbus editor.
-
 using osu.Framework.Graphics;
 using Garbus.Game.Edit.Blueprints.Components;
 using Garbus.Game.Edit.Drawables;

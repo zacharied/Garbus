@@ -97,8 +97,8 @@ namespace Garbus.Game.Edit.Screens.Setup
             base.Update();
 
             // The chart can gain a directory at any time (File → Save As); keep the rows' enabled
-            // state and the hint live rather than snapshotting at load (ISSUES.md: buttons stayed
-            // greyed out until the chart was reopened).
+            // state and the hint live rather than snapshotting at load (otherwise the buttons stay
+            // greyed out until the chart is reopened).
             bool hasSavedDir = chartFile.Directory != null;
             audioRow.ChooseButton.Enabled.Value = hasSavedDir;
             bgRow.ChooseButton.Enabled.Value = hasSavedDir;

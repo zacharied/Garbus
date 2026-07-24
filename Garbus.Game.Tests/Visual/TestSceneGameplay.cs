@@ -1,6 +1,5 @@
-// Gameplay lifecycle tests over the ported playfield stack — the Garbus replacement for what BAC
-// covered through osu.Game's PlayerTestScene. Drives the playfield with a manual clock so headless
-// runs can seek deterministically instead of playing out in real time.
+// Gameplay lifecycle tests over the playfield stack. Drives the playfield with a manual clock so
+// headless runs can seek deterministically instead of playing out in real time.
 
 using System;
 using System.Linq;

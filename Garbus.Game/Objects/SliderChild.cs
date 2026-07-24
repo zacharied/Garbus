@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/SliderChild.cs).
-
 using Garbus.Game.Gameplay.Audio;
 
 namespace Garbus.Game.Objects;

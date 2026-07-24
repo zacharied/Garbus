@@ -1,6 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacCompositionTools.cs).
-// CompositionTool / HitObjectPlacementBlueprint are the Garbus vendored ones (Edit.Compose); the
-// OsuIcon/FontAwesome glyphs become plain text labels (editor visuals don't matter here).
+// Composition tools use plain text labels rather than icon glyphs (editor visuals don't matter here).
 
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;

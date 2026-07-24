@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/CardinalNote.cs).
-
 using System;
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;

@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/BacHitObject.cs). BacHitObject →
-// GarbusHitObject.
-
 using System.Linq;
 using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Objects;

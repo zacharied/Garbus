@@ -1,6 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/BigAssCircleScrollingHitObjectContainer.cs).
-// BigAssCircleScrollingHitObjectContainer → GarbusScrollingHitObjectContainer. Adapted: the scrolling
-// info comes from GarbusScrollingInfo (replacing osu.Game's ScrollingTestContainer.TestScrollingInfo).
+// Scrolling info comes from GarbusScrollingInfo.
 
 using System;
 using System.Collections.Generic;

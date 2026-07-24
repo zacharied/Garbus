@@ -1,8 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/CardinalHoldNotePlacementBlueprint.cs).
-// BacHitObject → GarbusHitObject; OsuColour resolve dropped — the body colour (osu's colours.Yellow)
-// is inlined as Colour4.Yellow; EditorDrawableCardinalNote from Edit.Drawables; SnapResult from
-// Edit.Compose; Composer/HitObject via GarbusPlacementBlueprint. Logic identical.
-
 using System;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Shapes;
