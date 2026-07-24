@@ -82,9 +82,16 @@ public partial class ChordConnectorOverlay : CompositeDrawable
     {
         base.Update();
 
+        float pathRadius = screenSpacePathRadius();
+        foreach (SmoothPath path in pathsByStartTime.Values)
+        {
+            path.PathRadius = pathRadius;
+            path.Position = -path.PositionInBoundingBox(Vector2.Zero);
+        }
+
         if (previewContext != null)
         {
-            updatePreview();
+            updatePreview(pathRadius);
             return;
         }
 
@@ -113,7 +120,7 @@ public partial class ChordConnectorOverlay : CompositeDrawable
                     path = new SmoothPath
                     {
                         Anchor = Anchor.Centre,
-                        PathRadius = ChordColours.ConnectorPathRadius,
+                        PathRadius = pathRadius,
                         Colour = ChordColours.Connector,
                         Alpha = 0,
                     };
@@ -141,7 +148,7 @@ public partial class ChordConnectorOverlay : CompositeDrawable
         }
     }
 
-    private void updatePreview()
+    private void updatePreview(float pathRadius)
     {
         var alive = new HashSet<HitObject>(ring.AliveHitObjects.Select(d => d.HitObject));
 
@@ -169,7 +176,7 @@ public partial class ChordConnectorOverlay : CompositeDrawable
                 path = new SmoothPath
                 {
                     Anchor = Anchor.Centre,
-                    PathRadius = ChordColours.ConnectorPathRadius,
+                    PathRadius = pathRadius,
                     Colour = ChordColours.Connector,
                     Alpha = 0,
                 };
@@ -195,6 +202,14 @@ public partial class ChordConnectorOverlay : CompositeDrawable
             chords.IndexChanged -= synchronizeIndex;
 
         base.Dispose(isDisposing);
+    }
+
+    private float screenSpacePathRadius()
+    {
+        float screenWidth = ScreenSpaceDrawQuad.Width;
+        return DrawWidth > 0 && screenWidth > 0
+            ? ChordColours.ConnectorPathRadius * DrawWidth / screenWidth
+            : ChordColours.ConnectorPathRadius;
     }
 
     // Matches GarbusScrollingHitObjectContainer.PositionAtTime: +x right, -y up (screen y grows downward).

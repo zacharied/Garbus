@@ -33,6 +33,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Cursor;
+using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
@@ -533,6 +534,32 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("uncovered playfield still zooms", () =>
                 composeTimeline().CurrentZoom.Value > capturedZoom + 0.01f);
             AddStep("reset mini config", resetMiniOffsetConfig);
+        }
+
+        [Test]
+        public void TestInlinePreviewConnectorKeepsScreenSpaceThickness()
+        {
+            InlineChartPreviewPanel panel = null!;
+            ChordConnectorOverlay connectorOverlay = null!;
+            SmoothPath connector = null!;
+
+            waitForEditor();
+
+            AddUntilStep("inline preview content loaded", () =>
+                (panel = editor.ChildrenOfType<InlineChartPreviewPanel>().SingleOrDefault()!)?.ViewForTests.IsLoaded == true);
+            AddStep("add line 17 chord", () =>
+            {
+                editor.EditorChart.Add(new CardinalNote { StartTime = 21333.333333333332, AngleDeg = 180 });
+                editor.EditorChart.Add(new CardinalNote { StartTime = 21333.333333333332, AngleDeg = 0 });
+                editorClock!.Seek(21332);
+            });
+            AddUntilStep("line 17 connector loaded", () =>
+                (connectorOverlay = panel.ViewForTests.ChildrenOfType<ChordConnectorOverlay>().Single())
+                    .ChildrenOfType<SmoothPath>().SingleOrDefault() is { IsLoaded: true, IsPresent: true, Alpha: 1 } path
+                && (connector = path) != null);
+            AddAssert("connector keeps two screen pixel stroke", () =>
+                    connector.PathRadius * 2 * connectorOverlay.ScreenSpaceDrawQuad.Width / connectorOverlay.DrawWidth,
+                () => Is.EqualTo(2).Within(0.01));
         }
 
         [Test]
