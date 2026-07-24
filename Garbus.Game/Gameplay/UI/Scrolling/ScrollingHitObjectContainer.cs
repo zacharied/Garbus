@@ -271,27 +271,20 @@ namespace Garbus.Game.Gameplay.UI.Scrolling
                     hitObject.Width = length;
                 else
                     hitObject.Height = length;
-            }
 
-            // Garbus (GAR-4, widened for GAR-5's MiniPreview): editor/autoHit drawables swallow their own
-            // LifetimeEnd writes (see EditorDrawableGarbusHitObject.LifetimeEnd and
-            // DrawableHitObject.LifetimeEnd's AutoHitActive guard), so — unlike osu, where
-            // DrawableHitObject.updateState keeps the lifetime end accurate on judgement — this container is
-            // the sole lifetime authority for them. But setComputedLifetime only refreshes an entry's lifetime
-            // on Add and on a full layout invalidation, never when a live edit changes its end time. Originally
-            // this refresh only ran for IHasDuration objects (a duration edit, e.g. dragging a slider's terminal
-            // node later, left the drawable expiring at its pre-edit end time). The same staleness affects
-            // duration-less objects too: MiniPreview's autoHit CardinalNote drawables re-apply in place via
-            // DefaultsApplied on a live StartTime edit, but without this the entry's LifetimeEnd stayed pinned
-            // to the PRE-edit StartTime + timeRange — if the edit moved the note later, the entry could die
-            // before the (new, later) hit-and-fade animation completed, freezing it mid-fade. Refresh every
-            // top-level entry's end here (using GetEndTime(), which is StartTime for duration-less objects) —
-            // this block runs once per layout recompute, i.e. after each DefaultsApplied — so the lifetime
-            // tracks the live end time for every hit object shape, not just ones with a duration. Set it
-            // directly (not via setComputedLifetime) to also cover judged entries, whose lifetime these
-            // self-non-expiring editor/autoHit drawables never otherwise correct.
-            if (hitObject.Entry != null)
-                hitObject.Entry.LifetimeEnd = hitObject.HitObject.GetEndTime() + timeRange.Value;
+                // Garbus (GAR-4): the Garbus editor drawables swallow their own LifetimeEnd writes (see
+                // EditorDrawableGarbusHitObject.LifetimeEnd), so — unlike osu, where DrawableHitObject.updateState
+                // keeps the lifetime end accurate — this container is the sole lifetime authority for them. But
+                // setComputedLifetime only refreshes the top-level object's lifetime on Add and on a full layout
+                // invalidation, never when its end time changes. A duration edit (e.g. dragging a slider's
+                // terminal node to a later time) therefore left the drawable expiring at its pre-edit end time,
+                // so the body vanished once the playhead passed the old terminal time. Refresh the end here —
+                // this block runs once per layout recompute, i.e. after each DefaultsApplied — so the lifetime
+                // tracks the live duration. Set it directly (not via setComputedLifetime) to also cover judged
+                // entries, whose lifetime these self-non-expiring editor drawables never otherwise correct.
+                if (hitObject.Entry != null)
+                    hitObject.Entry.LifetimeEnd = e.EndTime + timeRange.Value;
+            }
 
             foreach (var obj in hitObject.NestedHitObjects)
             {

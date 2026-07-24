@@ -237,7 +237,11 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
         // recompute, i.e. after each DefaultsApplied (see invalidateHitObject) — so the lifetime tracks
         // the live end time. Set it directly (not via setComputedLifetime) to also cover judged entries,
         // whose lifetime these self-non-expiring drawables never otherwise correct.
-        if (hitObject.Entry != null)
+        //
+        // Only autoHit drawables swallow their own LifetimeEnd writes, making this container their sole
+        // lifetime authority; normal gameplay drawables keep the animation-aware end updateState sets on
+        // judgement (which setComputedLifetime deliberately preserves via its !Judged guard), so leave them alone.
+        if (hitObject.AutoHitActive && hitObject.Entry != null)
             hitObject.Entry.LifetimeEnd = hitObject.HitObject.GetEndTime() + timeRange.Value;
 
         foreach (var obj in hitObject.NestedHitObjects)
