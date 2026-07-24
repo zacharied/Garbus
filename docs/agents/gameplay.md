@@ -86,8 +86,7 @@ angle seam (three-message cap). `DrawableHitObject.DisplayResult` gates whether 
 timing grade). Discrete buttons keep high-accuracy feedback quiet (Critical Perfect silent, Perfect
 white-text-only, Near rank+direction, Miss rank-only); duration tails substitute a rounded
 credited-activation percentage for early/late. Rewind removal keys on the exact `JudgementResult`
-reference so replay/rewind can safely reuse a reset result object. Full rules:
-[`docs/superpowers/specs/2026-07-19-judgement-feedback-design.md`](../superpowers/specs/2026-07-19-judgement-feedback-design.md).
+reference so replay/rewind can safely reuse a reset result object.
 `UI/HoldActivationDebugDisplay.cs` shows a live cardinal-hold activation bar.
 
 ## osu-framework background

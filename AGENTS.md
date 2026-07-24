@@ -89,8 +89,8 @@ mindmap
 ## Doc index
 
 | Doc | Read when… |
-|---|---|
-| [docs/agents/osu-framework.md](docs/agents/osu-framework.md) | Touching anything — DI, drawables, input, clocks, and the four cross-cutting traps. |
+| --- | --- |
+| [docs/agents/osu-framework.md](docs/agents/osu-framework.md) | Touching anything — DI, drawables, input, clocks, and cross-cutting traps. |
 | [docs/agents/charts.md](docs/agents/charts.md) | Working with the song/chart model, the `.garbus` format, or serialization. |
 | [docs/agents/gameplay.md](docs/agents/gameplay.md) | Working on the playfield, scrolling, hit objects, or judgement. |
 | [docs/agents/editor.md](docs/agents/editor.md) | Working in `Edit/` — compose, timeline, blueprints, undo/redo. |
@@ -105,5 +105,4 @@ mindmap
 | [docs/presentation-specs/Playfield.md](docs/presentation-specs/Playfield.md) | Playfield presentation spec. |
 | [docs/presentation-specs/ObjectStacking.md](docs/presentation-specs/ObjectStacking.md) | Object-stacking presentation spec. |
 
-Per-feature design history lives under `docs/superpowers/` and is not part of this index — the domain
-docs above are self-sufficient.
+The domain docs above are self-sufficient — read the one for the area you're working in.
