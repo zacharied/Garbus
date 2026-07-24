@@ -40,6 +40,32 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         public event Action<DrawableHitObject> DefaultsApplied;
 
         /// <summary>
+        /// When set, this drawable is a presentation-only auto-hit: it plays its Hit animation at the
+        /// hit time as a pure function of the clock, never produces a <see cref="JudgementResult"/>,
+        /// never scores, and lets its scrolling container own its lifetime. Set at construction time
+        /// (object initializer); read-only thereafter. Nested drawables inherit it via <see cref="AutoHitActive"/>.
+        /// </summary>
+        public bool AutoHit { get; init; }
+
+        /// <summary>The effective auto-hit state, inherited by nested drawables from their parent.</summary>
+        internal bool AutoHitActive => AutoHit || (ParentHitObject?.AutoHitActive ?? false);
+
+        // Auto-hit drawables derive presence purely from time; the scrolling container owns their
+        // lifetime window (GetEndTime() + timeRange — deterministic). Swallow drawable-side writes
+        // from UpdateState / Expire so a scrub or rewind can't pin lifetime to a clock-moment value.
+        public override double LifetimeEnd
+        {
+            get => base.LifetimeEnd;
+            set
+            {
+                if (AutoHitActive)
+                    return;
+
+                base.LifetimeEnd = value;
+            }
+        }
+
+        /// <summary>
         /// Invoked after a <see cref="HitObject"/> has been applied to this <see cref="DrawableHitObject"/>.
         /// </summary>
         public event Action<DrawableHitObject> HitObjectApplied;
@@ -258,6 +284,24 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
         private void updateStateFromResult()
         {
+            if (AutoHitActive)
+            {
+                // Presentation only: play the Hit animation at the natural hit time (HitStateUpdateTime
+                // → GetEndTime() with no result). Forced, so no hitsound fires and no result is produced.
+                //
+                // Deferred one tick via ScheduleAfterChildren rather than called inline: this can run as
+                // early as LoadComplete, which races PoolableDrawable's own PrepareForUse() (invoked on the
+                // very next Update() for a freshly-used, non-pooled drawable — the only kind PlayScreen ever
+                // constructs). If PrepareForUse schedules its own transform on a property this drawable's Hit
+                // transforms also target (e.g. DrawableCardinalNote's spawn-in ScaleTo), osu-framework's
+                // same-target-member transform pruning removes the earlier Hit-state member — and aborting
+                // one member of a chained TransformSequence (Spin+FadeOut+ScaleTo here) aborts the whole
+                // chain, silently discarding the entire animation. Scheduling after children guarantees
+                // PrepareForUse has already run this same frame before the Hit state is forced.
+                ScheduleAfterChildren(() => UpdateState(ArmedState.Hit, true));
+                return;
+            }
+
             if (Result.IsHit)
                 UpdateState(ArmedState.Hit, true);
             else if (Result.HasResult)
@@ -602,6 +646,11 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// <returns>Whether a scoring result has occurred from this <see cref="DrawableHitObject"/> or any nested <see cref="DrawableHitObject"/>.</returns>
         protected bool UpdateResult(bool userTriggered)
         {
+            // Auto-hit drawables never go through the input / miss-check result path — no JudgementResult,
+            // no scoring, no feedback. Presentation only, in every context.
+            if (AutoHitActive)
+                return false;
+
             // It's possible for input to get into a bad state when rewinding gameplay, so results should not be processed
             if ((Clock as IGameplayClock)?.IsRewinding == true)
                 return false;

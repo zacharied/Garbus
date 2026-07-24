@@ -261,15 +261,15 @@ namespace Garbus.Game.Screens
         /// <summary>
         /// The drawable representation for each top-level hit object type.
         /// </summary>
-        public static DrawableHitObject CreateDrawableRepresentation(GarbusHitObject h) => h switch
+        public static DrawableHitObject CreateDrawableRepresentation(GarbusHitObject h, bool autoHit = false) => h switch
         {
-            SliderBody path => new DrawableSliderBody(path),
-            CardinalNote button => new DrawableCardinalNote(button),
-            CardinalHoldNote hold => new DrawableCardinalHoldNote(hold),
-            ShoulderNote note => new DrawableShoulderNote(note),
-            GarbusSlamCentered slamCentered => new DrawableSlamCentered(slamCentered),
-            GarbusSlamEdge slamEdge => new DrawableSlamEdge(slamEdge),
-            ShoulderHoldNote hold => new DrawableShoulderHoldNote(hold),
+            SliderBody path => new DrawableSliderBody(path) { AutoHit = autoHit },
+            CardinalNote button => new DrawableCardinalNote(button) { AutoHit = autoHit },
+            CardinalHoldNote hold => new DrawableCardinalHoldNote(hold) { AutoHit = autoHit },
+            ShoulderNote note => new DrawableShoulderNote(note) { AutoHit = autoHit },
+            GarbusSlamCentered slamCentered => new DrawableSlamCentered(slamCentered) { AutoHit = autoHit },
+            GarbusSlamEdge slamEdge => new DrawableSlamEdge(slamEdge) { AutoHit = autoHit },
+            ShoulderHoldNote hold => new DrawableShoulderHoldNote(hold) { AutoHit = autoHit },
             _ => throw new ArgumentOutOfRangeException(nameof(h), h.GetType().Name, "no drawable representation")
         };
 

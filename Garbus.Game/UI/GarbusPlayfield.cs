@@ -39,8 +39,11 @@ public partial class GarbusPlayfield : Playfield
     /// </summary>
     public BindableInt Combo { get; } = new BindableInt();
 
-    public GarbusPlayfield()
+    private readonly bool interactive;
+
+    public GarbusPlayfield(bool interactive = true)
     {
+        this.interactive = interactive;
         Padding = new MarginPadding(30);
         AddNested(ring);
     }
@@ -50,13 +53,17 @@ public partial class GarbusPlayfield : Playfield
     {
         // warningIndicators sits before the ring so the ring's white stroke draws on top of the glow's
         // clipped inner edge — the glow reads as light emanating from under the ring.
-        AddRangeInternal([
-            analogInputManager,
-            warningIndicators,
-            ring,
-            stickIndicatorL,
-            stickIndicatorR,
-        ]);
+        var children = new List<Drawable> { warningIndicators, ring };
+
+        if (interactive)
+        {
+            // Input manager first so the ring's stroke draws over it; stick indicators are input feedback.
+            children.Insert(0, analogInputManager);
+            children.Add(stickIndicatorL);
+            children.Add(stickIndicatorR);
+        }
+
+        AddRangeInternal(children.ToArray());
     }
 
     public override void Add(HitObject hitObject) => ring.Add(hitObject);
