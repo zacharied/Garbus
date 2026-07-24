@@ -146,6 +146,13 @@ namespace Garbus.Game.Tests.Charts
         }
 
         [Test]
+        public void UnsupportedHitObjectSubtypeFailsExplicitly()
+        {
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneHitObject(new UnsupportedCardinalNote { AngleDeg = 45 }));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedCardinalNote)));
+        }
+
+        [Test]
         public void UnsupportedDesignPointTypeFailsExplicitly()
         {
             var source = new DesignPointInfo();
@@ -153,6 +160,16 @@ namespace Garbus.Game.Tests.Charts
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneDesignPointInfo(source));
             Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedDesignPoint)));
+        }
+
+        [Test]
+        public void UnsupportedDesignPointSubtypeFailsExplicitly()
+        {
+            var source = new DesignPointInfo();
+            source.Add(new UnsupportedTutorialMessage());
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneDesignPointInfo(source));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedTutorialMessage)));
         }
 
         private static GarbusChart createChart()
@@ -489,7 +506,15 @@ namespace Garbus.Game.Tests.Charts
             public override HitsoundFamily Hitsounds => HitsoundFamilies.CardinalNote;
         }
 
+        private sealed class UnsupportedCardinalNote : CardinalNote
+        {
+        }
+
         private sealed class UnsupportedDesignPoint : DesignPoint
+        {
+        }
+
+        private sealed class UnsupportedTutorialMessage : TutorialMessage
         {
         }
     }

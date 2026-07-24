@@ -16,11 +16,11 @@ internal static class GarbusChartCloner
 
         GarbusHitObject clone = source switch
         {
-            CardinalNote cardinal => new CardinalNote { AngleDeg = cardinal.AngleDeg },
-            CardinalHoldNote hold => new CardinalHoldNote { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
-            ShoulderNote shoulder => new ShoulderNote { Side = shoulder.Side },
-            ShoulderHoldNote shoulderHold => new ShoulderHoldNote { Side = shoulderHold.Side, Duration = shoulderHold.Duration },
-            SliderBody slider => new SliderBody
+            CardinalNote cardinal when source.GetType() == typeof(CardinalNote) => new CardinalNote { AngleDeg = cardinal.AngleDeg },
+            CardinalHoldNote hold when source.GetType() == typeof(CardinalHoldNote) => new CardinalHoldNote { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
+            ShoulderNote shoulder when source.GetType() == typeof(ShoulderNote) => new ShoulderNote { Side = shoulder.Side },
+            ShoulderHoldNote shoulderHold when source.GetType() == typeof(ShoulderHoldNote) => new ShoulderHoldNote { Side = shoulderHold.Side, Duration = shoulderHold.Duration },
+            SliderBody slider when source.GetType() == typeof(SliderBody) => new SliderBody
             {
                 AngleDeg = slider.AngleDeg,
                 Side = slider.Side,
@@ -35,8 +35,8 @@ internal static class GarbusChartCloner
                     })),
                 },
             },
-            GarbusSlamCentered slam => new GarbusSlamCentered { AngleDeg = slam.AngleDeg, Side = slam.Side },
-            GarbusSlamEdge slam => new GarbusSlamEdge
+            GarbusSlamCentered slam when source.GetType() == typeof(GarbusSlamCentered) => new GarbusSlamCentered { AngleDeg = slam.AngleDeg, Side = slam.Side },
+            GarbusSlamEdge slam when source.GetType() == typeof(GarbusSlamEdge) => new GarbusSlamEdge
             {
                 AngleDeg = slam.AngleDeg,
                 Side = slam.Side,
@@ -81,7 +81,7 @@ internal static class GarbusChartCloner
         {
             clone.Add(point switch
             {
-                TutorialMessage message => new TutorialMessage
+                TutorialMessage message when point.GetType() == typeof(TutorialMessage) => new TutorialMessage
                 {
                     StartTime = message.StartTime,
                     EndTime = message.EndTime,
