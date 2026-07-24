@@ -1,10 +1,14 @@
 using System;
 using System.Linq;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay;
+using Garbus.Game.Gameplay.Objects;
+using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
 using Garbus.Game.UI;
 using NUnit.Framework;
+using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -138,6 +142,33 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("warning revealed", () => playfield.WarningIndicators.RevealedAngleDeg(HorizontalDirection.Left) == 90);
         }
 
+        [Test]
+        public void TestWarningBufferExpansionIsIndependentOfClockDrivenVisuals()
+        {
+            WarningIndicatorDisplay expandedWarning = null!;
+            WarningIndicatorDisplay clockDrivenWarning = null!;
+
+            AddStep("create independent policy variants", () => Child = new FillFlowContainer
+            {
+                Direction = FillDirection.Horizontal,
+                Children =
+                [
+                    new WarningPolicyHost(
+                        new TestPresentationPolicy(usesClockDrivenVisuals: false, expandsWarningEffectBufferToPlayfield: true),
+                        expandedWarning = new WarningIndicatorDisplay()),
+                    new WarningPolicyHost(
+                        new TestPresentationPolicy(usesClockDrivenVisuals: true, expandsWarningEffectBufferToPlayfield: false),
+                        clockDrivenWarning = new WarningIndicatorDisplay()),
+                ],
+            });
+            AddUntilStep("policy warnings loaded", () => expandedWarning.IsLoaded && clockDrivenWarning.IsLoaded);
+
+            AddAssert("warning capability expands buffer", () => warningEffectBuffer(expandedWarning).RelativeSizeAxes,
+                () => Is.EqualTo(Axes.None));
+            AddAssert("clock capability does not expand buffer", () => warningEffectBuffer(clockDrivenWarning).RelativeSizeAxes,
+                () => Is.EqualTo(Axes.Both));
+        }
+
         /// <summary>
         /// Parks both warning glows on a real playfield (ring visible) and keeps them revealed indefinitely,
         /// so the appearance constants in <see cref="WarningIndicatorDisplay"/> can be tuned live in the visual
@@ -186,6 +217,48 @@ namespace Garbus.Game.Tests.Visual
 
         private static BufferedContainer warningBlurBuffer(WarningIndicatorDisplay warning) =>
             (BufferedContainer)warningArc(warning).Parent!;
+
+        private partial class WarningPolicyHost : Container
+        {
+            private readonly IGameplayPresentationPolicy policy;
+            private readonly GarbusPlayfield playfield = new GarbusPlayfield();
+
+            public WarningPolicyHost(IGameplayPresentationPolicy policy, WarningIndicatorDisplay warning)
+            {
+                this.policy = policy;
+                Size = new Vector2(100);
+                Child = warning;
+            }
+
+            protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+            {
+                var dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+                dependencies.CacheAs(policy);
+                dependencies.Cache(playfield);
+                return dependencies;
+            }
+        }
+
+        private sealed class TestPresentationPolicy : IGameplayPresentationPolicy
+        {
+            public TestPresentationPolicy(bool usesClockDrivenVisuals, bool expandsWarningEffectBufferToPlayfield)
+            {
+                UsesClockDrivenVisuals = usesClockDrivenVisuals;
+                ExpandsWarningEffectBufferToPlayfield = expandsWarningEffectBufferToPlayfield;
+            }
+
+            public bool HandlesInput => true;
+            public bool PlaysSamples => true;
+            public bool PlaysSpawnAnimations => true;
+            public bool UsesExternalResults => false;
+            public bool UsesClockDrivenVisuals { get; }
+            public bool ExpandsWarningEffectBufferToPlayfield { get; }
+
+            public double LifetimeEndFor(HitObject hitObject) => double.PositiveInfinity;
+            public double ResultTimeFor(HitObject hitObject) => hitObject.StartTime;
+            public bool PresentsHoldAsHeld(DrawableHitObject hold) => false;
+            public bool PresentsSliderAngleAsCaught(HorizontalDirection side, double angleDeg) => false;
+        }
 
         /// <summary>
         /// Re-feeds the playfield two isolated sliders every frame with a StartTime a fixed lead ahead of the

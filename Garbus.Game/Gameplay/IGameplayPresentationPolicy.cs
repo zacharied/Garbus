@@ -11,6 +11,7 @@ internal interface IGameplayPresentationPolicy
     bool PlaysSpawnAnimations { get; }
     bool UsesExternalResults { get; }
     bool UsesClockDrivenVisuals { get; }
+    bool ExpandsWarningEffectBufferToPlayfield { get; }
 
     double LifetimeEndFor(HitObject hitObject);
     double ResultTimeFor(HitObject hitObject);

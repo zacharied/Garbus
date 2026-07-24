@@ -20,6 +20,7 @@ internal sealed class PreviewGameplayPresentationPolicy : IGameplayPresentationP
     public bool PlaysSpawnAnimations => false;
     public bool UsesExternalResults => true;
     public bool UsesClockDrivenVisuals => true;
+    public bool ExpandsWarningEffectBufferToPlayfield => true;
 
     public double LifetimeEndFor(HitObject hitObject) => hitObject.GetEndTime() + scrollingInfo.TimeRange.Value;
     public double ResultTimeFor(HitObject hitObject) => hitObject.GetEndTime();

@@ -51,7 +51,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     /// <summary>Whether the hold's button is currently held.</summary>
     protected bool Holding => holdPresses > 0;
 
-    protected bool PresentedAsHeld => Holding || PresentsHoldAsHeld(this);
+    protected bool PresentedAsHeld => PresentsHoldAsHeld(this) || Holding;
 
     /// <summary>Whether one or more bindings for this hold are currently pressed.</summary>
     public bool IsHolding => Holding;

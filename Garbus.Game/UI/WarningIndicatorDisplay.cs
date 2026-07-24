@@ -96,9 +96,9 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
             // Outer buffer composites the crisp mask over the blurred glow (no blur of its own).
             var clipped = new BufferedContainer
             {
-                RelativeSizeAxes = presentationPolicy?.UsesClockDrivenVisuals == true ? Axes.None : Axes.Both,
-                Anchor = presentationPolicy?.UsesClockDrivenVisuals == true ? Anchor.Centre : Anchor.TopLeft,
-                Origin = presentationPolicy?.UsesClockDrivenVisuals == true ? Anchor.Centre : Anchor.TopLeft,
+                RelativeSizeAxes = presentationPolicy?.ExpandsWarningEffectBufferToPlayfield == true ? Axes.None : Axes.Both,
+                Anchor = presentationPolicy?.ExpandsWarningEffectBufferToPlayfield == true ? Anchor.Centre : Anchor.TopLeft,
+                Origin = presentationPolicy?.ExpandsWarningEffectBufferToPlayfield == true ? Anchor.Centre : Anchor.TopLeft,
                 Alpha = 0,
                 Children = new Drawable[] { blurred, mask },
             };
@@ -122,7 +122,7 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
         float diameter = MathF.Min(DrawWidth, DrawHeight);
         Vector2 previewBufferSize = Vector2.Zero;
 
-        if (presentationPolicy?.UsesClockDrivenVisuals == true)
+        if (presentationPolicy?.ExpandsWarningEffectBufferToPlayfield == true)
         {
             MarginPadding padding = playfield!.Padding;
             previewBufferSize = DrawSize + new Vector2(padding.TotalHorizontal, padding.TotalVertical);
@@ -130,7 +130,7 @@ public sealed partial class WarningIndicatorDisplay : CompositeDrawable
 
         foreach (var (side, s) in sideArcs)
         {
-            if (presentationPolicy?.UsesClockDrivenVisuals == true)
+            if (presentationPolicy?.ExpandsWarningEffectBufferToPlayfield == true)
             {
                 // Preview framebuffers consume the playfield's symmetric outer padding, while the arc
                 // remains sized from the unchanged ring diameter rather than the enlarged buffer.
