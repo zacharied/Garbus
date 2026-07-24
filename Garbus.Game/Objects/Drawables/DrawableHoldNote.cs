@@ -101,10 +101,18 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
 
         // Under auto-hit the head produces no result (Head.IsHit stays false), so drive the pop off the
         // deterministic engagement instead — it turns true as the clock reaches the head at StartTime.
+        //
+        // But skip the pop entirely under auto-hit: auto-hit force-schedules the Hit exit at APPLY time
+        // (before the head is reached), whereas OnHeadHit's headSprite transform fires later at StartTime.
+        // Adding that start-time transform prunes the already-scheduled exit chain on the same sprite, so
+        // the head sits static and never plays its exit (fade/spin/scale). Real gameplay is immune — there
+        // the exit is scheduled at EndTime, after the pop. The pop is a minor head-hit flourish that doesn't
+        // fit the presentation-only auto model anyway. Pinned by TestPreviewHoldExitUnderRealPlayback.
         if ((Head.IsHit || AutoHitEngaged) && !headPopPlayed)
         {
             headPopPlayed = true;
-            OnHeadHit();
+            if (!AutoHitActive)
+                OnHeadHit();
         }
 
         UpdateVisuals();

@@ -135,6 +135,35 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestPreviewHoldExitUnderRealPlayback()
+        {
+            // All prior hold tests used Seek (jumps). This one PLAYS the editor clock forward in real time
+            // through the hold — the actual preview scenario — and checks the head is fading right after
+            // EndTime rather than sitting static.
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 752);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+            AddStep("add a cardinal hold 2000..3000", () => host.AddHold(2000, 1000));
+
+            DrawableCardinalHoldNote hold() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalHoldNote>().Single();
+            PersistentSprite head() => hold().ChildrenOfType<PersistentSprite>().First();
+
+            AddStep("seek before hold and play", () =>
+            {
+                host.EditorClock.Seek(1500);
+                host.EditorClock.Start();
+            });
+            AddUntilStep("played to just past EndTime", () => host.EditorClock.CurrentTime >= 3080);
+            AddStep("stop", () => host.EditorClock.Stop());
+            // Regression: under real forward playback the head-pop (OnHeadHit, fired at StartTime) used to
+            // prune the load-forced exit chain on the head sprite, leaving it static. A Seek/jump hides this
+            // because OnHeadHit then fires after the exit's start. The body fades either way; assert the head.
+            AddAssert("head plays its exit under real playback (not static)", () => head().Alpha < 0.85f);
+        }
+
+        [Test]
         public void TestChordNotesTintedYellowInPreview()
         {
             // Root cause of the reported bug: MiniPreview never fed the playfield's ChordHighlighter
@@ -541,6 +570,14 @@ namespace Garbus.Game.Tests.Editor
                 var note = new CardinalNote { StartTime = time, AngleDeg = angle };
                 EditorChart.Add(note);
                 return note;
+            }
+
+            /// <summary>Adds a cardinal hold note spanning [time, time + duration].</summary>
+            public CardinalHoldNote AddHold(double time, double duration)
+            {
+                var hold = new CardinalHoldNote { StartTime = time, AngleDeg = 90, Duration = duration };
+                EditorChart.Add(hold);
+                return hold;
             }
 
             public void RemoveLastAddedNote()

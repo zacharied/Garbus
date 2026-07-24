@@ -188,6 +188,38 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestAutoHitHoldNotePlaysExitAnimation()
+        {
+            // The hold's exit (headSprite Spin/FadeOut/ScaleTo at EndTime) is scheduled by the forced
+            // auto-hit Hit at apply time; OnHeadHit fires later at StartTime and its headSprite.ScaleTo
+            // must not prune the already-scheduled exit transforms on the same target.
+            AddStep("clear + add autoHit hold note", () =>
+            {
+                foreach (var d in playfield.AllHitObjects.ToList())
+                    playfield.Remove(d);
+
+                var hold = new CardinalHoldNote { StartTime = 2000, AngleDeg = CardinalDirection.North.ToDegrees(), Duration = 1000 };
+                hold.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(hold, autoHit: true));
+            });
+
+            DrawableCardinalHoldNote hold() => playfield.AllHitObjects.OfType<DrawableCardinalHoldNote>().Single();
+            PersistentSprite head() => hold().ChildrenOfType<PersistentSprite>().First();
+
+            // Mid-hold (StartTime 2000 .. EndTime 3000): the head must be fully present and unscaled — the
+            // exit must NOT have fired yet. If auto-hit fires the Hit exit at the head instead of the tail,
+            // the head animates away right as the hold begins and is gone for the rest of it.
+            AddStep("advance to mid-hold", () => manualClock.CurrentTime = 2500);
+            AddAssert("head still present mid-hold", () => head().Alpha > 0.9f);
+            AddAssert("head not yet scaled mid-hold", () => head().Scale.X < 1.3f);
+
+            // Exit fires at EndTime = 3000 (350ms → ~3350); drawable alive until 3000 + timeRange(700) = 3700.
+            AddStep("advance into the exit window", () => manualClock.CurrentTime = 3340);
+            AddUntilStep("head faded out (exit ran)", () => head().Alpha < 0.1f);
+            AddAssert("head scaled up during exit", () => head().Scale.X > 1.5f);
+        }
+
+        [Test]
         public void TestAutoHitSliderPresentsAsCaught()
         {
             // updateBodyVisual dims an uncaught body to 0.4 alpha; a caught one stays full. Auto-hit has no
