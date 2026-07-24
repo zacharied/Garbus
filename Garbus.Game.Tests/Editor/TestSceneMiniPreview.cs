@@ -4,6 +4,7 @@
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
+using Garbus.Game.Configuration;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Preview;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -19,7 +20,10 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Testing;
+using osu.Framework.Testing.Input;
+using osu.Framework.Utils;
 using osuTK;
+using osuTK.Input;
 
 namespace Garbus.Game.Tests.Editor
 {
@@ -30,6 +34,9 @@ namespace Garbus.Game.Tests.Editor
 
         [Resolved]
         private GarbusScrollingInfo scrollingInfo { get; set; } = null!;
+
+        [Resolved]
+        private GarbusConfigManager config { get; set; } = null!;
 
         [Test]
         public void TestNonInteractivePlayfieldInstallsNoInput()
@@ -118,6 +125,72 @@ namespace Garbus.Game.Tests.Editor
                 drawable() != null && drawable()!.ChildrenOfType<Sprite>().First().Alpha < 0.05f);
         }
 
+        [Test]
+        public void TestPanelClampsWithinParent()
+        {
+            InlineChartPreviewPanelHarness harness = null!;
+            AddStep("host panel in a small workspace", () =>
+                Child = harness = new InlineChartPreviewPanelHarness(new Vector2(400)) { RelativeSizeAxes = Axes.Both });
+            AddUntilStep("loaded", () => harness.Panel.IsLoaded);
+            AddStep("show panel", () => harness.Panel.SetVisible(true));
+            AddStep("shove offset far past the edge", () => harness.Panel.SetOffsetForTests(new Vector2(10000)));
+            AddUntilStep("panel stays inside the workspace", () =>
+            {
+                var pos = harness.Panel.ToSpaceOfOtherDrawable(Vector2.Zero, harness.Workspace);
+                return pos.X >= -0.5f && pos.Y >= -0.5f
+                    && pos.X + harness.Panel.DrawWidth <= harness.Workspace.DrawWidth + 0.5f
+                    && pos.Y + harness.Panel.DrawHeight <= harness.Workspace.DrawHeight + 0.5f;
+            });
+        }
+
+        [Test]
+        public void TestPanelPersistsOffsetOnDragEnd()
+        {
+            InlineChartPreviewPanelHarness harness = null!;
+
+            AddStep("reset config to defaults", () =>
+            {
+                config.SetValue(GarbusSetting.MiniPreviewX, 5f);
+                config.SetValue(GarbusSetting.MiniPreviewY, 5f);
+            });
+            AddStep("host panel with manual input", () =>
+                Child = harness = new InlineChartPreviewPanelHarness(new Vector2(600)) { RelativeSizeAxes = Axes.Both });
+            AddUntilStep("loaded", () => harness.Panel.IsLoaded);
+            AddStep("show panel", () => harness.Panel.SetVisible(true));
+
+            // Drag the panel up-and-left by a known amount: offset (distance from the right/bottom
+            // edges) grows by exactly the negated mouse delta (InlineChartPreviewPanel.OnDrag).
+            var dragDelta = new Vector2(-53, -37);
+            Vector2 startOffset = default;
+
+            AddStep("capture starting offset", () => startOffset = harness.Panel.OffsetForTests);
+            AddStep("press on the panel", () =>
+            {
+                harness.Input.MoveMouseTo(harness.Panel.ScreenSpaceDrawQuad.Centre);
+                harness.Input.PressButton(MouseButton.Left);
+            });
+            AddStep("drag", () => harness.Input.MoveMouseTo(harness.Panel.ScreenSpaceDrawQuad.Centre + dragDelta));
+            AddStep("release (fires OnDragEnd)", () => harness.Input.ReleaseButton(MouseButton.Left));
+
+            Vector2 expectedOffset() => startOffset - dragDelta;
+
+            AddAssert("in-memory offset reflects the drag (not still default)", () =>
+                !Precision.AlmostEquals(harness.Panel.OffsetForTests.X, startOffset.X, 0.5f)
+                && Precision.AlmostEquals(harness.Panel.OffsetForTests.X, expectedOffset().X, 1f)
+                && Precision.AlmostEquals(harness.Panel.OffsetForTests.Y, expectedOffset().Y, 1f));
+
+            AddAssert("config was written with the real dragged offset", () =>
+                Precision.AlmostEquals(config.Get<float>(GarbusSetting.MiniPreviewX), harness.Panel.OffsetForTests.X, 0.01f)
+                && Precision.AlmostEquals(config.Get<float>(GarbusSetting.MiniPreviewY), harness.Panel.OffsetForTests.Y, 0.01f));
+
+            InlineChartPreviewPanel freshPanel = null!;
+            AddStep("construct a fresh panel reading the same config", () => Add(freshPanel = new InlineChartPreviewPanel()));
+            AddUntilStep("fresh panel loaded", () => freshPanel.IsLoaded);
+            AddAssert("fresh panel reads back the persisted offset", () =>
+                Precision.AlmostEquals(freshPanel.OffsetForTests.X, expectedOffset().X, 1f)
+                && Precision.AlmostEquals(freshPanel.OffsetForTests.Y, expectedOffset().Y, 1f));
+        }
+
         // ------------------------------------------------------------------
         // Test host: wires the minimal editor DI graph MiniPreview needs
         // (EditorChart, EditorClock, BindableBeatDivisor) and hosts a real
@@ -180,6 +253,64 @@ namespace Garbus.Game.Tests.Editor
 
                 lastAdded.StartTime = time;
                 EditorChart.Update(lastAdded);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Panel harness: wires the same minimal editor DI graph as
+        // MiniPreviewTestHost (InlineChartPreviewPanel.SetVisible(true) builds a
+        // MiniPreview that needs it), but wraps a ManualInputManager so panel drag
+        // tests can drive real mouse input instead of only mutating state directly.
+        // ------------------------------------------------------------------
+
+        private partial class InlineChartPreviewPanelHarness : Container
+        {
+            public InlineChartPreviewPanel Panel { get; private set; } = null!;
+            public ManualInputManager Input { get; private set; } = null!;
+            public Container Workspace { get; private set; } = null!;
+            public EditorClock EditorClock { get; private set; } = null!;
+
+            private readonly Vector2 workspaceSize;
+            private DependencyContainer dependencies = null!;
+
+            public InlineChartPreviewPanelHarness(Vector2 workspaceSize)
+            {
+                this.workspaceSize = workspaceSize;
+            }
+
+            protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+            {
+                dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
+                var chart = new GarbusChart();
+                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                var editorChart = new EditorChart(chart);
+
+                var beatDivisor = new BindableBeatDivisor(4);
+                EditorClock = new EditorClock(editorChart.ControlPointInfo, 60000, beatDivisor);
+                EditorClock.ChangeSource(new TrackVirtual(60000));
+
+                dependencies.Cache(editorChart);
+                dependencies.Cache(EditorClock);
+                dependencies.Cache(beatDivisor);
+
+                return dependencies;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                Child = Input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = Workspace = new Container
+                    {
+                        Size = workspaceSize,
+                        Child = Panel = new InlineChartPreviewPanel(),
+                    },
+                };
+                AddInternal(EditorClock);
             }
         }
     }

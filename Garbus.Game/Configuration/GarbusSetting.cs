@@ -39,6 +39,12 @@ namespace Garbus.Game.Configuration
         /// <summary>Contract the side toolboxes to give more room to the compose area.</summary>
         EditorContractSidebars,
 
+        /// <summary>Mini preview distance from the right edge of the compose workspace.</summary>
+        MiniPreviewX,
+
+        /// <summary>Mini preview distance from the bottom edge of the compose workspace.</summary>
+        MiniPreviewY,
+
         /// <summary>
         /// The directory last used in any editor file dialog (Open / Save As / resource pickers).
         /// Dialogs start here on next open; persisted across sessions.
