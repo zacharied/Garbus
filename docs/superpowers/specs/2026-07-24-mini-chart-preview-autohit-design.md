@@ -35,8 +35,19 @@ special-casing inside `Playfield`.
 A drawable constructed with `autoHit: true`:
 
 - **derives its lifetime purely from time** — alive from `start − timeRange` until
-  `hitEnd + animationDuration` — and **never calls `Expire()`**. Presence becomes a
-  pure function of the clock, so seeking/rewinding is automatic.
+  `hitEnd + animationDuration` — so presence is a pure function of the clock and
+  seeking/rewinding is automatic. "Never calls `Expire()`" is the *outcome*, not a
+  free property: the shared gameplay drawables expire themselves — the base
+  auto-sets `LifetimeEnd` in `UpdateState` (`DrawableHitObject.cs:414`) and every
+  concrete drawable calls `Expire()` from its Hit-arm `.OnComplete`. Those are
+  imperative, `Time.Current`-derived `LifetimeEnd` writes; fired mid-scrub or on
+  rewind they pin lifetime to a path-dependent value and the object vanishes or
+  lingers, destroying statelessness. So `autoHit` must actively **neutralize
+  drawable-side `LifetimeEnd` writes and own the window from time instead** — the
+  same split the editor already ships (`EditorDrawableGarbusHitObject.cs:110`
+  no-ops its `LifetimeEnd` setter; the container writes the entry lifetime). Not
+  expiring does **not** leak: eviction is driven by the framework lifetime window,
+  not by `Expire()`, so a finite computed `LifetimeEnd` still recycles the drawable.
 - **schedules its hit animation at its hit time via an absolute-time transform
   sequence** (`BeginAbsoluteSequence(hitTime)` around the existing
   `UpdateHitStateTransforms(ArmedState.Hit)` visuals). osu-framework transforms are
@@ -59,6 +70,18 @@ Auto-hit never emitting a `JudgementResult` is what lets `Playfield` revert to i
 master implementation: with no results flowing from preview drawables, the original
 `Stack`-based rewind loop is simply never exercised.
 
+**All of this lives on the base `DrawableHitObject` as one additive flag — no
+per-type subclasses.** `AutoHit` is a `public bool { get; init; }` on the base;
+lifetime-swallow, result-path skip, absolute-time hit animation, and the hitsound
+crossing are each a guard keyed off that one flag, written once and inherited by all
+seven concrete drawables. The preview reuses the real gameplay drawables verbatim
+(that is the point — it shows the true hit visuals), so a flag on the shared base is
+correct where the editor's parallel `EditorDrawable*` hierarchy was not: those are
+genuinely different objects, this is the same object in a different mode. `AutoHit`
+is a self-contained property of the drawable, meaningful with no editor present — so
+`if (autoHit)` on the base is the sanctioned general capability, not the
+`if (previewContext != null)` editor-back-reference the design deletes.
+
 ## Non-interactive playfield
 
 `GarbusPlayfield` gains a construction option to **not install the input manager**
@@ -73,18 +96,36 @@ decisions.
 A self-contained host (no message protocol) that:
 
 - owns a `GarbusPlayfield` constructed non-interactive, on a clock **slaved to the
-  `EditorClock`**;
-- holds a **cloned `GarbusChart`** (deep clone, as the existing F5/Test path already
-  does) so editor state and playable state never share mutable instances — directly
-  addressing the "mixing editor state with playable state" objection;
-- renders the clone as `autoHit` (silent) drawables;
+  `EditorClock`** — the subtree's `Clock` is set to the resolved `EditorClock`, the
+  same wiring `ComposeTab` already uses for the composer subtree;
+- renders the editor's **live `GarbusHitObject` instances directly** as `autoHit`
+  (silent) drawables — **no clone**. (Supersedes the earlier "cloned `GarbusChart`"
+  decision.) The composer's cheap in-place refresh only works *because* it renders
+  over the editor's real instances: `EditorChart` mutation → `ApplyDefaults()` →
+  `HitObject.DefaultsApplied` → the existing drawable re-`Apply()`s in place. A clone
+  loses that signal and there is no copy-state-onto-instance API on `GarbusHitObject`
+  (only whole-object serialize/deserialize), so a clone forces either per-edit
+  drawable recreation (the slider-recreation GC storm the design forbids) or brittle
+  per-type field copy. Sharing instances is safe here **because `autoHit` drawables
+  are strictly read-only observers** of their hit object: they never judge, score, or
+  emit a `JudgementResult`, and never mutate the `HitObject` (nested-object regen is
+  driven by `EditorChart`, seen by editor and preview drawables alike). This
+  read-only guarantee is the load-bearing invariant of the shared-instance approach
+  and is pinned by a test (no `JudgementResult`, no `HitObject` mutation from the
+  preview path).
 - subscribes to the editor's **existing change events** (`HitObjectAdded`,
-  `HitObjectRemoved`, `HitObjectUpdated`, timing via `ControlPointInfo`, design,
-  scroll-speed) and mirrors each into its clone and playfield — the same
-  event-driven pattern the composer already uses for its editor drawables. A live
-  edit refreshes the affected drawable **in place** (re-apply), not by recreating a
-  framebuffer-backed slider every drag frame.
+  `HitObjectRemoved`, `HitObjectUpdated`) to add / remove+dispose / (implicitly,
+  via `DefaultsApplied`) refresh drawables — the same event-driven `drawableMap`
+  pattern the composer already uses for its editor drawables. Timing / design /
+  scroll-speed changes flow through automatically: timing and design because the
+  drawables read the shared `ControlPointInfo` / chart state on re-apply, scroll-speed
+  because the preview's scrolling container binds the same cached `GarbusScrollingInfo`
+  (a live `TimeRange` change invalidates its layout). A live edit refreshes the
+  affected drawable **in place** (re-apply), never by recreating it.
 
+Removed preview drawables must be explicitly `Dispose()`d (the non-pooled zombie
+gotcha: `HitObjectContainer` detaches with `RemoveInternal(…, false)`, and an
+undisposed drawable stays subscribed to `DefaultsApplied` and re-`Apply()`s forever).
 All lambda subscriptions keep a field reference and are unsubscribed in `Dispose`
 (per the known editor leak gotcha).
 
@@ -126,7 +167,11 @@ the new host:
 Headless test scenes:
 
 - an `autoHit` drawable renders the correct visual at an arbitrary *seeked* time and
-  after a rewind, with no dependence on how it got there (statelessness);
+  after a rewind, with no dependence on how it got there (statelessness) —
+  specifically, **scrubbing forward across the hit time and back leaves `LifetimeEnd`
+  at the computed `hitEnd + animationDuration`**, proving the drawable-side
+  `Expire()` / auto-expire writes are swallowed and did not pin lifetime to a
+  path-dependent clock moment;
 - an `autoHit` drawable with the hitsound flag off emits no sample; with it on,
   fires exactly once on a forward crossing and not on rewind;
 - a live edit (add / remove / move a note, timing change) is reflected in the
