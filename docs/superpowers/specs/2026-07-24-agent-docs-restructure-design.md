@@ -34,9 +34,9 @@ docs/rules-specs/               unchanged (game rules; linked from the index)
 docs/charting-specs/            unchanged (linked from the index)
 docs/presentation-specs/        unchanged (linked from the index)
 docs/superpowers/               unchanged; historical; NOT linked from AGENTS.md
-reference/osu-framework         git submodule, pinned to tag 2026.629.0 (reference only, never built)
-reference/osu                   git submodule, pinned near that release (reference only, never built)
-.gitmodules                     (new)
+docs/code-reference/osu-framework   git submodule, pinned to tag 2026.629.0 (reference only, never built)
+docs/code-reference/osu             git submodule, pinned near that release (reference only, never built)
+.gitmodules                         (new)
 ```
 
 Deleted files: `PLAN-port.md`, `ISSUES.md`, `Phase4-Issues.md`, `docs/plan-timing-screen-port.md`.
@@ -53,8 +53,8 @@ Short and stable. In order:
 2. **The experimental rule** — the existing "backwards compatibility will NEVER matter until this
    line is removed" paragraph, kept verbatim. Integration branch is master.
 3. **Build / run / test / logs** — the four commands plus log/config paths, carried over from
-   CLAUDE.md, plus the one-time `git submodule update --init` note for populating `reference/`
-   (framework/osu.Game source lookup; not required to build or run).
+   CLAUDE.md, plus the one-time `git submodule update --init` note for populating
+   `docs/code-reference/` (framework/osu.Game source lookup; not required to build or run).
 4. **Rules** — a dedicated section for hard behavioral rules, seeded with what is already
    rule-shaped today (no historical context in docs; update the relevant domain doc as work lands;
    vendored files keep their ppy MIT attribution header and deviate minimally). The deferred
@@ -78,22 +78,22 @@ Agents currently have to read framework and osu.Game source out of BAC's
 `C:\Users\zachd\Code\BAC\LocalDependencies` — an unrelated repo that can move or drift. NuGet
 offers no on-disk source tree (`ppy.osu.Framework` ships compiled DLLs plus a SourceLink symbols
 package that only fetches individual files into an IDE debugger on demand — nothing grep-able). So
-the reference source is vendored as two git submodules under a new `reference/` directory:
+the reference source is vendored as two git submodules under a new `docs/code-reference/` directory:
 
-- `reference/osu-framework` pinned to tag **2026.629.0** (exactly the `ppy.osu.Framework`
+- `docs/code-reference/osu-framework` pinned to tag **2026.629.0** (exactly the `ppy.osu.Framework`
   `PackageReference` version).
-- `reference/osu` pinned to the release tag nearest that framework version (reference only — Garbus
-  vendored specific files and never builds against osu.Game, so the exact pin is low-stakes; the
-  chosen tag is recorded in osu-framework.md).
+- `docs/code-reference/osu` pinned to the release tag nearest that framework version (reference
+  only — Garbus vendored specific files and never builds against osu.Game, so the exact pin is
+  low-stakes; the chosen tag is recorded in osu-framework.md).
 
 Constraints:
 
 - **Never built.** The `.slnf` files enumerate projects explicitly, so the submodules are already
   outside every build; the design additionally confirms no MSBuild glob (`Directory.Build.props`,
-  wildcards) reaches into `reference/`, and adds a guard if one does.
+  wildcards) reaches into `docs/code-reference/`, and adds a guard if one does.
 - **Opt-in checkout.** Submodules are not populated until `git submodule update --init`, so they
   never bloat a checkout involuntarily. AGENTS.md's build section documents this one-time command.
-- `osu-framework.md` points agents at `reference/` for framework/osu.Game source; the BAC
+- `osu-framework.md` points agents at `docs/code-reference/` for framework/osu.Game source; the BAC
   `LocalDependencies` path is removed from all agent-facing docs.
 
 ## Domain doc template
@@ -111,7 +111,7 @@ Every `docs/agents/*.md` follows the same skeleton:
 
 | Doc | Scope |
 |---|---|
-| `osu-framework.md` | Framework primer: DI/BDL, drawable lifetime + transforms, input hierarchy, clock plumbing, test scene basics. Cross-cutting traps stated generally (vertical fill-flow collapses relative-size children, ScrollContainer content anchoring, lambda subscription leaks, manual drawable disposal), cross-linked to the domain-specific instances. Points agents at the `reference/osu-framework` and `reference/osu` submodules for framework/osu.Game source lookup (with the `git submodule update --init` note), and records the pinned tags. No BAC `LocalDependencies` reference. |
+| `osu-framework.md` | Framework primer: DI/BDL, drawable lifetime + transforms, input hierarchy, clock plumbing, test scene basics. Cross-cutting traps stated generally (vertical fill-flow collapses relative-size children, ScrollContainer content anchoring, lambda subscription leaks, manual drawable disposal), cross-linked to the domain-specific instances. Points agents at the `docs/code-reference/osu-framework` and `docs/code-reference/osu` submodules for framework/osu.Game source lookup (with the `git submodule update --init` note), and records the pinned tags. No BAC `LocalDependencies` reference. |
 | `charts.md` | `.garbus` JSON format ("type" discriminator first, version field), serializer/DTO layer, `GarbusChart`/`ChartMetadata`, `ChartFile` (editor disk handle), `ChartStore`, `Charts/Timing/` control points, `GarbusTestChartGenerator` + bundled-chart regeneration. |
 | `gameplay.md` | Vendored HitObject/DrawableHitObject/pooling stack and what was trimmed; Garbus objects + drawables; `GarbusPlayfield`/`Ring`/`Lane` and the polar time→radius scrolling container; ordered hit policy; judgement implementation (families, windows, note-lock, duration/slider/slam rules) and the judgement feedback halo — linking `docs/rules-specs/Judgement.md` as the rules source of truth. |
 | `editor.md` | Everything under `Edit/`: shell (tabs, menus, hotkeys, dirty tracking), EditorChart aliasing, undo/redo JSON diff, compose stack (angle mapping, blueprints, drawable lifecycle), timeline strip, bottom bar/test mode, Setup/Timing/Verify tabs, clipboard. Largest gotcha section (~15 entries). |
@@ -132,7 +132,7 @@ Every `docs/agents/*.md` follows the same skeleton:
 | PLAN-port.md locked decisions | Present-tense facts in AGENTS.md (dropped-list) and charts.md (own-format rationale) |
 | PLAN-port.md audio investigation + platform offsets | timing-audio.md |
 | PLAN-port.md vendoring manifest / dependency split | Brief per-domain "vendored from osu.Game — deviate minimally" notes; the manifest itself is not preserved |
-| BAC `LocalDependencies` reference path | Replaced by the `reference/` submodules; pointer lives in osu-framework.md |
+| BAC `LocalDependencies` reference path | Replaced by the `docs/code-reference/` submodules; pointer lives in osu-framework.md |
 | PLAN-port.md phase checklists, open questions | Dropped (verify any surviving claim against code first) |
 | ISSUES.md FIXED write-ups | Gotcha entries in editor.md / gameplay.md / timing-audio.md / testing.md |
 | ISSUES.md FrameStabilityContainer Q&A | timing-audio.md |
@@ -153,11 +153,11 @@ present-tense with no phase history or version numbers, per the repo's no-histor
 ## Verification
 
 - `rg "BigAssCircle|\bBAC\b|PLAN-port|ISSUES.md|Phase4-Issues" -i` over the repo's own files
-  (excluding the `reference/` submodules) comes back clean of agent-facing references; the only
-  sanctioned remaining mentions are ppy MIT attribution headers in vendored source files. The BAC
-  `LocalDependencies` path is gone entirely, replaced by the `reference/` submodules.
-- `reference/` is excluded from every build: `dotnet build Garbus.Desktop.slnf` does not compile
-  any file under it, confirmed with the submodules checked out.
+  (excluding the `docs/code-reference/` submodules) comes back clean of agent-facing references; the
+  only sanctioned remaining mentions are ppy MIT attribution headers in vendored source files. The
+  BAC `LocalDependencies` path is gone entirely, replaced by the `docs/code-reference/` submodules.
+- `docs/code-reference/` is excluded from every build: `dotnet build Garbus.Desktop.slnf` does not
+  compile any file under it, confirmed with the submodules checked out.
 - Every relative link in AGENTS.md and the domain docs resolves to an existing file.
 - `dotnet build Garbus.Desktop.slnf` and the headless test suite still pass (docs-only change;
   confirms nothing referenced the deleted files).
