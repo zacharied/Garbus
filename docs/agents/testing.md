@@ -28,10 +28,16 @@ how-to they point at.
 
 - Visual/headless scenes declare steps with `AddStep` / `AddAssert` / `AddUntilStep`; drive input with
   `ManualInputManager`; drive time with a manual clock.
-- **Tuning scenes for new visual features.** When adding or reshaping a visual, add a scene under
-  `Tuning/` (pattern: `TestSceneSliderGlowTuning`) or `Profiling/`
-  (`TestSceneHeadOnlySliderStream`) that isolates the visual with live-adjustable parameters, so the
-  look can be tuned and regressions caught.
+- **New visual elements ship with a Tuning test (enforced — see [AGENTS.md](../../AGENTS.md) Rules).**
+  When you add or reshape a visual element, add a scene under `Tuning/` (pattern:
+  `TestSceneSliderGlowTuning`; `Profiling/` holds throughput scenes like
+  `TestSceneHeadOnlySliderStream`) that isolates it and exposes **every configurable parameter as a
+  live test control** — `AddSliderStep` for numbers, `AddToggleStep`/checkboxes for booleans,
+  dropdowns for enums — so the look can be tuned by hand in the visual test browser and regressions
+  caught.
+- **Keep build and test output warning-clean (enforced — see [AGENTS.md](../../AGENTS.md) Rules).**
+  Don't introduce compiler or analyzer warnings in production or test code; fix any you add before
+  calling the work done.
 - Every gotcha fix in the domain docs is pinned by a named test — when you change that behavior,
   update the test in the same commit.
 
@@ -61,4 +67,5 @@ game-base runner so cached dependencies (config, chart store, clocks) are availa
 - **Step manual clocks in sub-window increments** (see above) — the single most common cause of a
   "why isn't this object judged?" test failure.
 - **Don't write ordering-dependent tests.** If a test depends on ordering, resolve the order
-  dynamically rather than assuming it. (An enforced rule — see AGENTS.md Rules.)
+  dynamically rather than assuming it — order-dependent tests flake (pass in isolation, fail in a
+  full run).

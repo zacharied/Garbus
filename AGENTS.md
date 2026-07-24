@@ -31,9 +31,14 @@ area leans on, and its gotchas.
   primary agent context.
 - **Vendored osu.Game files keep their ppy MIT attribution header.** Vendor faithfully; deviate
   minimally and note why. Read the original in `docs/code-reference/osu` first.
-- *(Reserved for enforced behavioral rules — see `new-agents-md-wishlist.txt` in the repo root: tuning
-  tests for new visual features, no test warnings, run formatters, never run the app unasked, no
-  ordering-dependent tests. Not yet wired up.)*
+- **New visual elements ship with a Tuning test.** When you add or reshape a visual element, create a
+  Tuning scene (`Garbus.Game.Tests/Tuning/`) that exposes its configurable parameters as live test
+  controls — sliders, checkboxes, dropdowns — so the look can be tuned and eyeballed in the visual
+  test browser. See [testing.md](docs/agents/testing.md).
+- **Do not add new warnings — including in tests.** Build and test output stays warning-clean; fix
+  what you introduce before considering the work done.
+- **Do not run the app unless asked.** Tests (headless and visual scenes) are how you verify. If you
+  believe actually running the app would be more effective, ask first and say why.
 
 ## Conventions
 
