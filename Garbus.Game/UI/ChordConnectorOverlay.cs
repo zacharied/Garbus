@@ -13,7 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Garbus.Game.Edit.Preview;
+using Garbus.Game.Gameplay;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -35,7 +35,7 @@ public partial class ChordConnectorOverlay : CompositeDrawable
     private Ring ring { get; set; } = null!;
 
     [Resolved(CanBeNull = true)]
-    private ChartPreviewContext? previewContext { get; set; }
+    private IGameplayPresentationPolicy? presentationPolicy { get; set; }
 
     // How long the polygon takes to fade out once its chord is judged.
     private const double connector_fade_out = 200;
@@ -82,14 +82,16 @@ public partial class ChordConnectorOverlay : CompositeDrawable
     {
         base.Update();
 
-        float pathRadius = screenSpacePathRadius();
+        float pathRadius = presentationPolicy?.UsesClockDrivenVisuals == true
+            ? screenSpacePathRadius()
+            : ChordColours.ConnectorPathRadius;
         foreach (SmoothPath path in pathsByStartTime.Values)
         {
             path.PathRadius = pathRadius;
             path.Position = -path.PositionInBoundingBox(Vector2.Zero);
         }
 
-        if (previewContext != null)
+        if (presentationPolicy?.UsesClockDrivenVisuals == true)
         {
             updatePreview(pathRadius);
             return;

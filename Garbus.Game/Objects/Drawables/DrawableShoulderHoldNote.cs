@@ -111,7 +111,7 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
 
         if (!Judged)
         {
-            var trailColour = HoldActive && !Holding ? dropped_colour : held_colour;
+            var trailColour = HoldActive && !PresentedAsHeld ? dropped_colour : held_colour;
             arc.Colour = trailColour;
             sector.Colour = trailColour;
         }
@@ -125,7 +125,7 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
 
     protected override void PrepareForUse()
     {
-        if (IsInPreview)
+        if (!PlaysSpawnAnimations)
             return;
 
         base.PrepareForUse();

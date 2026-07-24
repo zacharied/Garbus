@@ -18,7 +18,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Pooling;
 using osu.Framework.Allocation;
-using Garbus.Game.Edit.Preview;
+using Garbus.Game.Gameplay;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -99,7 +99,7 @@ namespace Garbus.Game.Gameplay.UI
         private readonly List<HitObjectLifetimeEntry> judgedEntries;
 
         [Resolved(CanBeNull = true)]
-        private ChartPreviewContext previewContext { get; set; }
+        private IGameplayPresentationPolicy presentationPolicy { get; set; }
 
         /// <summary>
         /// Creates a new <see cref="Playfield"/>.
@@ -283,7 +283,7 @@ namespace Garbus.Game.Gameplay.UI
 
         private void onEntryRemoved(HitObjectLifetimeEntry entry, [CanBeNull] HitObject parentHitObject)
         {
-            if (previewContext != null)
+            if (presentationPolicy?.UsesExternalResults == true)
                 untrackJudgedEntry(entry);
 
             if (parentHitObject != null) return;
@@ -386,22 +386,22 @@ namespace Garbus.Game.Gameplay.UI
             Debug.Assert(result != null && drawable.Entry?.Result == result && result.RawTime != null);
             HitObjectLifetimeEntry entry = drawable.Entry.AsNonNull();
 
-            if (previewContext == null)
+            if (presentationPolicy?.UsesExternalResults != true)
                 judgedEntries.Add(entry);
             else
-                trackPreviewJudgedEntry(entry);
+                trackExternallyJudgedEntry(entry);
 
             NewResult?.Invoke(drawable, result);
         }
 
-        private void trackPreviewJudgedEntry(HitObjectLifetimeEntry entry)
+        private void trackExternallyJudgedEntry(HitObjectLifetimeEntry entry)
         {
             Debug.Assert(entry.Result?.RawTime != null);
 
             if (judgedEntries.Contains(entry))
                 return;
 
-            // Nested preview drawables are traversed by hierarchy, not result time; rewind must follow exact chronology.
+            // Nested externally-resulted drawables are traversed by hierarchy; rewind follows exact chronology.
             insertJudgedEntryChronologically(entry);
             entry.Result.RawTimeChanged += onResultRawTimeChanged;
         }
@@ -507,7 +507,7 @@ namespace Garbus.Game.Gameplay.UI
         private void trackJudgedEntryTree(HitObjectLifetimeEntry entry)
         {
             if (entry.Judged)
-                trackPreviewJudgedEntry(entry);
+                trackExternallyJudgedEntry(entry);
 
             foreach (HitObjectLifetimeEntry nestedEntry in entry.NestedEntries)
                 trackJudgedEntryTree(nestedEntry);

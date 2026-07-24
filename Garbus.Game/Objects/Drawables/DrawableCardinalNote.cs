@@ -43,7 +43,7 @@ namespace Garbus.Game.Objects.Drawables
 
         protected override void PrepareForUse()
         {
-            if (IsInPreview)
+            if (!PlaysSpawnAnimations)
                 return;
 
             // Pooled/reused drawables must set an explicit colour every time (yellow if this note shares its

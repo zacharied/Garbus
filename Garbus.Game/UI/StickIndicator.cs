@@ -13,8 +13,8 @@ namespace Garbus.Game.UI;
 
 public partial class StickIndicator : Container
 {
-    [Resolved]
-    private AnalogInputManager analogInputManager { get; set; } = null!;
+    [Resolved(CanBeNull = true)]
+    private AnalogInputManager? analogInputManager { get; set; }
 
     /// <summary>
     /// Radius of the arc relative to the playfield ring (1 = on the ring, &gt;1 = outside it).
@@ -52,6 +52,13 @@ public partial class StickIndicator : Container
     protected override void Update()
     {
         base.Update();
+
+        if (analogInputManager == null)
+        {
+            centreSpike.SetState(0, 0, false);
+            arc.Alpha = 0;
+            return;
+        }
 
         var sliderCatcher = analogInputManager.SliderCatchers[Side];
 

@@ -8,7 +8,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using Garbus.Game.Core;
-using Garbus.Game.Edit.Preview;
+using Garbus.Game.Gameplay;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
@@ -32,14 +32,15 @@ public partial class GarbusPlayfield : Playfield
 
     private readonly WarningIndicatorDisplay warningIndicators = new WarningIndicatorDisplay();
 
-    [Cached]
-    private AnalogInputManager analogInputManager { get; set; } = new AnalogInputManager();
+    private AnalogInputManager? analogInputManager { get; set; }
 
     [Cached]
     private ChordHighlighter chordHighlighter { get; set; } = new ChordHighlighter();
 
     [Resolved(CanBeNull = true)]
-    private ChartPreviewContext? previewContext { get; set; }
+    private IGameplayPresentationPolicy? presentationPolicy { get; set; }
+
+    private DependencyContainer childDependencies = null!;
 
     /// <summary>
     /// The current combo, surfaced for the centre <see cref="ComboDisplay"/> to bind to. Driven by the
@@ -53,16 +54,19 @@ public partial class GarbusPlayfield : Playfield
         AddNested(ring);
     }
 
+    protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+        => childDependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
     [BackgroundDependencyLoader]
     private void load()
     {
         // warningIndicators sits before the ring so the ring's white stroke draws on top of the glow's
         // clipped inner edge — the glow reads as light emanating from under the ring.
-        if (previewContext == null)
+        if (presentationPolicy?.HandlesInput ?? true)
+        {
+            childDependencies.Cache(analogInputManager = new AnalogInputManager());
             AddInternal(analogInputManager);
-        else
-            // Mini is read-only and must not install an input manager that can claim gameplay bindings.
-            analogInputManager.Dispose();
+        }
 
         AddRangeInternal([warningIndicators, ring, stickIndicatorL, stickIndicatorR]);
     }

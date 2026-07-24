@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Charts.Format;
+using Garbus.Game.Gameplay;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI.Scrolling;
@@ -68,7 +69,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
     protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
     {
         var dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
-        dependencies.Cache(new ChartPreviewContext(scrollingInfo));
+        dependencies.CacheAs<IGameplayPresentationPolicy>(new PreviewGameplayPresentationPolicy(scrollingInfo));
         dependencies.Cache(scrollingInfo);
         return dependencies;
     }
@@ -238,7 +239,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
                                                         .Where(d => !d.Judged && d.IsLoaded
                                                                  && d.HitObject.GetEndTime() <= manualClock.CurrentTime)
                                                         .OrderBy(d => d.HitObject.GetEndTime()))
-            drawable.ApplyPreviewResult();
+            drawable.ApplyExternalResult();
 
         base.Update();
     }

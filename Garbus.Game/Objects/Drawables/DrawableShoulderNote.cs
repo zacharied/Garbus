@@ -96,7 +96,7 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>, ISelfPos
 
     protected override void PrepareForUse()
     {
-        if (IsInPreview)
+        if (!PlaysSpawnAnimations)
             return;
 
         // Spawn pop, scaled about the playfield centre (this drawable's centre origin).

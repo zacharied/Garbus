@@ -23,6 +23,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Lines;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Testing;
 using osu.Framework.Timing;
 using osuTK;
@@ -49,22 +50,18 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     [Test]
     public void TestFullStateRendersCleanReadOnlyPlayfield()
     {
-        AnalogInputManager analogInputManager = null!;
-
         AddStep("apply full state", () => Assert.That(preview.Apply(fullState(1, previewChart(), [10, 20], 1200, 900)), Is.True));
         AddUntilStep("objects loaded", () => preview.ObjectCountForTests == 2
                                                 && preview.PlayfieldForTests.AllHitObjects.All(d => d.IsLoaded));
-        AddStep("capture cached analog input manager", () =>
-            analogInputManager = (AnalogInputManager)typeof(GarbusPlayfield)
-                                                   .GetProperty("analogInputManager",
-                                                       System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                                                   .GetValue(preview.PlayfieldForTests)!);
 
         AddAssert("one playfield", () => preview.ChildrenOfType<GarbusPlayfield>().Count(), () => Is.EqualTo(1));
         AddAssert("one design overlay", () => preview.ChildrenOfType<DesignOverlay>().Count(), () => Is.EqualTo(1));
         AddAssert("no key input manager", () => preview.ChildrenOfType<GarbusInputManager>().Any(), () => Is.False);
         AddAssert("no analog input manager", () => preview.ChildrenOfType<AnalogInputManager>().Any(), () => Is.False);
-        AddAssert("cached analog input manager disposed", () => isDisposed(analogInputManager));
+        AddAssert("no analog input manager constructed", () =>
+            typeof(GarbusPlayfield).GetProperty("analogInputManager",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(preview.PlayfieldForTests), () => Is.Null);
         AddAssert("no gameplay HUD or results text", () => preview.ChildrenOfType<SpriteText>()
                                                               .Select(t => t.Text.ToString().ToLowerInvariant())
                                                               .Any(t => t.Contains("score:")
@@ -79,9 +76,9 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                                                                .SelectMany(withNested)
                                                                .All(d => !d.HandleUserInput));
 
-        AddStep("seek slider consumers after analog disposal", () =>
+        AddStep("seek slider consumers without analog input", () =>
             Assert.That(preview.Apply(new ChartPreviewTransport(2, 2200, false, 1, 0)), Is.True));
-        AddUntilStep("slider consumers update after analog disposal", () =>
+        AddUntilStep("slider consumers update without analog input", () =>
             preview.ClockTimeForTests == 2200
             && preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().SingleOrDefault() is { IsLoaded: true } slider
             && slider.NestedHitObjects.All(d => d.IsLoaded));
@@ -903,7 +900,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     }
 
     [Test]
-    public void TestPreviewContextAppliesSilentMaximumResultWhileOrdinaryGameplayStillMisses()
+    public void TestPreviewPolicyAppliesSilentMaximumResultWhileOrdinaryGameplayStillMisses()
     {
         ManualClock gameplayClock = null!;
         DrawableCardinalNote ordinary = null!;
@@ -1431,6 +1428,63 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("seek beyond hit lifetime", () => preview.Apply(new ChartPreviewTransport(4, hitLifetimeEnd + 1, false, 1, 0)));
         AddUntilStep("preview note expires using hit lifecycle", () => !drawable.IsAlive && !drawable.IsPresent);
         AddAssert("expired preview note remains judged", () => drawable.Judged);
+    }
+
+    [Test]
+    public void TestPreviewPresentsActiveDurationObjectsAsSuccessful()
+    {
+        DrawableCardinalHoldNote cardinalHold = null!;
+        DrawableShoulderHoldNote shoulderHold = null!;
+        DrawableSliderBody slider = null!;
+        DrawableSliderHead sliderHead = null!;
+        DrawableSliderChild firstControlPoint = null!;
+
+        AddStep("apply active duration objects", () => preview.Apply(fullState(1, chartWith(
+            new CardinalHoldNote { StartTime = 2000, AngleDeg = 180, Duration = 1000 },
+            new ShoulderHoldNote { StartTime = 2000, Side = HorizontalDirection.Right, Duration = 1000 },
+            new SliderBody
+            {
+                StartTime = 2000,
+                AngleDeg = 0,
+                Side = HorizontalDirection.Left,
+                Path = new GarbusPath
+                {
+                    ControlPoints = new BindableList<GarbusPathControlPoint>
+                    {
+                        new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 },
+                        new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 90 },
+                    },
+                },
+            }), [7, 8, 9], 2500, 700)));
+        AddUntilStep("active duration objects loaded", () =>
+        {
+            cardinalHold = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalHoldNote>().SingleOrDefault()!;
+            shoulderHold = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableShoulderHoldNote>().SingleOrDefault()!;
+            slider = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().SingleOrDefault()!;
+            sliderHead = slider?.NestedHitObjects.OfType<DrawableSliderHead>().SingleOrDefault()!;
+            firstControlPoint = slider?.NestedHitObjects.OfType<DrawableSliderChild>()
+                                      .OrderBy(child => child.HitObject.StartTime)
+                                      .FirstOrDefault()!;
+            return cardinalHold?.IsLoaded == true
+                   && shoulderHold?.IsLoaded == true
+                   && slider?.IsLoaded == true
+                   && sliderHead?.IsLoaded == true
+                   && firstControlPoint?.IsLoaded == true;
+        });
+
+        AddAssert("cardinal hold body is held", () => cardinalHold.ChildrenOfType<SmoothPath>().Single().Colour,
+            () => Is.EqualTo((ColourInfo)Colour4.White));
+        AddAssert("shoulder hold body is held", () => shoulderHold.ChildrenOfType<CircularProgress>().Single().Colour,
+            () => Is.EqualTo((ColourInfo)Colour4.Purple));
+        AddAssert("slider body is caught", () => slider.Alpha, () => Is.EqualTo(1));
+        AddAssert("slider caught tip is visible", () => slider.ChildrenOfType<Box>()
+                                                                 .Single(box => box.Size == new Vector2(46)).Alpha,
+            () => Is.EqualTo(1));
+        AddAssert("slider head has exact maximum result", () => sliderHead.Result.Type,
+            () => Is.EqualTo(sliderHead.HitObject.Judgement.MaxResult));
+        AddAssert("slider control point is presented caught", () => firstControlPoint.HeadStyleHit, () => Is.True);
+        AddAssert("slider control point has exact maximum result", () => firstControlPoint.Result.Type,
+            () => Is.EqualTo(firstControlPoint.HitObject.Judgement.MaxResult));
     }
 
     [Test]

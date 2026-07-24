@@ -22,11 +22,12 @@ using osu.Framework.Extensions.TypeExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Lists;
 using Garbus.Game.Gameplay.Audio;
+using Garbus.Game.Gameplay;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects.Pooling;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Gameplay.UI;
-using Garbus.Game.Edit.Preview;
+using Garbus.Game.Core;
 using Garbus.Game.Timing;
 using osuTK.Graphics;
 
@@ -36,7 +37,7 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
     public abstract partial class DrawableHitObject : PoolableDrawableWithLifetime<HitObjectLifetimeEntry>
     {
         // Covers the longest current result animation while keeping judged preview objects finite.
-        private const double preview_result_lifetime = 1000;
+        private const double external_result_lifetime = 1000;
 
         /// <summary>
         /// Invoked after this <see cref="DrawableHitObject"/>'s applied <see cref="HitObject"/> has had its defaults applied.
@@ -143,8 +144,8 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         {
             get
             {
-                // Preview seeks need deterministic expiry; the ordinary idle-state fallback intentionally stays present.
-                if (previewContext != null && Clock.IsNotNull() && Clock.CurrentTime >= LifetimeEnd)
+                // Externally-resulted views need deterministic expiry; ordinary idle gameplay stays present.
+                if (presentationPolicy?.UsesExternalResults == true && Clock.IsNotNull() && Clock.CurrentTime >= LifetimeEnd)
                     return false;
 
                 return base.IsPresent
@@ -166,9 +167,15 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         private IPooledHitObjectProvider pooledObjectProvider { get; set; }
 
         [Resolved(CanBeNull = true)]
-        private ChartPreviewContext previewContext { get; set; }
+        private IGameplayPresentationPolicy presentationPolicy { get; set; }
 
-        protected bool IsInPreview => previewContext != null;
+        internal bool PlaysSpawnAnimations => presentationPolicy?.PlaysSpawnAnimations ?? true;
+
+        internal bool PresentsHoldAsHeld(DrawableHitObject hold)
+            => presentationPolicy?.PresentsHoldAsHeld(hold) ?? false;
+
+        internal bool PresentsSliderAngleAsCaught(HorizontalDirection side, double angleDeg)
+            => presentationPolicy?.PresentsSliderAngleAsCaught(side, angleDeg) ?? false;
 
         /// <summary>
         /// Whether the initialization logic in <see cref="Playfield" /> has applied.
@@ -433,12 +440,12 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
             state.Value = newState;
 
-            // Preview lifetime is clock-derived so seeking can reconstruct visuals without replaying frame history.
-            if (previewContext != null)
+            // External-result lifetime is clock-derived so seeking can reconstruct visuals without frame history.
+            if (presentationPolicy?.UsesExternalResults == true)
             {
                 LifetimeEnd = state.Value == ArmedState.Idle
-                    ? previewContext.LifetimeEndFor(HitObject)
-                    : Math.Max(LatestTransformEndTime, HitStateUpdateTime + preview_result_lifetime);
+                    ? presentationPolicy.LifetimeEndFor(HitObject)
+                    : Math.Max(LatestTransformEndTime, HitStateUpdateTime + external_result_lifetime);
             }
             else if (LifetimeEnd == double.MaxValue && (state.Value != ArmedState.Idle || HitObject.HitWindows == null))
                 LifetimeEnd = Math.Max(LatestTransformEndTime, HitStateUpdateTime + (Samples?.Length ?? 0));
@@ -446,7 +453,7 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
             // apply any custom state overrides
             ApplyCustomUpdateState?.Invoke(this, newState);
 
-            if (!force && newState == ArmedState.Hit && previewContext == null)
+            if (!force && newState == ArmedState.Hit && (presentationPolicy?.PlaysSamples ?? true))
                 PlaySamples();
         }
 
@@ -587,14 +594,14 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
 
         protected void ExpireAfterTransforms()
         {
-            // Transform callbacks must not permanently expire preview drawables that a rewind can restore.
-            if (!IsInPreview)
+            // Transform callbacks must not expire drawables whose external results can be rewound.
+            if (presentationPolicy?.UsesExternalResults != true)
                 Expire();
         }
 
-        internal void ApplyPreviewResult()
+        internal void ApplyExternalResult()
         {
-            if (previewContext != null && !Judged)
+            if (presentationPolicy?.UsesExternalResults == true && !Judged)
                 ApplyMaxResult();
         }
 
@@ -628,7 +635,9 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
                     $"{GetType().ReadableName()} applied an invalid hit result (was: {Result.Type}, expected: [{Result.Judgement.MinResult} ... {Result.Judgement.MaxResult}]).");
             }
 
-            Result.RawTime = previewContext?.ResultTimeFor(HitObject) ?? Time.Current;
+            Result.RawTime = presentationPolicy?.UsesExternalResults == true
+                ? presentationPolicy.ResultTimeFor(HitObject)
+                : Time.Current;
             Result.GameplayRate = Clock.Rate;
 
             if (Result.HasResult)
@@ -644,8 +653,8 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// <returns>Whether a scoring result has occurred from this <see cref="DrawableHitObject"/> or any nested <see cref="DrawableHitObject"/>.</returns>
         protected bool UpdateResult(bool userTriggered)
         {
-            // ChartPreviewContent applies exact end-time results; input-driven checks would make seeks history-dependent.
-            if (previewContext != null)
+            // External exact results make input-driven checks history-dependent.
+            if (presentationPolicy?.UsesExternalResults == true)
                 return Judged;
 
             // It's possible for input to get into a bad state when rewinding gameplay, so results should not be processed

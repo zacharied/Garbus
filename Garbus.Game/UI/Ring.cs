@@ -7,6 +7,7 @@ using System.Linq;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using Garbus.Game.Core;
+using Garbus.Game.Gameplay;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -32,6 +33,11 @@ public partial class Ring : Playfield
     private readonly Lane[] cardinalLanes = new Lane[Enum.GetValues<CardinalDirection>().Length];
     private readonly Lane[] shoulderLanes = new Lane[2];
     private readonly JudgementFeedbackDisplay judgementFeedback = new JudgementFeedbackDisplay();
+    private readonly Container laneContainer = new Container { RelativeSizeAxes = Axes.Both };
+    private readonly ChordConnectorOverlay connectorOverlay = new ChordConnectorOverlay();
+
+    [Resolved(CanBeNull = true)]
+    private IGameplayPresentationPolicy? presentationPolicy { get; set; }
 
     [Cached]
     private SlamCoincidenceIndex slamCoincidenceIndex { get; set; } = new SlamCoincidenceIndex();
@@ -45,8 +51,6 @@ public partial class Ring : Playfield
         judgementFeedback.DisplayJudgements.BindTo(DisplayJudgements);
         NewResult += onNewResult;
         RevertResult += judgementFeedback.Revert;
-
-        var laneContainer = new Container { RelativeSizeAxes = Axes.Both };
 
         // Lanes are created here (not in load) so they exist before the first Add is routed to them.
         foreach (var direction in Enum.GetValues<CardinalDirection>())
@@ -69,25 +73,45 @@ public partial class Ring : Playfield
             AddNested(lane);
         }
 
-        // Back-to-front: radial spokes, the centre combo counter, cross-lane paths, lanes, chord
-        // connectors, judgement feedback, then the ring. Connectors stay above overlapping chord
-        // members so simultaneous notes remain identifiable even when preview is stopped near centre.
-        AddRangeInternal([
-            new PlayfieldRadialLines(),
-            new ComboDisplay(),
-            HitObjectContainer,
-            laneContainer,
-            new ChordConnectorOverlay(),
-            judgementFeedback,
-            new Arc(0, 2 * MathF.PI)
-            {
-                Resolution = 128,
-                Colour = Colour4.White,
-            },
-        ]);
-
         NewResult += (_, result) => slamCoincidenceIndex.Record(result);
         RevertResult += result => slamCoincidenceIndex.Revert(result);
+    }
+
+    [BackgroundDependencyLoader]
+    private void load()
+    {
+        var outerRing = new Arc(0, 2 * MathF.PI)
+        {
+            Resolution = 128,
+            Colour = Colour4.White,
+        };
+
+        if (presentationPolicy?.UsesClockDrivenVisuals == true)
+        {
+            // Clock-driven Mini keeps connectors above overlapping notes, but below feedback and furniture.
+            AddRangeInternal([
+                new PlayfieldRadialLines(),
+                new ComboDisplay(),
+                HitObjectContainer,
+                laneContainer,
+                connectorOverlay,
+                judgementFeedback,
+                outerRing,
+            ]);
+        }
+        else
+        {
+            // Ordinary gameplay retains the master connector below every hit-object layer.
+            AddRangeInternal([
+                new PlayfieldRadialLines(),
+                connectorOverlay,
+                new ComboDisplay(),
+                HitObjectContainer,
+                laneContainer,
+                judgementFeedback,
+                outerRing,
+            ]);
+        }
     }
 
     protected override void OnHitObjectAdded(HitObject hitObject)

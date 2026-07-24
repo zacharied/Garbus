@@ -120,8 +120,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     [Resolved]
     private GarbusScrollingHitObjectContainer scrollingContainer { get; set; } = null!;
 
-    [Resolved]
-    private AnalogInputManager analogInput { get; set; } = null!;
+    [Resolved(CanBeNull = true)]
+    private AnalogInputManager? analogInput { get; set; }
 
     // Tinted/faded as a unit (fade-in, red-on-miss): holds the crisp paths and their glow twins.
     // SmoothPath forces its own draw colour to white, so colour applied here is what tints the
@@ -311,7 +311,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     protected override void PrepareForUse()
     {
-        if (IsInPreview)
+        if (!PlaysSpawnAnimations)
             return;
 
         base.PrepareForUse();
@@ -563,7 +563,8 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     private bool isLeadingEdgeCaught()
     {
         int angleDeg = (int)MathF.Round(AngleDegAt(Time.Current));
-        return analogInput.SliderCatchers[HitObject.Side].IsCatchingAt(angleDeg);
+        return PresentsSliderAngleAsCaught(HitObject.Side, angleDeg)
+               || analogInput!.SliderCatchers[HitObject.Side].IsCatchingAt(angleDeg);
     }
 
     /// <summary>

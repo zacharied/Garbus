@@ -64,7 +64,7 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
 
     protected override void PrepareForUse()
     {
-        if (IsInPreview)
+        if (!PlaysSpawnAnimations)
             return;
 
         base.PrepareForUse();
@@ -117,7 +117,7 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
         }
 
         if (!Judged)
-            body.Colour = HoldActive && !Holding ? dropped_colour : held_colour;
+            body.Colour = HoldActive && !PresentedAsHeld ? dropped_colour : held_colour;
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)

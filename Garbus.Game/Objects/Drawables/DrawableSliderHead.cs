@@ -9,8 +9,8 @@ namespace Garbus.Game.Objects.Drawables;
 
 public partial class DrawableSliderHead : DrawableGarbusHitObject<SliderHead>, ISelfPosition
 {
-    [Resolved]
-    private AnalogInputManager analogInput { get; set; } = null!;
+    [Resolved(CanBeNull = true)]
+    private AnalogInputManager? analogInput { get; set; }
 
     [Resolved]
     private SlamCoincidenceIndex slamCoincidenceIndex { get; set; } = null!;
@@ -25,7 +25,8 @@ public partial class DrawableSliderHead : DrawableGarbusHitObject<SliderHead>, I
         if (timeOffset < 0)
             return;
 
-        if (analogInput.SliderCatchers[HitObject.Parent.Side].IsCatchingAt(HitObject.AngleDeg))
+        if (PresentsSliderAngleAsCaught(HitObject.Parent.Side, HitObject.AngleDeg)
+            || analogInput!.SliderCatchers[HitObject.Parent.Side].IsCatchingAt(HitObject.AngleDeg))
         {
             ApplyMaxResult();
             return;

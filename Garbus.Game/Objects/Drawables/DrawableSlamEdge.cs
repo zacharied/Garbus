@@ -16,8 +16,8 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
 {
     private readonly Sprite sprite;
 
-    [Resolved]
-    private AnalogInputManager analogInput { get; set; } = null!;
+    [Resolved(CanBeNull = true)]
+    private AnalogInputManager? analogInput { get; set; }
 
     public DrawableSlamEdge(GarbusSlamEdge hitObject)
         : base(hitObject)
@@ -43,7 +43,7 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
 
     protected override void PrepareForUse()
     {
-        if (IsInPreview)
+        if (!PlaysSpawnAnimations)
             return;
 
         // Apply note spawn effect
@@ -88,7 +88,7 @@ public partial class DrawableSlamEdge : DrawableGarbusHitObject<GarbusSlamEdge>
         if (timeOffset < -SlamHitWindows.PERFECT_WINDOW)
             return; // early-permissive watch window not open yet
 
-        if (analogInput.StickGestureTrackers[HitObject.Side].TryGetSweepTime(
+        if (analogInput!.StickGestureTrackers[HitObject.Side].TryGetSweepTime(
                 HitObject.AngleDeg,
                 HitObject.Direction,
                 HitObject.StartTime - SlamHitWindows.PERFECT_WINDOW,

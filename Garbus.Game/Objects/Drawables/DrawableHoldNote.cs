@@ -51,6 +51,8 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     /// <summary>Whether the hold's button is currently held.</summary>
     protected bool Holding => holdPresses > 0;
 
+    protected bool PresentedAsHeld => Holding || PresentsHoldAsHeld(this);
+
     /// <summary>Whether one or more bindings for this hold are currently pressed.</summary>
     public bool IsHolding => Holding;
 
@@ -126,9 +128,9 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         lastActivationUpdate = now;
 
         if (now >= HitObject.EndTime && activatedAtEnd is null)
-            activatedAtEnd = Holding;
+            activatedAtEnd = PresentedAsHeld;
 
-        if (!Holding || now < HitObject.StartTime || previous > HitObject.EndTime)
+        if (!PresentedAsHeld || now < HitObject.StartTime || previous > HitObject.EndTime)
             return;
 
         double grace = Head.HitObject.HitWindows.LateEligibilityEdge;

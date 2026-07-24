@@ -22,8 +22,8 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     /// </summary>
     public override bool DisplayTimingOffset => false;
 
-    [Resolved]
-    private AnalogInputManager analogInput { get; set; } = null!;
+    [Resolved(CanBeNull = true)]
+    private AnalogInputManager? analogInput { get; set; }
 
     [Resolved]
     private SlamCoincidenceIndex slamCoincidenceIndex { get; set; } = null!;
@@ -157,8 +157,9 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         if (now < segmentStart || previous > segmentEnd)
             return;
 
-        bool catching = analogInput.SliderCatchers[HitObject.Parent.Side]
-                                   .IsCatchingAt((int)body.AngleDegAt(Math.Min(now, segmentEnd)));
+        int angleDeg = (int)body.AngleDegAt(Math.Min(now, segmentEnd));
+        bool catching = PresentsSliderAngleAsCaught(HitObject.Parent.Side, angleDeg)
+                        || analogInput!.SliderCatchers[HitObject.Parent.Side].IsCatchingAt(angleDeg);
 
         if (now >= segmentEnd && activatedAtSegmentEnd is null)
             activatedAtSegmentEnd = catching;
@@ -177,5 +178,6 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     }
 
     private bool isCatchingNode()
-        => analogInput.SliderCatchers[HitObject.Parent.Side].IsCatchingAt(HitObject.AngleDeg);
+        => PresentsSliderAngleAsCaught(HitObject.Parent.Side, HitObject.AngleDeg)
+           || analogInput!.SliderCatchers[HitObject.Parent.Side].IsCatchingAt(HitObject.AngleDeg);
 }

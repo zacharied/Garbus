@@ -16,13 +16,16 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Sample;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Lines;
 using osu.Framework.Input;
 using osu.Framework.Input.StateChanges;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Timing;
 using osuTK;
+using osuTK.Graphics;
 using osuTK.Input;
 
 namespace Garbus.Game.Tests.Visual
@@ -351,6 +354,79 @@ namespace Garbus.Game.Tests.Visual
         }
 
         private static bool approximately(float first, float second) => MathF.Abs(first - second) < 0.001f;
+
+        [Test]
+        public void TestGameplayConnectorUsesMasterBackgroundLayerAndStroke()
+        {
+            ChordConnectorOverlay connectorOverlay = null!;
+            SmoothPath connector = null!;
+
+            AddStep("add ordinary gameplay chord", () =>
+            {
+                CardinalNote[] chord =
+                [
+                    new CardinalNote { StartTime = 15000, AngleDeg = 0 },
+                    new CardinalNote { StartTime = 15000, AngleDeg = 180 },
+                ];
+
+                foreach (CardinalNote note in chord)
+                {
+                    note.ApplyDefaults();
+                    playfield.Add(PlayScreen.CreateDrawableRepresentation(note));
+                }
+
+                playfield.SetHitObjects(chord);
+            });
+            playThrough(14300);
+            AddUntilStep("ordinary connector visible", () =>
+                (connectorOverlay = playfield.ChildrenOfType<ChordConnectorOverlay>().Single())
+                    .ChildrenOfType<SmoothPath>().SingleOrDefault() is { IsPresent: true } path
+                && (connector = path) != null);
+            AddAssert("ordinary connector is behind note layers", () =>
+            {
+                Ring ring = playfield.ChildrenOfType<Ring>().Single();
+                Drawable laneContainer = ring.ChildrenOfType<Lane>().First().Parent!;
+                return childId(connectorOverlay) < childId(ring.HitObjectContainer)
+                       && childId(connectorOverlay) < childId(laneContainer);
+            });
+            AddAssert("ordinary connector keeps master stroke", () => connector.PathRadius,
+                () => Is.EqualTo(ChordColours.ConnectorPathRadius));
+        }
+
+        [Test]
+        public void TestUntouchedDurationObjectsKeepInactivePresentation()
+        {
+            Objects.Drawables.DrawableCardinalHoldNote cardinalHold = null!;
+            Objects.Drawables.DrawableShoulderHoldNote shoulderHold = null!;
+            Objects.Drawables.DrawableSliderBody slider = null!;
+
+            playThrough(6500);
+            AddStep("capture active cardinal hold and slider", () =>
+            {
+                cardinalHold = playfield.AllHitObjects.OfType<Objects.Drawables.DrawableCardinalHoldNote>()
+                                        .Single(hold => hold.HitObject.StartTime == 6000);
+                slider = playfield.AllHitObjects.OfType<Objects.Drawables.DrawableSliderBody>()
+                                  .Single(body => body.HitObject.StartTime == 5000);
+            });
+            AddAssert("untouched cardinal hold body is dropped", () =>
+                    cardinalHold.ChildrenOfType<SmoothPath>().Single().Colour,
+                () => Is.EqualTo((ColourInfo)Colour4.Gray));
+            AddAssert("untouched slider body is escaping", () => slider.Alpha, () => Is.EqualTo(0.4f));
+            AddAssert("untouched slider caught tip is hidden", () => slider.ChildrenOfType<osu.Framework.Graphics.Shapes.Box>()
+                                                                            .Single(box => box.Size == new Vector2(46)).Alpha,
+                () => Is.Zero);
+            AddAssert("untouched slider control point is not caught", () => slider.NestedHitObjects
+                                                                                  .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                                                  .First().HeadStyleHit,
+                () => Is.False);
+
+            playThrough(13500);
+            AddStep("capture active shoulder hold", () =>
+                shoulderHold = playfield.AllHitObjects.OfType<Objects.Drawables.DrawableShoulderHoldNote>().Single());
+            AddAssert("untouched shoulder hold body is dropped", () =>
+                    shoulderHold.ChildrenOfType<osu.Framework.Graphics.UserInterface.CircularProgress>().Single().Colour,
+                () => Is.EqualTo((ColourInfo)Colour4.Gray));
+        }
 
         [Test]
         public void TestUntouchedNotesMiss()

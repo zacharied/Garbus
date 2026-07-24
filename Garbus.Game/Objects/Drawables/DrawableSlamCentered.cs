@@ -16,8 +16,8 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
 {
     private readonly Sprite sprite;
 
-    [Resolved]
-    private AnalogInputManager analogInput { get; set; } = null!;
+    [Resolved(CanBeNull = true)]
+    private AnalogInputManager? analogInput { get; set; }
 
     public DrawableSlamCentered(GarbusSlamCentered hitObject)
         : base(hitObject)
@@ -43,7 +43,7 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
 
     protected override void PrepareForUse()
     {
-        if (IsInPreview)
+        if (!PlaysSpawnAnimations)
             return;
 
         // Apply note spawn effect
@@ -88,7 +88,7 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
         if (timeOffset < -SlamHitWindows.PERFECT_WINDOW)
             return; // early-permissive watch window not open yet
 
-        if (analogInput.StickGestureTrackers[HitObject.Side].TryGetFlickTime(
+        if (analogInput!.StickGestureTrackers[HitObject.Side].TryGetFlickTime(
                 HitObject.AngleDeg,
                 HitObject.StartTime - SlamHitWindows.PERFECT_WINDOW,
                 out double gestureTime))
