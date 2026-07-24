@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Design;
 using Garbus.Game.Charts.Timing;
@@ -136,6 +137,165 @@ namespace Garbus.Game.Tests.Charts
                 Assert.That(cloneMessage.Text, Is.EqualTo("Read this\\nnow"));
                 Assert.That(clone.ControlPointInfo.TimingPoints[0].BeatLength, Is.EqualTo(375));
             });
+        }
+
+        [Test]
+        public void CloneChartOwnsTimingGroupsAndStructuralState()
+        {
+            ControlPointInfo source = createEffectiveTiming();
+
+            ControlPointInfo clone = GarbusChartCloner.CloneChart(createChart(), source).ControlPointInfo!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(clone.Groups, Is.Not.SameAs(source.Groups));
+                Assert.That(clone.Groups, Has.Count.EqualTo(source.Groups.Count));
+                Assert.That(clone.TimingPoints, Is.Not.SameAs(source.TimingPoints));
+                Assert.That(clone.TimingPoints, Has.Count.EqualTo(source.TimingPoints.Count));
+            });
+
+            for (int i = 0; i < source.Groups.Count; i++)
+            {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(clone.Groups[i], Is.Not.SameAs(source.Groups[i]));
+                    Assert.That(clone.Groups[i].ControlPoints, Is.Not.SameAs(source.Groups[i].ControlPoints));
+                    Assert.That(clone.Groups[i].ControlPoints, Has.Count.EqualTo(source.Groups[i].ControlPoints.Count));
+                });
+
+                for (int j = 0; j < source.Groups[i].ControlPoints.Count; j++)
+                    Assert.That(clone.Groups[i].ControlPoints[j], Is.Not.SameAs(source.Groups[i].ControlPoints[j]));
+            }
+
+            source.TimingPoints[0].OmitFirstBarLine = false;
+            Assert.That(clone.TimingPoints[0].OmitFirstBarLine, Is.True);
+
+            ControlPoint removedPoint = source.Groups[0].ControlPoints[0];
+            source.Groups[0].Remove(removedPoint);
+            Assert.Multiple(() =>
+            {
+                Assert.That(clone.Groups[0].ControlPoints, Has.Count.EqualTo(1));
+                Assert.That(clone.TimingPoints, Has.Count.EqualTo(2));
+            });
+
+            source.RemoveGroup(source.Groups[1]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(clone.Groups, Has.Count.EqualTo(2));
+                Assert.That(clone.TimingPoints, Has.Count.EqualTo(2));
+            });
+
+            clone.Add(4800, new TimingControlPoint { BeatLength = 250, OmitFirstBarLine = true });
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.Groups, Has.Count.EqualTo(1));
+                Assert.That(source.TimingPoints, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void UnsupportedChartSubtypeFailsExplicitly()
+        {
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneChart(new UnsupportedChart(), createEffectiveTiming()));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedChart)));
+        }
+
+        [Test]
+        public void UnsupportedMetadataSubtypeFailsExplicitly()
+        {
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneMetadata(new UnsupportedChartMetadata()));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedChartMetadata)));
+        }
+
+        [Test]
+        public void UnsupportedDesignPointInfoSubtypeFailsExplicitly()
+        {
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneDesignPointInfo(new UnsupportedDesignPointInfo()));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedDesignPointInfo)));
+        }
+
+        [Test]
+        public void UnsupportedControlPointInfoSubtypeFailsExplicitly()
+        {
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneChart(createChart(), new UnsupportedControlPointInfo()));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedControlPointInfo)));
+        }
+
+        [Test]
+        public void UnsupportedControlPointGroupSubtypeFailsExplicitly()
+        {
+            var timing = new ControlPointInfo();
+            var groups = (BindableList<ControlPointGroup>)typeof(ControlPointInfo)
+                         .GetField("groups", BindingFlags.Instance | BindingFlags.NonPublic)!
+                         .GetValue(timing)!;
+            groups.Add(new UnsupportedControlPointGroup(100));
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneChart(createChart(), timing));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedControlPointGroup)));
+        }
+
+        [Test]
+        public void UnsupportedTimingControlPointSubtypeFailsExplicitly()
+        {
+            var timing = new ControlPointInfo();
+            timing.Add(100, new UnsupportedTimingControlPoint());
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneChart(createChart(), timing));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedTimingControlPoint)));
+        }
+
+        [Test]
+        public void UnsupportedTimeSignatureSubtypeFailsExplicitly()
+        {
+            var timing = new ControlPointInfo();
+            timing.Add(100, new TimingControlPoint { TimeSignature = new UnsupportedTimeSignature(7) });
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneChart(createChart(), timing));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedTimeSignature)));
+        }
+
+        [Test]
+        public void UnsupportedPathSubtypeFailsExplicitly()
+        {
+            var source = new SliderBody
+            {
+                AngleDeg = 0,
+                Side = HorizontalDirection.Left,
+                Path = new UnsupportedGarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint>() },
+            };
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneHitObject(source));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedGarbusPath)));
+        }
+
+        [Test]
+        public void UnsupportedPathControlPointSubtypeFailsExplicitly()
+        {
+            var source = new SliderBody
+            {
+                AngleDeg = 0,
+                Side = HorizontalDirection.Left,
+                Path = new GarbusPath
+                {
+                    ControlPoints = new BindableList<GarbusPathControlPoint> { new UnsupportedGarbusPathControlPoint() },
+                },
+            };
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneHitObject(source));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedGarbusPathControlPoint)));
+        }
+
+        [Test]
+        public void UnsupportedHitSampleSubtypeFailsExplicitly()
+        {
+            var source = new CardinalNote
+            {
+                AngleDeg = 0,
+                Samples = new List<GarbusHitSample> { new UnsupportedHitSample("future") },
+            };
+
+            var exception = Assert.Throws<ArgumentOutOfRangeException>(() => GarbusChartCloner.CloneHitObject(source));
+            Assert.That(exception!.Message, Does.Contain(nameof(UnsupportedHitSample)));
         }
 
         [Test]
@@ -517,5 +677,51 @@ namespace Garbus.Game.Tests.Charts
         private sealed class UnsupportedTutorialMessage : TutorialMessage
         {
         }
+
+        private sealed class UnsupportedChart : GarbusChart
+        {
+        }
+
+        private sealed class UnsupportedChartMetadata : ChartMetadata
+        {
+        }
+
+        private sealed class UnsupportedDesignPointInfo : DesignPointInfo
+        {
+        }
+
+        private sealed class UnsupportedControlPointInfo : ControlPointInfo
+        {
+        }
+
+        private sealed class UnsupportedControlPointGroup : ControlPointGroup
+        {
+            public UnsupportedControlPointGroup(double time)
+                : base(time)
+            {
+            }
+        }
+
+        private sealed class UnsupportedTimingControlPoint : TimingControlPoint
+        {
+        }
+
+        private sealed class UnsupportedTimeSignature : TimeSignature
+        {
+            public UnsupportedTimeSignature(int numerator)
+                : base(numerator)
+            {
+            }
+        }
+
+        private sealed class UnsupportedGarbusPath : GarbusPath
+        {
+        }
+
+        private sealed class UnsupportedGarbusPathControlPoint : GarbusPathControlPoint
+        {
+        }
+
+        private sealed record UnsupportedHitSample(string SampleName) : GarbusHitSample(SampleName);
     }
 }
