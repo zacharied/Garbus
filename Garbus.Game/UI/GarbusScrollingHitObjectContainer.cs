@@ -224,6 +224,22 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
             // TODO
         }
 
+        // Garbus (GAR-5, MiniPreview): editor/autoHit drawables swallow their own LifetimeEnd writes
+        // (see EditorDrawableGarbusHitObject.LifetimeEnd and DrawableHitObject.LifetimeEnd's
+        // AutoHitActive guard), so — unlike ordinary gameplay, where DrawableHitObject.updateState keeps
+        // the lifetime end accurate on judgement — this container is the sole lifetime authority for
+        // them. But setComputedLifetime only refreshes a top-level entry's lifetime on Add and on a full
+        // layout invalidation, never when a live edit changes its end time. MiniPreview's autoHit
+        // drawables re-apply in place via DefaultsApplied on a live edit (e.g. dragging a note to a later
+        // StartTime), but without this the entry's LifetimeEnd stayed pinned to the PRE-edit end time —
+        // if the edit moved the object later, the entry could die before the new hit-and-fade animation
+        // completed, freezing the drawable mid-fade. Refresh here — this method runs once per layout
+        // recompute, i.e. after each DefaultsApplied (see invalidateHitObject) — so the lifetime tracks
+        // the live end time. Set it directly (not via setComputedLifetime) to also cover judged entries,
+        // whose lifetime these self-non-expiring drawables never otherwise correct.
+        if (hitObject.Entry != null)
+            hitObject.Entry.LifetimeEnd = hitObject.HitObject.GetEndTime() + timeRange.Value;
+
         foreach (var obj in hitObject.NestedHitObjects)
         {
             updateLayoutRecursive(obj, parentHitObjectStartTime);

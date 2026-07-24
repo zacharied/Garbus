@@ -2,12 +2,22 @@
 // mirroring the editor's live hit objects on a clock slaved to the EditorClock.
 
 using System.Linq;
+using Garbus.Game.Charts;
+using Garbus.Game.Charts.Timing;
+using Garbus.Game.Edit;
+using Garbus.Game.Edit.Preview;
+using Garbus.Game.Gameplay.Objects.Drawables;
+using Garbus.Game.Gameplay.UI.Scrolling;
 using Garbus.Game.Input;
+using Garbus.Game.Objects;
 using Garbus.Game.Tests.Visual;
 using Garbus.Game.UI;
 using NUnit.Framework;
+using osu.Framework.Allocation;
+using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Testing;
 using osuTK;
 
@@ -17,6 +27,9 @@ namespace Garbus.Game.Tests.Editor
     public partial class TestSceneMiniPreview : GarbusTestScene
     {
         protected override double TimePerAction => 0;
+
+        [Resolved]
+        private GarbusScrollingInfo scrollingInfo { get; set; } = null!;
 
         [Test]
         public void TestNonInteractivePlayfieldInstallsNoInput()
@@ -38,6 +51,136 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("loaded", () => gameplay.IsLoaded);
             AddAssert("has analog input manager", () => gameplay.ChildrenOfType<AnalogInputManager>().Any());
             AddAssert("has two stick indicators", () => gameplay.ChildrenOfType<StickIndicator>().Count() == 2);
+        }
+
+        [Test]
+        public void TestPreviewMirrorsEditorHitObjects()
+        {
+            MiniPreviewTestHost host = null!;
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddAssert("preview has a drawable per editor object", () =>
+                host.Preview.PlayfieldForTests.AllHitObjects.Count() == host.EditorChart.HitObjects.Count);
+
+            int before = 0;
+            AddStep("count before add", () => before = host.Preview.PlayfieldForTests.AllHitObjects.Count());
+            AddStep("add a note to the editor", () => host.AddNote(9000));
+            AddUntilStep("preview reflects the add", () =>
+                host.Preview.PlayfieldForTests.AllHitObjects.Count() == before + 1);
+
+            AddStep("remove the note from the editor", () => host.RemoveLastAddedNote());
+            AddUntilStep("preview reflects the remove", () =>
+                host.Preview.PlayfieldForTests.AllHitObjects.Count() == before);
+        }
+
+        [Test]
+        public void TestLiveEditRefreshesDrawableInPlace()
+        {
+            MiniPreviewTestHost host = null!;
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+            AddStep("add a note", () => host.AddNote(9000));
+
+            DrawableHitObject? drawable() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.FirstOrDefault(d => d.HitObject.StartTime == 9000 || d.HitObject.StartTime == 9500);
+
+            AddUntilStep("drawable present", () => drawable() != null);
+            DrawableHitObject captured = null!;
+            AddStep("capture drawable instance", () => captured = drawable()!);
+            AddStep("move the note in the editor", () => host.MoveLastAddedNoteTo(9500));
+            AddUntilStep("same drawable instance retained (in-place refresh)",
+                () => host.Preview.PlayfieldForTests.AllHitObjects.Contains(captured) && captured.HitObject.StartTime == 9500);
+        }
+
+        [Test]
+        public void TestPreviewAutoHitStillHitsAfterLiveEdit()
+        {
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+            AddStep("add a note", () => host.AddNote(2000));
+
+            DrawableHitObject? drawable() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.FirstOrDefault(d => d.HitObject.StartTime == 2500);
+
+            AddStep("move the note in the editor (live edit)", () => host.MoveLastAddedNoteTo(2500));
+            AddUntilStep("drawable present at new time", () => drawable() != null);
+
+            // Alive window (GarbusScrollingHitObjectContainer.setComputedLifetime) is
+            // [StartTime - TimeRange, GetEndTime() + TimeRange] = [1800, 3200]; the 350ms hit fade
+            // completes at 2850. Seek into the gap between fade-complete and lifetime end so a stuck
+            // (never re-armed) drawable is distinguishable from one that correctly re-forced Hit after
+            // the DefaultsApplied re-apply triggered by EditorChart.Update.
+            AddStep("seek past the (moved) hit + animation", () => host.EditorClock.Seek(3050));
+            AddUntilStep("autoHit animation still plays after the live edit (faded out)", () =>
+                drawable() != null && drawable()!.ChildrenOfType<Sprite>().First().Alpha < 0.05f);
+        }
+
+        // ------------------------------------------------------------------
+        // Test host: wires the minimal editor DI graph MiniPreview needs
+        // (EditorChart, EditorClock, BindableBeatDivisor) and hosts a real
+        // MiniPreview as its child. GarbusScrollingInfo comes from the ambient
+        // GarbusTestScene/GarbusGameBase graph — no need to cache it here.
+        // ------------------------------------------------------------------
+
+        private partial class MiniPreviewTestHost : CompositeDrawable
+        {
+            public MiniPreview Preview { get; private set; } = null!;
+            public EditorChart EditorChart { get; private set; } = null!;
+            public EditorClock EditorClock { get; private set; } = null!;
+
+            private CardinalNote? lastAdded;
+            private DependencyContainer dependencies = null!;
+
+            protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+            {
+                dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
+                var chart = new GarbusChart();
+                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                EditorChart = new EditorChart(chart);
+
+                var beatDivisor = new BindableBeatDivisor(4);
+                EditorClock = new EditorClock(EditorChart.ControlPointInfo, 60000, beatDivisor);
+                EditorClock.ChangeSource(new TrackVirtual(60000));
+
+                dependencies.Cache(EditorChart);
+                dependencies.Cache(EditorClock);
+                dependencies.Cache(beatDivisor);
+
+                return dependencies;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                RelativeSizeAxes = Axes.Both;
+                InternalChild = Preview = new MiniPreview { RelativeSizeAxes = Axes.Both };
+                // EditorClock must be in the hierarchy to tick; add it alongside the preview.
+                AddInternal(EditorClock);
+            }
+
+            public void AddNote(double time)
+            {
+                lastAdded = new CardinalNote { StartTime = time, AngleDeg = 90 };
+                EditorChart.Add(lastAdded);
+            }
+
+            public void RemoveLastAddedNote()
+            {
+                if (lastAdded != null)
+                    EditorChart.Remove(lastAdded);
+            }
+
+            public void MoveLastAddedNoteTo(double time)
+            {
+                if (lastAdded == null) return;
+
+                lastAdded.StartTime = time;
+                EditorChart.Update(lastAdded);
+            }
         }
     }
 }
