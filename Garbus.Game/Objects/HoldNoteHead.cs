@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/HoldNoteHead.cs).
-
 using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Input;

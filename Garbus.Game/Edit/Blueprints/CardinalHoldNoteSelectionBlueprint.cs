@@ -1,8 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/CardinalHoldNoteSelectionBlueprint.cs).
-// EditorBeatmap → EditorChart; BigAssCircleHitObjectComposer → GarbusHitObjectComposer;
-// osu.Game.Screens.Edit IEditorChangeHandler → Garbus.Game.Edit.IEditorChangeHandler; EditorDrawableCardinalNote /
-// EditSquarePiece / HoldEndDragPiece from the Garbus editor.
-
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Primitives;

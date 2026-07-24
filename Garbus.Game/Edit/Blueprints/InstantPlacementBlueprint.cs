@@ -1,7 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/InstantPlacementBlueprint.cs).
-// BacHitObject → GarbusHitObject; EditorDrawableCardinalNote from Garbus.Game.Edit.Drawables;
-// SnapResult from Garbus.Game.Edit.Compose. Otherwise verbatim.
-
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;
 using Garbus.Game.Edit.Blueprints.Components;

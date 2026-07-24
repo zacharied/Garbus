@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableNestedStub.cs).
-// BacHitObject → GarbusHitObject.
-
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Objects;
 

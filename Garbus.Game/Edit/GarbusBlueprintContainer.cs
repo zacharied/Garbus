@@ -1,8 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacBlueprintContainer.cs).
-// BacBlueprintContainer → GarbusBlueprintContainer; BigAssCircleHitObjectComposer → GarbusHitObjectComposer;
-// ComposeBlueprintContainer / SelectionBlueprint / DragBox / ScrollingDragBox from Edit.Compose;
-// selection blueprints from Edit.Blueprints; BacSelectionHandler → GarbusSelectionHandler.
-
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Input.Events;

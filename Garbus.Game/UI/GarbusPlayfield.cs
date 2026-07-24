@@ -1,7 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/BigAssCirclePlayfield.cs).
-// BigAssCirclePlayfield → GarbusPlayfield. Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;

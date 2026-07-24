@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableSliderHead.cs).
-
 using Garbus.Game.Input;
 using Garbus.Game.Objects.Judgement;
 using Garbus.Game.UI;

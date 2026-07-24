@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableSliderBody.cs).
-
 using System;
 using System.Collections.Generic;
 using osu.Framework.Allocation;

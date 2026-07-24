@@ -1,7 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacSnapResult.cs). BacSnapResult →
-// GarbusSnapResult; SnapResult/Playfield resolve to the Garbus vendored types (Edit.Compose /
-// Gameplay.UI). Otherwise verbatim.
-
 using Garbus.Game.Edit.Compose;
 using Garbus.Game.Gameplay.UI;
 using osuTK;

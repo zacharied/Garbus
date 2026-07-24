@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableSliderBody.cs).
-// BacHitObject → GarbusHitObject; SliderBody → Garbus.Game.Objects.SliderBody.
-
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using Garbus.Game.Gameplay.Objects;

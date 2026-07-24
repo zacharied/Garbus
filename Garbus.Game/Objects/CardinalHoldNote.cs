@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/CardinalHoldNote.cs).
-
 using System;
 using System.Threading;
 using Garbus.Game.Core;

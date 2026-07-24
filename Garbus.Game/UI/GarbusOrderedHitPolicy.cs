@@ -1,9 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/BacOrderedHitPolicy.cs).
-// BacOrderedHitPolicy → GarbusOrderedHitPolicy. Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: rewritten from mania's ordered policy to the Garbus judgement spec's
-// note-lock (docs/rules-specs/Judgement.md) — oldest-eligible resolution, no force-missing.
-
 using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.Scoring;
 using Garbus.Game.Gameplay.UI;

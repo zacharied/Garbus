@@ -1,8 +1,5 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableShoulderNote.cs).
-// Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: replaced the single "paddle" sprite with two square sprites on the ±45° quadrant
-// diagonals joined by a growing circular arc; self-positions each frame instead of being point-placed.
+// Two square sprites on the ±45° quadrant diagonals joined by a growing circular arc;
+// self-positions each frame instead of being point-placed.
 
 using System;
 using osu.Framework.Allocation;

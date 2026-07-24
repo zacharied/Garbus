@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Constants.cs).
-
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 

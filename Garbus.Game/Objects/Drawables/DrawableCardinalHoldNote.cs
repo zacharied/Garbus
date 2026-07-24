@@ -1,7 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableHoldNote.cs).
-// Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: judgement/input live in DrawableHoldNote<,>; this holds only the cardinal visuals.
+// Judgement/input live in DrawableHoldNote<,>; this holds only the cardinal visuals.
 
 using System;
 using osu.Framework.Allocation;

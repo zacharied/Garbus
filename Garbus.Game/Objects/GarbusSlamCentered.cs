@@ -1,5 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/BacSlamCentered.cs). BacSlamCentered →
-// GarbusSlamCentered. No drawable representation yet (editor-only concept so far, as in the source repo).
+// No drawable representation yet (editor-only concept so far).
 
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.Audio;

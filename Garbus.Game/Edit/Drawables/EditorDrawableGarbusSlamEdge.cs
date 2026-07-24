@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableSlamEdge.cs).
-// BacSlamEdge → GarbusSlamEdge; RotationalDirection from Garbus.Game.Core.
-
 using System.Collections.Generic;
 using osu.Framework.Graphics;
 using Garbus.Game.Core;

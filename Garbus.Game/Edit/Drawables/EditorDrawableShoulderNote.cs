@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableShoulderNote.cs).
-// BacEditorPlayfield → GarbusEditorPlayfield.
-
 using osu.Framework.Graphics;
 using Garbus.Game.Objects;
 using osuTK;

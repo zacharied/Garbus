@@ -1,7 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/BigAssCircleInputManager.cs) — the action
-// enums and extensions. BigAssCircleAction → GarbusAction, BigAssCircleButtonInput → GarbusButtonInput.
-// The RulesetInputManager wrapper itself is replaced by GarbusInputManager (a plain KeyBindingContainer).
-
 using System.ComponentModel;
 using Garbus.Game.Core;
 

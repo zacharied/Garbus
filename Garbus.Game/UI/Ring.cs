@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/Ring.cs). Original carries the ppy
-// template MIT header: Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-
 using System;
 using System.Collections.Generic;
 using System.Linq;

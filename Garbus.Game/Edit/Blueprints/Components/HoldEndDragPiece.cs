@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/Components/HoldEndDragPiece.cs).
-// Verbatim aside from namespace.
-
 using System;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;

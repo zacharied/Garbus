@@ -5,7 +5,7 @@
 // Adapted for Garbus: osu's EditorToolboxGroup extends SettingsToolboxGroup, an animated collapsible
 // panel entangled with OsuColour/OsuSpriteText/IconButton and hover state. Rewritten fresh as a plain
 // titled box: a header label above a single Child, with hardcoded colours. The single-Child API
-// (Child = ...) matches osu's SettingsToolboxGroup so ported BAC composer code compiles unchanged.
+// (Child = ...) matches osu's SettingsToolboxGroup so the composer code compiles unchanged.
 
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;

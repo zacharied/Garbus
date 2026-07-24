@@ -5,7 +5,7 @@
 // HitObject → GarbusHitObject; ALL sample/bank/new-combo ternary state removed (HitSampleInfo,
 // IHasRepeats, IHasComboInformation, Humanizer — none present in Garbus); HIT_BANK_AUTO constant
 // and all related bindables dropped; UpdateTernaryStates() kept as protected virtual no-op so
-// BacSelectionHandler (Task 16) can override it; GetContextMenuItemsForSelection override dropped
+// GarbusSelectionHandler can override it; GetContextMenuItemsForSelection override dropped
 // (no New Combo / Sample / Bank items relevant to Garbus); RightClickAlwaysQuickDeletes kept;
 // DeleteItems wraps EditorChart.RemoveRange in a ChangeHandler transaction; ChangeHandler resolved
 // in base SelectionHandler (not here); HitObjectUpdated subscription added alongside CollectionChanged.
@@ -51,7 +51,7 @@ namespace Garbus.Game.Edit.Compose
 
         /// <summary>
         /// Called when context menu ternary states may need to be recalculated (selection changed or hit object updated).
-        /// Override in BacSelectionHandler (Task 16) to update direction toggles.
+        /// Override in GarbusSelectionHandler to update direction toggles.
         /// </summary>
         protected virtual void UpdateTernaryStates()
         {

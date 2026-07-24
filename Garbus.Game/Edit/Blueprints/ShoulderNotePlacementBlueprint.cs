@@ -1,9 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/ShoulderNotePlacementBlueprint.cs).
-// BigAssCircleHitObjectComposer → GarbusHitObjectComposer; BacEditorPlayfield → GarbusEditorPlayfield;
-// HorizontalDirection from Garbus.Game.Core; HitObjectPlacementBlueprint / SnapResult from Edit.Compose;
-// EditorDrawableCardinalNote from Edit.Drawables. ReplacesExistingObject overrides the vendored base's
-// GarbusHitObject overload. Logic identical.
-
 using System;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;

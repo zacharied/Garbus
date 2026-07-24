@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Core/Path/BacPathControlPoint.cs).
-// BacPathControlPoint → GarbusPathControlPoint.
-
 using osu.Framework.Graphics;
 
 namespace Garbus.Game.Objects;

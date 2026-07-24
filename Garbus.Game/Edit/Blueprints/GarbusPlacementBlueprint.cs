@@ -1,10 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/BacPlacementBlueprint.cs).
-// BacPlacementBlueprint → GarbusPlacementBlueprint; BacHitObject → GarbusHitObject;
-// BigAssCircleHitObjectComposer → GarbusHitObjectComposer; BacSnapResult → GarbusSnapResult;
-// HitObjectPlacementBlueprint / SnapResult are the Garbus vendored ones (Edit.Compose).
-// ReplacesExistingObject now overrides the vendored base's GarbusHitObject overload (osu's took the
-// framework HitObject); logic identical.
-
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;

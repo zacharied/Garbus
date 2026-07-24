@@ -1,7 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableHoldNote.cs).
-// Original carries the ppy template MIT header:
-// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
-// Adapted for Garbus: judgement/input/catch-record logic factored into this generic base so the cardinal
+// Judgement/input/catch-record logic is factored into this generic base so the cardinal
 // and shoulder hold drawables share it; subclasses supply only visuals.
 
 using System;

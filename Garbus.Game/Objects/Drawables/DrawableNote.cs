@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableNote.cs).
-
 using System;
 using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;

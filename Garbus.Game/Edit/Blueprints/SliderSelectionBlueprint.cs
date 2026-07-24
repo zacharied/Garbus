@@ -1,9 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/SliderSelectionBlueprint.cs).
-// EditorBeatmap → EditorChart; BigAssCircleHitObjectComposer → GarbusHitObjectComposer;
-// BacSnapResult → GarbusSnapResult; BacPathControlPoint → GarbusPathControlPoint;
-// osu.Game.Screens.Edit IEditorChangeHandler → Garbus.Game.Edit.IEditorChangeHandler;
-// OsuColour resolve removed — the outline/handle yellow (osu's OsuColour.Yellow #FFCC22) is inlined.
-
 using System;
 using System.Collections.Generic;
 using System.Linq;

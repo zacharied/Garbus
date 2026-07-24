@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/IHasCardinalDirection.cs).
-
 using Garbus.Game.Core;
 
 namespace Garbus.Game.Objects;

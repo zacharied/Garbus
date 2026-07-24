@@ -1,7 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/BacBeatSnapGrid.cs). BacBeatSnapGrid →
-// GarbusBeatSnapGrid; BacEditorPlayfield → GarbusEditorPlayfield; base BeatSnapGrid / HitObjectComposer
-// are the Garbus vendored ones (Edit.Compose). Otherwise verbatim.
-
 using System.Collections.Generic;
 using osu.Framework.Graphics.Containers;
 using Garbus.Game.Edit.Compose;

@@ -137,7 +137,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// ISSUES.md: the resource choose buttons stayed greyed out after the chart was saved — the
+        /// The resource choose buttons stayed greyed out after the chart was saved — the
         /// enabled state was computed once at load. They must enable as soon as the chart has a
         /// directory, without reopening the editor.
         /// </summary>

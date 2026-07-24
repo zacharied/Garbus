@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/PlayfieldKeybeam.cs).
-
 using System;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;

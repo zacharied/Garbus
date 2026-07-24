@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Drawables/EditorDrawableCardinalNote.cs).
-// Namespace only change; adds the same-start-time chord tint (Garbus addition).
-
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using Garbus.Game.Objects;

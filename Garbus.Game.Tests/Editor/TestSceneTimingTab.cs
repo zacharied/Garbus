@@ -135,7 +135,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// Regression guard (ISSUES.md): the Add/Delete buttons must respond to REAL mouse clicks
+        /// Regression guard: the Add/Delete buttons must respond to REAL mouse clicks
         /// through the positional input pipeline, not just TriggerClick().
         /// </summary>
         [Test]
@@ -165,7 +165,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// ISSUES.md "Add and Delete buttons don't respond to click": on a fresh chart the playhead
+        /// Regression guard ("Add and Delete buttons don't respond to click"): on a fresh chart the playhead
         /// sits at 0 where a timing point already exists, so Add silently replaced the point in the
         /// same group and Delete silently refused to remove the only point. The buttons must instead
         /// be visibly disabled when their action can't do anything.
@@ -205,7 +205,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// ISSUES.md: selecting a row seeks onto the point, which used to grey Add out with no way
+        /// Selecting a row seeks onto the point, which used to grey Add out with no way
         /// back. Re-clicking the selected row must deselect it, and Add must re-enable (its meaning
         /// is now "add or focus the group at the playhead", following osu).
         /// </summary>

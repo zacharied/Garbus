@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Judgement/SliderJudgementResult.cs).
-
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 

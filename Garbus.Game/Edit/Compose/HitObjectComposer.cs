@@ -277,7 +277,7 @@ namespace Garbus.Game.Edit.Compose
         /// playfield: y → time via <see cref="ScrollingPlayfield.TimeAtScreenSpacePosition"/>, snapped via
         /// <see cref="Charts.Timing.ControlPointInfo.GetClosestSnappedTime(double,int,double?)"/>, then back
         /// to screen space via <see cref="ScrollingPlayfield.ScreenSpacePositionAtTime"/>. This reproduces
-        /// the scrolling snap BAC's FindSnappedAngleTimeAndPosition builds on (including the recentre-x quirk
+        /// the scrolling snap FindSnappedAngleTimeAndPosition builds on (including the recentre-x quirk
         /// it works around: ScreenSpacePositionAtTime returns the container's horizontal centre).
         /// </summary>
         public virtual SnapResult FindSnappedPositionAndTime(Vector2 screenSpacePosition)

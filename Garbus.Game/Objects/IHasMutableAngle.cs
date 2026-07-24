@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/IHasMutableAngle.cs).
-
 namespace Garbus.Game.Objects;
 
 /// <summary>

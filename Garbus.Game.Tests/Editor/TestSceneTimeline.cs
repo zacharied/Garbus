@@ -1,7 +1,7 @@
 // TDD tests for Task 17: top timeline strip + zoom sync + View toggle.
 //
 // Contract under test:
-//   1. Zoom changes write TimelineTimeRange = TrackLength / zoom / 2  (BAC formula).
+//   1. Zoom changes write TimelineTimeRange = TrackLength / zoom / 2.
 //   2. Toggling EditorShowTicks hides/shows the TimelineTickDisplay layer.
 //   3. Object markers appear (TimelineObjectMarkers becomes non-empty) when a note is added.
 //   4. Playfield does NOT advance while the EditorClock is stopped (clock-wiring regression guard).

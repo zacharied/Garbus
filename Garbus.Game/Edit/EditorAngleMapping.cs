@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/EditorAngleMapping.cs).
-// Zero osu.Game dependencies — verbatim port, namespace only.
-
 using System;
 using System.Collections.Generic;
 using System.Linq;

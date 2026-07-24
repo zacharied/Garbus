@@ -1,6 +1,6 @@
-// Replaces osu.Game's IScrollingInfo/ScrollingTestContainer.TestScrollingInfo pair (BAC used the test
-// implementation directly). Garbus's playfield is radial, so there is no scrolling direction — only the
-// visible time range and the algorithm mapping time to distance-from-centre.
+// Replaces osu.Game's IScrollingInfo/ScrollingTestContainer.TestScrollingInfo pair. Garbus's
+// playfield is radial, so there is no scrolling direction — only the visible time range and the
+// algorithm mapping time to distance-from-centre.
 
 using osu.Framework.Bindables;
 

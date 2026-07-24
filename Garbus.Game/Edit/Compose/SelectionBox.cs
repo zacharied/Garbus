@@ -2,10 +2,10 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: namespace Garbus.Game.Edit.Compose; SelectionRotationHandler/SelectionScaleHandler
-// and all scale/rotation handle wiring removed entirely (BAC doesn't use them); OsuColour replaced
+// and all scale/rotation handle wiring removed entirely (unused here); OsuColour replaced
 // with inline Color4 constants (YellowDark=#eeaa00, Gray0=#000); OsuSpriteText/OsuFont replaced with
 // plain SpriteText (framework); CanFlipX/CanFlipY/CanReverse properties kept for completeness but
-// BAC currently sets none of them; [Cached] attribute kept so BlueprintContainer can resolve the box.
+// nothing currently sets them; [Cached] attribute kept so BlueprintContainer can resolve the box.
 
 using System;
 using System.Linq;

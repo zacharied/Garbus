@@ -1,6 +1,6 @@
-// Replaces BigAssCircle's RulesetInputManager<BigAssCircleAction>. A plain framework
-// KeyBindingContainer over GarbusAction. Defaults live in the shared DefaultBindings map so the
-// KeyBindingStore can overlay per-action overrides on the same source of truth.
+// A plain framework KeyBindingContainer over GarbusAction. Defaults live in the shared
+// DefaultBindings map so the KeyBindingStore can overlay per-action overrides on the same
+// source of truth.
 
 using System.Collections.Generic;
 using System.Linq;

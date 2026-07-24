@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/UI/PlayfieldRadialLines.cs).
-
 using System;
 using System.Collections.Generic;
 using osu.Framework.Allocation;

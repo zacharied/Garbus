@@ -1,5 +1,4 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableSliderChild.cs).
-// Adapted for Garbus: each child is a hold-family duration judgement, while HeadStyleHit is the
+// Each child is a hold-family duration judgement, while HeadStyleHit is the
 // distinct catch-style pseudo-judgement used only as the next segment's head reference.
 
 using System;

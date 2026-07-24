@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/DrawableBacHitObject.cs).
-// DrawableBacHitObject → DrawableGarbusHitObject.
-
 using Garbus.Game.Gameplay.Objects.Drawables;
 
 namespace Garbus.Game.Objects.Drawables;

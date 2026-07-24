@@ -1,7 +1,7 @@
-// The on-disk shape of a .garbus chart file (format decisions recorded in PLAN-port.md: JSON for
-// readability/diffability, integer version field, control points as typed lists). This DTO layer is
-// deliberately separate from the domain model so the file format can stay stable while the domain
-// evolves — all mapping lives in GarbusChartSerializer.
+// The on-disk shape of a .garbus chart file: JSON (readable/diffable), an integer version field,
+// and control points as typed lists. This DTO layer is deliberately separate from the domain model
+// so the file format can stay stable while the domain evolves — all mapping lives in
+// GarbusChartSerializer.
 //
 // Note: hit object polymorphism uses a "type" discriminator which System.Text.Json (net8) requires to
 // be the FIRST property of each hit object — the encoder always writes it first; keep it first when

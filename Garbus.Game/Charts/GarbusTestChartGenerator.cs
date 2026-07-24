@@ -1,7 +1,5 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Beatmaps/BacTestBeatmapGenerator.cs).
-// BacTestBeatmapGenerator → GarbusTestChartGenerator; returns a GarbusChart instead of Beatmap<T>.
-// Since Phase 3 this is the source of truth for the bundled test chart file — regenerate it via the
-// explicit test TestChartFormat.RegenerateBundledTestChart after changing anything here.
+// The source of truth for the bundled test chart file — regenerate it via the explicit test
+// TestChartFormat.RegenerateBundledTestChart after changing anything here.
 
 using System;
 using osu.Framework.Bindables;

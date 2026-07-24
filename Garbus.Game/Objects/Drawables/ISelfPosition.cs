@@ -1,5 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Objects/Drawables/ISelfPosition.cs).
-
 namespace Garbus.Game.Objects.Drawables;
 
 /// <summary>

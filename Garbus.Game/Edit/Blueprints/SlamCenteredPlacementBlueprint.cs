@@ -1,6 +1,3 @@
-// Ported from BigAssCircle (osu.Game.Rulesets.BigAssCircle/Edit/Blueprints/SlamCenteredPlacementBlueprint.cs).
-// BacSlamCentered → GarbusSlamCentered.
-
 using Garbus.Game.Objects;
 
 namespace Garbus.Game.Edit.Blueprints;
