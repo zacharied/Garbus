@@ -17,6 +17,8 @@ namespace Garbus.Game
             {
                 screenStack = new ScreenStack { RelativeSizeAxes = Axes.Both },
                 new GlobalSettingsContainer(screenStack) { RelativeSizeAxes = Axes.Both },
+                // Persistent build code, drawn on top of every screen (bottom-right corner).
+                new BuildInfoOverlay(),
             };
         }
 

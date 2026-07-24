@@ -14,4 +14,28 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+  <!-- Stamp the building commit's short hash into every assembly as [AssemblyMetadata("GitCommit", ...)]
+       so the running app can report which build it is (BuildInfo -> the bottom-right overlay). Nothing
+       else in the app knows its commit at runtime: CI only writes it to BUILD-INFO.txt at release time.
+       Falls back to "unknown" when git is unavailable (e.g. a source-only build). The AssemblyAttribute
+       item is an input to CoreGenerateAssemblyInfo, so a changed hash re-stamps and recompiles. -->
+  <Target Name="EmbedGitCommit" BeforeTargets="CreateGeneratedAssemblyInfoInputsCacheFile;CoreGenerateAssemblyInfo" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="git rev-parse --short HEAD"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ConsoleToMSBuild="true"
+          ContinueOnError="true"
+          StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GarbusGitCommit" />
+      <Output TaskParameter="ExitCode" PropertyName="GarbusGitExitCode" />
+    </Exec>
+    <PropertyGroup>
+      <GarbusGitCommit Condition="'$(GarbusGitExitCode)' != '0' or '$(GarbusGitCommit)' == ''">unknown</GarbusGitCommit>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>GitCommit</_Parameter1>
+        <_Parameter2>$(GarbusGitCommit)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
 </Project>
