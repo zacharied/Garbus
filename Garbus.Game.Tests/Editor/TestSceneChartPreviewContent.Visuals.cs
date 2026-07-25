@@ -289,7 +289,8 @@ public partial class TestSceneChartPreviewContent
     public void TestSameTypeSliderUpsertRefreshesSideAndRetainsRenderResources()
     {
         DrawableSliderBody before = null!;
-        Drawable bufferedPath = null!;
+        SmoothPath bodyPath = null!;
+        GlowPath bodyGlow = null!;
 
         AddStep("apply left slider", () => preview.Replace(fullState(1, chartWith(new SliderBody
         {
@@ -308,9 +309,8 @@ public partial class TestSceneChartPreviewContent
         AddStep("capture slider resources", () =>
         {
             before = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().Single();
-            bufferedPath = before.ChildrenOfType<Container<SmoothPath>>()
-                                 .Single(c => !ReferenceEquals(c.Parent, before))
-                                 .Parent!;
+            bodyPath = before.BodyPaths.Single(path => path.Vertices.Count >= 2);
+            bodyGlow = before.GlowPaths.Single(path => path.Vertices.Count >= 2);
         });
 
         AddStep("upsert right slider", () => Assert.That(preview.Apply(upsertBatch(
@@ -330,11 +330,10 @@ public partial class TestSceneChartPreviewContent
                 },
             }))), Is.True));
 
-        AddUntilStep("slider side visuals refreshed", () => sliderSideVisuals(before).All(hasRightColour));
+        AddUntilStep("slider side visuals refreshed", () => before.HasSideColourForTests(Constants.RightColour));
         AddAssert("slider drawable retained", () => preview.PlayfieldForTests.AllHitObjects.Single(), () => Is.SameAs(before));
-        AddAssert("slider buffered path retained", () => before.ChildrenOfType<Container<SmoothPath>>()
-                                                                    .Single(c => !ReferenceEquals(c.Parent, before))
-                                                                    .Parent, () => Is.SameAs(bufferedPath));
+        AddAssert("slider body path retained", () => before.BodyPaths, () => Does.Contain(bodyPath));
+        AddAssert("slider glow path retained", () => before.GlowPaths, () => Does.Contain(bodyGlow));
         AddAssert("slider path geometry refreshed", () => before.AngleDegAt(2850), () => Is.EqualTo(90).Within(0.001));
     }
 

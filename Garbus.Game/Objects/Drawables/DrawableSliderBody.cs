@@ -227,6 +227,13 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     internal SliderContactSpikes ContactSpikes => contactSpikes;
 
+    internal bool HasSideColourForTests(ColourInfo colour) =>
+        bodyVisual.Colour.Equals(colour)
+        && escapeVisual.Colour.Equals(colour)
+        && tipBox.Colour.Equals(colour)
+        && headContainer.Colour.Equals(colour)
+        && contactSpikes.SideColour.Equals(colour);
+
     // Per-node data, rebuilt whenever a new hit object is applied.
     private float[] nodeRadians = Array.Empty<float>();
     private double[] nodeTimes = Array.Empty<double>();

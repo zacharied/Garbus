@@ -397,16 +397,6 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             yield return nested;
     }
 
-    private static System.Collections.Generic.IEnumerable<Drawable> sliderSideVisuals(DrawableSliderBody slider)
-    {
-        foreach (var container in slider.ChildrenOfType<Container<SmoothPath>>())
-            yield return container;
-
-        yield return slider.ContactSpikes;
-        yield return slider.ChildrenOfType<Box>().Single(b => b.Size == new Vector2(46));
-        yield return slider.ChildrenOfType<Circle>().Single(c => c.Size == new Vector2(slider.Thickness)).Parent!;
-    }
-
     private static Dictionary<Drawable, int> disposalCountsFor(IEnumerable<Drawable> drawables)
     {
         var counts = drawables.ToDictionary(drawable => drawable, _ => 0);
