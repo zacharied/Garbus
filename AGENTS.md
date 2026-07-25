@@ -66,11 +66,13 @@ mindmap
       playfield / ring / lanes
       polar time→radius scroll
       judgement + feedback halo
+      auto-hit presentation
       vendored hit-object stack
     editor
       shell + tabs + undo/redo
       compose + angle mapping
       timeline + test mode
+      mini preview
       gotcha catalogue
     timing-audio
       gameplay clock stack

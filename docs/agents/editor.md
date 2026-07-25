@@ -61,6 +61,36 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
 - `Edit/EditorClipboard.cs` — cut/copy/paste/clone (clone deliberately does **not** touch clipboard
   content, matching osu).
 
+## Mini preview
+
+A small, silent, read-only live gameplay preview docked in the Compose workspace — it shows the chart
+being authored actually *played* (notes travelling out and being hit at the ring), so spacing, timing,
+design and scroll speed read as gameplay rather than as a timeline.
+
+- `Edit/Preview/MiniPreview.cs` — the host. A **non-interactive** `GarbusPlayfield` on a clock **slaved
+  to the `EditorClock`** (the same wiring `ComposeTab` uses for the composer), rendering the editor's
+  **live `GarbusHitObject` instances directly — no clone** — as presentation-only `autoHit` drawables
+  (see the auto-hit capability in [gameplay.md](gameplay.md)). Because auto-hit drawables are a pure
+  function of clock time, the preview is **stateless** under seek/rewind: scrub anywhere and it is
+  correct, no tracking beyond an add/remove map. The playfield renders at a fixed `ReferenceSize` (the
+  canonical draw height) scaled uniformly to fit the panel each frame, so the fixed-pixel note sprites
+  keep gameplay proportions in the small box; the host masks to a rounded rect matching the panel chrome.
+- Constructed `GarbusPlayfield(interactive: false, miniStyle: true)`: no analog input manager or stick
+  indicators, and a plain-arc `MiniWarningIndicatorDisplay` in place of the gameplay blurred glow.
+- Live edits flow through the editor's existing change events. `HitObjectAdded` / `HitObjectRemoved`
+  add / remove **and `Dispose()`** the drawable (the non-pooled zombie gotcha — same as the composer);
+  `HitObjectUpdated` needs no drawable work because the shared instance's `ApplyDefaults` fires
+  `DefaultsApplied`, re-applying the drawable **in place** (never recreated). Every event also rebuilds
+  the playfield's chord index via `SetHitObjects` so chord tinting stays live; timing / design /
+  scroll-speed reflect automatically because the drawables read shared state on re-apply. All
+  subscriptions keep a field reference and are unsubscribed in `Dispose`.
+- `Edit/Preview/InlineChartPreviewPanel.cs` — the draggable docked chrome: bottom-right anchored,
+  clamped to the Compose workspace, with a solid backdrop + border and persisted right/bottom offsets
+  (`MiniPreviewX`/`MiniPreviewY` config). It lazily constructs the `MiniPreview` on first show.
+- Wiring in `GarbusEditor`: a `View › Mini Preview` toggle (`MiniPreviewEnabled`, on by default), gated
+  to show only on the Compose tab, and suspended while Test mode (or any other screen) owns the editor,
+  then restored on resume.
+
 ## osu-framework background
 
 DI/BDL caching, drawable lifetime + transforms (editor drawables refresh in place on

@@ -46,6 +46,20 @@ Chording/coincidence helpers (`Objects/ChordHighlighter.cs`, `ChordColours`, `Ch
 `UI/SlamCoincidenceIndex.cs`, `UI/ChordConnectorOverlay.cs`) group simultaneous objects for visuals
 and slam-coincidence judgement floors.
 
+## Auto-hit (presentation-only)
+
+`DrawableHitObject` carries a general **`autoHit`** capability (`AutoHit { get; init; }`, inherited by
+nested drawables through `AutoHitActive`): the drawable plays its hit animation as a **pure function of
+clock time**, never produces a `JudgementResult`, never scores, and lets the scrolling container own its
+lifetime — it **swallows drawable-side `LifetimeEnd` writes** (from `Expire`/`UpdateState`) so a scrub or
+rewind can't pin lifetime to a path-dependent moment. `AutoHitEngaged`
+(`AutoHitActive && Time.Current >= StartTime`) is the time-derived seam that durationed drawables read to
+present continuous **held / caught** state with no input — hold notes' `Holding` and the slider body's
+leading-edge catch both consult it. An optional forward-crossing hitsound (`AutoHitPlaysSamples`) fires
+once as the clock passes the hit time going forward (left off for the silent editor preview). Auto-hit is
+presentation-only in every context; it is what powers the editor Mini preview (see [editor.md](editor.md)),
+where the real gameplay drawables are reused verbatim over the editor's live hit objects.
+
 ## Vendored infrastructure
 
 `Gameplay/` holds the osu.Game infrastructure, vendored and trimmed:
@@ -107,3 +121,10 @@ algorithm interface; `IFrameBasedClock` (the playfield runs on the gameplay cloc
   [testing.md](testing.md) (`TestSceneGameplay.playThrough`).
 - **Removed non-pooled drawables must be disposed** — a cross-cutting trap that bites hardest in the
   editor composer; see [osu-framework.md](osu-framework.md) and [editor.md](editor.md).
+- **The hold head-pop is skipped under auto-hit.** Auto-hit force-schedules the Hit exit at *apply*
+  time (before the head is reached); `DrawableHoldNote`'s `OnHeadHit` fires later at `StartTime` and its
+  head-sprite transform prunes the already-scheduled exit chain on the same sprite, leaving the head
+  static instead of playing its fade/spin/scale exit. Real gameplay is immune — there the exit is
+  scheduled at `EndTime`, after the pop. A seek/jump also hides it (the pop then fires *after* the exit
+  starts), so it only reproduces under real forward playback. Pin:
+  `TestPreviewHoldExitUnderRealPlayback`.
