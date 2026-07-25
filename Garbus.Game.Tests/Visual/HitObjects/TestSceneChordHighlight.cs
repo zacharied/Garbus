@@ -129,31 +129,28 @@ namespace Garbus.Game.Tests.Visual.HitObjects
             overlay.ChildrenOfType<osu.Framework.Graphics.Lines.SmoothPath>().Single();
 
         [Test]
-        public void ConnectorFadesOutAtJudgementWhileNotesStillAlive()
+        public void ConnectorFadesOutAfterReachingRingWhileNotesAlive()
         {
+            // The connector is a scroll-in aid: it fades out once the chord reaches the ring (StartTime),
+            // driven purely by the clock — NOT by judgement. The notes stay alive throughout, proving the fade
+            // is neither judgement- nor despawn-driven. Seeks alone (no elapsed real time) exercise it, which
+            // is exactly what makes it robust under editor scrubbing.
             AddStep("two cardinals at 2000ms", () => buildScene(
                 new CardinalNote { AngleDeg = 90, StartTime = 2000 },
                 new CardinalNote { AngleDeg = 270, StartTime = 2000 }));
             AddUntilStep("loaded", () => playfield.IsLoaded);
 
-            AddStep("seek to make alive", () => manualClock.CurrentTime = 2000);
+            AddStep("seek to just before the ring", () => manualClock.CurrentTime = 1950);
             AddUntilStep("both alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => d.IsAlive));
-            AddUntilStep("connector at full opacity", () => visiblePaths().Count() == 1 && singlePath().Alpha == 1);
+            AddUntilStep("full opacity while approaching", () => visiblePaths().Count() == 1 && singlePath().Alpha == 1);
 
-            // Step past the 173ms miss window so the notes auto-miss (judged) but are still mid-fade (alive).
-            AddUntilStep("all judged, still alive", () =>
-            {
-                manualClock.CurrentTime = System.Math.Min(2400, manualClock.CurrentTime + 40);
-                var notes = playfield.AllHitObjects.OfType<DrawableCardinalNote>().ToList();
-                return notes.All(d => d.State.Value != Gameplay.Objects.Drawables.ArmedState.Idle && d.IsAlive);
-            });
+            // A little past the ring: still present, but no longer full (proves it fades, not snaps).
+            AddStep("seek just past the ring", () => manualClock.CurrentTime = 2040);
+            AddAssert("notes still alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => d.IsAlive));
+            AddAssert("connector fading", () => visiblePaths().Any() && singlePath().Alpha < 1 && singlePath().Alpha > 0);
 
-            // A little into the fade: still present, but no longer at full opacity (proves it fades, not snaps).
-            AddStep("advance into fade", () => manualClock.CurrentTime += 60);
-            AddAssert("connector fading", () => visiblePaths().Any() && singlePath().Alpha < 1);
-
-            // Past the fade duration but well before the notes' 1000ms miss fade ends: connector fully gone.
-            AddStep("advance past fade", () => manualClock.CurrentTime += 400);
+            // Past the fade duration, notes still alive: connector fully gone.
+            AddStep("seek past the fade", () => manualClock.CurrentTime = 2300);
             AddAssert("notes still alive", () => playfield.AllHitObjects.OfType<DrawableCardinalNote>().All(d => d.IsAlive));
             AddAssert("connector gone", () => !visiblePaths().Any());
         }
@@ -200,9 +197,9 @@ namespace Garbus.Game.Tests.Visual.HitObjects
         [Test]
         public void ConnectorVisibleForAutoHitChordWhileApproaching()
         {
-            // Mini-preview parity: auto-hit drawables are forced to ArmedState.Hit at apply time, so gating the
-            // connector purely on "still Idle" would hide it for the entire preview. It must show while the
-            // chord scrolls in (before the ring-arrival time) and clear once past it.
+            // Mini-preview parity: with auto-hit drawables (as the preview spawns them), the connector must
+            // still show while the chord scrolls in and clear once past the ring — the presentation depends
+            // only on the clock and which members are live, never on judgement state.
             AddStep("two auto-hit cardinals at 2000ms", () => buildScene(1f, autoHit: true,
                 new CardinalNote { AngleDeg = 90, StartTime = 2000 },
                 new CardinalNote { AngleDeg = 270, StartTime = 2000 }));
@@ -223,10 +220,9 @@ namespace Garbus.Game.Tests.Visual.HitObjects
         [Test]
         public void AutoHitConnectorClearsAndRestoresUnderScrubbing()
         {
-            // The mini preview scrubs the editor clock (jumps, pauses, rewinds). A real-time fade transform
-            // would never advance under a paused clock and leave the line stuck on screen. The auto-hit path is
-            // a pure function of the clock, so scrubbing past the ring clears it immediately and rewinding back
-            // restores it — no stale lines.
+            // The mini preview scrubs the editor clock (jumps, pauses, rewinds). Because the presentation is a
+            // pure function of the clock, scrubbing past the ring clears the line immediately (a real-time fade
+            // transform would be stuck under a paused clock) and rewinding restores it — no stale lines.
             AddStep("two auto-hit cardinals at 2000ms", () => buildScene(1f, autoHit: true,
                 new CardinalNote { AngleDeg = 90, StartTime = 2000 },
                 new CardinalNote { AngleDeg = 270, StartTime = 2000 }));

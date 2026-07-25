@@ -1,16 +1,14 @@
 // Draws one thin, semi-transparent yellow polygon per same-start-time cardinal chord, inscribed at the
-// chord's shared (co-radial) distance from centre. Lives in Ring below the hit objects. Geometry comes from
-// ChordHighlighter + ProgressAtTime (never from live note positions), so it keeps its full shape while the
-// chord is scrolling in, even if one member despawns early.
+// chord's shared (co-radial) distance from centre. Lives in Ring below the hit objects. It is purely a
+// visual aid with no gameplay implications.
 //
-// Two presentation paths share the geometry:
-//  - Gameplay (played forward in real time): shown at full opacity while at least one member is alive and
-//    still unjudged (ArmedState.Idle). The instant the chord is judged at the ring, the polygon is frozen
-//    and fades out via a real-time transform over CONNECTOR_FADE_OUT ms.
-//  - The editor mini preview drives auto-hit drawables on a clock the editor scrubs (jumps, pauses, rewinds).
-//    Real-time fade transforms never advance under a scrubbed clock and would leave lines stuck on screen, so
-//    there the whole presentation (geometry + alpha) is a pure function of the clock — recomputed and
-//    assigned every frame, exact under any seek.
+// Its whole presentation is a pure function of the clock: geometry and alpha are recomputed and assigned
+// every frame from the current time, so it behaves identically whether the clock is played forward
+// (gameplay) or scrubbed / paused / rewound (the editor timeline and mini preview) — no stuck lines, and no
+// notion of "preview" vs "gameplay" anywhere. It never reads judgement or ArmedState; it only asks which
+// chords currently have a live member and where they sit on the way to the ring. Geometry comes from
+// ChordHighlighter + ProgressAtTime (never live note positions), so the full polygon holds its shape while
+// scrolling in, even if one member despawns early.
 
 using System;
 using System.Collections.Generic;
@@ -20,7 +18,6 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Lines;
 using Garbus.Game.Gameplay.Objects;
-using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Objects;
 using Garbus.Game.Utils;
 using osuTK;
@@ -38,18 +35,9 @@ public partial class ChordConnectorOverlay : CompositeDrawable
     // How long the polygon takes to fade out once its chord reaches the ring.
     private const double connector_fade_out = 200;
 
-    // One reusable path per chord, keyed by the chord's shared start time. Kept (faded) rather than
-    // removed when the chord is no longer present, to avoid per-frame allocation churn.
+    // One reusable path per chord, keyed by the chord's shared start time. Kept (hidden) rather than removed
+    // when the chord is off-screen, to avoid per-frame allocation churn while scrubbing back and forth.
     private readonly Dictionary<double, SmoothPath> pathsByStartTime = new Dictionary<double, SmoothPath>();
-
-    // Start times whose path is currently shown at full opacity. Used (gameplay only) to fire the fade-out
-    // transform exactly once, on the present→judged transition (and to snap back on rewind).
-    private readonly HashSet<double> shownStartTimes = new HashSet<double>();
-
-    // Latches true once this overlay is driving auto-hit drawables (the mini preview). An overlay never
-    // switches context, so once seen it stays true even on a frame where nothing is alive — which is what
-    // lets stale preview lines be cleared when seeking to an empty region.
-    private bool autoContext;
 
     public ChordConnectorOverlay()
     {
@@ -78,111 +66,41 @@ public partial class ChordConnectorOverlay : CompositeDrawable
         // Recomputed each frame so the line tracks the current draw scale (e.g. a window or preview resize).
         float lineRadius = pathRadius();
 
-        var aliveByObject = new Dictionary<HitObject, DrawableHitObject>();
-        foreach (var d in ring.AliveHitObjects)
-        {
-            aliveByObject[d.HitObject] = d;
-            if (d.AutoHitActive)
-                autoContext = true;
-        }
-
-        // Dispose paths whose chord no longer exists. A chord only leaves chords.Groups when the chart is
-        // edited (e.g. the mini preview deletes a member and the 2-note chord drops to one) — never on
-        // judgement — so a still-present chord is never pruned mid-fade. Without this, a broken chord's path is
-        // never revisited by the loops below and lingers on screen at its last alpha.
+        // Chords that no longer exist (e.g. a member deleted in the editor, breaking the chord) drop out of
+        // the index — dispose their orphaned paths so they don't linger on screen.
         pruneStalePaths();
 
-        if (autoContext)
-        {
-            foreach (var group in chords.Groups)
-                updateAutoGroup(group, lineRadius, aliveByObject);
-
-            return;
-        }
-
-        updateGameplay(lineRadius, aliveByObject);
-    }
-
-    // Auto-hit (mini preview): geometry + alpha are a pure function of the clock, assigned directly with no
-    // transforms so the result is exact under any seek/rewind. Alpha is full while the chord is scrolling in,
-    // then fades linearly over connector_fade_out after the ring-arrival time (StartTime); no alive members
-    // (seeked away) clears it. Geometry uses ProgressAtTime, already clamped to the ring, so the polygon grows
-    // in and freezes at the ring.
-    private void updateAutoGroup(ChordIndex.ChordGroup group, float lineRadius, Dictionary<HitObject, DrawableHitObject> aliveByObject)
-    {
-        pathsByStartTime.TryGetValue(group.StartTime, out var path);
-
-        bool anyAlive = group.Members.Any(m => aliveByObject.ContainsKey(m.Object));
-
-        float alpha = 0f;
-        if (anyAlive)
-        {
-            double elapsedPastRing = Time.Current - group.StartTime;
-            alpha = elapsedPastRing < 0
-                ? 1f
-                : 1f - (float)(elapsedPastRing / connector_fade_out);
-            alpha = Math.Clamp(alpha, 0f, 1f);
-        }
-
-        if (alpha <= 0f)
-        {
-            if (path != null)
-                path.Alpha = 0;
-
-            return;
-        }
-
-        float radius = ring.ScrollingContainer.ProgressAtTime(group.StartTime);
-        var vertices = group.Members.Select(m => polar(m.AngleDeg, radius)).ToList();
-        if (vertices.Count >= 3)
-            vertices.Add(vertices[0]); // close the loop
-
-        path = ensurePath(group.StartTime, path, lineRadius);
-        path.Vertices = vertices;
-        path.Position = -path.PositionInBoundingBox(Vector2.Zero);
-        path.Alpha = alpha;
-    }
-
-    // Gameplay: unchanged real-time behaviour — full opacity while any member is alive and unjudged, then a
-    // one-shot fade-out transform on the present→judged edge.
-    private void updateGameplay(float lineRadius, Dictionary<HitObject, DrawableHitObject> aliveByObject)
-    {
-        var active = new HashSet<HitObject>(aliveByObject.Values
-            .Where(d => d.State.Value == ArmedState.Idle)
-            .Select(d => d.HitObject));
+        var aliveObjects = new HashSet<HitObject>(ring.AliveHitObjects.Select(d => d.HitObject));
 
         foreach (var group in chords.Groups)
         {
-            // Present while ANY member is still scrolling in (alive and unjudged).
-            bool present = group.Members.Any(m => active.Contains(m.Object));
             pathsByStartTime.TryGetValue(group.StartTime, out var path);
 
-            if (present)
+            // Alpha is a pure function of the clock: full while the chord scrolls in, then an eased fade over
+            // connector_fade_out after it reaches the ring at StartTime, and nothing at all when no member is
+            // live (scrolled away, deleted, or seeked past). No transforms, so any seek/rewind is exact.
+            bool anyAlive = group.Members.Any(m => aliveObjects.Contains(m.Object));
+            double fade = Math.Clamp((Time.Current - group.StartTime) / connector_fade_out, 0, 1);
+            float alpha = anyAlive ? 1f - (float)osu.Framework.Utils.Interpolation.ApplyEasing(Easing.OutQuint, fade) : 0f;
+
+            if (alpha <= 0f)
             {
-                float radius = ring.ScrollingContainer.ProgressAtTime(group.StartTime);
+                if (path != null)
+                    path.Alpha = 0;
 
-                var vertices = group.Members.Select(m => polar(m.AngleDeg, radius)).ToList();
-                if (vertices.Count >= 3)
-                    vertices.Add(vertices[0]); // close the loop
-
-                path = ensurePath(group.StartTime, path, lineRadius);
-                path.Vertices = vertices;
-                path.Position = -path.PositionInBoundingBox(Vector2.Zero);
-
-                // First appearance, or reappearance after a rewind un-judged the chord: cancel any pending
-                // fade and snap fully visible. (Add returns true only on the not-present → present edge.)
-                if (shownStartTimes.Add(group.StartTime))
-                {
-                    path.ClearTransforms();
-                    path.Alpha = 1;
-                }
+                continue;
             }
-            else if (path != null && shownStartTimes.Remove(group.StartTime))
-            {
-                // Just judged / despawned: leave the frozen geometry in place and fade it out. (Remove
-                // returns true only on the present → not-present edge, so the fade fires once.)
-                path.FadeOut(connector_fade_out, Easing.OutQuint);
-            }
+
+            // ProgressAtTime is clamped to the ring, so the polygon grows in and then freezes at the ring.
+            float radius = ring.ScrollingContainer.ProgressAtTime(group.StartTime);
+            var vertices = group.Members.Select(m => polar(m.AngleDeg, radius)).ToList();
+            if (vertices.Count >= 3)
+                vertices.Add(vertices[0]); // close the loop
+
+            path = ensurePath(group.StartTime, path, lineRadius);
+            path.Vertices = vertices;
+            path.Position = -path.PositionInBoundingBox(Vector2.Zero);
+            path.Alpha = alpha;
         }
     }
 
@@ -198,8 +116,6 @@ public partial class ChordConnectorOverlay : CompositeDrawable
         {
             if (pathsByStartTime.Remove(startTime, out var path))
                 RemoveInternal(path, true);
-
-            shownStartTimes.Remove(startTime);
         }
     }
 
