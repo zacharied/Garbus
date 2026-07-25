@@ -1139,6 +1139,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
                                                                     .Single(d => d.HitObject.StartTime == 1000));
         AddAssert("live-upserted earlier result time is exact", () => earlier.Result.RawTime, () => Is.EqualTo(1000));
         AddAssert("live-upserted later result time remains exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
+        AddAssert("timeline rebuild reapplies later result once", () => laterResultCount, () => Is.EqualTo(2));
 
         AddStep("rewind between live-upserted notes", () => preview.Apply(transportBatch(3, 1100, false, 1, 0)));
         AddUntilStep("live-upsert rewind applied", () => preview.ClockTimeForTests, () => Is.EqualTo(1100));
@@ -1150,7 +1151,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddUntilStep("later live-upserted result reapplies", () => later.Judged && later.State.Value == ArmedState.Hit);
         AddAssert("reapplied live-upserted later result time is exact", () => later.Result.RawTime, () => Is.EqualTo(1200));
         AddWaitStep("hold after live-upserted later result", 3);
-        AddAssert("live-upserted later result reapplied exactly once", () => laterResultCount, () => Is.EqualTo(2));
+        AddAssert("explicit replay reapplies later result once", () => laterResultCount, () => Is.EqualTo(3));
     }
 
     [Test]
@@ -1318,7 +1319,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             Assert.That(judgedResultsBeforeRewind, Is.EqualTo(currentResults));
             Assert.That(currentTree.Select(d => d.Result.RawTime), Is.EqualTo(updatedTimes));
 
-            preview.PlayfieldForTests.RevertResult += revertedResults.Add;
+            preview.PlayfieldForTests.ResultReverted += revertedResults.Add;
             preview.PlayfieldForTests.NewResult += (drawable, result) => replayedResults.Add((drawable, result));
         });
 
@@ -1454,7 +1455,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             Assert.That(judgedResultsBeforeRewind, Is.EqualTo(currentResults));
             Assert.That(currentTree.Select(d => d.Result.RawTime), Is.EqualTo(updatedTimes));
 
-            preview.PlayfieldForTests.RevertResult += revertedResults.Add;
+            preview.PlayfieldForTests.ResultReverted += revertedResults.Add;
             preview.PlayfieldForTests.NewResult += (drawable, result) => replayedResults.Add((drawable, result));
         });
 
@@ -1921,6 +1922,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             IGatedDrawable generation = hitObject switch
             {
                 CardinalNote note => new GatedDrawableCardinalNote(note),
+                CardinalHoldNote hold => new GatedDrawableCardinalHoldNote(hold),
                 ShoulderNote note => new GatedDrawableShoulderNote(note),
                 _ => throw new ArgumentOutOfRangeException(nameof(hitObject)),
             };
@@ -1980,6 +1982,28 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         public bool LoadReleased { get; private set; }
 
         public GatedDrawableShoulderNote(ShoulderNote hitObject)
+            : base(hitObject)
+        {
+        }
+
+        protected override void OnApply()
+        {
+            base.OnApply();
+            VisualApplyCount++;
+        }
+
+        public void ReleaseLoad() => LoadReleased = true;
+    }
+
+    private partial class GatedDrawableCardinalHoldNote : DrawableCardinalHoldNote, IGatedDrawable
+    {
+        public DrawableHitObject Drawable => this;
+
+        public int VisualApplyCount { get; private set; }
+
+        public bool LoadReleased { get; private set; }
+
+        public GatedDrawableCardinalHoldNote(CardinalHoldNote hitObject)
             : base(hitObject)
         {
         }

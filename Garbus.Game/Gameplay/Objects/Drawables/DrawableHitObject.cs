@@ -599,10 +599,12 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
                 Expire();
         }
 
-        internal void ApplyExternalResult()
+        internal void ApplyResultAt(HitResult result, double rawTime)
         {
-            if (presentationPolicy?.UsesExternalResults == true && !Judged)
-                ApplyMaxResult();
+            if (presentationPolicy?.UsesExternalResults != true)
+                throw new InvalidOperationException("Exact external results require an external-result presentation policy.");
+
+            applyResultCore(static (judgementResult, state) => judgementResult.Type = state, result, rawTime);
         }
 
         protected void ApplyResult(HitResult type) => ApplyResult(static (result, state) => result.Type = state, type);
@@ -618,6 +620,9 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
         /// to apply a result, so that it can remain a `static` delegate and thus not allocate.
         /// </param>
         protected void ApplyResult<T>(Action<JudgementResult, T> application, T state)
+            => applyResultCore(application, state, null);
+
+        private void applyResultCore<T>(Action<JudgementResult, T> application, T state, double? rawTime)
         {
             if (Result.HasResult)
                 throw new InvalidOperationException("Cannot apply result on a hitobject that already has a result.");
@@ -635,9 +640,10 @@ namespace Garbus.Game.Gameplay.Objects.Drawables
                     $"{GetType().ReadableName()} applied an invalid hit result (was: {Result.Type}, expected: [{Result.Judgement.MinResult} ... {Result.Judgement.MaxResult}]).");
             }
 
-            Result.RawTime = presentationPolicy?.UsesExternalResults == true
-                ? presentationPolicy.ResultTimeFor(HitObject)
-                : Time.Current;
+            Result.RawTime = rawTime
+                             ?? (presentationPolicy?.UsesExternalResults == true
+                                 ? presentationPolicy.ResultTimeFor(HitObject)
+                                 : Time.Current);
             Result.GameplayRate = Clock.Rate;
 
             if (Result.HasResult)

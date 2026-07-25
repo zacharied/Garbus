@@ -50,7 +50,7 @@ public partial class Ring : Playfield
 
         judgementFeedback.DisplayJudgements.BindTo(DisplayJudgements);
         NewResult += onNewResult;
-        RevertResult += judgementFeedback.Revert;
+        ResultReverted += judgementFeedback.Revert;
 
         // Lanes are created here (not in load) so they exist before the first Add is routed to them.
         foreach (var direction in Enum.GetValues<CardinalDirection>())
@@ -74,7 +74,7 @@ public partial class Ring : Playfield
         }
 
         NewResult += (_, result) => slamCoincidenceIndex.Record(result);
-        RevertResult += result => slamCoincidenceIndex.Revert(result);
+        ResultReverted += result => slamCoincidenceIndex.Revert(result);
     }
 
     [BackgroundDependencyLoader]
@@ -190,7 +190,7 @@ public partial class Ring : Playfield
     protected override void Dispose(bool isDisposing)
     {
         NewResult -= onNewResult;
-        RevertResult -= judgementFeedback.Revert;
+        ResultReverted -= judgementFeedback.Revert;
         judgementFeedback.DisplayJudgements.UnbindFrom(DisplayJudgements);
         base.Dispose(isDisposing);
     }

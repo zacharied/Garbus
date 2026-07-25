@@ -31,6 +31,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
     private readonly Dictionary<PreviewObjectId, DrawableHitObject> drawables = new();
     private readonly Dictionary<PreviewObjectId, DrawableHitObject> pendingVisualRefreshes = new();
     private readonly GarbusScrollingInfo scrollingInfo = new();
+    private PreviewResultTimeline resultTimeline = null!;
 
     private readonly FramedClock framedClock;
 
@@ -75,6 +76,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
     {
         playfield = new GarbusPlayfield { Size = Vector2.One };
         playfield.DisplayJudgements.Value = false;
+        resultTimeline = new PreviewResultTimeline(playfield, isDrawableReady);
 
         InternalChildren =
         [
@@ -109,6 +111,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
 
         DrawableHitObject[] staleDrawables = drawables.Values.ToArray();
 
+        resultTimeline.RevertAll();
         pendingVisualRefreshes.Clear();
         foreach (DrawableHitObject drawable in staleDrawables)
             detach(drawable);
@@ -127,6 +130,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
         foreach (DrawableHitObject drawable in staleDrawables)
             drawable.Dispose();
 
+        resultTimeline.Rebuild(drawables);
         refreshHitObjects();
         replaceDesignOverlay();
         scrollingInfo.TimeRange.Value = snapshot.TimeRange;
@@ -144,6 +148,11 @@ internal partial class ChartPreviewContent : CompositeDrawable
 
         if (!tryStageBatch(batch, out GarbusChart? nextChart, out Dictionary<PreviewObjectId, GarbusHitObject>? nextObjects))
             return reject();
+
+        bool objectsChanged = !batch.Removes.IsEmpty || !batch.Upserts.IsEmpty;
+
+        if (objectsChanged)
+            resultTimeline.RevertAll();
 
         var retained = new List<(PreviewObjectId Id, DrawableHitObject Drawable, GarbusHitObject HitObject)>();
         var stale = new List<(PreviewObjectId Id, DrawableHitObject Drawable)>();
@@ -182,7 +191,6 @@ internal partial class ChartPreviewContent : CompositeDrawable
         {
             drawable.Apply(hitObject);
             playfield.Add(drawable);
-            playfield.TrackJudgedResult(drawable);
         }
 
         foreach ((PreviewObjectId id, GarbusHitObject hitObject) in created)
@@ -194,6 +202,9 @@ internal partial class ChartPreviewContent : CompositeDrawable
 
         foreach ((PreviewObjectId _, DrawableHitObject drawable) in stale)
             drawable.Dispose();
+
+        if (objectsChanged)
+            resultTimeline.Rebuild(drawables);
 
         if (!batch.Removes.IsEmpty || !batch.Upserts.IsEmpty || batch.Structure != null)
             refreshHitObjects();
@@ -232,12 +243,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
             }
         }
 
-        foreach (DrawableHitObject drawable in drawables.Values
-                                                        .SelectMany(withNested)
-                                                        .Where(d => !d.Judged && d.IsLoaded
-                                                                 && d.HitObject.GetEndTime() <= manualClock.CurrentTime)
-                                                        .OrderBy(d => d.HitObject.GetEndTime()))
-            drawable.ApplyExternalResult();
+        resultTimeline.Seek(manualClock.CurrentTime);
 
         base.Update();
     }
@@ -378,14 +384,6 @@ internal partial class ChartPreviewContent : CompositeDrawable
         return false;
     }
 
-    private static IEnumerable<DrawableHitObject> withNested(DrawableHitObject drawable)
-    {
-        yield return drawable;
-
-        foreach (DrawableHitObject nested in drawable.NestedHitObjects.SelectMany(withNested))
-            yield return nested;
-    }
-
     private void refreshHitObjects()
     {
         playfield.SetHitObjects(CurrentChart.HitObjects);
@@ -420,7 +418,6 @@ internal partial class ChartPreviewContent : CompositeDrawable
 
     private void detach(DrawableHitObject drawable)
     {
-        playfield.UntrackJudgedResult(drawable);
         playfield.Remove(drawable);
     }
 
@@ -433,6 +430,7 @@ internal partial class ChartPreviewContent : CompositeDrawable
     protected override void Dispose(bool isDisposing)
     {
         pendingVisualRefreshes.Clear();
+        resultTimeline?.Clear();
         base.Dispose(isDisposing);
     }
 
@@ -447,4 +445,6 @@ internal partial class ChartPreviewContent : CompositeDrawable
     internal double ClockTimeForTests => manualClock.CurrentTime;
 
     internal double CurrentTimeRangeForTests => scrollingInfo.TimeRange.Value;
+
+    internal long ResultEntriesVisitedForTests => resultTimeline.VisitedEntryCount;
 }

@@ -256,7 +256,7 @@ namespace Garbus.Game.Screens
             playfield.SetHitObjects(chart.HitObjects);
 
             playfield.NewResult += onNewResult;
-            playfield.RevertResult += onRevertResult;
+            playfield.ResultReverted += onRevertResult;
         }
 
         /// <summary>
@@ -425,7 +425,7 @@ namespace Garbus.Game.Screens
             if (playfield.IsNotNull())
             {
                 playfield.NewResult -= onNewResult;
-                playfield.RevertResult -= onRevertResult;
+                playfield.ResultReverted -= onRevertResult;
             }
 
             base.Dispose(isDisposing);
