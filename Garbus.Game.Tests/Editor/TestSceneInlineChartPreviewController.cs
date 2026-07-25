@@ -45,6 +45,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
     private BindableDouble rateAdjustment = null!;
     private long timestamp;
     private int incrementalObjectCloneCount;
+    private int fullChartCloneCount;
 
     [SetUpSteps]
     public void SetUpSteps()
@@ -55,6 +56,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
             appliedMessages.Clear();
             timestamp = Stopwatch.GetTimestamp();
             incrementalObjectCloneCount = 0;
+            fullChartCloneCount = 0;
             initialNote.StartTime = 1000;
             initialNote.AngleDeg = 45;
 
@@ -89,6 +91,11 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
                 {
                     incrementalObjectCloneCount++;
                     return GarbusChartCloner.CloneHitObject(hitObject);
+                },
+                (chart, effectiveControlPointInfo) =>
+                {
+                    fullChartCloneCount++;
+                    return GarbusChartCloner.CloneChart(chart, effectiveControlPointInfo);
                 });
 
             Child = new Container
@@ -172,6 +179,7 @@ public partial class TestSceneInlineChartPreviewController : GarbusTestScene
         AddUntilStep("object upsert applied", () =>
             appliedMessages.SelectMany(batch => batch.Upserts).Count() == 1);
         AddAssert("object-only update clones only its upsert", () => incrementalObjectCloneCount, () => Is.EqualTo(1));
+        AddAssert("object-only update does not clone full chart", () => fullChartCloneCount, () => Is.EqualTo(1));
         AddWaitStep("allow structural check", 2);
         AddAssert("object-only state emits no structural state", () =>
             appliedMessages.Where(batch => batch.Structure != null), () => Is.Empty);

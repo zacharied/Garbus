@@ -25,6 +25,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
     private readonly IChartPreviewSink view;
     private readonly Func<long> timestampProvider;
     private readonly Func<GarbusHitObject, GarbusHitObject> objectCloner;
+    private readonly Func<GarbusChart, ControlPointInfo, GarbusChart> chartCloner;
 
     private readonly Dictionary<GarbusHitObject, long> objectIds = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<GarbusHitObject> sentObjects = new(ReferenceEqualityComparer.Instance);
@@ -54,7 +55,8 @@ internal partial class InlineChartPreviewController : CompositeComponent
         GarbusScrollingInfo scrollingInfo,
         IChartPreviewSink view,
         Func<long>? timestampProvider = null,
-        Func<GarbusHitObject, GarbusHitObject>? objectCloner = null)
+        Func<GarbusHitObject, GarbusHitObject>? objectCloner = null,
+        Func<GarbusChart, ControlPointInfo, GarbusChart>? chartCloner = null)
     {
         this.editorChart = editorChart;
         this.editorClock = editorClock;
@@ -63,6 +65,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
         this.view = view;
         this.timestampProvider = timestampProvider ?? Stopwatch.GetTimestamp;
         this.objectCloner = objectCloner ?? GarbusChartCloner.CloneHitObject;
+        this.chartCloner = chartCloner ?? GarbusChartCloner.CloneChart;
     }
 
     public bool Enabled { get; private set; }
@@ -334,7 +337,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
         long stateRevision = revision + 1;
         PreviewTransportState transport = captureTransport();
 
-        GarbusChart detached = GarbusChartCloner.CloneChart(editorChart.Chart, editorChart.ControlPointInfo);
+        GarbusChart detached = chartCloner(editorChart.Chart, editorChart.ControlPointInfo);
         ImmutableArray<PreviewObjectState> objectStates = detached.HitObjects
                                                                   .Select((hitObject, index) => new PreviewObjectState(
                                                                       new PreviewObjectId(candidateIds[hitObjects[index]]),
