@@ -415,7 +415,11 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             // Main body: the emergence front (radius 0) out to the ring, at full alpha, with glow.
             bodyIndex = renderBand(0f, ringRadius, 1f, bodyPaths, pathContainer, bodyIndex, glowPaths, glowContainer);
 
-            bool hasRingContact = State.Value == ArmedState.Idle &&
+            // The spike follows the body's ring contact for as long as the body is presenting its live,
+            // in-flight look. In gameplay that is the Idle span; under auto-hit the body's ArmedState is
+            // forced to Hit at load (presentation only), so treat AutoHitEngaged as the same live state —
+            // otherwise the editor Mini preview (which drives every drawable auto-hit) never shows spikes.
+            bool hasRingContact = (State.Value == ArmedState.Idle || AutoHitEngaged) &&
                                   Time.Current >= nodeTimes[0] && Time.Current <= nodeTimes[^1];
             contactSpikes.SetContact(toRadians(AngleDegAt(Time.Current)), ringRadius, hasRingContact);
 
