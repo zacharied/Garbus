@@ -222,8 +222,8 @@ hover staleness regression by removing unrelated behavior rather than introducin
 Replace the branch's superseded Mini implementation plans/specs with one concise canonical Mini design and
 one corresponding final implementation plan, following repository convention. They cover current behavior,
 ownership, result/rewind policy, drag persistence, and verification expectations. Delete documents that
-describe inspector-bound placement, old mode menus, force-push procedure, a specific PR, deployment sessions,
-local paths, or historical test counts. Add a concise present-state Mini summary to `CLAUDE.md`.
+describe inspector-bound placement, old mode menus, or transient delivery and machine-specific procedures.
+Add a concise present-state Mini summary to `CLAUDE.md`.
 
 This remediation design remains as the rationale for the architectural cleanup. It must contain no
 machine-specific paths, deployment host instructions, or transient commit IDs.

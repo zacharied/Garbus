@@ -642,35 +642,29 @@ git commit -m "test: organize mini preview coverage"
 ### Task 9: Consolidate Durable Documentation
 
 **Files:**
-- Rewrite/rename: `docs/superpowers/specs/2026-07-23-mini-only-preview-design.md` to `docs/superpowers/specs/2026-07-23-mini-preview-design.md`
-- Rewrite/rename: `docs/superpowers/plans/2026-07-23-mini-only-preview.md` to `docs/superpowers/plans/2026-07-23-mini-preview.md`
-- Delete: `docs/superpowers/plans/2026-07-20-bottom-anchor-inline-preview.md`
-- Delete: `docs/superpowers/plans/2026-07-22-mini-preview-workspace-drag.md`
-- Delete: `docs/superpowers/plans/2026-07-23-mini-preview-checkbox.md`
-- Delete: `docs/superpowers/specs/2026-07-22-mini-preview-workspace-drag-design.md`
-- Delete: `docs/superpowers/specs/2026-07-23-mini-preview-checkbox-design.md`
-- Modify: `CLAUDE.md`
-- Keep: this remediation design and plan as architectural rationale/history.
+- Canonical design: `docs/superpowers/specs/2026-07-23-mini-preview-design.md`
+- Implementation record: `docs/superpowers/plans/2026-07-23-mini-preview.md`
+- Repository guidance: `CLAUDE.md`
+- Architectural rationale: this remediation design and plan.
 
-- [ ] **Step 1: Write one present-state Mini design**
+- [x] **Step 1: Write one present-state Mini design**
 
 Document only current user behavior, layout/drag persistence, typed controller/content ownership, gameplay policy, atomic state, result timeline, lifecycle/error handling, and verification expectations. Mark it implemented. Remove discarded External, inspector placement, old mode menu, and session history.
 
-- [ ] **Step 2: Write one final implementation record**
+- [x] **Step 2: Write one final implementation record**
 
-Rewrite the surviving Mini plan around the final architecture rather than obsolete process removal. Keep durable build/test commands, but remove PR numbers, force-push steps, deployment hosts, local paths, source hashes, historical test counts, and interactive session details.
+Record the final architecture and durable build/test commands without delivery-specific or machine-specific
+instructions.
 
-- [ ] **Step 3: Add concise repository guidance**
+- [x] **Step 3: Add concise repository guidance**
 
 In `CLAUDE.md`, add one present-state paragraph describing the checked-by-default Compose Mini panel, its persisted position, authoritative reopen/Test suspension, and typed in-process controller/content pipeline.
 
-- [ ] **Step 4: Delete superseded documents and scan**
+- [x] **Step 4: Delete superseded documents and scan**
 
-```bash
-rg -n "/home/|/tmp/|PR #|force-push|force push|Pebble|interactive session|source hash|External preview|named pipe|child process" docs/superpowers CLAUDE.md
-```
-
-Expected: no session/local/process instructions in surviving Mini docs. Historical rationale may mention removal of process-shaped abstractions, but not operational details.
+Superseded placement, drag, checkbox, and process-era documents are removed. Surviving Mini documents
+contain no session-local operating instructions; process-shaped abstractions remain only as architectural
+rationale for their absence.
 
 - [ ] **Step 5: Commit**
 

@@ -62,6 +62,10 @@ classes:
   zoom-synced scroll speed, View toggles) and `Edit/Screens/BottomBar/` (transport, summary timeline,
   Test button). F5/Test launches a `PlayScreen` with a serializer deep-clone of the WIP chart, starting
   1500 ms before the playhead; returning seeks the editor clock to the gameplay exit time.
+- **Mini Preview:** Compose includes a checked-by-default, silent Mini panel whose dragged bottom/right
+  position persists within the workspace. Closing and reopening applies an authoritative current snapshot;
+  Test temporarily suspends it and restores it at the returned play time. An in-process typed controller
+  coalesces editor changes into atomic revisions consumed by read-only preview content.
 - **Setup / Timing / Verify:** metadata/resources/difficulty-stub form (`Edit/Screens/Setup/`); timing
   point list + settings + tap-timing + metronome (`Edit/Screens/Timing/`); `Edit/Screens/Verify/`
   runs four `ICheck`s (audio/background present, objects before time zero / beyond track end) and lists
