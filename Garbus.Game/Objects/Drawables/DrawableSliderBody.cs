@@ -740,7 +740,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
                 escapeVisual.FadeOut(350, Easing.OutQuint);
                 tipBox.FadeOut(350, Easing.OutQuint);
                 headContainer.FadeOut(350, Easing.OutQuint);
-                bodyVisual.FadeOut(350, Easing.OutQuint).OnComplete(_ => Expire());
+                bodyVisual.FadeOut(350, Easing.OutQuint).OnComplete(_ => ExpireAfterTransforms());
                 break;
         }
     }

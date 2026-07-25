@@ -91,7 +91,11 @@ public partial class TestSceneChartPreviewContent
         AddAssert("slider body receives ignored maximum", () => slider.Result.Type,
             () => Is.EqualTo(slider.HitObject.Judgement.MaxResult));
 
-        AddStep("rewind below slider end boundary", () => preview.Apply(transportBatch(3, 2999, false, 1, 0)));
+        AddStep("advance past slider result fade", () => preview.Apply(transportBatch(3, 3401, false, 1, 0)));
+        AddRepeatStep("allow slider result transforms", () => { }, 2);
+        AddAssert("externally-resulted slider remains rewindable", () => slider.IsAlive && slider.IsPresent);
+
+        AddStep("rewind below slider end boundary", () => preview.Apply(transportBatch(4, 2999, false, 1, 0)));
         AddUntilStep("slider end results revert", () => reverted.Count == 2);
         AddAssert("slider end reverts exact reverse order", () => reverted,
             () => Is.EqualTo(new[] { sliderResult, finalChildResult }));
