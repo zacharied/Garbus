@@ -93,16 +93,6 @@ namespace Garbus.Game.Edit
             ChartChanged?.Invoke(previous, chart);
         }
 
-        internal GarbusChart CreateSerializableChart() => new GarbusChart
-        {
-            ChartId = Chart.ChartId,
-            Metadata = Chart.Metadata,
-            PreviewTime = Chart.PreviewTime,
-            ControlPointInfo = ControlPointInfo,
-            DesignPointInfo = Chart.DesignPointInfo,
-            HitObjects = Chart.HitObjects,
-        };
-
         /// <summary>
         /// Adds a hit object, inserting it in time order, applying defaults, and firing the event.
         /// Mutations outside a transaction save immediately.

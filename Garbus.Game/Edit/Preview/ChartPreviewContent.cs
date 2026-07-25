@@ -19,7 +19,7 @@ using osuTK.Graphics;
 
 namespace Garbus.Game.Edit.Preview;
 
-internal partial class ChartPreviewContent : CompositeDrawable
+internal partial class ChartPreviewContent : CompositeDrawable, IChartPreviewSink
 {
     internal const float TARGET_DRAW_SIZE = 768;
 

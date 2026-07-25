@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Garbus.Game.Charts;
 using Garbus.Game.Edit.Preview;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
@@ -216,7 +217,7 @@ public partial class TestSceneChartPreviewContent
         AddStep("replace blocked hold with note", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
-            Garbus.Game.Charts.Format.GarbusChartSerializer.EncodeHitObject(
+            GarbusChartCloner.CloneHitObject(
                 new CardinalNote { StartTime = 1100, AngleDeg = 90 }))), Is.True));
         AddUntilStep("replacement note loads blocked", () => generations.Count == 2 && generations[1].Drawable.IsLoaded);
         AddStep("capture current generation", () => current = generations[1]);

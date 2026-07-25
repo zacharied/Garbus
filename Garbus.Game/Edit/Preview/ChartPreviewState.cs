@@ -34,3 +34,12 @@ internal sealed record ChartPreviewBatch(
     PreviewChartStructure? Structure,
     double? TimeRange,
     PreviewTransportState? Transport);
+
+internal interface IChartPreviewSink
+{
+    event Action? ResyncRequested;
+
+    bool Replace(ChartPreviewSnapshot snapshot);
+
+    bool Apply(ChartPreviewBatch batch);
+}

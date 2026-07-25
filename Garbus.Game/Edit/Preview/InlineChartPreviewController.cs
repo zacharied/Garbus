@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Design;
-using Garbus.Game.Charts.Format;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Gameplay.UI.Scrolling;
 using Garbus.Game.Objects;
@@ -23,7 +22,8 @@ internal partial class InlineChartPreviewController : CompositeComponent
     private readonly EditorClock editorClock;
     private readonly GarbusChartChangeHandler changeHandler;
     private readonly GarbusScrollingInfo scrollingInfo;
-    private readonly ChartPreviewContent view;
+    private readonly IChartPreviewSink view;
+    private readonly Func<long> timestampProvider;
 
     private readonly Dictionary<GarbusHitObject, long> objectIds = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<GarbusHitObject> sentObjects = new(ReferenceEqualityComparer.Instance);
@@ -42,7 +42,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
     private long lastTransportTimestamp;
     private long nextObjectId;
     private long revision;
-    private string? lastStructuralState;
+    private StructureFingerprint? lastStructureFingerprint;
     private ControlPointInfo? subscribedControlPointInfo;
     private DesignPointInfo? subscribedDesignPointInfo;
 
@@ -51,13 +51,15 @@ internal partial class InlineChartPreviewController : CompositeComponent
         EditorClock editorClock,
         GarbusChartChangeHandler changeHandler,
         GarbusScrollingInfo scrollingInfo,
-        ChartPreviewContent view)
+        IChartPreviewSink view,
+        Func<long>? timestampProvider = null)
     {
         this.editorChart = editorChart;
         this.editorClock = editorClock;
         this.changeHandler = changeHandler;
         this.scrollingInfo = scrollingInfo;
         this.view = view;
+        this.timestampProvider = timestampProvider ?? Stopwatch.GetTimestamp;
     }
 
     public bool Enabled { get; private set; }
@@ -105,7 +107,6 @@ internal partial class InlineChartPreviewController : CompositeComponent
         try
         {
             flushPendingChanges();
-            updateTransport();
         }
         catch (Exception exception)
         {
@@ -154,14 +155,14 @@ internal partial class InlineChartPreviewController : CompositeComponent
             return;
 
         pendingRemoves.Remove(hitObject);
-        pendingUpserts[hitObject] = getObjectId(hitObject);
+        pendingUpserts[hitObject] = getOrAllocateObjectId(hitObject);
         enforcePendingObjectBound();
     }
 
     private void onObjectUpdated(GarbusHitObject hitObject)
     {
         if (!pendingFullState && !pendingRemoves.ContainsKey(hitObject))
-            pendingUpserts[hitObject] = getObjectId(hitObject);
+            pendingUpserts[hitObject] = getOrAllocateObjectId(hitObject);
 
         enforcePendingObjectBound();
     }
@@ -174,9 +175,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
         pendingUpserts.Remove(hitObject);
 
         if (sentObjects.Contains(hitObject))
-            pendingRemoves[hitObject] = getObjectId(hitObject);
-        else
-            objectIds.Remove(hitObject);
+            pendingRemoves[hitObject] = objectIds[hitObject];
 
         enforcePendingObjectBound();
     }
@@ -249,106 +248,115 @@ internal partial class InlineChartPreviewController : CompositeComponent
 
         KeyValuePair<GarbusHitObject, long>[] removes = pendingRemoves.ToArray();
         KeyValuePair<GarbusHitObject, long>[] upserts = pendingUpserts.ToArray();
-        pendingRemoves.Clear();
-        pendingUpserts.Clear();
-
-        foreach ((GarbusHitObject hitObject, long id) in removes)
-        {
-            apply(new ChartPreviewBatch(
-                nextRevision(),
-                [new PreviewObjectId(id)],
-                ImmutableArray<PreviewObjectState>.Empty,
-                null,
-                null,
-                null));
-            sentObjects.Remove(hitObject);
-            objectIds.Remove(hitObject);
-        }
-
-        foreach ((GarbusHitObject hitObject, long id) in upserts)
-        {
-            GarbusHitObject detached = GarbusChartSerializer.DecodeHitObject(GarbusChartSerializer.EncodeHitObject(hitObject));
-            apply(new ChartPreviewBatch(
-                nextRevision(),
-                ImmutableArray<PreviewObjectId>.Empty,
-                [new PreviewObjectState(new PreviewObjectId(id), detached)],
-                null,
-                null,
-                null));
-            sentObjects.Add(hitObject);
-        }
+        ImmutableArray<PreviewObjectId> detachedRemoves = removes.Select(pair => new PreviewObjectId(pair.Value)).ToImmutableArray();
+        ImmutableArray<PreviewObjectState> detachedUpserts = upserts.Select(pair => new PreviewObjectState(
+            new PreviewObjectId(pair.Value),
+            GarbusChartCloner.CloneHitObject(pair.Key))).ToImmutableArray();
+        PreviewChartStructure? detachedStructure = null;
+        StructureFingerprint? candidateStructureFingerprint = null;
+        double? timeRange = null;
 
         if (pendingStructuralState)
         {
-            pendingStructuralState = false;
-            GarbusChart source = editorChart.CreateSerializableChart();
-            string structuralState = GarbusChartSerializer.EncodeStructural(source);
-
-            if (structuralState != lastStructuralState)
-            {
-                lastStructuralState = structuralState;
-                GarbusChart detached = GarbusChartSerializer.Decode(structuralState);
-                apply(new ChartPreviewBatch(
-                    nextRevision(),
-                    ImmutableArray<PreviewObjectId>.Empty,
-                    ImmutableArray<PreviewObjectState>.Empty,
-                    structure(source.ChartId, detached),
-                    null,
-                    null));
-            }
+            GarbusChart detached = GarbusChartCloner.CloneChart(editorChart.Chart, editorChart.ControlPointInfo);
+            candidateStructureFingerprint = StructureFingerprint.Create(detached);
+            if (lastStructureFingerprint == null || !lastStructureFingerprint.Matches(candidateStructureFingerprint))
+                detachedStructure = structure(detached);
+            else
+                pendingStructuralState = false;
         }
 
         if (pendingScrollSpeed)
-        {
-            pendingScrollSpeed = false;
-            apply(new ChartPreviewBatch(
-                nextRevision(),
-                ImmutableArray<PreviewObjectId>.Empty,
-                ImmutableArray<PreviewObjectState>.Empty,
-                null,
-                scrollingInfo.TimeRange.Value,
-                null));
-        }
-    }
+            timeRange = scrollingInfo.TimeRange.Value;
 
-    private void updateTransport()
-    {
         PreviewTransportState transport = captureTransport();
 
         pendingSmoothSeekTransport |= editorClock.IsSeeking;
 
+        bool hasChartChanges = !detachedRemoves.IsEmpty
+                               || !detachedUpserts.IsEmpty
+                               || detachedStructure != null
+                               || timeRange.HasValue;
         bool stateChanged = !hasTransportState || transport.IsRunning != lastTransportRunning || transport.Rate != lastTransportRate;
         bool stoppedSeek = !transport.IsRunning && !pendingSmoothSeekTransport && transport.Time != lastTransportTime;
         bool cadenceElapsed = (transport.IsRunning || pendingSmoothSeekTransport)
                               && (transport.Timestamp - lastTransportTimestamp) * 60 >= Stopwatch.Frequency;
 
-        if (!stateChanged && !stoppedSeek && !pendingImmediateTransport && !cadenceElapsed)
+        if (!hasChartChanges && !stateChanged && !stoppedSeek && !pendingImmediateTransport && !cadenceElapsed)
             return;
 
+        long candidateRevision = revision + 1;
+        var batch = new ChartPreviewBatch(
+            candidateRevision,
+            detachedRemoves,
+            detachedUpserts,
+            detachedStructure,
+            timeRange,
+            transport);
+
+        if (!view.Apply(batch))
+        {
+            sendFullState();
+            return;
+        }
+
+        revision = candidateRevision;
+        pendingRemoves.Clear();
+        pendingUpserts.Clear();
+        foreach ((GarbusHitObject hitObject, long _) in removes)
+        {
+            sentObjects.Remove(hitObject);
+            objectIds.Remove(hitObject);
+        }
+        foreach ((GarbusHitObject hitObject, long id) in upserts)
+        {
+            objectIds[hitObject] = id;
+            sentObjects.Add(hitObject);
+        }
+        pendingStructuralState = false;
+        if (detachedStructure != null)
+            lastStructureFingerprint = candidateStructureFingerprint;
+        pendingScrollSpeed = false;
         pendingImmediateTransport = false;
         pendingSmoothSeekTransport = false;
-
-        apply(new ChartPreviewBatch(
-            nextRevision(),
-            ImmutableArray<PreviewObjectId>.Empty,
-            ImmutableArray<PreviewObjectState>.Empty,
-            null,
-            null,
-            transport));
         rememberTransport(transport);
     }
 
     private void sendFullState()
     {
         GarbusHitObject[] hitObjects = editorChart.HitObjects.ToArray();
-        var currentObjects = new HashSet<GarbusHitObject>(hitObjects, ReferenceEqualityComparer.Instance);
+        var candidateIds = new Dictionary<GarbusHitObject, long>(ReferenceEqualityComparer.Instance);
+        foreach (GarbusHitObject hitObject in hitObjects)
+            candidateIds.Add(hitObject, objectIds.TryGetValue(hitObject, out long id) ? id : ++nextObjectId);
 
-        foreach (GarbusHitObject hitObject in objectIds.Keys.ToArray())
+        long stateRevision = revision + 1;
+        PreviewTransportState transport = captureTransport();
+
+        GarbusChart detached = GarbusChartCloner.CloneChart(editorChart.Chart, editorChart.ControlPointInfo);
+        ImmutableArray<PreviewObjectState> objectStates = detached.HitObjects
+                                                                  .Select((hitObject, index) => new PreviewObjectState(
+                                                                      new PreviewObjectId(candidateIds[hitObjects[index]]),
+                                                                      hitObject))
+                                                                  .ToImmutableArray();
+
+        var snapshot = new ChartPreviewSnapshot(
+            stateRevision,
+            structure(detached),
+            objectStates,
+            scrollingInfo.TimeRange.Value,
+            transport);
+
+        if (!view.Replace(snapshot))
+            throw new InvalidOperationException("The Mini Preview rejected its authoritative state.");
+
+        revision = stateRevision;
+        objectIds.Clear();
+        sentObjects.Clear();
+        foreach ((GarbusHitObject hitObject, long id) in candidateIds)
         {
-            if (!currentObjects.Contains(hitObject))
-                objectIds.Remove(hitObject);
+            objectIds.Add(hitObject, id);
+            sentObjects.Add(hitObject);
         }
-
         pendingRemoves.Clear();
         pendingUpserts.Clear();
         pendingStructuralState = false;
@@ -356,56 +364,19 @@ internal partial class InlineChartPreviewController : CompositeComponent
         pendingScrollSpeed = false;
         pendingImmediateTransport = false;
         pendingSmoothSeekTransport = false;
-        sentObjects.Clear();
-
-        long[] ids = hitObjects.Select(hitObject =>
-        {
-            sentObjects.Add(hitObject);
-            return getObjectId(hitObject);
-        }).ToArray();
-
-        long stateRevision = nextRevision();
-        PreviewTransportState transport = captureTransport();
-
-        GarbusChart serializableChart = editorChart.CreateSerializableChart();
-        GarbusChart detached = GarbusChartSerializer.Decode(GarbusChartSerializer.Encode(serializableChart));
-        ImmutableArray<PreviewObjectState> objectStates = detached.HitObjects
-                                                                  .Select((hitObject, index) => new PreviewObjectState(
-                                                                      new PreviewObjectId(ids[index]),
-                                                                      hitObject))
-                                                                  .ToImmutableArray();
-
-        replace(new ChartPreviewSnapshot(
-            stateRevision,
-            structure(serializableChart.ChartId, detached),
-            objectStates,
-            scrollingInfo.TimeRange.Value,
-            transport));
-        lastStructuralState = GarbusChartSerializer.EncodeStructural(serializableChart);
+        lastStructureFingerprint = StructureFingerprint.Create(detached);
         rememberTransport(transport);
     }
 
     private PreviewTransportState captureTransport()
     {
         double time = editorClock.CurrentTime;
-        long timestamp = Stopwatch.GetTimestamp();
+        long timestamp = timestampProvider();
         return new PreviewTransportState(time, editorClock.IsRunning, ((IClock)editorClock).Rate, timestamp);
     }
 
-    private void apply(ChartPreviewBatch batch)
-    {
-        if (!view.Apply(batch))
-            pendingFullState = true;
-    }
-
-    private void replace(ChartPreviewSnapshot snapshot)
-    {
-        if (!view.Replace(snapshot))
-            pendingFullState = true;
-    }
-
-    private static PreviewChartStructure structure(Guid chartId, GarbusChart chart) => new(
-        chartId,
+    private static PreviewChartStructure structure(GarbusChart chart) => new(
+        chart.ChartId,
         chart.Metadata,
         chart.PreviewTime,
         chart.ControlPointInfo!,
@@ -420,15 +391,15 @@ internal partial class InlineChartPreviewController : CompositeComponent
         lastTransportTimestamp = transport.Timestamp;
     }
 
-    private long getObjectId(GarbusHitObject hitObject)
+    private long getOrAllocateObjectId(GarbusHitObject hitObject)
     {
-        if (!objectIds.TryGetValue(hitObject, out long id))
-            objectIds.Add(hitObject, id = ++nextObjectId);
+        if (objectIds.TryGetValue(hitObject, out long id))
+            return id;
+        if (pendingUpserts.TryGetValue(hitObject, out id))
+            return id;
 
-        return id;
+        return ++nextObjectId;
     }
-
-    private long nextRevision() => ++revision;
 
     private void resetSessionState()
     {
@@ -442,6 +413,106 @@ internal partial class InlineChartPreviewController : CompositeComponent
         pendingImmediateTransport = false;
         pendingSmoothSeekTransport = false;
         hasTransportState = false;
-        lastStructuralState = null;
+        lastStructureFingerprint = null;
     }
+
+    internal long RevisionForTests => revision;
+
+    internal int TrackedObjectCountForTests => objectIds.Count;
+
+    internal long ObjectIdForTests(GarbusHitObject hitObject) => objectIds[hitObject];
+
+    internal bool HasPendingStateForTests =>
+        pendingRemoves.Count > 0
+        || pendingUpserts.Count > 0
+        || pendingStructuralState
+        || pendingFullState
+        || pendingScrollSpeed
+        || pendingImmediateTransport
+        || pendingSmoothSeekTransport;
+
+    private sealed class StructureFingerprint
+    {
+        private readonly Guid chartId;
+        private readonly MetadataFingerprint metadata;
+        private readonly double? previewTime;
+        private readonly ImmutableArray<TimingFingerprint> timing;
+        private readonly ImmutableArray<double> emptyTimingGroups;
+        private readonly ImmutableArray<DesignFingerprint> design;
+
+        private StructureFingerprint(
+            Guid chartId,
+            MetadataFingerprint metadata,
+            double? previewTime,
+            ImmutableArray<TimingFingerprint> timing,
+            ImmutableArray<double> emptyTimingGroups,
+            ImmutableArray<DesignFingerprint> design)
+        {
+            this.chartId = chartId;
+            this.metadata = metadata;
+            this.previewTime = previewTime;
+            this.timing = timing;
+            this.emptyTimingGroups = emptyTimingGroups;
+            this.design = design;
+        }
+
+        public static StructureFingerprint Create(GarbusChart chart) => new(
+            chart.ChartId,
+            MetadataFingerprint.Create(chart.Metadata),
+            chart.PreviewTime,
+            chart.ControlPointInfo!.TimingPoints.Select(point => new TimingFingerprint(
+                point.Time,
+                point.BeatLength,
+                point.TimeSignature.Numerator,
+                point.OmitFirstBarLine)).ToImmutableArray(),
+            chart.ControlPointInfo.Groups.Where(group => group.ControlPoints.Count == 0)
+                 .Select(group => group.Time).ToImmutableArray(),
+            chart.DesignPointInfo.DesignPoints.Select(point => point switch
+            {
+                TutorialMessage message when point.GetType() == typeof(TutorialMessage) =>
+                    new DesignFingerprint(message.StartTime, message.EndTime, message.Text),
+                _ => throw new ArgumentOutOfRangeException(nameof(chart), point.GetType().Name, "design point type cannot be synchronized"),
+            }).ToImmutableArray());
+
+        public bool Matches(StructureFingerprint other) =>
+            chartId == other.chartId
+            && metadata == other.metadata
+            && previewTime == other.previewTime
+            && timing.SequenceEqual(other.timing)
+            && emptyTimingGroups.SequenceEqual(other.emptyTimingGroups)
+            && design.SequenceEqual(other.design);
+    }
+
+    private readonly record struct MetadataFingerprint(
+        string Title,
+        string Artist,
+        string Charter,
+        string ChartName,
+        string RomanisedTitle,
+        string RomanisedArtist,
+        string Source,
+        string Tags,
+        string AudioFile,
+        string BackgroundFile,
+        int Level,
+        Difficulty Difficulty)
+    {
+        public static MetadataFingerprint Create(ChartMetadata metadata) => new(
+            metadata.Title,
+            metadata.Artist,
+            metadata.Charter,
+            metadata.ChartName,
+            metadata.RomanisedTitle,
+            metadata.RomanisedArtist,
+            metadata.Source,
+            metadata.Tags,
+            metadata.AudioFile,
+            metadata.BackgroundFile,
+            metadata.Level,
+            metadata.Difficulty);
+    }
+
+    private readonly record struct TimingFingerprint(double Time, double BeatLength, int Signature, bool OmitFirstBarLine);
+
+    private readonly record struct DesignFingerprint(double StartTime, double EndTime, string Text);
 }

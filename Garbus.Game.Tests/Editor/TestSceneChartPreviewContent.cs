@@ -328,7 +328,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert cardinal", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
-            GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2500, AngleDeg = 180 }))), Is.True));
+            GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 2500, AngleDeg = 180 }))), Is.True));
 
         AddUntilStep("same drawable updated", () => preview.PlayfieldForTests.AllHitObjects.SingleOrDefault()?.HitObject.StartTime == 2500);
         AddAssert("drawable retained", () => preview.PlayfieldForTests.AllHitObjects.Single(), () => Is.SameAs(before));
@@ -368,7 +368,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert right slider", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
-            GarbusChartSerializer.EncodeHitObject(new SliderBody
+            GarbusChartCloner.CloneHitObject(new SliderBody
             {
                 StartTime = 2100,
                 AngleDeg = 180,
@@ -415,7 +415,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert centred slam", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
-            GarbusChartSerializer.EncodeHitObject(new GarbusSlamCentered
+            GarbusChartCloner.CloneHitObject(new GarbusSlamCentered
             {
                 StartTime = 2100,
                 AngleDeg = 135,
@@ -424,7 +424,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert edge slam", () => Assert.That(preview.Apply(upsertBatch(
             3,
             8,
-            GarbusChartSerializer.EncodeHitObject(new GarbusSlamEdge
+            GarbusChartCloner.CloneHitObject(new GarbusSlamEdge
             {
                 StartTime = 2600,
                 AngleDeg = 225,
@@ -455,7 +455,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("move one cardinal into chord", () => Assert.That(preview.Apply(upsertBatch(
             2,
             8,
-            GarbusChartSerializer.EncodeHitObject(new CardinalHoldNote
+            GarbusChartCloner.CloneHitObject(new CardinalHoldNote
             {
                 StartTime = 2000,
                 AngleDeg = 180,
@@ -523,7 +523,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert fresh chord member", () => Assert.That(preview.Apply(upsertBatch(
             2,
             8,
-            GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.True));
+            GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.True));
         AddUntilStep("fresh chord member loaded", () =>
             preview.DrawableForTests(new PreviewObjectId(8)) is DrawableCardinalNote { IsLoaded: true } loaded
             && (fresh = loaded) != null);
@@ -561,7 +561,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
 
         AddStep("add replacement work to advance updates", () =>
             Assert.That(preview.Apply(upsertBatch(3, 8,
-                GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2500, AngleDeg = 90 }))), Is.True));
+                GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 2500, AngleDeg = 90 }))), Is.True));
         AddUntilStep("current generation loads behind closed gate", () =>
             generations.Count == 2 && generations[1].Drawable.IsLoaded);
         AddStep("release all load gates", () => generations.ForEach(g => g.ReleaseLoad()));
@@ -590,7 +590,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             Assert.That(preview.Apply(upsertBatch(
                 2,
                 7,
-                GarbusChartSerializer.EncodeHitObject(new ShoulderNote
+                GarbusChartCloner.CloneHitObject(new ShoulderNote
                 {
                     StartTime = 2000,
                     Side = HorizontalDirection.Left,
@@ -921,7 +921,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("reject older model update", () => Assert.That(preview.Apply(upsertBatch(
             5,
             7,
-            GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.False));
+            GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 2000, AngleDeg = 180 }))), Is.False));
         AddAssert("model unchanged", () => preview.PlayfieldForTests.AllHitObjects.Single().HitObject.StartTime, () => Is.EqualTo(1000));
 
         AddStep("apply newer scroll range", () => Assert.That(preview.Apply(rangeBatch(7, 2400)), Is.True));
@@ -1130,7 +1130,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert earlier note while still at 1300", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
-            GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 1000, AngleDeg = 0 }))), Is.True));
+            GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 1000, AngleDeg = 0 }))), Is.True));
         AddUntilStep("both live-upserted notes load and hit", () =>
             preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>() is var notes
             && notes.Count(d => d.IsLoaded && d.Judged && d.State.Value == ArmedState.Hit) == 2);
@@ -1175,7 +1175,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("move judged result after unchanged result", () => Assert.That(preview.Apply(upsertBatch(
             2,
             7,
-            GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 1250, AngleDeg = 0 }))), Is.True));
+            GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 1250, AngleDeg = 0 }))), Is.True));
         AddUntilStep("judged result time updates in place", () =>
             edited.Judged && edited.HitObject.StartTime == 1250 && edited.Result.RawTime == 1250);
         AddAssert("unchanged result stays exact", () => unchanged.Result.RawTime, () => Is.EqualTo(1200));
@@ -1216,7 +1216,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
             Assert.That(preview.Apply(upsertBatch(
                 2,
                 7,
-                GarbusChartSerializer.EncodeHitObject(new CardinalNote { StartTime = 1400, AngleDeg = 0 }))), Is.True);
+                GarbusChartCloner.CloneHitObject(new CardinalNote { StartTime = 1400, AngleDeg = 0 }))), Is.True);
             Assert.That(edited.HitObject.StartTime, Is.EqualTo(1400));
             Assert.That(edited.Result.RawTime, Is.Null);
         });
@@ -1273,7 +1273,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert first judged hold rebuild", () => Assert.That(preview.Apply(upsertBatch(
             3,
             7,
-            GarbusChartSerializer.EncodeHitObject(new CardinalHoldNote
+            GarbusChartCloner.CloneHitObject(new CardinalHoldNote
             {
                 StartTime = 1100,
                 AngleDeg = 0,
@@ -1291,7 +1291,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert second judged hold rebuild", () => Assert.That(preview.Apply(upsertBatch(
             4,
             7,
-            GarbusChartSerializer.EncodeHitObject(new CardinalHoldNote
+            GarbusChartCloner.CloneHitObject(new CardinalHoldNote
             {
                 StartTime = 1200,
                 AngleDeg = 0,
@@ -1393,7 +1393,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert first judged slider rebuild", () => Assert.That(preview.Apply(upsertBatch(
             3,
             7,
-            GarbusChartSerializer.EncodeHitObject(new SliderBody
+            GarbusChartCloner.CloneHitObject(new SliderBody
             {
                 StartTime = 1100,
                 AngleDeg = 45,
@@ -1419,7 +1419,7 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
         AddStep("upsert second judged slider rebuild", () => Assert.That(preview.Apply(upsertBatch(
             4,
             7,
-            GarbusChartSerializer.EncodeHitObject(new SliderBody
+            GarbusChartCloner.CloneHitObject(new SliderBody
             {
                 StartTime = 1200,
                 AngleDeg = 90,
@@ -1684,8 +1684,8 @@ public partial class TestSceneChartPreviewContent : Visual.GarbusTestScene
     private static ChartPreviewBatch transportBatch(long revision, double time, bool isRunning, double rate, long timestamp) =>
         batch(revision, transport: new PreviewTransportState(time, isRunning, rate, timestamp));
 
-    private static ChartPreviewBatch upsertBatch(long revision, long id, string objectJson) =>
-        batch(revision, upserts: [state(id, GarbusChartSerializer.DecodeHitObject(objectJson))]);
+    private static ChartPreviewBatch upsertBatch(long revision, long id, GarbusHitObject hitObject) =>
+        batch(revision, upserts: [state(id, hitObject)]);
 
     private static ChartPreviewBatch removeBatch(long revision, long id) =>
         batch(revision, removes: [new PreviewObjectId(id)]);
