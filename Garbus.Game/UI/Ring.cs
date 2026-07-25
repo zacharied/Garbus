@@ -126,9 +126,21 @@ public partial class Ring : Playfield
         return base.Remove(hitObject);
     }
 
+    // A note's lane is chosen by laneFor(...), which reads its CardinalDirection — but that direction is
+    // derived from the mutable AngleDeg. A live edit that rotates a note across a cardinal boundary (e.g.
+    // the editor MiniPreview re-applying an edited note in place) changes laneFor WITHOUT relocating the
+    // already-placed drawable. Removal must therefore target the lane the drawable was actually added to,
+    // not the one its current direction now maps to — otherwise Remove silently no-ops, and a caller that
+    // disposes after removing (MiniPreview) is left disposing a drawable still parented in its original
+    // lane, which throws ObjectDisposedException on the next update. Record placement at Add and honour it.
+    private readonly Dictionary<DrawableHitObject, Lane?> drawableLane = new Dictionary<DrawableHitObject, Lane?>();
+
     public override void Add(DrawableHitObject h)
     {
-        if (laneFor(h.HitObject) is { } lane)
+        var lane = laneFor(h.HitObject);
+        drawableLane[h] = lane;
+
+        if (lane != null)
             lane.Add(h);
         else
             base.Add(h);
@@ -136,7 +148,10 @@ public partial class Ring : Playfield
 
     public override bool Remove(DrawableHitObject h)
     {
-        if (laneFor(h.HitObject) is { } lane)
+        // Prefer the recorded placement lane; fall back to laneFor for drawables added by other paths.
+        Lane? lane = drawableLane.Remove(h, out var recorded) ? recorded : laneFor(h.HitObject);
+
+        if (lane != null)
             return lane.Remove(h);
 
         return base.Remove(h);

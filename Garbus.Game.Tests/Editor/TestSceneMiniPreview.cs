@@ -94,6 +94,39 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestRemoveNoteAfterRotatingAcrossCardinalBoundary()
+        {
+            // Regression: Ring routes both Add and Remove(DrawableHitObject) by laneFor(hitObject), keyed on
+            // the note's CURRENT direction (derived from the mutable AngleDeg). A note added pointing North
+            // lives in the North lane. Rotating it to point East (a live edit) leaves the drawable in the
+            // North lane but makes laneFor report East. MiniPreview.removeDrawable then routes Remove to the
+            // East lane (which no-ops), yet disposes the drawable regardless — leaving a disposed drawable in
+            // the North lane's scene graph, which throws ObjectDisposedException on the next UpdateSubTree.
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddStep("add a note pointing North (90°)", () => host.AddNote(2000));
+            AddUntilStep("preview reflects the add",
+                () => host.Preview.PlayfieldForTests.AllHitObjects.Any(d => d.HitObject.StartTime == 2000));
+
+            // Seek so the note is alive (within its scroll-in window), i.e. actually in the lane's updated
+            // scene graph — a stranded disposed drawable only throws once it is being update-traversed.
+            AddStep("seek so the note is alive (pre-hit)", () => host.EditorClock.Seek(1900));
+            AddUntilStep("note alive", () =>
+                host.Preview.PlayfieldForTests.AllHitObjects.Any(d => d.HitObject.StartTime == 2000 && d.IsAlive));
+
+            AddStep("rotate it to point East (0°) via a live edit", () => host.RotateLastAddedNoteTo(0));
+            AddStep("remove the rotated note from the editor", () => host.RemoveLastAddedNote());
+
+            // Let several frames tick so the disposed-but-still-parented drawable is update-traversed.
+            AddWaitStep("tick frames", 5);
+            AddAssert("preview no longer contains the removed note", () =>
+                host.Preview.PlayfieldForTests.AllHitObjects.All(d => d.HitObject.StartTime != 2000));
+        }
+
+        [Test]
         public void TestLiveEditRefreshesDrawableInPlace()
         {
             MiniPreviewTestHost host = null!;
@@ -241,6 +274,38 @@ namespace Garbus.Game.Tests.Editor
             AddStep("flip the slider to the right side (live edit)", () => host.FlipLastSliderSide());
             AddUntilStep("slider retints to the right colour live", () =>
                 body().SideColourForTests.Equals(Constants.RightColour));
+        }
+
+        [Test]
+        public void TestSliderContactSpikesActivateInPreview()
+        {
+            // Regression: the split contact spikes that emerge from the ring toward the centre never
+            // appeared in the auto-hit preview, unlike real gameplay. The preview drives its drawables as
+            // presentation-only auto-hit, which forces the slider body's ArmedState to Hit at load. The
+            // spike gate (DrawableSliderBody.updatePath) only fired while the body was Idle, so under
+            // auto-hit it was permanently closed — even while the body was sweeping across the ring.
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            // Two-link slider spanning [2000, 2500] (last control point TimeOffset = 500).
+            AddStep("add a right-side slider at 2000ms", () => host.AddSlider(2000, HorizontalDirection.Right));
+
+            DrawableSliderBody body() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().Single();
+
+            AddStep("seek before the slider reaches the ring", () => host.EditorClock.Seek(1900));
+            AddUntilStep("slider alive", () => body().IsAlive);
+            AddAssert("spikes hidden before ring contact", () => !body().ContactSpikes.Active && body().ContactSpikes.Alpha == 0);
+
+            AddStep("seek into the slider's ring-contact span", () => host.EditorClock.Seek(2200));
+            AddUntilStep("contact spikes appear at the ring", () =>
+                body().ContactSpikes.Active && body().ContactSpikes.Alpha > 0);
+
+            AddStep("seek past the slider's final node", () => host.EditorClock.Seek(2600));
+            AddUntilStep("spikes hide after the slider leaves the ring", () =>
+                !body().ContactSpikes.Active && body().ContactSpikes.Alpha == 0);
         }
 
         [Test]
@@ -651,6 +716,16 @@ namespace Garbus.Game.Tests.Editor
                 if (lastAdded == null) return;
 
                 lastAdded.StartTime = time;
+                EditorChart.Update(lastAdded);
+            }
+
+            /// <summary>Rotates the most recently added note to a new angle and re-applies it live (as the
+            /// editor does). Crossing a cardinal boundary changes the note's <see cref="CardinalDirection"/>.</summary>
+            public void RotateLastAddedNoteTo(int angleDeg)
+            {
+                if (lastAdded == null) return;
+
+                lastAdded.AngleDeg = angleDeg;
                 EditorChart.Update(lastAdded);
             }
         }
