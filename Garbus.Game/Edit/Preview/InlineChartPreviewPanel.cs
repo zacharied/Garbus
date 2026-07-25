@@ -164,4 +164,6 @@ internal partial class InlineChartPreviewPanel : CompositeDrawable
         Alpha = 0;
         PreviewFailed?.Invoke(error);
     }
+
+    internal void FailForTests(string error) => onPreviewFailed(error);
 }

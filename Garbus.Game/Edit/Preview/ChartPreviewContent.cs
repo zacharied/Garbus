@@ -447,4 +447,7 @@ internal partial class ChartPreviewContent : CompositeDrawable, IChartPreviewSin
     internal double CurrentTimeRangeForTests => scrollingInfo.TimeRange.Value;
 
     internal long ResultEntriesVisitedForTests => resultTimeline.VisitedEntryCount;
+
+    internal IReadOnlyDictionary<PreviewObjectId, DrawableHitObject> PendingVisualRefreshesForTests =>
+        new Dictionary<PreviewObjectId, DrawableHitObject>(pendingVisualRefreshes);
 }

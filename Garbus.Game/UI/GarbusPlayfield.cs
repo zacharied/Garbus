@@ -34,6 +34,8 @@ public partial class GarbusPlayfield : Playfield
 
     private AnalogInputManager? analogInputManager { get; set; }
 
+    internal bool HasAnalogInputManagerForTests => analogInputManager != null;
+
     [Cached]
     private ChordHighlighter chordHighlighter { get; set; } = new ChordHighlighter();
 
