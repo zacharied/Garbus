@@ -97,7 +97,14 @@ namespace Garbus.Game.Screens.SongSelect
 
             if (!textureStores.TryGetValue(dir, out var store))
             {
-                store = new TextureStore(host.Renderer, host.CreateTextureLoaderStore(new StorageBackedResourceStore(new NativeStorage(dir))));
+                // LargeTextureStore, not a plain TextureStore: song backgrounds are large (~1000-1200px)
+                // and would each bypass atlasing anyway. The atlased store stood up a 1024x1024 atlas per
+                // directory and kept every background resident for the life of the source — a browse of a
+                // big library grew GPU memory without bound (heavy slowdown, then a device-loss crash).
+                // LargeTextureStore skips atlasing and frees each texture once the detail panel drops it.
+                // manualMipmaps: false keeps the automatic mipmaps the atlased store generated, so the
+                // background stays clean when the panel downscales it to its 300px preview.
+                store = new LargeTextureStore(host.Renderer, host.CreateTextureLoaderStore(new StorageBackedResourceStore(new NativeStorage(dir))), manualMipmaps: false);
                 textureStores[dir] = store;
             }
 
