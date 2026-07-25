@@ -352,9 +352,17 @@ internal partial class ChartPreviewContent : CompositeDrawable
         && state.HitObject != null
         && isSupported(state.HitObject);
 
-    private static bool isSupported(GarbusHitObject hitObject) => hitObject is
-        CardinalNote or CardinalHoldNote or ShoulderNote or ShoulderHoldNote
-        or GarbusSlamCentered or GarbusSlamEdge or SliderBody;
+    private static bool isSupported(GarbusHitObject hitObject)
+    {
+        Type type = hitObject.GetType();
+        return type == typeof(CardinalNote)
+               || type == typeof(CardinalHoldNote)
+               || type == typeof(ShoulderNote)
+               || type == typeof(ShoulderHoldNote)
+               || type == typeof(GarbusSlamCentered)
+               || type == typeof(GarbusSlamEdge)
+               || type == typeof(SliderBody);
+    }
 
     private static bool validRange(double timeRange) => double.IsFinite(timeRange) && timeRange > 0;
 

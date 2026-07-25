@@ -100,6 +100,9 @@ public partial class TestSceneChartPreviewContent
         AddStep("reject unsupported object", () => Assert.That(preview.Apply(batch(
             2,
             upserts: [state(8, new UnsupportedHitObject())])), Is.False));
+        AddStep("reject derived supported object", () => Assert.That(preview.Apply(batch(
+            2,
+            upserts: [state(8, new DerivedCardinalNote { AngleDeg = 0 })])), Is.False));
 
         AddAssert("all invalid batches leave initial state", () => preview.AcceptedRevision == 1
                                                                && preview.ObjectCountForTests == 1
@@ -248,5 +251,9 @@ public partial class TestSceneChartPreviewContent
     private sealed class UnsupportedHitObject : GarbusHitObject
     {
         public override HitsoundFamily Hitsounds { get; } = new();
+    }
+
+    private sealed class DerivedCardinalNote : CardinalNote
+    {
     }
 }
