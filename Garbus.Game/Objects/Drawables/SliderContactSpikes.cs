@@ -22,7 +22,7 @@ public partial class SliderContactSpikes : Container
 
     public bool Active { get; private set; }
     public float ContactAngleRadians { get; private set; }
-    public ColourInfo SideColour { get; }
+    public ColourInfo SideColour { get; private set; }
 
     private SpikeBlade[] blades = null!;
 
@@ -44,6 +44,23 @@ public partial class SliderContactSpikes : Container
             new SpikeBlade(SideColour),
             new SpikeBlade(SideColour),
         ]);
+    }
+
+    /// <summary>
+    /// Re-tints the spikes to a new side colour. The colour is otherwise fixed at construction; the
+    /// editor Mini preview flips a slider's side live, which must recolour the shared drawable in place.
+    /// </summary>
+    public void SetSideColour(ColourInfo colour)
+    {
+        SideColour = colour;
+
+        // blades is null until load(), which seeds each blade from SideColour — so updating the field is
+        // enough pre-load; after load we push the new colour into the existing blades.
+        if (blades != null)
+        {
+            foreach (var blade in blades)
+                blade.SetColour(colour);
+        }
     }
 
     public void SetContact(float angleRadians, float ringRadius, bool active)
@@ -72,7 +89,7 @@ public sealed partial class SpikeBlade : Container
     public float BaseRadius { get; private set; }
     public float TipRadius { get; private set; }
 
-    private readonly ColourInfo colour;
+    private ColourInfo colour;
     private readonly Triangle triangle = new() { EdgeSmoothness = new(2) };
     private BufferedContainer glow = null!;
 
@@ -96,6 +113,19 @@ public sealed partial class SpikeBlade : Container
 
         glow.Anchor = Anchor.Centre;
         glow.Origin = Anchor.BottomCentre;
+    }
+
+    /// <summary>
+    /// Updates the blade's colour in place. <see cref="glow"/> is recoloured immediately; the crisp
+    /// triangle re-reads <see cref="colour"/> on its next <see cref="SetGeometry"/> (each active frame).
+    /// </summary>
+    public void SetColour(ColourInfo colour)
+    {
+        this.colour = colour;
+
+        // glow is null until load(), which seeds it from `colour`; nothing to push before then.
+        if (glow != null)
+            glow.Colour = colour;
     }
 
     public void SetGeometry(float angleRadians, float baseRadius, float tipRadius, float halfWidthDeg, float opacity)

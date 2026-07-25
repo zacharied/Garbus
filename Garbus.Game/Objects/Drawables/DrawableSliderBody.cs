@@ -173,6 +173,10 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     private readonly List<GlowPath> glowPaths = new();
     private readonly List<GlowPath> escapeGlowPaths = new();
 
+    // The live side colour currently applied to the body tube — exposed so the editor Mini preview's
+    // live-recolour-on-Side-flip behaviour can be asserted.
+    internal ColourInfo SideColourForTests => bodyVisual.Colour;
+
     internal IReadOnlyList<SmoothPath> BodyPaths => bodyPaths;
 
     internal IReadOnlyList<GlowPath> GlowPaths => glowPaths;
@@ -249,14 +253,36 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     {
         RelativeSizeAxes = Axes.Both;
 
-        var sideColour = HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
-        contactSpikes = new SliderContactSpikes(sideColour);
+        // The contact spikes bake their colour into child blades at construction, so seed them with the
+        // current side colour here; applySideColour() then keeps every side-tinted element (the spikes
+        // included) in sync whenever OnApply re-runs.
+        contactSpikes = new SliderContactSpikes(currentSideColour());
+
+        headContainer.Add(headCircle);
+        applySideColour();
+    }
+
+    private ColourInfo currentSideColour() =>
+        HitObject.Side == HorizontalDirection.Left ? Constants.LeftColour : Constants.RightColour;
+
+    /// <summary>
+    /// Re-reads the side colour from the live hit object and applies it to every side-tinted element.
+    /// The colour is otherwise fixed at construction, but the editor Mini preview shares the live
+    /// instance and only re-Apply()s it on edit (never rebuilds it), so a <c>Side</c> flip must recolour
+    /// here — mirroring the editor's own <c>SliderPolylineVisual.Update</c>.
+    /// </summary>
+    private void applySideColour()
+    {
+        var sideColour = currentSideColour();
+
         bodyVisual.Colour = sideColour;
         escapeVisual.Colour = sideColour;
         tipBox.Colour = sideColour;
-
         headContainer.Colour = sideColour;
-        headContainer.Add(headCircle);
+
+        // Null during the construction-time OnApply (assigned in the ctor body, which runs after the
+        // base ctor's initial apply); it is seeded there directly with the same colour.
+        contactSpikes?.SetSideColour(sideColour);
     }
 
     [BackgroundDependencyLoader]
@@ -295,6 +321,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     {
         base.OnApply();
         rebuildNodes();
+        applySideColour();
 
         // Reset the eased uncaught-dim state for (re)use.
         dimTarget = 1;

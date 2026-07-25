@@ -4,9 +4,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Garbus.Game;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using Garbus.Game.Configuration;
+using Garbus.Game.Core;
 using Garbus.Game.Edit;
 using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens;
@@ -22,6 +24,7 @@ using Garbus.Game.UI;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
@@ -212,6 +215,32 @@ namespace Garbus.Game.Tests.Editor
             AddStep("add a same-time neighbour (forms a chord)", () => host.AddCardinal(2000, 270));
             AddUntilStep("the pre-existing note retints yellow live", () =>
                 cardinalAt(90).Colour.Equals((ColourInfo)ChordColours.Highlight));
+        }
+
+        [Test]
+        public void TestSliderSideRecoloursLiveInPreview()
+        {
+            // A slider's side colour was baked into the DrawableSliderBody once in its constructor. The
+            // preview shares the editor's live instance and only re-Apply()s it on edit (never rebuilds),
+            // so flipping Side in the editor left the preview tube the old colour. It must retint live,
+            // mirroring the editor's own SliderPolylineVisual.
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddStep("add a left-side slider at 2000ms", () => host.AddSlider(2000, HorizontalDirection.Left));
+            AddStep("seek so the slider is alive (pre-hit)", () => host.EditorClock.Seek(1900));
+
+            DrawableSliderBody body() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().Single();
+
+            AddUntilStep("slider alive and left-coloured", () =>
+                body().IsAlive && body().SideColourForTests.Equals(Constants.LeftColour));
+
+            AddStep("flip the slider to the right side (live edit)", () => host.FlipLastSliderSide());
+            AddUntilStep("slider retints to the right colour live", () =>
+                body().SideColourForTests.Equals(Constants.RightColour));
         }
 
         [Test]
@@ -570,6 +599,37 @@ namespace Garbus.Game.Tests.Editor
                 var note = new CardinalNote { StartTime = time, AngleDeg = angle };
                 EditorChart.Add(note);
                 return note;
+            }
+
+            private SliderBody? lastSlider;
+
+            /// <summary>Adds a two-link slider at the given time/side and tracks it for a later Side flip.</summary>
+            public SliderBody AddSlider(double time, HorizontalDirection side)
+            {
+                lastSlider = new SliderBody
+                {
+                    StartTime = time,
+                    AngleDeg = 90,
+                    Side = side,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>([
+                            new GarbusPathControlPoint { RotationOffset = 0, TimeOffset = 250 },
+                            new GarbusPathControlPoint { RotationOffset = 30, TimeOffset = 500 },
+                        ]),
+                    },
+                };
+                EditorChart.Add(lastSlider);
+                return lastSlider;
+            }
+
+            /// <summary>Flips the most recently added slider's Side and re-applies it live (as the editor does).</summary>
+            public void FlipLastSliderSide()
+            {
+                if (lastSlider == null) return;
+
+                lastSlider.Side = lastSlider.Side == HorizontalDirection.Left ? HorizontalDirection.Right : HorizontalDirection.Left;
+                EditorChart.Update(lastSlider);
             }
 
             /// <summary>Adds a cardinal hold note spanning [time, time + duration].</summary>
