@@ -98,7 +98,7 @@ internal static class GarbusChartCloner
             ChartId = source.ChartId,
             Metadata = CloneMetadata(source.Metadata),
             PreviewTime = source.PreviewTime,
-            ControlPointInfo = cloneControlPointInfo(effectiveControlPointInfo),
+            ControlPointInfo = CloneControlPointInfo(effectiveControlPointInfo),
             DesignPointInfo = CloneDesignPointInfo(source.DesignPointInfo),
             HitObjects = source.HitObjects.Select(CloneHitObject).ToList(),
         };
@@ -133,7 +133,7 @@ internal static class GarbusChartCloner
         return new GarbusHitSample(source.Name);
     }
 
-    private static ControlPointInfo cloneControlPointInfo(ControlPointInfo source)
+    internal static ControlPointInfo CloneControlPointInfo(ControlPointInfo source)
     {
         ensureExactType<ControlPointInfo>(source, "control point info");
 

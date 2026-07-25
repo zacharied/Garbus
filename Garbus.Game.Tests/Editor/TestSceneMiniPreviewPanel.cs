@@ -402,6 +402,16 @@ namespace Garbus.Game.Tests.Editor
             });
             AddAssert("covered inspector side control stays closed", () => sideMenu().State,
                 () => Is.EqualTo(MenuState.Closed));
+            AddStep("right and middle click over mini", () =>
+            {
+                input.MoveMouseTo(miniPanel().ScreenSpaceDrawQuad.Centre);
+                input.Click(MouseButton.Right);
+                input.Click(MouseButton.Middle);
+            });
+            AddAssert("non-left mini clicks do not mutate selection", () =>
+                editor.EditorChart.SelectedHitObjects.Single(), () => Is.SameAs(selected));
+            AddAssert("non-left mini clicks do not delete selected object", () =>
+                editor.EditorChart.HitObjects.Contains(selected));
 
             AddStep("drag mini over timeline control", () =>
             {

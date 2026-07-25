@@ -24,6 +24,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
     private readonly GarbusScrollingInfo scrollingInfo;
     private readonly IChartPreviewSink view;
     private readonly Func<long> timestampProvider;
+    private readonly Func<GarbusHitObject, GarbusHitObject> objectCloner;
 
     private readonly Dictionary<GarbusHitObject, long> objectIds = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<GarbusHitObject> sentObjects = new(ReferenceEqualityComparer.Instance);
@@ -52,7 +53,8 @@ internal partial class InlineChartPreviewController : CompositeComponent
         GarbusChartChangeHandler changeHandler,
         GarbusScrollingInfo scrollingInfo,
         IChartPreviewSink view,
-        Func<long>? timestampProvider = null)
+        Func<long>? timestampProvider = null,
+        Func<GarbusHitObject, GarbusHitObject>? objectCloner = null)
     {
         this.editorChart = editorChart;
         this.editorClock = editorClock;
@@ -60,6 +62,7 @@ internal partial class InlineChartPreviewController : CompositeComponent
         this.scrollingInfo = scrollingInfo;
         this.view = view;
         this.timestampProvider = timestampProvider ?? Stopwatch.GetTimestamp;
+        this.objectCloner = objectCloner ?? GarbusChartCloner.CloneHitObject;
     }
 
     public bool Enabled { get; private set; }
@@ -251,17 +254,16 @@ internal partial class InlineChartPreviewController : CompositeComponent
         ImmutableArray<PreviewObjectId> detachedRemoves = removes.Select(pair => new PreviewObjectId(pair.Value)).ToImmutableArray();
         ImmutableArray<PreviewObjectState> detachedUpserts = upserts.Select(pair => new PreviewObjectState(
             new PreviewObjectId(pair.Value),
-            GarbusChartCloner.CloneHitObject(pair.Key))).ToImmutableArray();
+            objectCloner(pair.Key))).ToImmutableArray();
         PreviewChartStructure? detachedStructure = null;
         StructureFingerprint? candidateStructureFingerprint = null;
         double? timeRange = null;
 
         if (pendingStructuralState)
         {
-            GarbusChart detached = GarbusChartCloner.CloneChart(editorChart.Chart, editorChart.ControlPointInfo);
-            candidateStructureFingerprint = StructureFingerprint.Create(detached);
+            candidateStructureFingerprint = StructureFingerprint.Create(editorChart.Chart, editorChart.ControlPointInfo);
             if (lastStructureFingerprint == null || !lastStructureFingerprint.Matches(candidateStructureFingerprint))
-                detachedStructure = structure(detached);
+                detachedStructure = cloneStructure(editorChart.Chart, editorChart.ControlPointInfo);
             else
                 pendingStructuralState = false;
         }
@@ -382,6 +384,13 @@ internal partial class InlineChartPreviewController : CompositeComponent
         chart.ControlPointInfo!,
         chart.DesignPointInfo);
 
+    private static PreviewChartStructure cloneStructure(GarbusChart chart, ControlPointInfo effectiveControlPointInfo) => new(
+        chart.ChartId,
+        GarbusChartCloner.CloneMetadata(chart.Metadata),
+        chart.PreviewTime,
+        GarbusChartCloner.CloneControlPointInfo(effectiveControlPointInfo),
+        GarbusChartCloner.CloneDesignPointInfo(chart.DesignPointInfo));
+
     private void rememberTransport(PreviewTransportState transport)
     {
         hasTransportState = true;
@@ -456,16 +465,18 @@ internal partial class InlineChartPreviewController : CompositeComponent
             this.design = design;
         }
 
-        public static StructureFingerprint Create(GarbusChart chart) => new(
+        public static StructureFingerprint Create(GarbusChart chart) => Create(chart, chart.ControlPointInfo!);
+
+        public static StructureFingerprint Create(GarbusChart chart, ControlPointInfo effectiveControlPointInfo) => new(
             chart.ChartId,
             MetadataFingerprint.Create(chart.Metadata),
             chart.PreviewTime,
-            chart.ControlPointInfo!.TimingPoints.Select(point => new TimingFingerprint(
+            effectiveControlPointInfo.TimingPoints.Select(point => new TimingFingerprint(
                 point.Time,
                 point.BeatLength,
                 point.TimeSignature.Numerator,
                 point.OmitFirstBarLine)).ToImmutableArray(),
-            chart.ControlPointInfo.Groups.Where(group => group.ControlPoints.Count == 0)
+            effectiveControlPointInfo.Groups.Where(group => group.ControlPoints.Count == 0)
                  .Select(group => group.Time).ToImmutableArray(),
             chart.DesignPointInfo.DesignPoints.Select(point => point switch
             {

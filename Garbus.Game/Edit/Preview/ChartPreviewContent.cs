@@ -216,6 +216,15 @@ internal partial class ChartPreviewContent : CompositeDrawable, IChartPreviewSin
         if (batch.Transport.HasValue)
             previewClock.Apply(batch.Transport.Value);
 
+        if (objectsChanged)
+        {
+            // Keep an accepted revision visually atomic: retained ready generations must regain every
+            // already-crossed exact result before observers can see the new revision. New loading trees
+            // still block timeline progression until their generation is ready.
+            manualClock.CurrentTime = previewClock.CurrentTime;
+            resultTimeline.Seek(manualClock.CurrentTime);
+        }
+
         AcceptedRevision = batch.Revision;
         BatchAppliedForTests?.Invoke(batch);
         return true;

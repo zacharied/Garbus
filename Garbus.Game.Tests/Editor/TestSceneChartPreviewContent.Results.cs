@@ -135,6 +135,33 @@ public partial class TestSceneChartPreviewContent
     }
 
     [Test]
+    public void TestAcceptedObjectRevisionKeepsPastRetainedResultAtomic()
+    {
+        DrawableCardinalNote retained = null!;
+
+        AddStep("apply already-crossed note", () => preview.Replace(fullState(1, chartWith(new CardinalNote
+        {
+            StartTime = 1000,
+            AngleDeg = 0,
+        }), [7], 1500, 700)));
+        AddUntilStep("past note is judged", () =>
+            (retained = preview.PlayfieldForTests.AllHitObjects.OfType<DrawableCardinalNote>().SingleOrDefault()!)?.Judged == true);
+
+        AddStep("accept retained update atomically", () =>
+        {
+            Assert.That(preview.Apply(upsertBatch(2, 7, new CardinalNote
+            {
+                StartTime = 1000,
+                AngleDeg = 90,
+            })), Is.True);
+            Assert.That(preview.AcceptedRevision, Is.EqualTo(2));
+            Assert.That(preview.PlayfieldForTests.AllHitObjects.Single(), Is.SameAs(retained));
+            Assert.That(retained.Judged, Is.True);
+            Assert.That(retained.Result.RawTime, Is.EqualTo(1000));
+        });
+    }
+
+    [Test]
     public void TestDueUnreadyGenerationBlocksLaterResults()
     {
         var generations = new List<IGatedDrawable>();

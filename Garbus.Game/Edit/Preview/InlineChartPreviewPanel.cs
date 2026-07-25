@@ -87,7 +87,9 @@ internal partial class InlineChartPreviewPanel : CompositeDrawable
         Position = -offset;
     }
 
-    protected override bool OnMouseDown(MouseDownEvent e) => e.Button == MouseButton.Left;
+    // Mini owns pointer presses within its bounds; only left starts a drag, but other buttons must not
+    // reach placement or selection handlers underneath the floating panel.
+    protected override bool OnMouseDown(MouseDownEvent e) => true;
 
     protected override bool OnDragStart(DragStartEvent e)
     {
