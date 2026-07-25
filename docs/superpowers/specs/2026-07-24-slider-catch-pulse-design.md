@@ -9,6 +9,11 @@ at the object's angle, as extra catch feedback (slider-head Perfect is otherwise
 This pass delivers three tunable pulse **effect drawables** plus one **tuning test scene** to dial in
 the look. Wiring the chosen variant to real catches is a deliberate follow-up (see Out of scope).
 
+Relevant domain docs: [docs/agents/gameplay.md](../../agents/gameplay.md) (playfield, ring, the
+`JudgementFeedbackDisplay` feedback halo) and [docs/agents/testing.md](../../agents/testing.md)
+(Tuning-scene conventions). Per the enforced AGENTS.md rule *"New visual elements ship with a Tuning
+test,"* the tuning scene below is required, not optional.
+
 ## Background (how head-only sliders and feedback work today)
 
 - A head-only slider is `SliderBody` with no path control points (`nodeTimes.Length == 1`,
@@ -68,8 +73,10 @@ split-out head-only drawable. Head-only sliders remain modelled as `SliderBody` 
 - A centred host container drawing a ring-boundary reference (`Arc(0, 2π)`) plus a small centre dot,
   so pulses are seen in the same space they'll fire in-game.
 - A looping `ManualClock` (survives across fires so the view doesn't jump).
-- A **variant selector** (an `AddStep`/toggle cycling `SliderCatchPulseType`) choosing which of the
-  three fires.
+- A **variant selector**: one `AddStep` button per `SliderCatchPulseType` ("fire: radial beam", etc.)
+  that sets the active variant (there is no `AddEnumStep` helper in the test project; `AddStep`
+  buttons are the available idiom). Each button also fires that variant once immediately, so a
+  single click both selects and shows it.
 - Per-variant `AddSliderStep`s for every param above, name-prefixed by variant (e.g. `beam: width`,
   `travel: length`, `arc: span`). All sliders are always present; only the active variant's matter,
   matching the glow scene's always-present-sliders style.
@@ -86,6 +93,8 @@ split-out head-only drawable. Head-only sliders remain modelled as `SliderBody` 
   the Tuning folder) constructs each variant via `SliderCatchPulse.Create`, adds it to a sized
   container, advances a manual clock past its lifetime, and asserts it expires/disposes cleanly —
   pinning the "self-expiring one-shot, fire-and-forget" contract the future Ring display relies on.
+- Build and test output stays **warning-clean** (enforced AGENTS.md rule); verification is via the
+  headless test and eyeballing the Tuning scene in the visual browser — the app is not run.
 
 ## Out of scope this pass
 
@@ -94,4 +103,6 @@ split-out head-only drawable. Head-only sliders remain modelled as `SliderBody` 
   follow-up after a variant + params are chosen in the tuning scene and baked as the drawable
   defaults. It follows the `JudgementFeedbackDisplay` pattern (bind `NewResult`; place at the
   `IHasAngle` direction; the head-only filter is `HitObject is SliderHead && Parent path has no
-  control points`).
+  control points`). When that wiring lands, update the feedback-halo section of
+  [docs/agents/gameplay.md](../../agents/gameplay.md) per the "update the relevant domain doc as work
+  lands" rule.
