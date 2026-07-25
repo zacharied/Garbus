@@ -44,7 +44,8 @@ public partial class GarbusPlayfield : Playfield
     /// <param name="interactive">When false, no analog input manager or stick indicators are installed
     /// (used by the read-only editor mini preview).</param>
     /// <param name="miniStyle">When true, the warning indicator draws as a plain arc on the ring
-    /// (<see cref="MiniWarningIndicatorDisplay"/>) rather than the gameplay blurred glow — for the mini preview.</param>
+    /// (<see cref="MiniWarningIndicatorDisplay"/>) rather than the gameplay blurred glow — for the mini preview.
+    /// (The chord connector needs no flag: it detects its own draw scale and thickens itself.)</param>
     public GarbusPlayfield(bool interactive = true, bool miniStyle = false)
     {
         this.interactive = interactive;

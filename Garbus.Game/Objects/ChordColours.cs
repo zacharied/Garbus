@@ -12,6 +12,7 @@ public static class ChordColours
     /// <summary>The thin, semi-transparent yellow of the gameplay connector.</summary>
     public static readonly Colour4 Connector = new Colour4(1f, 1f, 0f, 0.35f);
 
-    /// <summary>Connector line half-thickness in local px (2px total).</summary>
+    /// <summary>Connector line half-thickness, in local px, at 1:1 draw scale (2px total). The overlay grows
+    /// this inversely when rendered downscaled (the mini preview) so the on-screen thickness is preserved.</summary>
     public const float ConnectorPathRadius = 1f;
 }
