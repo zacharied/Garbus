@@ -44,6 +44,12 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
 - `Edit/GarbusSelectionHandler.cs` — group move/rotate; `Edit/Tools/` — composition tools.
 - Slider **node selection** is local to `SliderSelectionBlueprint` (a `HashSet` of control points by
   reference) — not part of `EditorChart.SelectedHitObjects`/undo/clipboard.
+- `Edit/Inspector.cs` — right-toolbox selection summary plus multi-value controls: Side and Direction
+  dropdowns for hit objects, and an Easing dropdown (`SweepEasing`) + Smoothing checkbox (`Smooth`)
+  for selected slider control points. Each aggregates via `MultiValue`, renders disagreement as
+  `<multiple>` / an indeterminate dash, and writes the whole selection in one undo transaction.
+  Because node selection isn't event-observable, the inspector polls it each frame and re-reads
+  values on a 250ms roll — so a control drawable is replaced regularly.
 
 ## Timeline, transport, tabs
 

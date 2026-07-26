@@ -2924,6 +2924,58 @@ namespace Garbus.Game.Tests.Editor
                 composer.ChildrenOfType<MultiValueEnumDropdown<Easing>>().Single().Current.Value.IsMixed);
         }
 
+        [Test]
+        public void TestSmoothingCheckboxAppliesToEverySelectedNode()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+
+            AddStep("give the two nodes differing smoothing", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                slider.Path.ControlPoints[0].Smooth = false;
+                slider.Path.ControlPoints[1].Smooth = true;
+                editorChart.Update(slider);
+            });
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            selectSliderOnLine();
+
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            AddUntilStep("Smoothing checkbox shows the mixed dash", () =>
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault()?.State == TernaryState.Indeterminate);
+
+            // The inspector rebuilds on a 250ms roll, so the checkbox drawable under the cursor may be a
+            // fresh instance by click time — it occupies the same slot, so the click still lands on one.
+            AddStep("click the checkbox", () =>
+            {
+                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First());
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("mixed resolves to smoothed for both", () =>
+                placedObject<SliderBody>()!.Path.ControlPoints.All(cp => cp.Smooth), () => Is.True);
+
+            // Undo swaps in freshly-deserialized instances, so re-query the chart rather than reading the
+            // stale slider reference (matching TestUndoRestoresDeletedSelection).
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("single undo step restores the mix", () =>
+            {
+                var points = editorChart.HitObjects.OfType<SliderBody>().Single().Path.ControlPoints;
+                return !points[0].Smooth && points[1].Smooth;
+            });
+        }
+
         // ------------------------------------------------------------------
         // Harness: caches the DI deps the composer tree requires, then hosts
         // the real GarbusHitObjectComposer as its child.

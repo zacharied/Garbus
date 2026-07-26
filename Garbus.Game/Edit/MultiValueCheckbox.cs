@@ -13,7 +13,8 @@ namespace Garbus.Game.Edit
     /// <summary>
     /// A tri-state checkbox for the inspector: <see cref="TernaryState.Indeterminate"/> (a dash) shows
     /// when the selection holds differing boolean values. Clicking a True box unchecks the selection;
-    /// clicking a False or Indeterminate box checks it. Not yet wired to any hit-object property.
+    /// clicking a False or Indeterminate box checks it. Drives the Smoothing flag on selected slider
+    /// control points (<see cref="Objects.GarbusPathControlPoint.Smooth"/>).
     /// </summary>
     public partial class MultiValueCheckbox : CompositeDrawable
     {

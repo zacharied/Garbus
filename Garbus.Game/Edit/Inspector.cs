@@ -4,10 +4,11 @@
 // Adapted for Garbus: EditorBeatmap → EditorChart; OsuTextFlowContainer/OsuFont/OverlayColourProvider dropped in
 // favour of plain TextFlowContainer + hard-coded colours; adds multi-value-aware dropdowns that osu's plain-text
 // inspector doesn't have — a Side dropdown when every selected object is IHasSide, a Direction dropdown when every
-// selected object is a GarbusSlamEdge, and a SweepEasing dropdown when one or more slider control-point nodes are
-// picked in a SliderSelectionBlueprint. Each shows "<multiple>" when the selection's values disagree and applies an
-// edit to the whole selection as one undo step. Node selection isn't in EditorChart.SelectedHitObjects — polled via
-// the composer's SelectionHandler alongside the 250ms rolling refresh.
+// selected object is a GarbusSlamEdge, and a SweepEasing dropdown plus a Smoothing checkbox when one or more slider
+// control-point nodes are picked in a SliderSelectionBlueprint. Each shows "<multiple>" (a dash, for the checkbox)
+// when the selection's values disagree and applies an edit to the whole selection as one undo step. Node selection
+// isn't in EditorChart.SelectedHitObjects — polled via the composer's SelectionHandler alongside the 250ms rolling
+// refresh.
 
 using System;
 using System.Collections.Generic;
@@ -273,23 +274,34 @@ namespace Garbus.Game.Edit
                 });
             }
 
-            // Easing: shown whenever one or more slider control-point nodes are picked.
+            // Easing / Smoothing: shown whenever one or more slider control-point nodes are picked.
             if (selectedNodes.Count > 0)
             {
                 var nodes = selectedNodes.ToArray();
-                var state = MultiValue.Aggregate(nodes, n => n.SweepEasing);
+                var easingState = MultiValue.Aggregate(nodes, n => n.SweepEasing);
+                var smoothState = MultiValue.Aggregate(nodes, n => n.Smooth);
 
                 var affectedSliders = editorChart.HitObjects.OfType<SliderBody>()
                     .Where(s => s.Path.ControlPoints.Any(cp => selectedNodes.Contains(cp)))
                     .ToArray();
 
-                addMultiValueDropdown("Easing", state, value =>
+                addMultiValueDropdown("Easing", easingState, value =>
                 {
-                    if (!state.IsMixed && EqualityComparer<Easing>.Default.Equals(state.Value, value))
+                    if (!easingState.IsMixed && EqualityComparer<Easing>.Default.Equals(easingState.Value, value))
                         return;
 
                     changeHandler?.BeginChange();
                     foreach (var n in nodes) n.SweepEasing = value;
+                    foreach (var s in affectedSliders) editorChart.Update(s);
+                    changeHandler?.EndChange();
+                });
+
+                // A tri-state click always resolves to a value at least one node doesn't hold, so no
+                // no-op guard is needed here (unlike the dropdown, which can be re-picked unchanged).
+                addMultiValueCheckbox("Smoothing", smoothState, value =>
+                {
+                    changeHandler?.BeginChange();
+                    foreach (var n in nodes) n.Smooth = value;
                     foreach (var s in affectedSliders) editorChart.Update(s);
                     changeHandler?.EndChange();
                 });
@@ -322,6 +334,10 @@ namespace Garbus.Game.Edit
                 },
             });
         }
+
+        // The checkbox paints its own inline label, so unlike a dropdown it needs no label wrapper.
+        private void addMultiValueCheckbox(string label, MultiValue<bool> state, Action<bool> onChange)
+            => controlsFlow.Add(new MultiValueCheckbox(label, state, onChange));
 
         private static string readableTypeName(GarbusHitObject h) => h switch
         {
