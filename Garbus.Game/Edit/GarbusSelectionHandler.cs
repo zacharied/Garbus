@@ -90,9 +90,17 @@ public partial class GarbusSelectionHandler : EditorSelectionHandler
         });
     }
 
-    /// <summary>Flips the selected sided object(s) to the opposite side, mirroring the "Right side" context-menu toggle.</summary>
+    /// <summary>
+    /// Flips every selected sided object to its own opposite side. Unlike the "Right side" context-menu
+    /// toggle (which sets one side across the selection), this is per-object: a mixed selection swaps
+    /// both ways rather than collapsing onto a single side, so S is always an involution.
+    /// </summary>
     private void toggleSide() =>
-        setSide(selectionRightSideState.Value == TernaryState.True ? HorizontalDirection.Left : HorizontalDirection.Right);
+        EditorChart.PerformOnSelection(h =>
+        {
+            if (h is IHasSide sided)
+                sided.Side = sided.Side == HorizontalDirection.Right ? HorizontalDirection.Left : HorizontalDirection.Right;
+        });
 
     protected override bool OnKeyDown(KeyDownEvent e)
     {

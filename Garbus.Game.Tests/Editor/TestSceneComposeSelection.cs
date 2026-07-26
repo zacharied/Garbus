@@ -1686,6 +1686,38 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestSKeyFlipsEachSideIndependentlyInMixedSelection()
+        {
+            // S is a per-object toggle, not a "set everything to one side": a mixed selection swaps both
+            // ways, so a second press always restores exactly what was there before the first.
+            GarbusSlamEdge left = null!;
+            GarbusSlamEdge right = null!;
+
+            waitForComposer();
+
+            AddStep("add two slam edges with differing sides", () =>
+            {
+                left = new GarbusSlamEdge { AngleDeg = 0, Side = HorizontalDirection.Left, StartTime = 1000 };
+                right = new GarbusSlamEdge { AngleDeg = 90, Side = HorizontalDirection.Right, StartTime = 2000 };
+                editorChart.Add(left);
+                editorChart.Add(right);
+                editorChart.SelectedHitObjects.Add(left);
+                editorChart.SelectedHitObjects.Add(right);
+            });
+
+            AddUntilStep("both selected in the handler", () =>
+                composer.ChildrenOfType<GarbusSelectionHandler>().Single().SelectedItems.Count, () => Is.EqualTo(2));
+
+            AddStep("press S", () => input.Key(Key.S));
+            AddAssert("each flipped to its opposite side", () =>
+                left.Side == HorizontalDirection.Right && right.Side == HorizontalDirection.Left);
+
+            AddStep("press S again", () => input.Key(Key.S));
+            AddAssert("both back to their original sides", () =>
+                left.Side == HorizontalDirection.Left && right.Side == HorizontalDirection.Right);
+        }
+
+        [Test]
         public void TestSKeyDoesNotToggleShoulderSide()
         {
             // Shoulders have a Side but it's positional (it picks the lane/button), so they intentionally
