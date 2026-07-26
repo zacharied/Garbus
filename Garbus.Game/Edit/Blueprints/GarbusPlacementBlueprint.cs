@@ -66,8 +66,13 @@ internal abstract partial class GarbusPlacementBlueprint<T> : HitObjectPlacement
         return result;
     }
 
-    // only replace an object occupying the same spot, not anything sharing the beat (mania scopes this
-    // to the column; our equivalent is the angle).
+    // Only replace an existing object occupying the same spot AND of the same type — objects of
+    // different types are designed to stack (see ObjectStacking.md), so placing e.g. a slam on a
+    // slider head must not delete the slider. (Mania scopes replacement to the column; our spatial
+    // equivalent is the angle, plus the same-type constraint.)
     public override bool ReplacesExistingObject(GarbusHitObject existing) =>
-        base.ReplacesExistingObject(existing) && existing is IHasAngle angled && EditorAngleMapping.NormalizeDeg(angled.AngleDeg) == EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg);
+        base.ReplacesExistingObject(existing)
+        && existing.GetType() == HitObject.GetType()
+        && existing is IHasAngle angled
+        && EditorAngleMapping.NormalizeDeg(angled.AngleDeg) == EditorAngleMapping.NormalizeDeg(HitObject.AngleDeg);
 }

@@ -226,6 +226,11 @@ internal partial class SliderPlacementBlueprint : GarbusPlacementBlueprint<Slide
             previewPool[i].ClearVertices();
     }
 
+    // Sliders never replace each other. Unlike single-press objects, a slider extends over time along a
+    // path, so two sliders sharing only a head angle+time are distinct objects rather than one
+    // overwriting the other — replacing would silently destroy the authored path of the existing slider.
+    public override bool ReplacesExistingObject(GarbusHitObject existing) => false;
+
     private SmoothPath poolPath(int index)
     {
         while (previewPool.Count <= index)

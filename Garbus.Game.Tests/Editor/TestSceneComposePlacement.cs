@@ -248,6 +248,75 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestSlamOnSliderHeadKeepsSlider()
+        {
+            waitForComposer();
+            // Keep the clock parked so both placements snap to the same time and overlap deterministically.
+            AddStep("disable auto-seek", () => composer.AutoSeekOnPlacement.Value = false);
+
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("ctrl+left-click (head-only slider)", () =>
+            {
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("slider placed", () => placedObject<SliderBody>() != null);
+
+            // A slam dropped on the slider's head shares its angle+time — different type, so it must stack,
+            // not delete the slider.
+            AddStep("select center slam tool", () => input.Key(slam_centered_tool_key));
+            AddStep("move to same spot", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("click", () => input.Click(MouseButton.Left));
+
+            AddAssert("slam placed at 270", () => placedObject<GarbusSlamCentered>()?.AngleDeg, () => Is.EqualTo(270));
+            AddAssert("slider still present", () => placedObject<SliderBody>() != null);
+        }
+
+        [Test]
+        public void TestSlamOnSlamStillReplaces()
+        {
+            waitForComposer();
+            AddStep("disable auto-seek", () => composer.AutoSeekOnPlacement.Value = false);
+
+            AddStep("select center slam tool", () => input.Key(slam_centered_tool_key));
+            AddStep("move to spot", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("place first slam", () => input.Click(MouseButton.Left));
+            AddAssert("one slam", () => editorChart.HitObjects.OfType<GarbusSlamCentered>().Count(), () => Is.EqualTo(1));
+
+            // Same type, same angle+time → the placement replaces the existing slam rather than doubling up.
+            AddStep("place second slam on top", () => input.Click(MouseButton.Left));
+            AddAssert("still one slam (replaced)", () => editorChart.HitObjects.OfType<GarbusSlamCentered>().Count(), () => Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TestSliderOnSliderHeadKeepsBoth()
+        {
+            waitForComposer();
+            AddStep("disable auto-seek", () => composer.AutoSeekOnPlacement.Value = false);
+
+            AddStep("select slider tool", () => input.Key(slider_tool_key));
+            AddStep("move to head", () => input.MoveMouseTo(positionAtAngle(270, 0.5f)));
+            AddStep("ctrl+left-click (head-only slider)", () =>
+            {
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("one slider", () => editorChart.HitObjects.OfType<SliderBody>().Count(), () => Is.EqualTo(1));
+
+            // Sliders never replace each other — a second slider sharing the first's head angle+time stacks.
+            AddStep("ctrl+left-click same spot again", () =>
+            {
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both sliders kept", () => editorChart.HitObjects.OfType<SliderBody>().Count(), () => Is.EqualTo(2));
+        }
+
+        [Test]
         public void TestPlaceSliderMultiClick()
         {
             waitForComposer();

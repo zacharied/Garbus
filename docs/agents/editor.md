@@ -145,6 +145,17 @@ viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. 
   blueprint (updating an object regenerates nested objects, so the blueprint must be re-pointed).
 - **Placement auto-seek:** `HitObjectPlacementBlueprint.EndPlacement` seeks the clock to the placed
   object — wait for the seek before asserting screen positions in tests.
+- **Placement replacement is scoped to the SAME object type; sliders never replace at all.**
+  `EndPlacement` removes every existing object for which `ReplacesExistingObject` is true.
+  `GarbusPlacementBlueprint` matches only an existing object of the *same runtime type* at the same
+  angle+time (`ShoulderNote`/`ShoulderHoldNote` add a same-side check on top). Different types are
+  designed to stack (see [ObjectStacking.md](../presentation-specs/ObjectStacking.md)), so without the
+  type gate a slam or note dropped on a slider head deletes the whole slider — the head shares the
+  `SliderBody`'s angle+time. `SliderPlacementBlueprint` overrides it to a flat `false`: a slider
+  extends over time along a path, so two sliders sharing only a head angle+time are distinct objects
+  and replacing would silently destroy the existing slider's authored path. Pins:
+  `TestSceneComposePlacement.TestSlamOnSliderHeadKeepsSlider`, `TestSlamOnSlamStillReplaces`,
+  `TestSliderOnSliderHeadKeepsBoth`.
 - **Slider node selection is local to the blueprint.** Node handles receive input only while the
   slider is selected, so clicking a node on an unselected slider selects the whole slider; once
   selected, click picks a node (Ctrl toggles), and dragging one moves the whole node selection.
