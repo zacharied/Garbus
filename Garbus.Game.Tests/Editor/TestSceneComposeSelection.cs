@@ -27,6 +27,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osu.Framework.Utils;
@@ -3005,6 +3006,283 @@ namespace Garbus.Game.Tests.Editor
             {
                 var points = editorChart.HitObjects.OfType<SliderBody>().Single().Path.ControlPoints;
                 return !points[0].Smooth && points[1].Smooth;
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // Merge sliders (inspector button)
+        // ------------------------------------------------------------------
+
+        /// <summary>The inspector's "Merge sliders" button, or null when it isn't shown.</summary>
+        private BasicButton? mergeButton() => composer.ChildrenOfType<BasicButton>()
+            .FirstOrDefault(b => b.Text.ToString() == "Merge sliders");
+
+        /// <summary>Adds two time-disjoint single-node sliders (A: 90° @[1000,1200], B: 180° @[2000,2200]) and selects both.</summary>
+        private void addTwoDisjointSelectedSliders()
+        {
+            AddStep("add two disjoint sliders + select both", () =>
+            {
+                var a = new SliderBody
+                {
+                    StartTime = 1000,
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 30 },
+                        },
+                    },
+                };
+                var b = new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 180,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = -30 },
+                        },
+                    },
+                };
+                editorChart.Add(a);
+                editorChart.Add(b);
+                editorChart.SelectedHitObjects.Add(a);
+                editorChart.SelectedHitObjects.Add(b);
+            });
+        }
+
+        [Test]
+        public void TestMergeButtonAppearsForTwoDisjointSelectedSliders()
+        {
+            waitForComposer();
+            addTwoDisjointSelectedSliders();
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+        }
+
+        [Test]
+        public void TestMergeButtonHiddenForSingleSlider()
+        {
+            waitForComposer();
+            AddStep("add one slider + select it", () =>
+            {
+                var a = new SliderBody
+                {
+                    StartTime = 1000,
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 30 },
+                        },
+                    },
+                };
+                editorChart.Add(a);
+                editorChart.SelectedHitObjects.Add(a);
+            });
+            AddWaitStep("let inspector settle", 3);
+            AddAssert("merge button hidden", () => mergeButton() == null);
+        }
+
+        [Test]
+        public void TestMergeButtonHiddenForOverlappingSliders()
+        {
+            waitForComposer();
+            AddStep("add two overlapping sliders + select both", () =>
+            {
+                var a = new SliderBody
+                {
+                    StartTime = 1000,
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 30 },
+                        },
+                    },
+                }; // spans [1000, 2000]
+                var b = new SliderBody
+                {
+                    StartTime = 1500,
+                    AngleDeg = 180,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = -30 },
+                        },
+                    },
+                }; // spans [1500, 2500] — overlaps a
+                editorChart.Add(a);
+                editorChart.Add(b);
+                editorChart.SelectedHitObjects.Add(a);
+                editorChart.SelectedHitObjects.Add(b);
+            });
+            AddWaitStep("let inspector settle", 3);
+            AddAssert("merge button hidden", () => mergeButton() == null);
+        }
+
+        [Test]
+        public void TestMergeButtonHiddenWhenNodeSelected()
+        {
+            waitForComposer();
+
+            // Slider A is parked on-screen (clock at its StartTime) so its node handle can be clicked; slider
+            // B is disjoint and much later, off the visible band at that time. Both node handles use +45°
+            // (absolute 225°, mid-grid), so A's handle is clickable without ghost-band ambiguity.
+            AddStep("add two disjoint sliders + park on A + select both", () =>
+            {
+                var a = new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 180,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 },
+                        },
+                    },
+                };
+                var b = new SliderBody
+                {
+                    StartTime = 5000,
+                    AngleDeg = 180,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 },
+                        },
+                    },
+                };
+                editorChart.Add(a);
+                editorChart.Add(b);
+                editorChart.SelectedHitObjects.Add(a);
+                editorChart.SelectedHitObjects.Add(b);
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawables exist", () => composer.HitObjects.Any());
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+
+            // A node handle consumes the click without collapsing the whole-object selection, so the two
+            // sliders stay selected while node 0 becomes picked — the button must retract.
+            AddStep("click A's node handle", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddAssert("still two sliders selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(2));
+            AddUntilStep("merge button hidden", () => mergeButton() == null);
+        }
+
+        [Test]
+        public void TestMergeJoinsSelectionIntoOneSlider()
+        {
+            waitForComposer();
+            addTwoDisjointSelectedSliders();
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+
+            AddStep("merge", () => mergeButton()!.Action!.Invoke());
+
+            AddAssert("one slider remains", () => editorChart.HitObjects.OfType<SliderBody>().Count(), () => Is.EqualTo(1));
+            AddAssert("merged path preserves every node's absolute time and angle", () =>
+            {
+                var slider = editorChart.HitObjects.OfType<SliderBody>().Single();
+                var cps = slider.Path.ControlPoints;
+
+                // Base head 90° @1000, base node +30°=120° @1200, then B's head 180° @2000, B's node 150° @2200.
+                bool timesOk = slider.StartTime == 1000
+                    && cps.Count == 3
+                    && Math.Abs(cps[0].TimeOffset - 200) < 1e-6
+                    && Math.Abs(cps[1].TimeOffset - 1000) < 1e-6
+                    && Math.Abs(cps[2].TimeOffset - 1200) < 1e-6;
+
+                int abs0 = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + cps[0].RotationOffset);
+                int abs1 = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + cps[1].RotationOffset);
+                int abs2 = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + cps[2].RotationOffset);
+
+                return timesOk && slider.AngleDeg == 90 && abs0 == 120 && abs1 == 180 && abs2 == 150;
+            });
+        }
+
+        [Test]
+        public void TestMergePreservesJoinedSliderInternalWinding()
+        {
+            waitForComposer();
+
+            // Base at 0°; the joined slider winds a full extra turn internally (its own node is +400° from
+            // its head). The merge must keep that 400° offset (not collapse it to +40° via a minimal turn),
+            // so the joined slider keeps its spiral shape.
+            AddStep("add base + winding slider, select both", () =>
+            {
+                var baseSlider = new SliderBody
+                {
+                    StartTime = 1000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                };
+                var winding = new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 10,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 400 },
+                        },
+                    },
+                };
+                editorChart.Add(baseSlider);
+                editorChart.Add(winding);
+                editorChart.SelectedHitObjects.Add(baseSlider);
+                editorChart.SelectedHitObjects.Add(winding);
+            });
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+
+            AddStep("merge", () => mergeButton()!.Action!.Invoke());
+            AddAssert("winding node keeps its full-turn delta from the joined head", () =>
+            {
+                var cps = editorChart.HitObjects.OfType<SliderBody>().Single().Path.ControlPoints;
+                // cps: [base node 0, joined head, joined node]. The joined node must sit exactly 400° from the
+                // joined head, preserving the internal winding regardless of how the head connected.
+                return cps.Count == 3 && cps[2].RotationOffset - cps[1].RotationOffset == 400;
+            });
+        }
+
+        [Test]
+        public void TestMergeIsUndoneInOneStep()
+        {
+            waitForComposer();
+            addTwoDisjointSelectedSliders();
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+
+            AddStep("merge", () => mergeButton()!.Action!.Invoke());
+            AddAssert("one slider after merge", () => editorChart.HitObjects.OfType<SliderBody>().Count(), () => Is.EqualTo(1));
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("two sliders restored", () =>
+            {
+                var sliders = editorChart.HitObjects.OfType<SliderBody>().OrderBy(s => s.StartTime).ToArray();
+                return sliders.Length == 2
+                    && sliders[0].Path.ControlPoints.Count == 1
+                    && sliders[1].Path.ControlPoints.Count == 1;
             });
         }
 

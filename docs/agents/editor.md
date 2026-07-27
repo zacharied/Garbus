@@ -53,7 +53,15 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   for selected slider control points. Each aggregates via `MultiValue`, renders disagreement as
   `<multiple>` / an indeterminate dash, and writes the whole selection in one undo transaction.
   Because node selection isn't event-observable, the inspector polls it each frame and re-reads
-  values on a 250ms roll — so a control drawable is replaced regularly.
+  values on a 250ms roll — so a control drawable is replaced regularly. It also shows a **Merge
+  sliders** button when the selection is ≥2 sliders (all objects sliders), no node/head is picked, and
+  the sliders' `[StartTime, EndTime]` spans don't overlap (touching endpoints allowed). Pressing it
+  reparents every other slider's nodes — their heads included — onto the earliest slider as new control
+  points, then removes the emptied sliders, in one undo transaction. Disjoint spans in start-time order
+  keep the merged path's node times non-decreasing; each joined head connects to the running frame by
+  the minimal rotation (`EditorAngleMapping.MinimalDiff`) while that slider's own internal winding is
+  preserved by rebasing its offsets onto the head's new offset. Pins: the `TestMerge*` cases in
+  `TestSceneComposeSelection`.
 
 ## Timeline, transport, tabs
 
