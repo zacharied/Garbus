@@ -46,6 +46,36 @@ namespace Garbus.Game.Tests.Editor
             };
         });
 
+        /// <summary>
+        /// The editor implements <see cref="Garbus.Game.Screens.IAllowSettings"/> so the settings
+        /// overlay is available here, but opts out of the floating gear (<c>ShowSettingsGear</c> is
+        /// false) — it exposes settings through a File → Game settings menu item instead.
+        /// </summary>
+        [Test]
+        public void TestSettingsExposedViaFileMenu()
+        {
+            AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
+            AddAssert("editor allows settings", () => editor is Garbus.Game.Screens.IAllowSettings);
+            AddAssert("editor hides the floating gear", () =>
+                editor is Garbus.Game.Screens.IAllowSettings s && !s.ShowSettingsGear);
+
+            AddStep("click File", () =>
+            {
+                var fileItem = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                     .First(i => i.Item.Text.Value.ToString() == "File");
+                input.MoveMouseTo(fileItem);
+                input.Click(MouseButton.Left);
+            });
+            AddUntilStep("file dropdown open", () =>
+                editor.ChildrenOfType<BasicMenu>().Count(m => m.State == MenuState.Open) >= 2);
+
+            AddAssert("File menu has Game settings item", () =>
+                editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                      .Any(i => i.Item.Text.Value.ToString() == "Game settings" && i.IsPresent));
+            AddAssert("File menu has a spacer", () =>
+                editor.ChildrenOfType<GarbusMenu.DrawableGarbusMenuSpacer>().Any(d => d.IsPresent));
+        }
+
         [Test]
         public void TestTabSwitching()
         {

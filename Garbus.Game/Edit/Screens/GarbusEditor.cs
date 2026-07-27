@@ -10,6 +10,7 @@ using Garbus.Game.Edit.Preview;
 using Garbus.Game.Edit.Screens.BottomBar;
 using Garbus.Game.Edit.Screens.Dialogs;
 using Garbus.Game.Screens;
+using Garbus.Game.Settings;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
@@ -25,8 +26,15 @@ using osuTK.Input;
 
 namespace Garbus.Game.Edit.Screens
 {
-    public partial class GarbusEditor : Screen
+    public partial class GarbusEditor : Screen, IAllowSettings
     {
+        // The editor exposes settings through its File → Game settings menu item, so it opts out of
+        // the floating gear while still permitting the overlay to open on this screen.
+        bool IAllowSettings.ShowSettingsGear => false;
+
+        [Resolved(CanBeNull = true)]
+        private ISettingsOverlayControl? settingsControl { get; set; }
+
         /// <summary>
         /// An offset (ms) applied to waveform visuals to align them with expectations.
         /// </summary>
@@ -548,6 +556,9 @@ namespace Garbus.Game.Edit.Screens
             }),
             new MenuItem("Save", Save),
             new MenuItem("Save As…", SaveAs),
+            new GarbusMenuSpacer(),
+            new MenuItem("Game settings", () => settingsControl?.OpenSettings()),
+            new GarbusMenuSpacer(),
             new MenuItem("Exit", this.Exit),
         };
 

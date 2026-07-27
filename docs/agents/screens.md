@@ -10,8 +10,9 @@ song/chart model song select reads is in [charts.md](charts.md).
 ## Flow
 
 `MainMenuScreen` → song select → `PlayScreen`. Settings is an **overlay**, reachable from any screen
-that implements `Screens/IAllowSettings.cs` (the main menu does) via the gear button — not a separate
-screen. `Screens/DesignOverlay.cs` renders timed tutorial-message design points during play.
+that implements `Screens/IAllowSettings.cs` (main menu, song select, and the editor) via the gear
+button — not a separate screen. `Screens/DesignOverlay.cs` renders timed tutorial-message design
+points during play.
 
 ## Song select — `Screens/SongSelect/`
 
@@ -42,6 +43,11 @@ bundled default). Also the target of the editor's F5/Test (an in-memory clone �
 [input.md](input.md) — with `KeyBindingRow`), `ButtonTestPanel` (live input feedback),
 `SettingsSlider` + `VolumeCurve` / `ScrollSpeedMapping` (audio volumes, scroll speed, offset). These
 back the config settings in `Configuration/GarbusConfigManager.cs`.
+
+`GlobalSettingsContainer` shows the floating gear only when the current screen is `IAllowSettings`
+**and** its `ShowSettingsGear` (default true) is true; the editor sets it false and opens the overlay
+from a menu item instead. It also implements `ISettingsOverlayControl` (`OpenSettings()`), cached in
+DI by `GarbusGame` so any screen can open the overlay without holding a container reference.
 
 ## Chrome
 

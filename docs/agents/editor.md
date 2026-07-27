@@ -16,7 +16,11 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   hotkeys (Ctrl+S/Z/Y/X/C/V/D, F5, Space, transport keys), and dirty tracking (`HasUnsavedChanges` =
   current state hash vs hash-at-last-save). It DI-caches the editor clock, editor chart, change
   handler (also as `IEditorChangeHandler`), beat divisor, clipboard, `ChartFile`, and
-  `ControlPointInfo`.
+  `ControlPointInfo`. It implements `IAllowSettings` (with `ShowSettingsGear => false`) so the global
+  settings overlay is available without the floating gear (which would overlap the top-left menu
+  bar); a **File › Game settings** item opens it by resolving the DI-cached `ISettingsOverlayControl`
+  (`GlobalSettingsContainer`, see [screens.md](screens.md)). Menu grouping uses `GarbusMenuSpacer`
+  (a divider `MenuItem` rendered by `GarbusMenu`).
 - `Edit/EditorClock.cs` + `Edit/BindableBeatDivisor.cs` — vendored transport/beat-snap core.
 - `Edit/EditorChart.cs` — the `EditorBeatmap` counterpart. It **aliases `Chart.HitObjects` directly**
   — no shadow copy; every mutation is exactly what serialization reads. `ApplyDefaults` takes no

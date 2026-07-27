@@ -7,10 +7,23 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
+using osu.Framework.Input.Events;
 using osu.Framework.Localisation;
 using osuTK;
 
 namespace Garbus.Game.Edit;
+
+/// <summary>
+/// A non-interactive <see cref="MenuItem"/> rendered as a thin divider line by <see cref="GarbusMenu"/>
+/// (modeled on osu's <c>OsuMenuItemSpacer</c>). Groups related items within a dropdown.
+/// </summary>
+public class GarbusMenuSpacer : MenuItem
+{
+    public GarbusMenuSpacer()
+        : base(" ")
+    {
+    }
+}
 
 /// <summary>A <see cref="MenuItem"/> carrying an on/off state, rendered with a checkbox by <see cref="GarbusMenu"/>.</summary>
 public class ToggleMenuItem : MenuItem
@@ -45,7 +58,47 @@ public partial class GarbusMenu : BasicMenu
     };
 
     protected override DrawableMenuItem CreateDrawableMenuItem(MenuItem item)
-        => item is ToggleMenuItem toggle ? new DrawableToggleMenuItem(toggle) : base.CreateDrawableMenuItem(item);
+    {
+        switch (item)
+        {
+            case GarbusMenuSpacer spacer:
+                return new DrawableGarbusMenuSpacer(spacer);
+
+            case ToggleMenuItem toggle:
+                return new DrawableToggleMenuItem(toggle);
+
+            default:
+                return base.CreateDrawableMenuItem(item);
+        }
+    }
+
+    /// <summary>Renders a <see cref="GarbusMenuSpacer"/> as a thin divider that swallows hover/click.</summary>
+    internal partial class DrawableGarbusMenuSpacer : BasicDrawableMenuItem
+    {
+        public DrawableGarbusMenuSpacer(GarbusMenuSpacer item)
+            : base(item)
+        {
+            // Shrink the vertical footprint so the divider reads as a gap rather than a full row.
+            Scale = new Vector2(1, 0.6f);
+            BackgroundColour = Colour4.Transparent;
+            BackgroundColourHover = Colour4.Transparent;
+
+            AddInternal(new Box
+            {
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                RelativeSizeAxes = Axes.X,
+                Width = 0.9f,
+                Height = 1.5f,
+                Colour = Colour4.White,
+                Alpha = 0.25f,
+            });
+        }
+
+        protected override bool OnHover(HoverEvent e) => true;
+
+        protected override bool OnClick(ClickEvent e) => true;
+    }
 
     internal partial class DrawableToggleMenuItem : BasicDrawableMenuItem
     {

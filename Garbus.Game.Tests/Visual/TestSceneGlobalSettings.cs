@@ -72,8 +72,30 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("overlay force-closed", () => overlay.State.Value == Visibility.Hidden);
         }
 
+        /// <summary>
+        /// A screen that allows settings but sets <see cref="IAllowSettings.ShowSettingsGear"/> to
+        /// false hides the floating gear, yet the overlay can still be opened programmatically (via
+        /// <see cref="ISettingsOverlayControl.OpenSettings"/>) and is NOT force-closed on that screen.
+        /// </summary>
+        [Test]
+        public void TestGearlessScreenHidesGearButAllowsOverlay()
+        {
+            AddStep("push gearless screen", () => stack.Push(new GearlessScreen()));
+            AddUntilStep("gear hidden", () => gear.Alpha == 0);
+            AddStep("open settings programmatically", () => global.OpenSettings());
+            AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
+            // Stays open across frames — the screen permits settings, so Update() must not force-close it.
+            AddWaitStep("wait a few frames", 5);
+            AddAssert("overlay still visible", () => overlay.State.Value == Visibility.Visible);
+        }
+
         private partial class AllowedScreen : Screen, IAllowSettings
         {
+        }
+
+        private partial class GearlessScreen : Screen, IAllowSettings
+        {
+            bool IAllowSettings.ShowSettingsGear => false;
         }
 
         private partial class DisallowedScreen : Screen
