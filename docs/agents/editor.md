@@ -55,20 +55,37 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   left with no node/head; Shift+Ctrl combines with the pre-drag node selection and prunes nothing.
   Both modifiers are latched at drag start (never re-read per frame), matching the object box's Ctrl.
   Head-only sliders (no control points) are ineligible — never boxed, never pruned.
-- `Edit/Inspector.cs` — right-toolbox selection summary plus multi-value controls: Side and Direction
-  dropdowns for hit objects, and an Easing dropdown (`SweepEasing`) + Smoothing checkbox (`Smooth`)
-  for selected slider control points. Each aggregates via `MultiValue`, renders disagreement as
-  `<multiple>` / an indeterminate dash, and writes the whole selection in one undo transaction.
-  Because node selection isn't event-observable, the inspector polls it each frame and re-reads
-  values on a 250ms roll — so a control drawable is replaced regularly. It also shows a **Merge
-  sliders** button when the selection is ≥2 sliders (all objects sliders), no node/head is picked, and
-  the sliders' `[StartTime, EndTime]` spans don't overlap (touching endpoints allowed). Pressing it
-  reparents every other slider's nodes — their heads included — onto the earliest slider as new control
-  points, then removes the emptied sliders, in one undo transaction. Disjoint spans in start-time order
-  keep the merged path's node times non-decreasing; each joined head connects to the running frame by
-  the minimal rotation (`EditorAngleMapping.MinimalDiff`) while that slider's own internal winding is
-  preserved by rebasing its offsets onto the head's new offset. Pins: the `TestMerge*` cases in
-  `TestSceneComposeSelection`.
+### Inspector
+
+`Edit/Inspector.cs` — the right-toolbox panel: a text summary of the current selection plus
+selection-dependent controls (built in `addControls`). Values aggregate via `MultiValue`, rendering
+disagreement as `<multiple>` (an indeterminate dash for the checkbox); every edit writes the whole
+selection in one undo transaction. Node/head selection isn't event-observable, so the inspector polls
+it each frame and re-reads values on a 250ms roll — a control drawable is replaced regularly.
+
+Each control appears only when the selection matches its condition:
+
+- **Side** dropdown — every selected object carries a mutable `Side` (slider + both slam types).
+- **Direction** dropdown — every selected object is a `GarbusSlamEdge` (its `RotationalDirection`).
+- **Easing** (`SweepEasing`) dropdown + **Smoothing** (`Smooth`) checkbox — one or more slider
+  control-point nodes are picked.
+- **Merge sliders** button — the selection is ≥2 sliders (all objects sliders), no node/head is
+  picked, and the sliders' `[StartTime, EndTime]` spans don't overlap (touching endpoints allowed).
+  Pressing it reparents every other slider's nodes — their heads included — onto the earliest slider as
+  new control points, then removes the emptied sliders, in one undo transaction. Disjoint spans in
+  start-time order keep the merged path's node times non-decreasing; each joined head connects to the
+  running frame by the minimal rotation (`EditorAngleMapping.MinimalDiff`) while that slider's own
+  internal winding is preserved by rebasing its offsets onto the head's new offset. Pins: the
+  `TestMerge*` cases in `TestSceneComposeSelection`.
+- **Decompose into heads** button (`Edit/DecomposeSliderButton.cs`) — the selection holds any slider
+  with a path (a head-only slider has nothing to split). It samples each such slider's swept angle at
+  the active grid step (`TimingPointAt(StartTime).BeatLength / beatDivisor.Value`) from the head forward
+  while `t ≤ EndTime` (grid-steps-only — an off-grid end gets no head) and replaces the slider with one
+  head-only `SliderBody` per sample, all in one undo transaction. The sampling/split is the pure
+  `SliderDecomposition.DecomposeIntoHeads(slider, step)`; the angle read is the model-side
+  `SliderBody.AngleDegAt(time)` (the non-hot-path counterpart to `DrawableSliderBody.AngleDegAt`, both
+  routed through `SliderSweep` so they can't drift). Pin:
+  `TestSceneComposeSelection.TestDecomposeIntoHeadsSplitsSliderAtGridStep`.
 
 ## Timeline, transport, tabs
 

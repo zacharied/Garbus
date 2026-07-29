@@ -44,6 +44,9 @@ namespace Garbus.Game.Edit
         [Resolved(CanBeNull = true)]
         private IEditorChangeHandler? changeHandler { get; set; }
 
+        [Resolved]
+        private BindableBeatDivisor beatDivisor { get; set; } = null!;
+
         private FillFlowContainer flow = null!;
         private TextFlowContainer inspectorText = null!;
         private FillFlowContainer controlsFlow = null!;
@@ -328,6 +331,29 @@ namespace Garbus.Game.Edit
                     changeHandler?.EndChange();
                 });
             }
+
+            // Decompose into heads: offered when the selection holds any slider with a path to sample. A
+            // head-only slider (no control points) has nothing to split, so it doesn't count.
+            var decomposable = objects.OfType<SliderBody>().Where(s => s.Path.ControlPoints.Count > 0).ToArray();
+            if (decomposable.Length > 0)
+                addButton(new DecomposeSliderButton { Action = () => decomposeSliders(decomposable) });
+        }
+
+        private void decomposeSliders(SliderBody[] sliders)
+        {
+            changeHandler?.BeginChange();
+
+            foreach (var slider in sliders)
+            {
+                // Step at the slider's own head time — the timing section it starts in governs its snap grid.
+                double step = editorChart.ControlPointInfo.TimingPointAt(slider.StartTime).BeatLength / beatDivisor.Value;
+
+                editorChart.Remove(slider);
+                foreach (var head in SliderDecomposition.DecomposeIntoHeads(slider, step))
+                    editorChart.Add(head);
+            }
+
+            changeHandler?.EndChange();
         }
 
         /// <summary>
@@ -447,6 +473,8 @@ namespace Garbus.Game.Edit
         // The checkbox paints its own inline label, so unlike a dropdown it needs no label wrapper.
         private void addMultiValueCheckbox(string label, MultiValue<bool> state, Action<bool> onChange)
             => controlsFlow.Add(new MultiValueCheckbox(label, state, onChange));
+
+        private void addButton(Drawable button) => controlsFlow.Add(button);
 
         private static string readableTypeName(GarbusHitObject h) => h switch
         {

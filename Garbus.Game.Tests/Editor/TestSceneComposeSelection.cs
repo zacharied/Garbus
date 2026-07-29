@@ -555,6 +555,55 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDecomposeIntoHeadsSplitsSliderAtGridStep()
+        {
+            // The inspector's "Decompose into heads" button samples the swept angle at the active grid step
+            // (BeatLength 500 / divisor 4 = 125ms) and replaces the slider with a head-only slider per sample.
+            waitForComposer();
+
+            AddStep("add slider (start 2000, +120° over 500ms)", () =>
+            {
+                var path = new BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 120 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Right,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+
+            AddStep("select the slider", () =>
+            {
+                editorChart.SelectedHitObjects.Clear();
+                editorChart.SelectedHitObjects.Add(placedObject<SliderBody>()!);
+            });
+            AddUntilStep("decompose button shown", () => decomposeButton() != null);
+
+            AddStep("click decompose", () => decomposeButton()!.TriggerClick());
+
+            // Step 125ms over [2000, 2500]: heads at 2000/2125/2250/2375/2500, angles 90/120/150/180/210.
+            AddAssert("five head-only sliders", () => editorChart.HitObjects.OfType<SliderBody>().ToArray(),
+                () => Has.Length.EqualTo(5).And.All.Matches<SliderBody>(s => s.Path.ControlPoints.Count == 0));
+            AddAssert("head start times", () => editorChart.HitObjects.OfType<SliderBody>().Select(s => s.StartTime).OrderBy(t => t),
+                () => Is.EqualTo(new double[] { 2000, 2125, 2250, 2375, 2500 }));
+            AddAssert("head angles interpolate", () => editorChart.HitObjects.OfType<SliderBody>().OrderBy(s => s.StartTime).Select(s => s.AngleDeg),
+                () => Is.EqualTo(new[] { 90, 120, 150, 180, 210 }));
+            AddAssert("all inherit the Right side", () => editorChart.HitObjects.OfType<SliderBody>().All(s => s.Side == HorizontalDirection.Right), () => Is.True);
+
+            AddStep("undo", () => changeHandler.RestoreState(-1));
+            AddAssert("original slider restored as one object with its path",
+                () => editorChart.HitObjects.OfType<SliderBody>().Select(s => s.Path.ControlPoints.Count),
+                () => Is.EqualTo(new[] { 1 }));
+        }
+
+        private DecomposeSliderButton? decomposeButton() => composer.ChildrenOfType<DecomposeSliderButton>().SingleOrDefault();
+
+        [Test]
         public void TestNodeDragThatDropsWrapCopyDoesNotStrandTransaction()
         {
             // Root-cause repro for "TransactionActive stuck true → Undo/Redo dead".
