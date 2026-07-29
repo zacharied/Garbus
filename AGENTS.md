@@ -39,6 +39,11 @@ area leans on, and its gotchas.
   what you introduce before considering the work done.
 - **Do not run the app unless asked.** Tests (headless and visual scenes) are how you verify. If you
   believe actually running the app would be more effective, ask first and say why.
+- **Temporary debugging instrumentation does not get a PR.** Profiling hooks, A/B experiments,
+  bypassed effects and other throwaway diagnostics exist to answer one question, then get deleted —
+  they are never merged. Leave them on a local branch or worktree and say where it is; do not push
+  the branch or open a PR. Only changes meant to land on master get one. When a diagnostic confirms
+  a real fix, that fix is separate work and follows the normal flow.
 
 ## Conventions
 
