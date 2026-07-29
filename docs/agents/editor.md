@@ -43,7 +43,14 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   menu items.
 - `Edit/GarbusSelectionHandler.cs` — group move/rotate; `Edit/Tools/` — composition tools.
 - Slider **node selection** is local to `SliderSelectionBlueprint` (a `HashSet` of control points by
-  reference) — not part of `EditorChart.SelectedHitObjects`/undo/clipboard.
+  reference) — not part of `EditorChart.SelectedHitObjects`/undo/clipboard. Besides clicking handles,
+  a **Shift+drag box** selects the nodes/heads of already-selected sliders: `GarbusBlueprintContainer`
+  overrides `OnDragStart`/`UpdateSelectionFromDragBox`/`OnDragEnd` so a Shift-held box routes the drag
+  quad to each selected slider's `BeginNodeDragBox`/`UpdateNodeDragBox`/`EndNodeDragBox` instead of
+  whole-object selection. Plain Shift replaces node selection and, on release, prunes selected sliders
+  left with no node/head; Shift+Ctrl combines with the pre-drag node selection and prunes nothing.
+  Both modifiers are latched at drag start (never re-read per frame), matching the object box's Ctrl.
+  Head-only sliders (no control points) are ineligible — never boxed, never pruned.
 - `Edit/Inspector.cs` — right-toolbox selection summary plus multi-value controls: Side and Direction
   dropdowns for hit objects, and an Easing dropdown (`SweepEasing`) + Smoothing checkbox (`Smooth`)
   for selected slider control points. Each aggregates via `MultiValue`, renders disagreement as
