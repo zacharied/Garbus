@@ -6,6 +6,7 @@ using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Utils;
 using osuTK;
 
 namespace Garbus.Game.Objects.Drawables;
@@ -39,10 +40,13 @@ public partial class SliderContactSpikes : Container
     [BackgroundDependencyLoader]
     private void load()
     {
+        // PERF A/B: slider contact spikes drop the blurred halo (see SpikeBlade.useGlow). Scoped to
+        // the slider spikes only — StickCentreSpike shares SpikeBlade and keeps its glow, so this
+        // isolates the cost that appears exactly when a slider line reaches the ring.
         AddRangeInternal(blades =
         [
-            new SpikeBlade(SideColour),
-            new SpikeBlade(SideColour),
+            new SpikeBlade(SideColour, useGlow: false),
+            new SpikeBlade(SideColour, useGlow: false),
         ]);
     }
 
@@ -89,27 +93,61 @@ public sealed partial class SpikeBlade : Container
     public float BaseRadius { get; private set; }
     public float TipRadius { get; private set; }
 
+    private const float glow_blur_sigma = 8;
+
     private ColourInfo colour;
     private readonly Triangle triangle = new() { EdgeSmoothness = new(2) };
-    private BufferedContainer glow = null!;
+    // Container<Drawable>, not Container: BufferedContainer derives from Container<Drawable> directly,
+    // so it and Container are siblings — this is their common base.
+    private Container<Drawable> glow = null!;
 
-    public SpikeBlade(ColourInfo colour)
+    // PERF A/B: when false, the blurred halo is skipped and only the crisp blade is drawn.
+    //
+    // GlowEffect wraps the blade in a BufferedContainer built by BlurEffect.ApplyTo via the default
+    // ctor, so UsingCachedFrameBuffer is false and BufferedContainer.Update() calls ForceRedraw()
+    // unconditionally — a framebuffer re-render plus two Gaussian blur passes per blade, every frame,
+    // for as long as the blade is present. SliderContactSpikes only calls SetGeometry while the spike
+    // is active, so a blade keeps its full size afterwards, and AlwaysPresent keeps the subtree drawn
+    // at Alpha 0 — meaning the cost persists while the spike is invisible.
+    private readonly bool useGlow;
+
+    public SpikeBlade(ColourInfo colour, bool useGlow = true)
     {
         this.colour = colour;
+        this.useGlow = useGlow;
         RelativeSizeAxes = Axes.Both;
     }
 
     [BackgroundDependencyLoader]
     private void load()
     {
-        AddInternal(glow = new GlowEffect
+        if (useGlow)
         {
-            Colour = colour,
-            BlurSigma = new Vector2(8),
-            Strength = 1.5f,
-            Placement = EffectPlacement.Behind,
-            PadExtent = true,
-        }.ApplyTo(triangle));
+            AddInternal(glow = new GlowEffect
+            {
+                Colour = colour,
+                BlurSigma = new Vector2(glow_blur_sigma),
+                Strength = 1.5f,
+                Placement = EffectPlacement.Behind,
+                PadExtent = true,
+            }.ApplyTo(triangle));
+        }
+        else
+        {
+            // Reproduces what BufferedContainer.Wrap did for the effect (auto-size to the child, blur
+            // padding) so blade geometry and SetGeometry's positioning maths are untouched; only the
+            // halo and its per-frame blur passes are gone.
+            AddInternal(glow = new Container
+            {
+                AutoSizeAxes = Axes.Both,
+                Padding = new MarginPadding
+                {
+                    Horizontal = Blur.KernelSize(glow_blur_sigma),
+                    Vertical = Blur.KernelSize(glow_blur_sigma),
+                },
+                Child = triangle,
+            });
+        }
 
         glow.Anchor = Anchor.Centre;
         glow.Origin = Anchor.BottomCentre;
