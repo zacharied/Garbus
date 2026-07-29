@@ -41,7 +41,10 @@ bundled default). Also the target of the editor's F5/Test (an in-memory clone �
 `GlobalSettingsContainer`. Panels: `ControlsPanel` (key rebinding UI over `KeyBindingStore` — see
 [input.md](input.md) — with `KeyBindingRow`), `ButtonTestPanel` (live input feedback),
 `SettingsSlider` + `VolumeCurve` / `ScrollSpeedMapping` (audio volumes, scroll speed, offset). These
-back the config settings in `Configuration/GarbusConfigManager.cs`.
+back the config settings in `Configuration/GarbusConfigManager.cs`. `SettingsEnumDropdown<T>` is the
+dropdown counterpart to `SettingsSlider` (item text uses each enum value's `[Description]`); the
+"Frame limiter" row uses it to bind straight to the framework's `FrameworkSetting.FrameSync` (persisted
+to `framework.ini`, so no `GarbusSetting` backs it).
 
 ## Chrome
 

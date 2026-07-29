@@ -4,6 +4,7 @@ using Garbus.Game.Input;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Bindables;
+using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -28,6 +29,9 @@ namespace Garbus.Game.Settings
 
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
+
+        [Resolved]
+        private FrameworkConfigManager frameworkConfig { get; set; } = null!;
 
         [Resolved]
         private KeyBindingStore keyBindings { get; set; } = null!;
@@ -90,6 +94,7 @@ namespace Garbus.Game.Settings
                             createVolumeRow("Music volume", audio.VolumeTrack),
                             createVolumeRow("Hitsound volume", audio.VolumeSample),
                             new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
+                            new SettingsEnumDropdown<FrameSync>("Frame limiter", frameworkConfig.GetBindable<FrameSync>(FrameworkSetting.FrameSync)),
                             new ControlsButton(showControls),
                         },
                     },
