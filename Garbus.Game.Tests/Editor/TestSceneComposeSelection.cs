@@ -9,6 +9,7 @@
 // placement, settleWith() stops the clock on the object's StartTime, parking it mid-playfield.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
@@ -1106,6 +1107,233 @@ namespace Garbus.Game.Tests.Editor
             });
             AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
             AddAssert("that node selected", () => sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(firstControlPoint()));
+        }
+
+        // ------------------------------------------------------------------
+        // Shift+drag node-selection box (nodes/heads of already-selected sliders).
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Adds a slider whose head (270°) and two nodes (absolute 0° and 180°) sit in three well-separated
+        /// grid columns, parks the clock on its start time, and switches to the select tool.
+        /// </summary>
+        private void addThreeColumnSlider()
+        {
+            AddStep("add slider with two spread nodes + park clock", () =>
+            {
+                var path = new BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 90 },  // absolute 0°
+                    new GarbusPathControlPoint { TimeOffset = 600, RotationOffset = -90 }, // absolute 180°
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 270,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("slider drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+        }
+
+        /// <summary>Ctrl+click a node handle to add it to the node selection (slider must already be selected).</summary>
+        private void ctrlClickNode(int i)
+        {
+            AddStep($"ctrl+click node {i}", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(i));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+        }
+
+        /// <summary>
+        /// Runs a full-height drag box whose horizontal strip is centred on <paramref name="centreScreenX"/>
+        /// with <paramref name="halfWidth"/> px either side, holding the given modifiers for the whole gesture.
+        /// The press starts near the top of the playfield (empty space above the handles) so it begins a box,
+        /// not a move.
+        /// </summary>
+        private void shiftDragStrip(Func<float> centreScreenX, Func<float> halfWidth, bool ctrl = false)
+        {
+            AddStep("shift+press above the strip", () =>
+            {
+                var q = playfield.ScreenSpaceDrawQuad;
+                input.MoveMouseTo(new Vector2(centreScreenX() - halfWidth(), q.TopLeft.Y + 5));
+                input.PressKey(Key.LShift);
+                if (ctrl) input.PressKey(Key.LControl);
+                input.PressButton(MouseButton.Left);
+            });
+            AddStep("drag the box down across the strip", () =>
+            {
+                var q = playfield.ScreenSpaceDrawQuad;
+                input.MoveMouseTo(new Vector2(centreScreenX() + halfWidth(), q.BottomLeft.Y - 5));
+            });
+            AddStep("release", () =>
+            {
+                input.ReleaseButton(MouseButton.Left);
+                if (ctrl) input.ReleaseKey(Key.LControl);
+                input.ReleaseKey(Key.LShift);
+            });
+        }
+
+        /// <summary>Screen X of every node and head handle currently present across all selected sliders.</summary>
+        private IEnumerable<float> allHandleXs() =>
+            composer.ChildrenOfType<NodeDragPiece>().Select(h => h.ScreenSpaceDrawQuad.Centre.X)
+                    .Concat(composer.ChildrenOfType<EditSquarePiece>().Where(h => h.CpIndex == -1).Select(h => h.ScreenSpaceDrawQuad.Centre.X));
+
+        /// <summary>Half-width of a strip centred on <paramref name="targetX"/> that excludes every other handle.</summary>
+        private float stripHalfWidthAround(float targetX)
+        {
+            float nearest = allHandleXs().Where(x => Math.Abs(x - targetX) > 1f).Min(x => Math.Abs(x - targetX));
+            return nearest * 0.4f;
+        }
+
+        /// <summary>Half-width of a strip that brackets node <paramref name="i"/>'s handle while excluding the nearest other handle.</summary>
+        private float nodeStripHalfWidth(int i) => stripHalfWidthAround(nodeHandleScreen(i).X);
+
+        /// <summary>The slider selection blueprint for a specific slider.</summary>
+        private SliderSelectionBlueprint sliderBlueprintFor(SliderBody slider) =>
+            composer.ChildrenOfType<SliderSelectionBlueprint>().Single(b => b.Item == slider);
+
+        /// <summary>Screen centre of a specific slider's on-grid node handle for control-point <paramref name="i"/>.</summary>
+        private Vector2 nodeHandleScreenFor(SliderBody slider, int i)
+        {
+            var playfieldQuad = playfield.ScreenSpaceDrawQuad;
+            var candidates = sliderBlueprintFor(slider).ChildrenOfType<NodeDragPiece>().Where(h => h.CpIndex == i).ToList();
+            var onGrid = candidates.FirstOrDefault(h => playfieldQuad.Contains(h.ScreenSpaceDrawQuad.Centre));
+            return (onGrid ?? candidates[0]).ScreenSpaceDrawQuad.Centre;
+        }
+
+        /// <summary>
+        /// Adds two single-node sliders whose four handles (2 heads + 2 nodes) land in four distinct grid
+        /// columns, parks the clock, and selects both via ctrl+click on their heads.
+        /// </summary>
+        private void addTwoSelectedSliders()
+        {
+            AddStep("add two column-separated sliders + park clock", () =>
+            {
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000, AngleDeg = 270, Side = HorizontalDirection.Left, // head 270°, node 0°
+                    Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint> { new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 90 } } },
+                });
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000, AngleDeg = 90, Side = HorizontalDirection.Left, // head 90°, node 180°
+                    Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint> { new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 90 } } },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("two slider drawables exist", () => composer.HitObjects.Count() == 2);
+            settleWith(() => 2000);
+            AddStep("switch to select tool", () => input.Key(Key.Number1));
+
+            AddStep("ctrl+click first head", () =>
+            {
+                input.MoveMouseTo(headScreenFor(sliderAt(0)));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddStep("ctrl+click second head", () =>
+            {
+                input.MoveMouseTo(headScreenFor(sliderAt(1)));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both sliders selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestShiftDragBoxReplacePrunesUnboxedSlider()
+        {
+            waitForComposer();
+            addTwoSelectedSliders();
+
+            // Box only the first slider's node column; the second slider is untouched.
+            shiftDragStrip(() => nodeHandleScreenFor(sliderAt(0), 0).X, () => stripHalfWidthAround(nodeHandleScreenFor(sliderAt(0), 0).X));
+
+            AddAssert("first slider still selected", () => editorChart.SelectedHitObjects.Contains(sliderAt(0)));
+            AddAssert("first slider's node selected", () =>
+                sliderBlueprintFor(sliderAt(0)).SelectedNodes.Single(), () => Is.SameAs(sliderAt(0).Path.ControlPoints[0]));
+            AddAssert("second slider pruned (no boxed node)", () => !editorChart.SelectedHitObjects.Contains(sliderAt(1)));
+        }
+
+        [Test]
+        public void TestShiftCtrlDragBoxCombinesWithExistingNodeSelection()
+        {
+            waitForComposer();
+            addThreeColumnSlider();
+            selectSliderOnLine();
+            ctrlClickNode(1);
+
+            // Shift+Ctrl box over node 0 keeps node 1 (the pre-drag selection) and adds node 0.
+            shiftDragStrip(() => nodeHandleScreen(0).X, () => nodeStripHalfWidth(0), ctrl: true);
+
+            AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+            AddAssert("node 0 among selection", () => sliderBlueprint().SelectedNodes.Contains(placedObject<SliderBody>()!.Path.ControlPoints[0]));
+            AddAssert("node 1 still selected", () => sliderBlueprint().SelectedNodes.Contains(placedObject<SliderBody>()!.Path.ControlPoints[1]));
+            AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestShiftDragBoxSelectsHead()
+        {
+            waitForComposer();
+            addThreeColumnSlider();
+            selectSliderOnLine();
+
+            // Box only the head column.
+            shiftDragStrip(() => headHandleScreen().X, () => stripHalfWidthAround(headHandleScreen().X));
+
+            AddAssert("head selected", () => sliderBlueprint().HeadSelected, () => Is.True);
+            AddAssert("no control-point node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.Zero);
+            AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestShiftDragBoxIgnoresHeadOnlySlider()
+        {
+            waitForComposer();
+            placeHeadOnlySlider();
+
+            AddStep("select the head-only slider", () =>
+            {
+                input.MoveMouseTo(headScreen());
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("head-only slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            // A fixed strip over the head — the head-only slider has no other handle to size against.
+            shiftDragStrip(() => headHandleScreen().X, () => 40f);
+
+            AddAssert("head not selected (head-only has no node target)", () => sliderBlueprint().HeadSelected, () => Is.False);
+            AddAssert("slider not pruned (still selected)", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+        }
+
+        [Test]
+        public void TestShiftDragBoxReplacesPriorNodeSelection()
+        {
+            waitForComposer();
+            addThreeColumnSlider();
+            selectSliderOnLine();
+            ctrlClickNode(1);
+            AddAssert("node 1 selected before box", () =>
+                sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[1]));
+
+            shiftDragStrip(() => nodeHandleScreen(0).X, () => nodeStripHalfWidth(0));
+
+            AddAssert("only node 0 selected after box", () =>
+                sliderBlueprint().SelectedNodes.Single(), () => Is.SameAs(placedObject<SliderBody>()!.Path.ControlPoints[0]));
+            AddAssert("slider still selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
         }
 
         [Test]
