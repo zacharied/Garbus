@@ -15,6 +15,7 @@ using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Events;
 using osu.Framework.Screens;
 using Garbus.Game.Charts;
+using Garbus.Game.Gameplay.Audio;
 using Garbus.Game.Gameplay.Judgements;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Drawables;
@@ -43,6 +44,7 @@ namespace Garbus.Game.Screens
         private MasterGameplayClockContainer gameplayClock = null!;
         private GarbusPlayfield playfield = null!;
         private DesignOverlay designOverlay = null!;
+        private ComboBreakSound comboBreakSound = null!;
 
         private GarbusChart chart = null!;
         private double chartEndTime;
@@ -247,6 +249,9 @@ namespace Garbus.Game.Screens
                     Margin = new MarginPadding(20),
                     Child = new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
                 },
+                // Outside the gameplay-clock subtree: it is a one-shot reaction to a judgement, not
+                // something scheduled against gameplay time.
+                comboBreakSound = new ComboBreakSound(),
             };
 
             foreach (var hitObject in chart.HitObjects)
@@ -303,7 +308,10 @@ namespace Garbus.Game.Screens
             result.HighestComboAtJudgement = highestCombo;
 
             if (result.Type.BreaksCombo())
+            {
+                comboBreakSound.PlayIfComboBroken(result.Type, combo);
                 combo = 0;
+            }
             else if (result.Type.IncreasesCombo())
                 combo++;
 

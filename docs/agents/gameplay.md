@@ -70,7 +70,9 @@ where the real gameplay drawables are reused verbatim over the editor's live hit
   interface + `ConstantScrollAlgorithm`, `GarbusScrollingInfo` with `TimeRange`,
   `ScrollingHitObjectContainer`/`ScrollingPlayfield`).
 - `Gameplay/Judgements/` (`Judgement`, `JudgementResult`), `Gameplay/Scoring/` (`HitResult`,
-  `HitWindows`), `Gameplay/Audio/` (`HitSoundContainer` + the `DrawableSample` wrapper; `HitsoundFamily`).
+  `HitWindows`), `Gameplay/Audio/` (`HitSoundContainer` + the `DrawableSample` wrapper;
+  `HitsoundFamily`; `ComboBreakSound`, the Garbus-only combo-break one-shot — see
+  [timing-audio.md](timing-audio.md)).
 
 Trims from osu: skinning, combo colours, mods, and cursor are stripped from `DrawableHitObject`/
 `Playfield`; `HitResult` drops `LegacyComboIncrease`/`SliderTailHit`; author-configurable
