@@ -105,7 +105,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     // and reach progressively further out. Composited source-over, inner radii (covered by every layer)
     // end up near-opaque while the rim (one layer) stays faint — a fade whose only caps are the graduated
     // rounded tips, not lumpy mid-band caps from short disjoint slices.
-    private const int escape_bands = 8;
+    private const int escape_bands = 1;
     private const float escape_layer_alpha = 0.28f;
 
     // Leading-tip "consumed" marker shown while the catcher is eating the body.
