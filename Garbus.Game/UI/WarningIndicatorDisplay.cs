@@ -56,6 +56,12 @@ public partial class WarningIndicatorDisplay : CompositeDrawable
     // the blurred CreateSideArc; a style that draws no mask (mini) simply leaves this empty.
     private readonly Dictionary<HorizontalDirection, Circle> masks = new();
 
+    // A side's cached framebuffers (inner blur + outer mask composite), populated by the blurred
+    // CreateSideArc. Invalidations only propagate one level up, so a change to the arc's geometry never
+    // reaches the buffers on its own — the reveal edge forces their redraw explicitly. The mini style
+    // has no buffers and leaves this empty.
+    private readonly Dictionary<HorizontalDirection, BufferedContainer[]> sideBuffers = new();
+
     public WarningIndicatorDisplay()
     {
         RelativeSizeAxes = Axes.Both;
@@ -91,8 +97,11 @@ public partial class WarningIndicatorDisplay : CompositeDrawable
             Colour = colour,
         };
 
-        // Blur the glow first (base arc shape invisible: DrawOriginal stays false).
-        var blurred = new BufferedContainer
+        // Blur the glow first (base arc shape invisible: DrawOriginal stays false). Both buffers cache
+        // their framebuffer: an uncached BufferedContainer re-renders every frame, and at this sigma the
+        // two blur passes over a playfield-sized buffer overwhelm integrated GPUs. The content only
+        // changes on a reveal edge, where Update forces the redraw explicitly.
+        var blurred = new BufferedContainer(cachedFrameBuffer: true)
         {
             RelativeSizeAxes = Axes.Both,
             BlurSigma = new Vector2(blur_sigma),
@@ -116,7 +125,7 @@ public partial class WarningIndicatorDisplay : CompositeDrawable
         };
 
         // Outer buffer composites the crisp mask over the blurred glow (no blur of its own).
-        var clipped = new BufferedContainer
+        var clipped = new BufferedContainer(cachedFrameBuffer: true)
         {
             RelativeSizeAxes = Axes.Both,
             Alpha = 0,
@@ -124,6 +133,7 @@ public partial class WarningIndicatorDisplay : CompositeDrawable
         };
 
         masks[side] = mask;
+        sideBuffers[side] = new[] { blurred, clipped };
         return new SideArc(clipped, arc);
     }
 
@@ -165,6 +175,13 @@ public partial class WarningIndicatorDisplay : CompositeDrawable
                     float half = MathUtils.DegToRad(ARC_HALF_WIDTH_DEG);
                     s.Arc.StartRadians.Value = centre - half;
                     s.Arc.EndRadians.Value = centre + half;
+
+                    // The buffers cache their framebuffer; re-render them for the new arc geometry.
+                    if (sideBuffers.TryGetValue(side, out var buffers))
+                    {
+                        foreach (var buffer in buffers)
+                            buffer.ForceRedraw();
+                    }
                 }
 
                 if (s.RevealedAngleDeg == null)

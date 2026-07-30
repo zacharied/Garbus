@@ -19,7 +19,10 @@ they are judged in time with the music.
 - `UI/Ring.cs` — the judgement ring at the playfield edge. It owns the hit-object layers and, above
   them, the `JudgementFeedbackDisplay` (below). It also hosts the keybeams (`PlayfieldKeybeam`),
   radial lines (`PlayfieldRadialLines`), stick indicator (`StickIndicator`/`StickCentreSpike`), and
-  warning indicators (`WarningIndicatorDisplay`).
+  warning indicators (`WarningIndicatorDisplay`). The warning glow's blur/mask `BufferedContainer`s
+  cache their framebuffers and are force-redrawn only when a side's revealed angle changes — an
+  uncached buffer re-blurs the whole playfield every frame, which cripples integrated GPUs (see the
+  gotcha in [osu-framework.md](osu-framework.md)).
 - `UI/Lane.cs` — the directional lanes objects travel along.
 - `UI/GarbusScrollingHitObjectContainer.cs` — the polar container. Instead of osu's linear
   time→position scroll, it maps each object's remaining time-to-judgement to a **radius** (centre =
