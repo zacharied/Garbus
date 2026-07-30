@@ -541,7 +541,7 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
     }
 
     /// <summary>A frozen readable state for tuning the halo in the visual test browser.</summary>
-    [Test]
+    [Test, Explicit("tuning scene — eyeball in the visual test browser")]
     public void TestVisualHalo()
     {
         AddStep("show representative feedback", () =>

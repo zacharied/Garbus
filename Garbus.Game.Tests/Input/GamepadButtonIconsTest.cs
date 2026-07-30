@@ -16,20 +16,6 @@ namespace Garbus.Game.Tests.Input
                 Is.EqualTo("Icons/Gamepad/DS5/cross"));
         }
 
-        [Test]
-        public void DefaultTypeIsDualSense()
-        {
-            Assert.That(GamepadButtonIcons.ResolveTexturePath(GamepadButton.FaceEast),
-                Is.EqualTo(GamepadButtonIcons.ResolveTexturePath(GamepadButton.FaceEast, GamepadType.DualSense)));
-        }
-
-        [Test]
-        public void EveryDualSenseButtonResolves([Values] GamepadButton button)
-        {
-            Assert.That(GamepadButtonIcons.ResolveTexturePath(button, GamepadType.DualSense),
-                Is.Not.Null, $"DualSense has no icon mapping for {button}");
-        }
-
         // The rename is only correct if every resolved path names a real embedded texture. This fails
         // loudly if an asset is missing or misnamed relative to the resolver's file map.
         [Test]

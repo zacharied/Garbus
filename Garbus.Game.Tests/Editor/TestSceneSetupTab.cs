@@ -91,51 +91,6 @@ namespace Garbus.Game.Tests.Editor
                 editor.ChildrenOfType<SongMetadataSection>().Any());
         }
 
-        [Test]
-        public void TestTimingOwnershipUsesTransparentRadioStyle()
-        {
-            setupEditorUnsaved();
-            waitForSetupTab();
-
-            AddUntilStep("timing radio buttons loaded", () =>
-                editor.ChildrenOfType<TimingOwnershipSection>().First()
-                    .ChildrenOfType<EditorRadioButton>().Count() == 2);
-
-            AddAssert("radio backgrounds hidden", () =>
-                editor.ChildrenOfType<TimingOwnershipSection>().First()
-                    .ChildrenOfType<EditorRadioButton>().All(button => button.BackgroundColour.A == 0));
-
-            AddAssert("all radios have white outline", () =>
-                editor.ChildrenOfType<TimingOwnershipSection>().First()
-                    .ChildrenOfType<EditorRadioButton>().All(button =>
-                        button.ChildrenOfType<osu.Framework.Graphics.Sprites.SpriteIcon>().Single().Colour
-                            .Equals((ColourInfo)Colour4.White)));
-
-            AddAssert("unselected label grayed out", () =>
-            {
-                var buttons = editor.ChildrenOfType<TimingOwnershipSection>().First()
-                    .ChildrenOfType<EditorRadioButton>();
-                return buttons.Single(button => button.Button.Label == "Per-chart")
-                           .ChildrenOfType<osu.Framework.Graphics.Sprites.SpriteText>().Single().Colour
-                           .Equals((ColourInfo)Colour4.White)
-                       && !buttons.Single(button => button.Button.Label == "Shared")
-                           .ChildrenOfType<osu.Framework.Graphics.Sprites.SpriteText>().Single().Colour
-                           .Equals((ColourInfo)Colour4.White);
-            });
-
-            AddAssert("selected radio has dot", () =>
-            {
-                var buttons = editor.ChildrenOfType<TimingOwnershipSection>().First()
-                    .ChildrenOfType<EditorRadioButton>();
-                var selectedDot = buttons.Single(button => button.Button.Label == "Per-chart")
-                    .ChildrenOfType<Circle>().Single();
-                return selectedDot.Alpha == 1
-                       && selectedDot.Colour.Equals((ColourInfo)Colour4.FromHex("#0564D0"))
-                       && buttons.Single(button => button.Button.Label == "Shared")
-                           .ChildrenOfType<Circle>().Single().Alpha == 0;
-            });
-        }
-
         /// <summary>
         /// The resource choose buttons stayed greyed out after the chart was saved — the
         /// enabled state was computed once at load. They must enable as soon as the chart has a
@@ -160,32 +115,6 @@ namespace Garbus.Game.Tests.Editor
 
             AddUntilStep("choose buttons enabled after save", () =>
                 editor.ChildrenOfType<FileChooserRow>().All(r => r.ChooseButton.Enabled.Value));
-        }
-
-        // ------------------------------------------------------------------
-        // 1. Title commit updates Metadata.Title
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void TestTitleCommitUpdatesMetadata()
-        {
-            setupEditorUnsaved();
-            waitForSetupTab();
-
-            // Set the textbox value and programmatically commit.
-            AddStep("set title text and commit", () =>
-            {
-                var formRow = editor.ChildrenOfType<SongMetadataSection>()
-                    .First()
-                    .ChildrenOfType<FormRow>()
-                    .First();
-
-                formRow.TextBox.Current.Value = "My Chart Title";
-                formRow.TriggerCommit();
-            });
-
-            AddAssert("metadata.Title updated", () =>
-                editor.EditorSong.Song.Metadata.Title == "My Chart Title");
         }
 
         [Test]
@@ -318,36 +247,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
-        // 2. Resource rows disabled for unsaved chart
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void TestResourceRowsDisabledForUnsavedChart()
-        {
-            setupEditorUnsaved();
-
-            AddUntilStep("editor loaded", () => editor.IsLoaded);
-            AddStep("switch to Setup tab", () => editor.Tab.Value = EditorTab.Setup);
-            AddUntilStep("setup tab visible + resources section", () =>
-                editor.ChildrenOfType<SetupTab>().Any() &&
-                editor.ChildrenOfType<SetupTab>().First().State.Value == Visibility.Visible &&
-                editor.ChildrenOfType<SongResourcesSection>().Any());
-
-            AddAssert("audio file chooser row disabled", () =>
-            {
-                var rows = editor.ChildrenOfType<FileChooserRow>().ToList();
-                return rows.Count >= 1 && !rows[0].ChooseButton.Enabled.Value;
-            });
-
-            AddAssert("background file chooser row disabled", () =>
-            {
-                var rows = editor.ChildrenOfType<FileChooserRow>().ToList();
-                return rows.Count >= 2 && !rows[1].ChooseButton.Enabled.Value;
-            });
-        }
-
-        // ------------------------------------------------------------------
-        // 3 & 4. After Save + picking audio file: file copied, AudioFile set
+        // After Save + picking audio file: file copied, AudioFile set
         // ------------------------------------------------------------------
 
         [Test]
@@ -394,9 +294,6 @@ namespace Garbus.Game.Tests.Editor
                 string dest = Path.Combine(chartDir!, editor.EditorSong.Song.Resources.Track);
                 return File.Exists(dest);
             });
-
-            // ReloadTrack was called (metadata is set and no exception was thrown).
-            AddAssert("no crash (ReloadTrack called without throwing)", () => true);
         }
 
         [Test]

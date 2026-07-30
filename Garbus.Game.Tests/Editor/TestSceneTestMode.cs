@@ -89,20 +89,6 @@ namespace Garbus.Game.Tests.Editor
         // ------------------------------------------------------------------
 
         [Test]
-        public void TestF5PushesPlayScreen()
-        {
-            setupEditorWithVirtualTrack(hitObjectCount: 3);
-            waitForEditor();
-
-            // Position the editor clock somewhere non-zero.
-            AddStep("seek editor to 3000 ms", () => editor.ChildrenOfType<EditorClock>().First().Seek(3000));
-
-            AddStep("press F5", () => input.Key(osuTK.Input.Key.F5));
-
-            AddUntilStep("PlayScreen pushed", () => stack.CurrentScreen is PlayScreen);
-        }
-
-        [Test]
         public void TestPushedChartHasSameObjectCount()
         {
             setupEditorWithVirtualTrack(hitObjectCount: 3);

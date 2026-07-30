@@ -1708,21 +1708,6 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
-        public void TestHeadOnlySliderSelectableOnHead()
-        {
-            waitForComposer();
-            placeHeadOnlySlider();
-
-            AddStep("click the head", () =>
-            {
-                input.MoveMouseTo(headScreen());
-                input.Click(MouseButton.Left);
-            });
-            AddAssert("head-only slider selected",
-                () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
-        }
-
-        [Test]
         public void TestHeadOnlySliderDeletable()
         {
             waitForComposer();
@@ -2579,21 +2564,6 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("head promoted (one node left)", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(1));
         }
 
-        [Test]
-        public void TestSliderStillSelectableViaSelectionPointAfterHeadInteractive()
-        {
-            waitForComposer();
-            placeDiagonalSlider();
-
-            AddStep("select slider via selection point", () =>
-            {
-                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
-                input.Click(MouseButton.Left);
-            });
-            AddAssert("whole slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
-            AddAssert("head not selected (first click selects whole slider)", () => sliderBlueprint().HeadSelected, () => Is.False);
-        }
-
         // ------------------------------------------------------------------
         // Flip: node-aware reflection primitive + "Flip selection" menu item.
         // ------------------------------------------------------------------
@@ -2724,22 +2694,6 @@ namespace Garbus.Game.Tests.Editor
             AddStep("invoke Flip selection", () => flip.Action.Value?.Invoke());
             AddAssert("the 60 note is now 120", () => note60.AngleDeg, () => Is.EqualTo(120));
             AddAssert("the 120 note is now 60", () => note120.AngleDeg, () => Is.EqualTo(60));
-        }
-
-        [Test]
-        public void TestFlipMenuItemsPresentForNote()
-        {
-            waitForComposer();
-            placeNoteAt(270);
-            AddStep("switch to select tool", () => input.Key(Key.Number1));
-            hoverThenClick(() => screenPositionOf(placedObject<CardinalNote>()!));
-            AddAssert("note selected", () => editorChart.SelectedHitObjects.Count, () => Is.EqualTo(1));
-
-            AddAssert("both flip items present", () =>
-            {
-                input.MoveMouseTo(screenPositionOf(placedObject<CardinalNote>()!));
-                return flipMenuItem("Flip selection") != null && flipMenuItem("Flip around angle...") != null;
-            });
         }
 
         [Test]
@@ -3330,14 +3284,6 @@ namespace Garbus.Game.Tests.Editor
                 editorChart.SelectedHitObjects.Add(a);
                 editorChart.SelectedHitObjects.Add(b);
             });
-        }
-
-        [Test]
-        public void TestMergeButtonAppearsForTwoDisjointSelectedSliders()
-        {
-            waitForComposer();
-            addTwoDisjointSelectedSliders();
-            AddUntilStep("merge button shown", () => mergeButton() != null);
         }
 
         [Test]

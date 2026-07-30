@@ -135,36 +135,6 @@ namespace Garbus.Game.Tests.Editor
         }
 
         /// <summary>
-        /// Regression guard: the Add/Delete buttons must respond to REAL mouse clicks
-        /// through the positional input pipeline, not just TriggerClick().
-        /// </summary>
-        [Test]
-        public void TestAddButtonRespondsToRealClick()
-        {
-            setupEditor();
-            switchToTimingTab();
-
-            int initialCount = 0;
-            AddStep("capture initial count", () =>
-                initialCount = editor.EditorChart.ControlPointInfo.TimingPoints.Count);
-
-            AddStep("seek clock to 1000ms", () =>
-                editor.ChildrenOfType<EditorClock>().First().Seek(1000));
-
-            AddStep("really click Add button", () =>
-            {
-                var addButton = editor.ChildrenOfType<TimingPointList>().First()
-                    .ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
-                    .First(b => b.Text.ToString() == "Add");
-                input.MoveMouseTo(addButton);
-                input.Click(osuTK.Input.MouseButton.Left);
-            });
-
-            AddAssert("timing point count increased", () =>
-                editor.EditorChart.ControlPointInfo.TimingPoints.Count == initialCount + 1);
-        }
-
-        /// <summary>
         /// Regression guard ("Add and Delete buttons don't respond to click"): on a fresh chart the playhead
         /// sits at 0 where a timing point already exists, so Add silently replaced the point in the
         /// same group and Delete silently refused to remove the only point. The buttons must instead
@@ -280,49 +250,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
-        // 3. Deletion removes the selected point
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void TestDeleteRemovesSelectedPoint()
-        {
-            // Start with two timing points so we can delete one.
-            Schedule(() =>
-            {
-                var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
-                chart.ControlPointInfo.Add(2000, new TimingControlPoint { BeatLength = 400 });
-                var chartFile = new ChartFile(chart);
-                editor = new GarbusEditor(chartFile);
-                Child = new ScreenStack(editor) { RelativeSizeAxes = Axes.Both };
-            });
-
-            switchToTimingTab();
-
-            AddUntilStep("two timing points exist", () =>
-                editor.EditorChart.ControlPointInfo.TimingPoints.Count == 2);
-
-            AddStep("select second row and delete", () =>
-            {
-                var list = editor.ChildrenOfType<TimingPointList>().First();
-
-                // Select the second row.
-                var rows = list.ChildrenOfType<TimingPointRow>().ToList();
-                if (rows.Count >= 2)
-                    rows[1].TriggerClick();
-
-                // Click delete.
-                var deleteButton = list.ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicButton>()
-                    .FirstOrDefault(b => b.Text.ToString() == "Delete");
-                deleteButton?.TriggerClick();
-            });
-
-            AddAssert("one timing point remains", () =>
-                editor.EditorChart.ControlPointInfo.TimingPoints.Count == 1);
-        }
-
-        // ------------------------------------------------------------------
-        // 4. Undo restores a deleted point
+        // Undo restores a deleted point
         // ------------------------------------------------------------------
 
         [Test]
@@ -375,38 +303,7 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ------------------------------------------------------------------
-        // 5. 4 simulated taps 500ms apart → BPM 120
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void TestFourTaps500MsApartGivesBpm120()
-        {
-            setupEditor(60.0); // Start at 60 BPM so we can verify it changes.
-            switchToTimingTab();
-
-            AddUntilStep("tap button loaded", () =>
-                editor.ChildrenOfType<TapButton>().Any());
-
-            // The tap algorithm: initial_taps_to_ignore = 4, so we need at least 8 taps.
-            // Drive them via RecordTap with synthetic timestamps.
-            // 8 taps at 500ms intervals: timestamps 0, 500, 1000, 1500, 2000, 2500, 3000, 3500.
-            // After skipping first 4, averaging remaining 4 intervals of 500ms each → BPM 120.
-            AddStep("record 8 taps at 500ms intervals", () =>
-            {
-                var tapBtn = editor.ChildrenOfType<TapButton>().First();
-                for (int i = 0; i < 8; i++)
-                    tapBtn.RecordTap(i * 500.0);
-            });
-
-            AddAssert("BeatLength ≈ 500ms (BPM 120)", () =>
-            {
-                var tp = editor.EditorChart.ControlPointInfo.TimingPoints.FirstOrDefault();
-                return tp != null && Math.Abs(tp.BeatLength - 500.0) < 2.0;
-            });
-        }
-
-        // ------------------------------------------------------------------
-        // 6. Tap-written BPM is undoable
+        // Tap-written BPM is undoable
         // ------------------------------------------------------------------
 
         [Test]
@@ -434,7 +331,9 @@ namespace Garbus.Game.Tests.Editor
                 priorBeatLength = tp?.BeatLength ?? 0;
             });
 
-            // 8 taps at 500ms intervals → BPM 120, BeatLength 500ms.
+            // The tap algorithm: initial_taps_to_ignore = 4, so we need at least 8 taps.
+            // 8 taps at 500ms intervals: timestamps 0..3500; after skipping the first 4,
+            // averaging the remaining 4 intervals of 500ms each → BPM 120, BeatLength 500ms.
             AddStep("record 8 taps at 500ms intervals", () =>
             {
                 var tapBtn = editor.ChildrenOfType<TapButton>().First();
@@ -901,21 +800,5 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
-        // ------------------------------------------------------------------
-        // 18. Right panel (settings + tap timing) is vertically scrollable
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void TestRightPanelIsScrollable()
-        {
-            setupEditor();
-            switchToTimingTab();
-
-            AddUntilStep("settings and tap control share one scroll container", () =>
-                editor.ChildrenOfType<TimingTab>().First()
-                      .ChildrenOfType<osu.Framework.Graphics.Containers.BasicScrollContainer>()
-                      .Any(s => s.ChildrenOfType<TimingPointSettings>().Any()
-                                && s.ChildrenOfType<TapTimingControl>().Any()));
-        }
     }
 }

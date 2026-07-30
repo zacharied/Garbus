@@ -46,17 +46,6 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
-        public void TestExitDirtyPrompts()
-        {
-            AddStep("click new song", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Song").TriggerClick());
-            AddUntilStep("editor pushed and loaded", () => stack.CurrentScreen is GarbusEditor e && e.IsLoaded);
-            AddStep("dirty the chart", dirtyEditor);
-            AddUntilStep("editor is dirty", () => stack.CurrentScreen is GarbusEditor editor && editor.HasUnsavedChanges);
-            AddStep("try exit", () => stack.CurrentScreen.Exit());
-            AddUntilStep("dialog shown", () => this.ChildrenOfType<ConfirmDialog>().Any(d => d.State.Value == Visibility.Visible));
-        }
-
-        [Test]
         public void TestExitDirtyDiscard()
         {
             AddStep("click new song", () => this.ChildrenOfType<BasicButton>().Single(b => b.Text == "New Song").TriggerClick());

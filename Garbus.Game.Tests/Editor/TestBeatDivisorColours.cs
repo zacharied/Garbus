@@ -9,13 +9,6 @@ namespace Garbus.Game.Tests.Editor
     public class TestBeatDivisorColours
     {
         [Test]
-        public void TestBarAndWholeBeatAreWhite()
-        {
-            Assert.That(BeatDivisorColours.ColourFor(0), Is.EqualTo(Color4.White));
-            Assert.That(BeatDivisorColours.ColourFor(1), Is.EqualTo(Color4.White));
-        }
-
-        [Test]
         public void TestDistinctColoursPerDivisor()
         {
             Assert.That(BeatDivisorColours.ColourFor(2), Is.Not.EqualTo(BeatDivisorColours.ColourFor(4)));

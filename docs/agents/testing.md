@@ -28,6 +28,20 @@ how-to they point at.
 
 - Visual/headless scenes declare steps with `AddStep` / `AddAssert` / `AddUntilStep`; drive input with
   `ManualInputManager`; drive time with a manual clock.
+- **Test-value rules (enforced — see** [AGENTS.md](../../AGENTS.md) **Rules):**
+  - **Every pinned constant needs a source of truth.** Asserting an exact value is allowed only when
+    it traces to a spec (`docs/rules-specs/`, `docs/presentation-specs/`) or is an explicitly
+    commented calibration anchor (pattern: `VolumeCurveTest` — "position 30% ⇒ 3% gain" with the
+    comment saying so). Never assert bare styling: colours, alphas, pixel offsets, layout
+    coordinates, or user-facing copy strings that no spec owns. Pin the *relation* instead —
+    non-overlap, monotonicity, distinctness, "centred on X" — relations survive restyling; raw
+    values break on every tune.
+  - **Expected values are derived independently of the implementation.** Hand-compute goldens
+    (pattern: `SliderSweepTest.SmoothHermiteMatchesGolden` — 41.25 worked out by hand). A test whose
+    expectation calls the same function or reuses the same constant as the code under test is a
+    mirror, not a check — it changes in lockstep with the bug it should catch.
+  - **No strict-subset tests.** If every assertion in a test is a setup precondition of a sibling
+    test, delete it — it can never fail alone.
 - **New visual elements ship with a Tuning test (enforced — see** [AGENTS.md](../../AGENTS.md) **Rules).**
   When you add or reshape a visual element, add a scene under `Tuning/` (pattern:
   `TestSceneSliderGlowTuning`; `Profiling/` holds throughput scenes like
@@ -68,4 +82,7 @@ game-base runner so cached dependencies (config, chart store, clocks) are availa
   "why isn't this object judged?" test failure.
 - **In the UI, don't write ordering-dependent tests.** If a test depends on ordering, resolve the order
   dynamically rather than assuming it — order-dependent tests flake when UI elements are moved around.
-- Use `[Explicit]` for tests that are user-initiated such as profiling and tuning scenes.
+- Use `[Explicit]` for tests that are user-initiated such as profiling and tuning scenes — **no
+  exceptions**. An eyeball scene (no assertion that can meaningfully fail) without `[Explicit]` runs
+  in CI as noise. The only sanctioned unmarked no-assert scenes are the `Visual/HitObjects/*Stream`
+  family, whose implicit constructor pass is the per-hit-object-type PlayScreen load smoke.

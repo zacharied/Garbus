@@ -14,12 +14,6 @@ namespace Garbus.Game.Tests
         }
 
         [Test]
-        public void ThreePercentGainMapsBackToThirtyPercentPosition()
-        {
-            Assert.That(VolumeCurve.ToPosition(0.03), Is.EqualTo(0.30).Within(0.01));
-        }
-
-        [Test]
         public void EndpointsPreserved()
         {
             Assert.That(VolumeCurve.ToGain(0), Is.EqualTo(0));

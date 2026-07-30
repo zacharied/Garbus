@@ -37,6 +37,11 @@ area leans on, and its gotchas.
   test browser. See [testing.md](docs/agents/testing.md).
 - **Do not add new warnings — including in tests.** Build and test output stays warning-clean; fix
   what you introduce before considering the work done.
+- **Test expectations are independent and spec-anchored.** Pinned constants trace to a spec doc or a
+  commented calibration anchor; expected values are hand-derived, never computed with the
+  implementation's own constants or functions; no test may be a strict subset of a sibling; bare
+  styling values (colours, alphas, layout offsets) are never asserted — assert relations instead.
+  Details in [testing.md](docs/agents/testing.md).
 - **Do not run the app unless asked.** Tests (headless and visual scenes) are how you verify. If you
   believe actually running the app would be more effective, ask first and say why.
 - **Temporary debugging instrumentation does not get a PR.** Profiling hooks, A/B experiments,
@@ -44,13 +49,14 @@ area leans on, and its gotchas.
   they are never merged. Leave them on a local branch or worktree and say where it is; do not push
   the branch or open a PR. Only changes meant to land on master get one. When a diagnostic confirms
   a real fix, that fix is separate work and follows the normal flow.
+- Current song content (charts, song audio files, jackets) is ephemeral and not final. Do not write
+  tests that rely on those files; instead, utilize existing `test-song` audio files or create new 
+  ones.
 
 ## Conventions
 
 - Nullability is enabled solution-wide. DI-resolved / BDL-initialised fields use `= null!`.
 - Terminology: osu's "beatmap" is a **chart** here.
-- Deliberately dropped (design facts, not omissions): no mods, no difficulty calculation, no replays,
-  no skinning, no realm.
 
 ## Repo mind map
 

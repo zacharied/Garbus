@@ -45,18 +45,6 @@ namespace Garbus.Game.Tests.Editor
         // ── Copy ─────────────────────────────────────────────────────────────────
 
         [Test]
-        public void TestCopyPopulatesContent()
-        {
-            var note = new CardinalNote { StartTime = 1000, AngleDeg = 90 };
-            editorChart.Add(note);
-            editorChart.SelectedHitObjects.Add(note);
-
-            clipboard.Copy();
-
-            Assert.That(clipboard.Content.Value, Is.Not.Empty);
-        }
-
-        [Test]
         public void TestCopyDoesNothingWhenNothingSelected()
         {
             var note = new CardinalNote { StartTime = 1000, AngleDeg = 90 };
@@ -320,17 +308,6 @@ namespace Garbus.Game.Tests.Editor
         }
 
         // ── Preview point ─────────────────────────────────────────────────────────
-
-        [Test]
-        public void TestSetPreviewPointUpdatesChart()
-        {
-            editorChart.BeginChange();
-            editorChart.Chart.PreviewTime = 2500;
-            editorChart.SaveState();
-            editorChart.EndChange();
-
-            Assert.That(editorChart.Chart.PreviewTime, Is.EqualTo(2500).Within(0.01));
-        }
 
         [Test]
         public void TestSetPreviewPointIsUndoable()

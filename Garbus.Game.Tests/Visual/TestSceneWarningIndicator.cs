@@ -188,7 +188,7 @@ namespace Garbus.Game.Tests.Visual
         /// browser. Runs on the ambient clock (not a frozen ManualClock) so the fade-in actually plays; a
         /// per-frame driver re-feeds two sliders whose StartTime stays just inside the reveal window.
         /// </summary>
-        [Test]
+        [Test, Explicit("tuning scene — eyeball in the visual test browser")]
         public void TestTuneBothWarnings()
         {
             GarbusPlayfield playfield = null!;

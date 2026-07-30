@@ -80,20 +80,6 @@ namespace Garbus.Game.Tests.Editor
             Assert.That(EditorAngleMapping.GridDegreesToAngle(0, 1), Is.EqualTo(90));
         }
 
-        [Test]
-        public void TestGridDegreesToAngleAgreesWithApplyDirectionReflection()
-        {
-            // GridDegreesToAngle(gridDeg, direction) must be the very same reflection ToX/ToAngle apply —
-            // i.e. it agrees with normalizing (gridDeg + ANGLE_ORIGIN) and then reflecting when reversed.
-            for (int gridDeg = 0; gridDeg < 360; gridDeg += 15)
-            {
-                int forwardAbsolute = EditorAngleMapping.NormalizeDeg(gridDeg + EditorAngleMapping.ANGLE_ORIGIN);
-
-                Assert.That(EditorAngleMapping.GridDegreesToAngle(gridDeg, 1), Is.EqualTo(forwardAbsolute));
-                Assert.That(EditorAngleMapping.GridDegreesToAngle(gridDeg, -1), Is.EqualTo(EditorAngleMapping.NormalizeDeg(-forwardAbsolute)));
-            }
-        }
-
         // --- VisibleWrapCopies ---
 
         [Test]
@@ -141,19 +127,7 @@ namespace Garbus.Game.Tests.Editor
         // --- ToX / ToAngle ---
 
         /// <summary>
-        /// The left edge of the main grid sits at ANGLE_ORIGIN (90°), which is at x = GHOST_DEGREES/TOTAL_DEGREES.
-        /// </summary>
-        [Test]
-        public void TestToXAtOriginIsGhostFraction()
-        {
-            float expected = (float)EditorAngleMapping.GHOST_DEGREES / EditorAngleMapping.TOTAL_DEGREES;
-            Assert.That(EditorAngleMapping.ToX(EditorAngleMapping.ANGLE_ORIGIN), Is.EqualTo(expected).Within(1e-5f));
-        }
-
-        /// <summary>
-        /// 90° is 0 grid-degrees from the origin, so its x is GHOST/TOTAL.
-        /// The task brief confirms "ToX(90) == 0" is a domain check for the left edge of the MAIN grid
-        /// (not the full playfield) — i.e. ToGridDegrees(90) == 0.
+        /// 90° is the left edge of the MAIN grid (not the full playfield) — i.e. ToGridDegrees(90) == 0.
         /// </summary>
         [Test]
         public void TestToGridDegreesAtOriginIsZero()

@@ -16,17 +16,5 @@ namespace Garbus.Game.Tests
             Assert.That(BuildInfo.Commit, Is.Not.EqualTo("unknown"),
                 "git commit was not embedded — check the EmbedGitCommit MSBuild target");
         }
-
-        [Test]
-        public void PlatformIsPopulated()
-        {
-            Assert.That(BuildInfo.Platform, Is.Not.Empty);
-        }
-
-        [Test]
-        public void DisplayTextCombinesPlatformAndCommit()
-        {
-            Assert.That(BuildInfo.DisplayText, Is.EqualTo($"{BuildInfo.Platform} @ {BuildInfo.Commit}"));
-        }
     }
 }

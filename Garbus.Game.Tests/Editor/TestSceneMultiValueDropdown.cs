@@ -56,11 +56,5 @@ namespace Garbus.Game.Tests.Editor
                 MultiValueEnumDropdown<HorizontalDirection>.FormatChoice(MultiValueEnumDropdown<HorizontalDirection>.Choice.Mixed).ToString(),
                 Is.EqualTo("<multiple>"));
         }
-
-        [Test]
-        public void MixedTextConstant()
-        {
-            Assert.That(MultiValueEnumDropdown<HorizontalDirection>.MixedText, Is.EqualTo("<multiple>"));
-        }
     }
 }
