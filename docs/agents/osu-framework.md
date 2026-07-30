@@ -103,3 +103,13 @@ its pinning test are noted; the domain doc has the full story.
   object — zombies pile up quadratically into a GC storm. *Instance:* the editor composer's manual
   drawable map — see [editor.md](editor.md) and [gameplay.md](gameplay.md). *Pin:*
   `TestSceneComposeSelection.TestRemovedObjectDrawableIsDisposed`.
+- **An uncached `BufferedContainer` re-renders its framebuffer every frame.** The constructor default
+  (`cachedFrameBuffer: false`) is equivalent to calling `ForceRedraw()` each frame — with `BlurSigma`
+  set, that re-runs both Gaussian passes (kernel radius ≈ 2.15·sigma, two passes over the whole
+  buffer) every frame, which cripples integrated GPUs. For content that only changes at discrete
+  edges, pass `cachedFrameBuffer: true` and call `ForceRedraw()` at the change site — and note that
+  invalidations propagate only **one level** up the tree, so a nested child's new geometry never
+  reaches the buffer on its own (fading the buffer itself is fine: colour invalidations don't touch
+  the redraw version, alpha applies at blit time). *Instance:* the warning-indicator glow — see
+  [gameplay.md](gameplay.md). *Pins:* `TestSceneWarningIndicator.TestGlowBuffersAreCached`,
+  `TestSceneWarningIndicator.TestAngleChangeForcesGlowRedraw`.

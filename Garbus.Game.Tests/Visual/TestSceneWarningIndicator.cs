@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Garbus.Game.Core;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
@@ -117,6 +119,91 @@ namespace Garbus.Game.Tests.Visual
             AddStep("seek into window", () => manualClock.CurrentTime = 4700);
             AddUntilStep("warning revealed", () => playfield.WarningIndicators.RevealedAngleDeg(HorizontalDirection.Left) == 90);
         }
+
+        /// <summary>
+        /// The blurred glow only changes on a reveal edge (angle set / fade), so its framebuffers are cached —
+        /// an uncached <see cref="BufferedContainer"/> re-renders (and re-runs the sigma-50 blur over the whole
+        /// playfield) every frame, which cripples integrated GPUs whenever a warning is showing.
+        /// </summary>
+        [Test]
+        public void TestGlowBuffersAreCached()
+        {
+            AddAssert("glow has blur buffers", () => display.ChildrenOfType<BufferedContainer>().Any());
+            AddAssert("all glow buffers cached", () => display.ChildrenOfType<BufferedContainer>().All(b => b.UsingCachedFrameBuffer));
+        }
+
+        /// <summary>
+        /// With cached framebuffers the display must force a redraw itself when a side's revealed angle
+        /// changes (invalidations only propagate one level up, so the arc's new geometry never reaches the
+        /// buffers on its own) — and must NOT redraw while the angle holds, or the caching is defeated.
+        /// </summary>
+        [Test]
+        public void TestAngleChangeForcesGlowRedraw()
+        {
+            var versions = new Dictionary<BufferedContainer, long>();
+
+            // Two left sliders far enough apart that both are warning-eligible (stick idle > WARNING_TIME
+            // before each: first ends 5200, second starts 8000).
+            AddStep("set two spaced sliders", () => display.SetHitObjects(new GarbusHitObject[]
+            {
+                new SliderBody
+                {
+                    AngleDeg = 90,
+                    Side = HorizontalDirection.Left,
+                    StartTime = 5000,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                },
+                new SliderBody
+                {
+                    AngleDeg = 180,
+                    Side = HorizontalDirection.Left,
+                    StartTime = 8000,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                },
+            }));
+
+            AddStep("seek into first window", () => manualClock.CurrentTime = 3500);
+            AddUntilStep("revealed at 90", () => display.RevealedAngleDeg(HorizontalDirection.Left) == 90);
+
+            // Advance time so the reveal fade actually plays and the buffers become present — their
+            // one-off first-draw redraws (initial size establishment) must not pollute the baseline.
+            AddStep("let the reveal settle", () => manualClock.CurrentTime = 4000);
+            AddWaitStep("wait frames", 5);
+
+            AddStep("capture buffer versions", () =>
+            {
+                versions.Clear();
+                foreach (var buffer in display.ChildrenOfType<BufferedContainer>())
+                    versions[buffer] = redrawVersion(buffer);
+            });
+
+            // Advancing the clock keeps the breathe pulsing; that alone must not re-render the buffers.
+            AddStep("seek within first window", () => manualClock.CurrentTime = 4500);
+            AddWaitStep("wait frames", 5);
+            AddUntilStep("still revealed at 90", () => display.RevealedAngleDeg(HorizontalDirection.Left) == 90);
+            AddAssert("no redraw while the angle holds", () => versions.All(kv => redrawVersion(kv.Key) == kv.Value));
+
+            AddStep("seek into second window", () => manualClock.CurrentTime = 7000);
+            AddUntilStep("revealed at 180", () => display.RevealedAngleDeg(HorizontalDirection.Left) == 180);
+            AddAssert("exactly the left side's two buffers redrew", () => versions.Count(kv => redrawVersion(kv.Key) > kv.Value) == 2);
+        }
+
+        // BufferedContainer schedules a framebuffer re-render by bumping its private updateVersion
+        // (what ForceRedraw does); there is no public read of that state, so reach in via reflection.
+        private static long redrawVersion(BufferedContainer buffer)
+            => (long)typeof(BufferedContainer<Drawable>).GetField("updateVersion", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(buffer)!;
 
         /// <summary>
         /// The default (gameplay) display draws the blurred under-ring glow — a <see cref="BufferedContainer"/>
