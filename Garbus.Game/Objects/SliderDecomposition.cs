@@ -7,7 +7,7 @@ namespace Garbus.Game.Objects;
 /// <summary>
 /// Splits a slider into a run of head-only sliders (each an empty-path <see cref="SliderBody"/>) by sampling
 /// its swept angle at a fixed time step. The first head sits on the slider's own head; further heads step by
-/// <paramref name="step"/> until the slider's end. The end is only represented if it lands on a step
+/// <c>step</c> until the slider's end. The end is only represented if it lands on a step
 /// (grid-steps-only sampling) — an off-grid end gets no head.
 /// </summary>
 public static class SliderDecomposition

@@ -24,7 +24,7 @@ namespace Garbus.Game.Tests.Editor
         private EditorChart editorChart = null!;
 
         private GarbusHitObjectComposer composer => harness.Composer;
-        private EditorClock clock => harness.Clock;
+        private EditorClock clock => harness.EditorClock;
 
         [SetUp]
         public void SetUp() => Schedule(() =>
@@ -84,7 +84,8 @@ namespace Garbus.Game.Tests.Editor
             private DependencyContainer dependencies = null!;
 
             public GarbusHitObjectComposer Composer { get; private set; } = null!;
-            public EditorClock Clock { get; private set; } = null!;
+            // Not named "Clock": that would hide Drawable.Clock, which the framework still drives itself.
+            public EditorClock EditorClock { get; private set; } = null!;
 
             public ComposeHitsoundHarness(EditorChart editorChart)
             {
@@ -96,11 +97,11 @@ namespace Garbus.Game.Tests.Editor
                 dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
 
                 var beatDivisor = new BindableBeatDivisor(4);
-                Clock = new EditorClock(editorChart.ControlPointInfo, 60000, beatDivisor);
-                Clock.ChangeSource(new TrackVirtual(60000));
+                EditorClock = new EditorClock(editorChart.ControlPointInfo, 60000, beatDivisor);
+                EditorClock.ChangeSource(new TrackVirtual(60000));
 
                 dependencies.Cache(editorChart);
-                dependencies.Cache(Clock);
+                dependencies.Cache(EditorClock);
                 dependencies.Cache(beatDivisor);
 
                 return dependencies;
@@ -112,10 +113,10 @@ namespace Garbus.Game.Tests.Editor
                 Child = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Clock = Clock,
+                    Clock = EditorClock,
                     Child = Composer = new GarbusHitObjectComposer { RelativeSizeAxes = Axes.Both },
                 };
-                AddInternal(Clock);
+                AddInternal(EditorClock);
             }
         }
     }
