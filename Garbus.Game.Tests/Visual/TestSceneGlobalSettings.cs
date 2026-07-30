@@ -2,8 +2,11 @@ using System.Linq;
 using Garbus.Game.Screens;
 using Garbus.Game.Settings;
 using NUnit.Framework;
+using osu.Framework.Allocation;
+using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
 using osu.Framework.Input.States;
@@ -18,8 +21,12 @@ namespace Garbus.Game.Tests.Visual
         private ScreenStack stack = null!;
         private GlobalSettingsContainer global = null!;
 
+        [Resolved]
+        private FrameworkConfigManager frameworkConfig { get; set; } = null!;
+
         private SettingsGearButton gear => global.ChildrenOfType<SettingsGearButton>().Single();
         private SettingsOverlay overlay => global.ChildrenOfType<SettingsOverlay>().Single();
+        private BasicDropdown<FrameSync> frameLimiter => overlay.ChildrenOfType<BasicDropdown<FrameSync>>().Single();
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -72,6 +79,19 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("overlay force-closed", () => overlay.State.Value == Visibility.Hidden);
         }
 
+        [Test]
+        public void TestFrameLimiterDropdownDrivesConfig()
+        {
+            AddStep("set frame sync to 2x", () => frameworkConfig.SetValue(FrameworkSetting.FrameSync, FrameSync.Limit2x));
+            AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
+            AddUntilStep("gear visible", () => gear.Alpha == 1);
+            AddStep("open overlay", () => gear.TriggerClick());
+            AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
+
+            AddStep("select unlimited", () => frameLimiter.Current.Value = FrameSync.Unlimited);
+            AddAssert("config updated", () => frameworkConfig.Get<FrameSync>(FrameworkSetting.FrameSync) == FrameSync.Unlimited);
+        }
+        
         /// <summary>
         /// A screen that allows settings but sets <see cref="IAllowSettings.ShowSettingsGear"/> to
         /// false hides the floating gear, yet the overlay can still be opened programmatically (via
