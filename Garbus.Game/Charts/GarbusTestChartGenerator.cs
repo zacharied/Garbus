@@ -131,7 +131,7 @@ public class GarbusTestChartGenerator
 
         // Placeholder timing until the track is properly timed: 120 BPM from zero. Nothing consumes
         // this during gameplay yet; it exists for the chart format roundtrip and the Phase 4 beat snap.
-        chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+        chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
         return chart;
     }

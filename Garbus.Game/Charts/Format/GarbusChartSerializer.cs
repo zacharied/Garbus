@@ -93,6 +93,16 @@ public static class GarbusChartSerializer
         return Decode(reader.ReadToEnd());
     }
 
+    /// <summary>
+    /// The chart's own timing. A standalone chart file always carries its timing inline, so a chart
+    /// deferring to song-level shared timing has nothing to write here and belongs in
+    /// <see cref="GarbusSongSerializer"/> instead.
+    /// </summary>
+    private static ControlPointInfo ownTiming(GarbusChart chart) =>
+        chart.ControlPointInfo
+        ?? throw new InvalidOperationException(
+            $"Chart {chart.ChartId} defers to song-level shared timing and cannot be encoded as a standalone chart file.");
+
     private static ChartFileDto toDto(GarbusChart chart) => new ChartFileDto
     {
         Version = CURRENT_VERSION,
@@ -112,7 +122,7 @@ public static class GarbusChartSerializer
             Difficulty = chart.Metadata.Difficulty.ToString(),
         },
         PreviewTime = chart.PreviewTime,
-        TimingPoints = chart.ControlPointInfo.TimingPoints.Select(t => new TimingPointDto
+        TimingPoints = ownTiming(chart).TimingPoints.Select(t => new TimingPointDto
         {
             Time = t.Time,
             BeatLength = t.BeatLength,
@@ -189,7 +199,7 @@ public static class GarbusChartSerializer
 
         foreach (var timing in dto.TimingPoints)
         {
-            chart.ControlPointInfo.Add(timing.Time, new TimingControlPoint
+            chart.ControlPointInfo!.Add(timing.Time, new TimingControlPoint
             {
                 BeatLength = timing.BeatLength,
                 TimeSignature = new TimeSignature(timing.TimeSignature),

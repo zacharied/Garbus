@@ -33,7 +33,7 @@ namespace Garbus.Game.Tests.Editor
             var chart = new GarbusChart();
             firstPoint = new TimingControlPoint { BeatLength = 500 };  // 120 BPM
             secondPoint = new TimingControlPoint { BeatLength = 400 }; // 150 BPM
-            chart.ControlPointInfo.Add(0, firstPoint);
+            chart.ControlPointInfo!.Add(0, firstPoint);
             chart.ControlPointInfo.Add(4000, secondPoint);
             editorChart = new EditorChart(chart);
         }

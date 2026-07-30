@@ -31,7 +31,7 @@ namespace Garbus.Game.Tests.Editor
         public void SetUp() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             // Pre-save to a temp path so Save() has a target for TestDirtyTracking.
             var chartFile = new ChartFile(chart);
@@ -414,7 +414,7 @@ namespace Garbus.Game.Tests.Editor
             AddStep("push editor with unsaved chart", () =>
             {
                 var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
                 chart.Metadata.Title = "Song"; // even with metadata set, unsaved takes priority.
 
                 Child = input = new ManualInputManager
