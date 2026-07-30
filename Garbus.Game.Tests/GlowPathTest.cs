@@ -10,7 +10,7 @@ using osuTK.Graphics;
 namespace Garbus.Game.Tests
 {
     [TestFixture]
-    public class GlowPathTest
+    public partial class GlowPathTest
     {
         // The gameplay slider body's parameters: 15px-wide line (core radius 7.5), sigma-30 blur,
         // strength 30.

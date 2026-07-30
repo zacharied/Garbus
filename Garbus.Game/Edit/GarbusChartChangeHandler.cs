@@ -147,9 +147,14 @@ namespace Garbus.Game.Edit
             editorChart.Chart.PreviewTime = targetChart.PreviewTime;
 
             // --- ControlPointInfo ---
-            // Rebuild the timing control points from the decoded target.
+            // Rebuild the timing control points from the decoded target. Undo/redo state round-trips
+            // through the standalone chart format, which always carries timing inline.
+            var targetTiming = targetChart.ControlPointInfo
+                               ?? throw new InvalidOperationException(
+                                   $"Decoded undo/redo state for chart {targetChart.ChartId} carries no timing.");
+
             editorChart.ControlPointInfo.Clear();
-            foreach (var tp in targetChart.ControlPointInfo.TimingPoints)
+            foreach (var tp in targetTiming.TimingPoints)
             {
                 editorChart.ControlPointInfo.Add(tp.Time, new TimingControlPoint
                 {

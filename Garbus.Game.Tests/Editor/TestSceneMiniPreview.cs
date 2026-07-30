@@ -439,7 +439,7 @@ namespace Garbus.Game.Tests.Editor
         private static GarbusEditor buildEditor()
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             var chartFile = new ChartFile(chart);
             chartFile.Save(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".garbus"));
@@ -620,7 +620,7 @@ namespace Garbus.Game.Tests.Editor
                 dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
 
                 var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
                 EditorChart = new EditorChart(chart);
 
                 var beatDivisor = new BindableBeatDivisor(4);
@@ -757,7 +757,7 @@ namespace Garbus.Game.Tests.Editor
                 dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
 
                 var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
                 var editorChart = new EditorChart(chart);
 
                 var beatDivisor = new BindableBeatDivisor(4);

@@ -44,6 +44,9 @@ namespace Garbus.Game.Edit
         [Resolved(CanBeNull = true)]
         private IEditorChangeHandler? changeHandler { get; set; }
 
+        [Resolved]
+        private BindableBeatDivisor beatDivisor { get; set; } = null!;
+
         private FillFlowContainer flow = null!;
         private TextFlowContainer inspectorText = null!;
         private FillFlowContainer controlsFlow = null!;
@@ -274,6 +277,28 @@ namespace Garbus.Game.Edit
                 });
             }
 
+            // Merge sliders: joins several disjoint sliders into one path, reparenting every other
+            // slider's nodes (their heads included) onto the earliest slider. Shown only for a
+            // homogeneous multi-slider selection with no node/head picks and no time-range overlap —
+            // the same conditions the merge itself relies on to build a valid, non-decreasing path.
+            if (objects.Length >= 2 && objects.All(o => o is SliderBody)
+                && selectedNodes.Count == 0 && collectHeadSelectedSliders().Count == 0)
+            {
+                var sliders = objects.Cast<SliderBody>().ToArray();
+
+                if (timeRangesDisjoint(sliders))
+                {
+                    controlsFlow.Add(new BasicButton
+                    {
+                        RelativeSizeAxes = Axes.X,
+                        Height = 24,
+                        Text = "Merge sliders",
+                        BackgroundColour = new Colour4(40, 40, 48, 255),
+                        Action = () => mergeSliders(sliders),
+                    });
+                }
+            }
+
             // Easing / Smoothing: shown whenever one or more slider control-point nodes are picked.
             if (selectedNodes.Count > 0)
             {
@@ -306,6 +331,116 @@ namespace Garbus.Game.Edit
                     changeHandler?.EndChange();
                 });
             }
+
+            // Decompose into heads: offered when the selection holds any slider with a path to sample. A
+            // head-only slider (no control points) has nothing to split, so it doesn't count.
+            var decomposable = objects.OfType<SliderBody>().Where(s => s.Path.ControlPoints.Count > 0).ToArray();
+            if (decomposable.Length > 0)
+                addButton(new DecomposeSliderButton { Action = () => decomposeSliders(decomposable) });
+        }
+
+        private void decomposeSliders(SliderBody[] sliders)
+        {
+            changeHandler?.BeginChange();
+
+            foreach (var slider in sliders)
+            {
+                // Step at the slider's own head time — the timing section it starts in governs its snap grid.
+                double step = editorChart.ControlPointInfo.TimingPointAt(slider.StartTime).BeatLength / beatDivisor.Value;
+
+                editorChart.Remove(slider);
+                foreach (var head in SliderDecomposition.DecomposeIntoHeads(slider, step))
+                    editorChart.Add(head);
+            }
+
+            changeHandler?.EndChange();
+        }
+
+        /// <summary>
+        /// Whether the <paramref name="sliders"/>' [StartTime, EndTime] spans are pairwise non-overlapping.
+        /// Sweeps in start-time order tracking the furthest end seen so far; touching endpoints (one slider
+        /// ending exactly as the next begins) are allowed — only a strict overlap disqualifies the merge.
+        /// </summary>
+        private static bool timeRangesDisjoint(SliderBody[] sliders)
+        {
+            double maxEnd = double.NegativeInfinity;
+
+            foreach (var slider in sliders.OrderBy(s => s.StartTime))
+            {
+                if (slider.StartTime < maxEnd)
+                    return false;
+
+                maxEnd = Math.Max(maxEnd, slider.EndTime);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Joins the selected sliders into one by reparenting every other slider's nodes (their heads
+        /// included) onto the earliest slider as new control points, then removing the now-empty sliders —
+        /// all in one undo transaction.
+        ///
+        /// The base is the earliest by start time; because the spans are disjoint (see
+        /// <see cref="timeRangesDisjoint"/>), appending each joined slider's nodes in time order keeps the
+        /// path's node times non-decreasing. A joined slider's head connects to the running frame by the
+        /// minimal rotation (so a multi-turn base doesn't spin the long way round to reach it), and that
+        /// slider's own internal winding is preserved by rebasing its offsets onto the head's new offset.
+        /// </summary>
+        private void mergeSliders(SliderBody[] sliders)
+        {
+            if (sliders.Length < 2)
+                return;
+
+            var ordered = sliders.OrderBy(s => s.StartTime).ToArray();
+            var baseSlider = ordered[0];
+            var baseControlPoints = baseSlider.Path.ControlPoints;
+
+            // Running reference for cross-slider angle continuity: the base-relative rotation offset and the
+            // absolute angle of the last node placed so far. Seed from the base slider's final node (its head
+            // when it carries no control points).
+            int previousOffset = baseControlPoints.Count > 0 ? baseControlPoints[^1].RotationOffset : 0;
+            int previousAbsolute = EditorAngleMapping.NormalizeDeg(baseSlider.AngleDeg + previousOffset);
+
+            changeHandler?.BeginChange();
+
+            foreach (var slider in ordered.Skip(1))
+            {
+                int headAbsolute = EditorAngleMapping.NormalizeDeg(slider.AngleDeg);
+                int headOffset = previousOffset + EditorAngleMapping.MinimalDiff(previousAbsolute, headAbsolute);
+
+                // The joined slider's head has no incoming segment, so it keeps the segment defaults.
+                baseControlPoints.Add(new GarbusPathControlPoint
+                {
+                    TimeOffset = slider.StartTime - baseSlider.StartTime,
+                    RotationOffset = headOffset,
+                });
+
+                // Each of the slider's own nodes is relative to its head, so rebasing onto headOffset keeps
+                // its internal shape (including any multi-turn winding) exactly.
+                foreach (var cp in slider.Path.ControlPoints)
+                {
+                    baseControlPoints.Add(new GarbusPathControlPoint
+                    {
+                        TimeOffset = (slider.StartTime + cp.TimeOffset) - baseSlider.StartTime,
+                        RotationOffset = headOffset + cp.RotationOffset,
+                        Smooth = cp.Smooth,
+                        SweepEasing = cp.SweepEasing,
+                    });
+                }
+
+                // Advance the running reference to this slider's final node (its head when nodeless).
+                var lastCp = slider.Path.ControlPoints.Count > 0 ? slider.Path.ControlPoints[^1] : null;
+                previousOffset = lastCp != null ? headOffset + lastCp.RotationOffset : headOffset;
+                previousAbsolute = EditorAngleMapping.NormalizeDeg(slider.AngleDeg + (lastCp?.RotationOffset ?? 0));
+            }
+
+            foreach (var slider in ordered.Skip(1))
+                editorChart.Remove(slider);
+
+            editorChart.Update(baseSlider);
+
+            changeHandler?.EndChange();
         }
 
         private void addMultiValueDropdown<T>(string label, MultiValue<T> state, Action<T> onChange)
@@ -338,6 +473,8 @@ namespace Garbus.Game.Edit
         // The checkbox paints its own inline label, so unlike a dropdown it needs no label wrapper.
         private void addMultiValueCheckbox(string label, MultiValue<bool> state, Action<bool> onChange)
             => controlsFlow.Add(new MultiValueCheckbox(label, state, onChange));
+
+        private void addButton(Drawable button) => controlsFlow.Add(button);
 
         private static string readableTypeName(GarbusHitObject h) => h switch
         {

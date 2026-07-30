@@ -85,6 +85,74 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
 
     internal bool HeadSelected => headSelected;
 
+    // Node drag-box (Shift+drag) selection state. The snapshot holds the node selection captured at drag
+    // start when combining (Shift+Ctrl); in replace mode it stays empty so the box fully defines selection.
+    private readonly HashSet<GarbusPathControlPoint> nodeDragBoxSnapshot = new HashSet<GarbusPathControlPoint>();
+    private bool nodeDragBoxSnapshotHead;
+
+    /// <summary>Whether this slider has control-point nodes the box can target (a head-only slider has none).</summary>
+    internal bool HasNodeTargets => HitObject.Path.ControlPoints.Count > 0;
+
+    /// <summary>Whether the head or any control-point node is currently selected.</summary>
+    internal bool HasNodeSelection => headSelected || selectedNodes.Count > 0;
+
+    /// <summary>Starts a node drag-box. Replace clears the current node selection so the box fully defines
+    /// it; combine snapshots the current selection so boxed nodes are added on top of it.</summary>
+    internal void BeginNodeDragBox(bool combine)
+    {
+        nodeDragBoxSnapshot.Clear();
+
+        if (combine)
+        {
+            nodeDragBoxSnapshot.UnionWith(selectedNodes);
+            nodeDragBoxSnapshotHead = headSelected;
+        }
+        else
+        {
+            nodeDragBoxSnapshotHead = false;
+            selectedNodes.Clear();
+            headSelected = false;
+        }
+    }
+
+    /// <summary>Rebuilds the node selection for the current box: every node whose handle centre lies in the
+    /// box, unioned with the drag-start snapshot (empty in replace mode).</summary>
+    internal void UpdateNodeDragBox(Quad screenQuad)
+    {
+        var controlPoints = HitObject.Path.ControlPoints;
+
+        boxedNodesBuffer.Clear();
+
+        foreach (var handle in nodeHandles)
+        {
+            if (handle.CpIndex >= 0 && handle.CpIndex < controlPoints.Count
+                && screenQuad.Contains(handle.ScreenSpaceDrawQuad.Centre))
+                boxedNodesBuffer.Add(controlPoints[handle.CpIndex]);
+        }
+
+        selectedNodes.Clear();
+
+        foreach (var cp in controlPoints)
+        {
+            if (boxedNodesBuffer.Contains(cp) || nodeDragBoxSnapshot.Contains(cp))
+                selectedNodes.Add(cp);
+        }
+
+        // The head is a node target only on a slider that has control points; its handle disables interaction
+        // otherwise, so it never boxes.
+        bool boxedHead = HasNodeTargets && headHandles.Any(h => h.InteractionEnabled && screenQuad.Contains(h.ScreenSpaceDrawQuad.Centre));
+        headSelected = boxedHead || nodeDragBoxSnapshotHead;
+    }
+
+    private readonly HashSet<GarbusPathControlPoint> boxedNodesBuffer = new HashSet<GarbusPathControlPoint>();
+
+    /// <summary>Ends a node drag-box, dropping the snapshot; the live node selection stands.</summary>
+    internal void EndNodeDragBox()
+    {
+        nodeDragBoxSnapshot.Clear();
+        nodeDragBoxSnapshotHead = false;
+    }
+
     private InputManager inputManager = null!;
 
     public SliderSelectionBlueprint(SliderBody slider)

@@ -45,7 +45,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     private bool headPopPlayed;
 
     /// <summary>Whether the hold's button is currently held. Under auto-hit there is no input, so the hold
-    /// is treated as continuously held for its whole active span (<see cref="AutoHitEngaged"/>).</summary>
+    /// is treated as continuously held for its whole active span (<see cref="DrawableHitObject.AutoHitEngaged"/>).</summary>
     protected bool Holding => holdPresses > 0 || AutoHitEngaged;
 
     /// <summary>Whether one or more bindings for this hold are currently pressed.</summary>

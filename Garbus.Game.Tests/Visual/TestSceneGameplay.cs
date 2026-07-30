@@ -484,7 +484,7 @@ namespace Garbus.Game.Tests.Visual
         [Test]
         public void HittingAnObjectPlaysExactlyOneFamilyMember()
         {
-            Garbus.Game.Gameplay.Objects.Drawables.DrawableHitObject drawable = null!;
+            Garbus.Game.Gameplay.Objects.Drawables.DrawableHitObject? drawable = null;
 
             AddUntilStep("wait for a cardinal note drawable", () =>
             {
@@ -500,16 +500,16 @@ namespace Garbus.Game.Tests.Visual
             // assuming North).
             AddUntilStep("play through to note", () =>
             {
-                double target = ((CardinalNote)drawable.HitObject).StartTime - 100;
+                double target = ((CardinalNote)drawable!.HitObject).StartTime - 100;
                 manualClock.CurrentTime = Math.Min(target, manualClock.CurrentTime + 200);
                 return manualClock.CurrentTime >= target;
             });
-            AddStep("press key", () => input.PressJoystickButton(cardinalButton(((CardinalNote)drawable.HitObject).Direction)));
-            AddStep("release key", () => input.ReleaseJoystickButton(cardinalButton(((CardinalNote)drawable.HitObject).Direction)));
+            AddStep("press key", () => input.PressJoystickButton(cardinalButton(((CardinalNote)drawable!.HitObject).Direction)));
+            AddStep("release key", () => input.ReleaseJoystickButton(cardinalButton(((CardinalNote)drawable!.HitObject).Direction)));
 
-            AddUntilStep("note is hit", () => drawable.IsHit);
+            AddUntilStep("note is hit", () => drawable!.IsHit);
             AddAssert("exactly one member played", () =>
-                ((Garbus.Game.Objects.Drawables.DrawableGarbusHitObject<CardinalNote>)drawable).SamplesPlayCount,
+                ((Garbus.Game.Objects.Drawables.DrawableGarbusHitObject<CardinalNote>)drawable!).SamplesPlayCount,
                 () => Is.EqualTo(1));
         }
 

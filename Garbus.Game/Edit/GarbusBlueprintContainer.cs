@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
 using Garbus.Game.Edit.Blueprints;
 using Garbus.Game.Edit.Compose;
@@ -12,9 +13,80 @@ public partial class GarbusBlueprintContainer : ComposeBlueprintContainer
 {
     public new GarbusHitObjectComposer Composer => (GarbusHitObjectComposer)base.Composer!;
 
+    // While a Shift+drag box is active it selects slider nodes/heads instead of whole objects. Both flags
+    // are latched once at drag start (never re-read per frame) so mid-drag modifier changes don't flip mode,
+    // matching how the whole-object box captures Ctrl into selectionBeforeDrag at OnDragStart.
+    private bool nodeDragBoxActive;
+    private bool nodeDragBoxCombine;
+
     public GarbusBlueprintContainer(GarbusHitObjectComposer composer)
         : base(composer)
     {
+    }
+
+    /// <summary>The selected slider blueprints that own node targets — the ones a node drag-box acts on.</summary>
+    private IEnumerable<SliderSelectionBlueprint> selectedNodeSliders() =>
+        SelectionBlueprints.OfType<SliderSelectionBlueprint>().Where(b => b.IsSelected && b.HasNodeTargets);
+
+    protected override bool OnDragStart(DragStartEvent e)
+    {
+        bool result = base.OnDragStart(e);
+
+        // A Shift-held box that the base engaged (a real box, not a blueprint move) selects slider nodes.
+        if (e.ShiftPressed && DragBox.State == Visibility.Visible && CurrentTool is SelectTool)
+        {
+            nodeDragBoxActive = true;
+            nodeDragBoxCombine = e.ControlPressed;
+
+            foreach (var slider in selectedNodeSliders())
+                slider.BeginNodeDragBox(nodeDragBoxCombine);
+        }
+
+        return result;
+    }
+
+    protected override void UpdateSelectionFromDragBox(HashSet<GarbusHitObject> selectionBeforeDrag)
+    {
+        if (nodeDragBoxActive)
+        {
+            var quad = DragBox.Box.ScreenSpaceDrawQuad;
+
+            foreach (var slider in selectedNodeSliders())
+                slider.UpdateNodeDragBox(quad);
+
+            return;
+        }
+
+        base.UpdateSelectionFromDragBox(selectionBeforeDrag);
+    }
+
+    protected override void OnDragEnd(DragEndEvent e)
+    {
+        bool wasNodeDrag = nodeDragBoxActive;
+        bool replace = !nodeDragBoxCombine;
+        var sliders = wasNodeDrag ? selectedNodeSliders().ToList() : null;
+
+        base.OnDragEnd(e);
+
+        if (wasNodeDrag)
+        {
+            foreach (var slider in sliders!)
+                slider.EndNodeDragBox();
+
+            // Replace mode narrows the selection to the boxed sliders: any selected slider left without a
+            // node/head drops out of the whole-object selection. Combine mode only adds, so it never prunes.
+            if (replace)
+            {
+                foreach (var slider in sliders!)
+                {
+                    if (!slider.HasNodeSelection)
+                        SelectedItems.Remove(slider.Item);
+                }
+            }
+
+            nodeDragBoxActive = false;
+            nodeDragBoxCombine = false;
+        }
     }
 
     public override HitObjectSelectionBlueprint? CreateHitObjectBlueprintFor(GarbusHitObject hitObject)

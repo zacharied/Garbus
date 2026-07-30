@@ -10,16 +10,27 @@ namespace Garbus.Game
     {
         private ScreenStack screenStack = null!;
 
+        private DependencyContainer dependencies = null!;
+
+        protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent) =>
+            dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
+
         [BackgroundDependencyLoader]
         private void load()
         {
+            GlobalSettingsContainer settings;
+
             Children = new Drawable[]
             {
                 screenStack = new ScreenStack { RelativeSizeAxes = Axes.Both },
-                new GlobalSettingsContainer(screenStack) { RelativeSizeAxes = Axes.Both },
+                settings = new GlobalSettingsContainer(screenStack) { RelativeSizeAxes = Axes.Both },
                 // Persistent build code, drawn on top of every screen (bottom-right corner).
                 new BuildInfoOverlay(),
             };
+
+            // Let screens (e.g. the editor's File → Game settings) open the overlay without holding a
+            // direct reference to the container. Cached before any screen is pushed in LoadComplete.
+            dependencies.CacheAs<ISettingsOverlayControl>(settings);
         }
 
         protected override void LoadComplete()

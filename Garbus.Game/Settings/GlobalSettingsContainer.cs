@@ -15,7 +15,7 @@ namespace Garbus.Game.Settings
     /// enabled) only when the current screen implements <see cref="IAllowSettings"/>. Toggled by the
     /// gear, the Escape key, or gamepad button 9.
     /// </summary>
-    public partial class GlobalSettingsContainer : CompositeDrawable
+    public partial class GlobalSettingsContainer : CompositeDrawable, ISettingsOverlayControl
     {
         /// <summary>The gamepad button which toggles settings — button 9 on the target controller.</summary>
         private const JoystickButton toggle_button = JoystickButton.Button9;
@@ -61,7 +61,11 @@ namespace Garbus.Game.Settings
             lastScreen = current;
 
             bool allowed = current is IAllowSettings;
-            gear.FadeTo(allowed ? 1 : 0, 150, Easing.OutQuint);
+            // The gear is shown only when the screen both allows settings AND wants the floating gear.
+            // Screens that expose their own settings entry point (e.g. the editor's menu) opt the gear
+            // out via ShowSettingsGear while still permitting the overlay.
+            bool showGear = current is IAllowSettings settings && settings.ShowSettingsGear;
+            gear.FadeTo(showGear ? 1 : 0, 150, Easing.OutQuint);
 
             if (!allowed)
                 overlay.Hide();
@@ -71,6 +75,17 @@ namespace Garbus.Game.Settings
         {
             if (screenStack.CurrentScreen is IAllowSettings)
                 overlay.ToggleVisibility();
+        }
+
+        /// <summary>
+        /// <see cref="ISettingsOverlayControl.OpenSettings"/>: show the overlay if the current screen
+        /// permits settings. Used by screens that trigger settings from their own chrome rather than
+        /// the floating gear.
+        /// </summary>
+        public void OpenSettings()
+        {
+            if (screenStack.CurrentScreen is IAllowSettings)
+                overlay.Show();
         }
 
         protected override bool OnKeyDown(KeyDownEvent e)
