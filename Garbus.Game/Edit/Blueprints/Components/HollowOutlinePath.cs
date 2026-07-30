@@ -10,7 +10,7 @@ namespace Garbus.Game.Edit.Blueprints.Components;
 /// (revealing which side — <c>Left</c>/<c>Right</c> — the slider belongs to) instead of being painted over.
 ///
 /// The full <see cref="Path.PathRadius"/> is still used for hit-testing, so click tolerance is unchanged —
-/// only the fill is hollowed. <paramref name="ColourAt"/>'s <c>position</c> runs 0 (outer edge) → 1 (centre);
+/// only the fill is hollowed. <see cref="ColourAt"/>'s <c>position</c> runs 0 (outer edge) → 1 (centre);
 /// rails stay opaque out to <see cref="rail_extent"/> of the radius, then fade to transparent.
 /// </summary>
 internal partial class HollowOutlinePath : SmoothPath

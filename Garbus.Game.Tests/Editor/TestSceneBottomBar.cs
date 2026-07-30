@@ -51,7 +51,7 @@ namespace Garbus.Game.Tests.Editor
             beatDivisor = null;
 
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 }); // 120 BPM
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 }); // 120 BPM
 
             var chartFile = new ChartFile(chart);
             string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName() + ".garbus");

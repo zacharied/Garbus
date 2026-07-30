@@ -28,7 +28,7 @@ namespace Garbus.Game.Tests.Editor
         public void SetUp() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
             editorChart = new EditorChart(chart);
             Child = harness = new ChordEditorHarness(editorChart) { RelativeSizeAxes = Axes.Both };
         });

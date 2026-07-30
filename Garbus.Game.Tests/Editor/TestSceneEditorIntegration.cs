@@ -45,7 +45,7 @@ namespace Garbus.Game.Tests.Editor
             // A brand-new chart, exactly as the File → New flow produces it: a single 120 BPM timing
             // point at 0 and no hit objects. Unsaved (FilePath == null) until we Save later.
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             System.IO.Directory.CreateDirectory(tempDir);

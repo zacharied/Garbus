@@ -27,7 +27,7 @@ namespace Garbus.Game.Tests.Editor
         {
             garbusChart = new GarbusChart();
             // BeatLength = 1000 ms (60 BPM), divisor = 4 → snap grid every 250 ms: 0, 250, 500, …
-            garbusChart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 1000 });
+            garbusChart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 1000 });
 
             editorChart = new EditorChart(garbusChart);
             changeHandler = new GarbusChartChangeHandler(editorChart);

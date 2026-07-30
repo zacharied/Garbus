@@ -58,7 +58,7 @@ namespace Garbus.Game.Tests.Editor
         public void SetUp() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             editorChart = new EditorChart(chart);
             changeHandler = new GarbusChartChangeHandler(editorChart);
@@ -1916,7 +1916,7 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
             AddAssert("slider starts Left", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Left));
 
-            TernaryStateToggleMenuItem sideItem = null!;
+            TernaryStateToggleMenuItem? sideItem = null;
             AddUntilStep("Side menu item available while hovered", () =>
             {
                 // keep the cursor on the line so the blueprint stays hovered (ContextMenuItems gates on hover).
@@ -1925,9 +1925,9 @@ namespace Garbus.Game.Tests.Editor
                 sideItem = sliderSideMenuItem();
                 return sideItem != null;
             });
-            AddAssert("item reflects Left (unchecked)", () => sideItem.State.Value, () => Is.EqualTo(TernaryState.False));
+            AddAssert("item reflects Left (unchecked)", () => sideItem!.State.Value, () => Is.EqualTo(TernaryState.False));
 
-            AddStep("invoke Side toggle", () => sideItem.Action.Value?.Invoke());
+            AddStep("invoke Side toggle", () => sideItem!.Action.Value?.Invoke());
             AddAssert("slider now Right", () => placedObject<SliderBody>()!.Side, () => Is.EqualTo(HorizontalDirection.Right));
             AddUntilStep("polyline recoloured to Right", () =>
             {

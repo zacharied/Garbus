@@ -49,7 +49,9 @@ Two static serializers under `Charts/Format/`, both writing the **`.garbus`** ex
   the workhorse for three jobs: the editor's disk handle (`ChartFile`, below), the undo/redo
   per-object identity strings (`EncodeHitObject`), and clipboard (`EncodeHitObjects` /
   `DecodeHitObjects`). The song serializer delegates hit-object encoding to it and bridges each chart
-  DTO through it, so the hit-object JSON shape is defined in exactly one place.
+  DTO through it, so the hit-object JSON shape is defined in exactly one place. A chart file always
+  carries timing inline, so encoding a chart that defers to song-shared timing throws
+  `InvalidOperationException` — route those through `GarbusSongSerializer` instead.
 
 The DTO layer (`Charts/Format/ChartFileDto.cs`, `SongFileDto.cs`) is deliberately separate from the
 domain model so the file format can stay stable while the model evolves — all mapping lives in the
