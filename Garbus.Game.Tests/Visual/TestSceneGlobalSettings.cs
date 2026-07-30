@@ -27,6 +27,7 @@ namespace Garbus.Game.Tests.Visual
         private SettingsGearButton gear => global.ChildrenOfType<SettingsGearButton>().Single();
         private SettingsOverlay overlay => global.ChildrenOfType<SettingsOverlay>().Single();
         private BasicDropdown<FrameSync> frameLimiter => overlay.ChildrenOfType<BasicDropdown<FrameSync>>().Single();
+        private BasicDropdown<WindowMode> screenMode => overlay.ChildrenOfType<BasicDropdown<WindowMode>>().Single();
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -91,7 +92,28 @@ namespace Garbus.Game.Tests.Visual
             AddStep("select unlimited", () => frameLimiter.Current.Value = FrameSync.Unlimited);
             AddAssert("config updated", () => frameworkConfig.Get<FrameSync>(FrameworkSetting.FrameSync) == FrameSync.Unlimited);
         }
-        
+
+        /// <summary>
+        /// The screen-mode row offers exclusive <see cref="WindowMode.Fullscreen"/> alongside
+        /// <see cref="WindowMode.Borderless"/>, and drives the same
+        /// <see cref="FrameworkSetting.WindowMode"/> bindable that Alt+Enter cycles.
+        /// </summary>
+        [Test]
+        public void TestScreenModeDropdownDrivesConfig()
+        {
+            AddStep("set windowed", () => frameworkConfig.SetValue(FrameworkSetting.WindowMode, WindowMode.Windowed));
+            AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
+            AddUntilStep("gear visible", () => gear.Alpha == 1);
+            AddStep("open overlay", () => gear.TriggerClick());
+            AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
+
+            AddAssert("offers exclusive fullscreen", () => screenMode.Items.Contains(WindowMode.Fullscreen));
+            AddAssert("offers borderless", () => screenMode.Items.Contains(WindowMode.Borderless));
+
+            AddStep("select fullscreen", () => screenMode.Current.Value = WindowMode.Fullscreen);
+            AddAssert("config updated", () => frameworkConfig.Get<WindowMode>(FrameworkSetting.WindowMode) == WindowMode.Fullscreen);
+        }
+
         /// <summary>
         /// A screen that allows settings but sets <see cref="IAllowSettings.ShowSettingsGear"/> to
         /// false hides the floating gear, yet the overlay can still be opened programmatically (via
