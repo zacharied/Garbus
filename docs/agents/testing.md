@@ -82,6 +82,13 @@ game-base runner so cached dependencies (config, chart store, clocks) are availa
   "why isn't this object judged?" test failure.
 - **In the UI, don't write ordering-dependent tests.** If a test depends on ordering, resolve the order
   dynamically rather than assuming it — order-dependent tests flake when UI elements are moved around.
+  For same-StartTime hit objects, capture references at add time instead of indexing `HitObjects` —
+  the list re-sorts with an unstable sort on updates, so ties can swap.
+- **Asserting a UI element is absent: reach the shown state first, then transition.** "Assert hidden"
+  after a few `AddWaitStep` frames false-passes when the element rebuilds on a delay (e.g. the
+  inspector's 250ms roll). Instead drive a state where the element IS shown (`AddUntilStep` shown),
+  change to the state under test, then `AddUntilStep` hidden — the shown→hidden transition is
+  race-free. See `TestSceneComposeSelection.TestMergeButtonHiddenForSingleSlider`.
 - Use `[Explicit]` for tests that are user-initiated such as profiling and tuning scenes — **no
   exceptions**. An eyeball scene (no assertion that can meaningfully fail) without `[Explicit]` runs
   in CI as noise. The only sanctioned unmarked no-assert scenes are the `Visual/HitObjects/*Stream`

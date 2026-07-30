@@ -997,8 +997,10 @@ namespace Garbus.Game.Tests.Editor
 
         private SliderSelectionBlueprint sliderBlueprint() => composer.ChildrenOfType<SliderSelectionBlueprint>().Single();
 
-        /// <summary>The i-th slider in add order (used when several sliders coexist).</summary>
-        private SliderBody sliderAt(int i) => editorChart.HitObjects.OfType<SliderBody>().ElementAt(i);
+        // References captured at add time for multi-slider tests. HitObjects is re-sorted with an
+        // unstable sort on updates, so same-StartTime sliders cannot be resolved by index.
+        private SliderBody sliderA = null!;
+        private SliderBody sliderB = null!;
 
         /// <summary>Screen position of a specific slider's head (its angle column, at StartTime).</summary>
         private Vector2 headScreenFor(SliderBody slider)
@@ -1267,12 +1269,12 @@ namespace Garbus.Game.Tests.Editor
         {
             AddStep("add two column-separated sliders + park clock", () =>
             {
-                editorChart.Add(new SliderBody
+                editorChart.Add(sliderA = new SliderBody
                 {
                     StartTime = 2000, AngleDeg = 270, Side = HorizontalDirection.Left, // head 270°, node 0°
                     Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint> { new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 90 } } },
                 });
-                editorChart.Add(new SliderBody
+                editorChart.Add(sliderB = new SliderBody
                 {
                     StartTime = 2000, AngleDeg = 90, Side = HorizontalDirection.Left, // head 90°, node 180°
                     Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint> { new GarbusPathControlPoint { TimeOffset = 300, RotationOffset = 90 } } },
@@ -1286,14 +1288,14 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("ctrl+click first head", () =>
             {
-                input.MoveMouseTo(headScreenFor(sliderAt(0)));
+                input.MoveMouseTo(headScreenFor(sliderA));
                 input.PressKey(Key.LControl);
                 input.Click(MouseButton.Left);
                 input.ReleaseKey(Key.LControl);
             });
             AddStep("ctrl+click second head", () =>
             {
-                input.MoveMouseTo(headScreenFor(sliderAt(1)));
+                input.MoveMouseTo(headScreenFor(sliderB));
                 input.PressKey(Key.LControl);
                 input.Click(MouseButton.Left);
                 input.ReleaseKey(Key.LControl);
@@ -1308,12 +1310,12 @@ namespace Garbus.Game.Tests.Editor
             addTwoSelectedSliders();
 
             // Box only the first slider's node column; the second slider is untouched.
-            shiftDragStrip(() => nodeHandleScreenFor(sliderAt(0), 0).X, () => stripHalfWidthAround(nodeHandleScreenFor(sliderAt(0), 0).X));
+            shiftDragStrip(() => nodeHandleScreenFor(sliderA, 0).X, () => stripHalfWidthAround(nodeHandleScreenFor(sliderA, 0).X));
 
-            AddAssert("first slider still selected", () => editorChart.SelectedHitObjects.Contains(sliderAt(0)));
+            AddAssert("first slider still selected", () => editorChart.SelectedHitObjects.Contains(sliderA));
             AddAssert("first slider's node selected", () =>
-                sliderBlueprintFor(sliderAt(0)).SelectedNodes.Single(), () => Is.SameAs(sliderAt(0).Path.ControlPoints[0]));
-            AddAssert("second slider pruned (no boxed node)", () => !editorChart.SelectedHitObjects.Contains(sliderAt(1)));
+                sliderBlueprintFor(sliderA).SelectedNodes.Single(), () => Is.SameAs(sliderA.Path.ControlPoints[0]));
+            AddAssert("second slider pruned (no boxed node)", () => !editorChart.SelectedHitObjects.Contains(sliderB));
         }
 
         [Test]
@@ -1764,12 +1766,12 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("add two head-only sliders + park clock", () =>
             {
-                editorChart.Add(new SliderBody
+                editorChart.Add(sliderA = new SliderBody
                 {
                     StartTime = 2000, AngleDeg = 180, Side = HorizontalDirection.Left,
                     Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint>() },
                 });
-                editorChart.Add(new SliderBody
+                editorChart.Add(sliderB = new SliderBody
                 {
                     StartTime = 2000, AngleDeg = 270, Side = HorizontalDirection.Left,
                     Path = new GarbusPath { ControlPoints = new BindableList<GarbusPathControlPoint>() },
@@ -1783,14 +1785,14 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("ctrl+click first head", () =>
             {
-                input.MoveMouseTo(headScreenFor(sliderAt(0)));
+                input.MoveMouseTo(headScreenFor(sliderA));
                 input.PressKey(Key.LControl);
                 input.Click(MouseButton.Left);
                 input.ReleaseKey(Key.LControl);
             });
             AddStep("ctrl+click second head", () =>
             {
-                input.MoveMouseTo(headScreenFor(sliderAt(1)));
+                input.MoveMouseTo(headScreenFor(sliderB));
                 input.PressKey(Key.LControl);
                 input.Click(MouseButton.Left);
                 input.ReleaseKey(Key.LControl);
@@ -1799,15 +1801,15 @@ namespace Garbus.Game.Tests.Editor
 
             AddStep("press on first slider's head handle", () =>
             {
-                input.MoveMouseTo(headHandleScreenFor(sliderAt(0)));
+                input.MoveMouseTo(headHandleScreenFor(sliderA));
                 input.PressButton(MouseButton.Left);
             });
             AddStep("drag one 45° increment right", () => input.MoveMouseTo(
                 input.CurrentState.Mouse.Position + new Vector2(playfield.ScreenSpaceDrawQuad.Width * 45f / EditorAngleMapping.TOTAL_DEGREES, 0)));
             AddStep("release", () => input.ReleaseButton(MouseButton.Left));
 
-            AddAssert("first slider rotated +45 (180→225)", () => sliderAt(0).AngleDeg, () => Is.EqualTo(225));
-            AddAssert("second slider rotated +45 (270→315)", () => sliderAt(1).AngleDeg, () => Is.EqualTo(315));
+            AddAssert("first slider rotated +45 (180→225)", () => sliderA.AngleDeg, () => Is.EqualTo(225));
+            AddAssert("second slider rotated +45 (270→315)", () => sliderB.AngleDeg, () => Is.EqualTo(315));
         }
 
         [Test]
@@ -3290,37 +3292,32 @@ namespace Garbus.Game.Tests.Editor
         public void TestMergeButtonHiddenForSingleSlider()
         {
             waitForComposer();
-            AddStep("add one slider + select it", () =>
-            {
-                var a = new SliderBody
-                {
-                    StartTime = 1000,
-                    AngleDeg = 90,
-                    Side = HorizontalDirection.Left,
-                    Path = new GarbusPath
-                    {
-                        ControlPoints = new BindableList<GarbusPathControlPoint>
-                        {
-                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 30 },
-                        },
-                    },
-                };
-                editorChart.Add(a);
-                editorChart.SelectedHitObjects.Add(a);
-            });
-            AddWaitStep("let inspector settle", 3);
-            AddAssert("merge button hidden", () => mergeButton() == null);
+
+            // Reach the shown state first, then shrink the selection: asserting shown→hidden is
+            // race-free, whereas asserting "hidden" for a selection whose button was never shown
+            // could pass before the inspector has even rebuilt.
+            addTwoDisjointSelectedSliders();
+            AddUntilStep("merge button shown for pair", () => mergeButton() != null);
+
+            AddStep("deselect one slider", () =>
+                editorChart.SelectedHitObjects.Remove(editorChart.SelectedHitObjects[^1]));
+            AddUntilStep("merge button hidden for single slider", () => mergeButton() == null);
         }
 
         [Test]
         public void TestMergeButtonHiddenForOverlappingSliders()
         {
             waitForComposer();
-            AddStep("add two overlapping sliders + select both", () =>
+
+            // Same shown→hidden pattern as TestMergeButtonHiddenForSingleSlider.
+            addTwoDisjointSelectedSliders();
+            AddUntilStep("merge button shown for disjoint pair", () => mergeButton() != null);
+
+            AddStep("select an overlapping pair instead", () =>
             {
-                var a = new SliderBody
+                var c = new SliderBody
                 {
-                    StartTime = 1000,
+                    StartTime = 3000,
                     AngleDeg = 90,
                     Side = HorizontalDirection.Left,
                     Path = new GarbusPath
@@ -3330,10 +3327,10 @@ namespace Garbus.Game.Tests.Editor
                             new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 30 },
                         },
                     },
-                }; // spans [1000, 2000]
-                var b = new SliderBody
+                }; // spans [3000, 4000]
+                var d = new SliderBody
                 {
-                    StartTime = 1500,
+                    StartTime = 3500,
                     AngleDeg = 180,
                     Side = HorizontalDirection.Left,
                     Path = new GarbusPath
@@ -3343,14 +3340,14 @@ namespace Garbus.Game.Tests.Editor
                             new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = -30 },
                         },
                     },
-                }; // spans [1500, 2500] — overlaps a
-                editorChart.Add(a);
-                editorChart.Add(b);
-                editorChart.SelectedHitObjects.Add(a);
-                editorChart.SelectedHitObjects.Add(b);
+                }; // spans [3500, 4500] — overlaps c
+                editorChart.Add(c);
+                editorChart.Add(d);
+                editorChart.SelectedHitObjects.Clear();
+                editorChart.SelectedHitObjects.Add(c);
+                editorChart.SelectedHitObjects.Add(d);
             });
-            AddWaitStep("let inspector settle", 3);
-            AddAssert("merge button hidden", () => mergeButton() == null);
+            AddUntilStep("merge button hidden for overlapping pair", () => mergeButton() == null);
         }
 
         [Test]

@@ -324,36 +324,49 @@ namespace Garbus.Game.Tests.Editor
 
             AddUntilStep("timeline strip loaded", () => editor.ChildrenOfType<TimelineStrip>().Any());
 
-            // Seek to a non-snapped position (e.g., 333ms — not a multiple of 125ms).
-            // This simulates where the raw-drag seek might leave the playhead.
-            AddStep("seek to non-snapped position 333ms", () =>
+            double timeBeforeDrag = 0;
+            AddStep("stop clock, seek to mid-track", () =>
             {
                 editorClock!.Stop();
-                editorClock.Seek(333);
+                // Away from both track edges so the drag can move the clock in either direction.
+                editorClock.Seek(editorClock.TrackLength / 2);
+                timeBeforeDrag = editorClock.CurrentTime;
             });
 
-            AddWaitStep("wait one frame for seek to settle", 2);
-
-            AddStep("mouse-press on timeline strip (simulates drag start)", () =>
+            // A real drag: press on the strip, then move while held so the scroll container engages
+            // and raw-seeks the clock.
+            AddStep("press on timeline strip", () =>
             {
                 var strip = editor.ChildrenOfType<TimelineStrip>().First();
-                // Position the mouse somewhere on the strip so OnMouseDown is triggered.
-                float x = strip.DrawWidth * 0.10f;
-                float y = strip.DrawHeight * 0.5f;
-                input.MoveMouseTo(strip.ToScreenSpace(new Vector2(x, y)));
+                input.MoveMouseTo(strip.ToScreenSpace(new Vector2(strip.DrawWidth * 0.5f, strip.DrawHeight * 0.5f)));
                 input.PressButton(MouseButton.Left);
             });
+            AddStep("drag left while held", () =>
+            {
+                var strip = editor.ChildrenOfType<TimelineStrip>().First();
+                input.MoveMouseTo(strip.ToScreenSpace(new Vector2(strip.DrawWidth * 0.35f, strip.DrawHeight * 0.5f)));
+                input.MoveMouseTo(strip.ToScreenSpace(new Vector2(strip.DrawWidth * 0.2f, strip.DrawHeight * 0.5f)));
+            });
 
-            AddWaitStep("wait a frame", 2);
+            // The drag must actually have engaged — otherwise the no-snap assert below is vacuous.
+            AddUntilStep("drag seeked the clock", () =>
+                System.Math.Abs(editorClock!.CurrentTime - timeBeforeDrag) > 10);
 
             double timeBeforeRelease = 0;
-            AddStep("capture time just before release", () => timeBeforeRelease = editorClock!.CurrentTime);
+            AddUntilStep("drag settled — capture time", () =>
+            {
+                double now = editorClock!.CurrentTime;
+                bool settled = timeBeforeRelease != 0 && System.Math.Abs(now - timeBeforeRelease) < 0.5;
+                timeBeforeRelease = now;
+                return settled;
+            });
 
             AddStep("release mouse", () => input.ReleaseButton(MouseButton.Left));
 
-            AddWaitStep("wait a few frames", 3);
+            // Absence check: a snap-on-release would fire within a frame of the release event, so a
+            // short frame wait before asserting is the only way to observe "nothing happened".
+            AddWaitStep("let any (incorrect) snap fire", 3);
 
-            // Releasing the drag must not move the playhead — no beat-snap correction on release.
             AddAssert("position unchanged by release (no snap applied)", () =>
                 System.Math.Abs(editorClock!.CurrentTime - timeBeforeRelease) < 1.0);
         }

@@ -272,14 +272,7 @@ namespace Garbus.Game.Tests.Editor
             var n1 = new CardinalNote { StartTime = 1050, AngleDeg = 0 };
             editorChart.Add(n1);
 
-            // Simulate the "Snap all notes" transaction.
-            editorChart.BeginChange();
-            foreach (var h in editorChart.HitObjects.ToList())
-            {
-                h.StartTime = editorChart.ControlPointInfo.GetClosestSnappedTime(h.StartTime, beatDivisor.Value);
-                editorChart.Update(h);
-            }
-            editorChart.EndChange();
+            editorChart.SnapAllToDivisor(beatDivisor.Value);
 
             Assert.That(editorChart.HitObjects[0].StartTime, Is.EqualTo(1000).Within(0.01),
                 "Snap-all must move the off-grid note to the nearest grid position (1000)");
@@ -291,13 +284,7 @@ namespace Garbus.Game.Tests.Editor
             var n1 = new CardinalNote { StartTime = 1050, AngleDeg = 0 };
             editorChart.Add(n1);
 
-            editorChart.BeginChange();
-            foreach (var h in editorChart.HitObjects.ToList())
-            {
-                h.StartTime = editorChart.ControlPointInfo.GetClosestSnappedTime(h.StartTime, beatDivisor.Value);
-                editorChart.Update(h);
-            }
-            editorChart.EndChange();
+            editorChart.SnapAllToDivisor(beatDivisor.Value);
 
             Assert.That(editorChart.HitObjects[0].StartTime, Is.EqualTo(1000).Within(0.01));
 

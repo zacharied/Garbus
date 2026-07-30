@@ -1,10 +1,13 @@
-// TDD tests for Task 17: top timeline strip + zoom sync + View toggle.
+// Tests for the top timeline strip.
 //
 // Contract under test:
-//   1. Zoom changes write TimelineTimeRange = TrackLength / zoom / 2.
-//   2. Toggling EditorShowTicks hides/shows the TimelineTickDisplay layer.
-//   3. Object markers appear (TimelineObjectMarkers becomes non-empty) when a note is added.
-//   4. Playfield does NOT advance while the EditorClock is stopped (clock-wiring regression guard).
+//   1. Toggling EditorShowTicks hides/shows the TimelineTickDisplay layer.
+//   2. Object markers appear (TimelineObjectMarkers becomes non-empty) when a note is added.
+//   3. Playfield does NOT advance while the EditorClock is stopped (clock-wiring regression guard).
+//
+// Zoom→TimelineTimeRange sync is ComposeTab's wiring and is tested through the real ComposeTab in
+// TestSceneEditorShell.TestCtrlScrollOverComposeAreaZoomsTimeline — a harness-local copy of that
+// wiring here could only ever test itself.
 //
 // All tests use TrackVirtual(60000ms) — no real audio — so waveform layer must not crash.
 
@@ -51,39 +54,7 @@ namespace Garbus.Game.Tests.Editor
         private void waitForComposer() => AddUntilStep("composer loaded", () => composer?.IsLoaded == true);
 
         // ------------------------------------------------------------------
-        // 1. Zoom formula: TimelineTimeRange = TrackLength / zoom / 2
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void TestZoomSyncsComposerTimeRange()
-        {
-            waitForStrip();
-            waitForComposer();
-
-            float capturedZoom = 0;
-            AddStep("capture current zoom", () => capturedZoom = strip.CurrentZoom.Value);
-            AddAssert("TimelineTimeRange follows formula",
-                () =>
-                {
-                    double expected = editorClock.TrackLength / capturedZoom / 2;
-                    double actual = composer.TimelineTimeRange.Value;
-                    // Allow 1ms tolerance for floating-point rounding.
-                    return System.Math.Abs(actual - expected) < 1.0;
-                });
-
-            AddStep("increase zoom", () => strip.Zoom = strip.CurrentZoom.Value + 2f);
-            AddUntilStep("TimelineTimeRange updated after zoom change", () =>
-            {
-                double zoom = strip.CurrentZoom.Value;
-                if (zoom <= 0) return false;
-                double expected = editorClock.TrackLength / zoom / 2;
-                double actual = composer.TimelineTimeRange.Value;
-                return System.Math.Abs(actual - expected) < 1.0;
-            });
-        }
-
-        // ------------------------------------------------------------------
-        // 2. EditorShowTicks toggle hides the tick display
+        // 1. EditorShowTicks toggle hides the tick display
         // ------------------------------------------------------------------
 
         [Test]
@@ -309,29 +280,11 @@ namespace Garbus.Game.Tests.Editor
 
                 Strip = new TimelineStrip();
 
-                // Wire zoom → TimelineTimeRange before loading.
-                Strip.CurrentZoom.BindValueChanged(e =>
-                {
-                    double trackLength = EditorClock.TrackLength;
-                    if (trackLength > 0 && e.NewValue > 0)
-                        Composer.TimelineTimeRange.Value = trackLength / e.NewValue / 2;
-                });
-
                 Children = new Drawable[]
                 {
                     Strip,
                     composerContainer,
                 };
-            }
-
-            protected override void Update()
-            {
-                base.Update();
-
-                float zoom = Strip.CurrentZoom.Value;
-                double trackLength = EditorClock.TrackLength;
-                if (zoom > 0 && trackLength > 0)
-                    Composer.TimelineTimeRange.Value = trackLength / zoom / 2;
             }
         }
     }

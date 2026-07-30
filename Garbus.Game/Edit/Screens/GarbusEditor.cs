@@ -611,16 +611,7 @@ namespace Garbus.Game.Edit.Screens
                 {
                     var dialog = new ConfirmDialog(
                         "This will move all notes to the nearest beat grid position.\nThis action is undoable.",
-                        ("Snap All", () =>
-                        {
-                            EditorChart.BeginChange();
-                            foreach (var h in EditorChart.HitObjects.ToList())
-                            {
-                                h.StartTime = EditorChart.ControlPointInfo.GetClosestSnappedTime(h.StartTime, beatDivisor.Value);
-                                EditorChart.Update(h);
-                            }
-                            EditorChart.EndChange();
-                        }),
+                        ("Snap All", () => EditorChart.SnapAllToDivisor(beatDivisor.Value)),
                         ("Cancel", () => { })
                     );
                     dialogOverlay.Child = dialog;

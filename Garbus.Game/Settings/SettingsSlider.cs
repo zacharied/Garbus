@@ -24,6 +24,9 @@ namespace Garbus.Game.Settings
             this.current = current;
             this.format = format;
 
+            // Rows are looked up by label (tests, debugging) — never by layout position.
+            Name = label;
+
             RelativeSizeAxes = Axes.X;
             AutoSizeAxes = Axes.Y;
 

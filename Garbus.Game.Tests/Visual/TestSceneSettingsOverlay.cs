@@ -46,6 +46,10 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("hidden", () => overlay.State.Value == Visibility.Hidden);
         }
 
+        private BasicSliderBar<double> sliderFor(string label) =>
+            overlay.ChildrenOfType<SettingsSlider>().Single(s => s.Name == label)
+                   .ChildrenOfType<BasicSliderBar<double>>().Single();
+
         [Test]
         public void TestMasterVolumeUsesLogarithmicTaper()
         {
@@ -53,12 +57,12 @@ namespace Garbus.Game.Tests.Visual
 
             // Actual gain -> slider position: 3% gain sits at ~30% slider position.
             AddStep("set master gain 0.03", () => audio.Volume.Value = 0.03);
-            AddAssert("first slider ~0.30", () =>
-                Precision.AlmostEquals(overlay.ChildrenOfType<BasicSliderBar<double>>().ElementAt(0).Current.Value, 0.30, 0.01));
+            AddAssert("master slider ~0.30", () =>
+                Precision.AlmostEquals(sliderFor("Master volume").Current.Value, 0.30, 0.01));
 
             // Slider position -> actual gain: dragging to 30% outputs ~3% gain.
             AddStep("set slider position 0.30", () =>
-                overlay.ChildrenOfType<BasicSliderBar<double>>().ElementAt(0).Current.Value = 0.30);
+                sliderFor("Master volume").Current.Value = 0.30);
             AddAssert("master gain ~0.03", () => Precision.AlmostEquals(audio.Volume.Value, 0.03, 0.01));
         }
 
@@ -72,13 +76,10 @@ namespace Garbus.Game.Tests.Visual
                 audio.VolumeTrack.Value = 0.03;
                 audio.VolumeSample.Value = 0.03;
             });
-            AddAssert("all three sliders ~0.30", () =>
-            {
-                var bars = overlay.ChildrenOfType<BasicSliderBar<double>>().ToList();
-                return Precision.AlmostEquals(bars[0].Current.Value, 0.30, 0.01)
-                       && Precision.AlmostEquals(bars[1].Current.Value, 0.30, 0.01)
-                       && Precision.AlmostEquals(bars[2].Current.Value, 0.30, 0.01);
-            });
+            AddAssert("all three volume sliders ~0.30", () =>
+                Precision.AlmostEquals(sliderFor("Master volume").Current.Value, 0.30, 0.01)
+                && Precision.AlmostEquals(sliderFor("Music volume").Current.Value, 0.30, 0.01)
+                && Precision.AlmostEquals(sliderFor("Hitsound volume").Current.Value, 0.30, 0.01));
         }
 
         [Test]
@@ -86,8 +87,8 @@ namespace Garbus.Game.Tests.Visual
         {
             AddStep("show", () => overlay.Show());
             AddStep("set speed 15", () => config.SetValue(GarbusSetting.ScrollSpeed, 15.0));
-            AddAssert("last slider tracks speed", () =>
-                overlay.ChildrenOfType<BasicSliderBar<double>>().ElementAt(3).Current.Value == 15.0);
+            AddAssert("scroll speed slider tracks speed", () =>
+                sliderFor("Scroll speed").Current.Value == 15.0);
         }
 
         [Test]

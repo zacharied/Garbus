@@ -9,8 +9,10 @@ using Garbus.Game.Edit.Compose;
 using Garbus.Game.Edit.Screens;
 using Garbus.Game.Edit.Screens.Verify;
 using Garbus.Game.Objects;
+using Garbus.Game.Settings;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
+using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.UserInterface;
@@ -26,6 +28,7 @@ namespace Garbus.Game.Tests.Editor
     {
         private GarbusEditor editor = null!;
         private ManualInputManager input = null!;
+        private SettingsProbe settingsProbe = null!;
 
         [SetUp]
         public void SetUp() => Schedule(() =>
@@ -38,26 +41,54 @@ namespace Garbus.Game.Tests.Editor
             string tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".garbus");
             chartFile.Save(tempPath);
 
-            Child = input = new ManualInputManager
+            settingsProbe = new SettingsProbe();
+            Child = new SettingsProbeContainer(settingsProbe)
             {
                 RelativeSizeAxes = Axes.Both,
-                UseParentInput = false,
-                Child = new ScreenStack(editor = new GarbusEditor(chartFile)) { RelativeSizeAxes = Axes.Both },
+                Child = input = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    UseParentInput = false,
+                    Child = new ScreenStack(editor = new GarbusEditor(chartFile)) { RelativeSizeAxes = Axes.Both },
+                },
             };
         });
 
+        /// <summary>Records OpenSettings calls — the harness hosts no real settings overlay.</summary>
+        private class SettingsProbe : ISettingsOverlayControl
+        {
+            public bool Opened;
+            public void OpenSettings() => Opened = true;
+        }
+
+        private partial class SettingsProbeContainer : Container
+        {
+            private readonly SettingsProbe probe;
+
+            public SettingsProbeContainer(SettingsProbe probe)
+            {
+                this.probe = probe;
+            }
+
+            protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+            {
+                var deps = new DependencyContainer(base.CreateChildDependencies(parent));
+                deps.CacheAs<ISettingsOverlayControl>(probe);
+                return deps;
+            }
+        }
+
         /// <summary>
-        /// The editor implements <see cref="Garbus.Game.Screens.IAllowSettings"/> so the settings
-        /// overlay is available here, but opts out of the floating gear (<c>ShowSettingsGear</c> is
-        /// false) — it exposes settings through a File → Game settings menu item instead.
+        /// The editor opts out of the floating gear (<c>ShowSettingsGear</c> is false) and instead
+        /// exposes settings through File → Game settings; clicking that item must invoke the
+        /// resolved <see cref="ISettingsOverlayControl"/>.
         /// </summary>
         [Test]
         public void TestSettingsExposedViaFileMenu()
         {
             AddUntilStep("compose visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
-            AddAssert("editor allows settings", () => editor is Garbus.Game.Screens.IAllowSettings);
             AddAssert("editor hides the floating gear", () =>
-                editor is Garbus.Game.Screens.IAllowSettings s && !s.ShowSettingsGear);
+                !((Garbus.Game.Screens.IAllowSettings)editor).ShowSettingsGear);
 
             AddStep("click File", () =>
             {
@@ -69,11 +100,14 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("file dropdown open", () =>
                 editor.ChildrenOfType<BasicMenu>().Count(m => m.State == MenuState.Open) >= 2);
 
-            AddAssert("File menu has Game settings item", () =>
-                editor.ChildrenOfType<Menu.DrawableMenuItem>()
-                      .Any(i => i.Item.Text.Value.ToString() == "Game settings" && i.IsPresent));
-            AddAssert("File menu has a spacer", () =>
-                editor.ChildrenOfType<GarbusMenu.DrawableGarbusMenuSpacer>().Any(d => d.IsPresent));
+            AddStep("click Game settings", () =>
+            {
+                var item = editor.ChildrenOfType<Menu.DrawableMenuItem>()
+                                 .First(i => i.Item.Text.Value.ToString() == "Game settings");
+                input.MoveMouseTo(item);
+                input.Click(MouseButton.Left);
+            });
+            AddUntilStep("settings overlay open requested", () => settingsProbe.Opened);
         }
 
         [Test]
@@ -227,10 +261,11 @@ namespace Garbus.Game.Tests.Editor
             // the layout now uses a padded plain Container to avoid this.
             AddUntilStep("compose tab visible", () => editor.ChildrenOfType<ComposeTab>().Single().State.Value == Visibility.Visible);
             AddAssert("compose tab has positive height", () => editor.ChildrenOfType<ComposeTab>().Single().DrawHeight > 0);
-            // Top bar = 40, bottom bar = 60 → tab area = screen height − 100.
-            AddAssert("compose tab height ≈ screen − 100",
+            // The tab area is the editor minus the fixed top/bottom bars — assert the relation
+            // (fills most of the screen) rather than pinning the bars' tuned heights.
+            AddAssert("compose tab fills most of the editor height",
                 () => editor.ChildrenOfType<ComposeTab>().Single().DrawHeight,
-                () => Is.GreaterThan(editor.DrawHeight - 101));
+                () => Is.GreaterThan(editor.DrawHeight * 0.5f));
         }
 
         /// <summary>
@@ -271,7 +306,12 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("timeline zoom set up", () => timelineStrip().CurrentZoom.Value > 1);
 
             float capturedZoom = 0;
-            AddStep("capture zoom", () => capturedZoom = timelineStrip().CurrentZoom.Value);
+            double capturedTimeRange = 0;
+            AddStep("capture zoom + composer time range", () =>
+            {
+                capturedZoom = timelineStrip().CurrentZoom.Value;
+                capturedTimeRange = composer().TimelineTimeRange.Value;
+            });
 
             AddStep("ctrl + wheel up over compose area", () =>
             {
@@ -283,6 +323,11 @@ namespace Garbus.Game.Tests.Editor
             });
 
             AddUntilStep("timeline zoomed in", () => timelineStrip().CurrentZoom.Value > capturedZoom + 0.01f);
+
+            // Zooming in shows less time: ComposeTab must sync the composer's visible time range
+            // down from the new zoom (the strip→composer wiring, tested through the real ComposeTab).
+            AddUntilStep("composer's visible time range shrank", () =>
+                composer().TimelineTimeRange.Value < capturedTimeRange - 0.01);
         }
 
         private Edit.Screens.Timeline.TimelineStrip timelineStrip() =>
@@ -428,8 +473,13 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("shows New Song, greyed out", () =>
             {
                 var display = unsavedEditor.ChildrenOfType<ChartTitleDisplay>().SingleOrDefault();
-                return display != null && display.Text.ToString() == "New Song"
-                       && display.Colour == (osu.Framework.Graphics.Colour4)new osuTK.Graphics.Color4(140, 140, 140, 255);
+                if (display == null || display.Text.ToString() != "New Song")
+                    return false;
+
+                // "Greyed out" is the contract — a neutral grey strictly dimmer than white — not any
+                // exact shade.
+                Colour4 c = display.Colour.TopLeft;
+                return c.R == c.G && c.G == c.B && c.R > 0 && c.R < 1;
             });
         }
 

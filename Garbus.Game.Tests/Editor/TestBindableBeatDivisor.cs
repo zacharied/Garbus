@@ -12,9 +12,10 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestPresetCycle()
         {
+            // COMMON presets are 1, 2, 4, 8, 16 — cycling from 4 lands exactly on its neighbours.
             var divisor = new BindableBeatDivisor(4);
-            divisor.SelectNext();      // moves within the current preset collection
-            Assert.That(divisor.Value, Is.Not.EqualTo(4));
+            divisor.SelectNext();
+            Assert.That(divisor.Value, Is.EqualTo(8));
             divisor.SelectPrevious();
             Assert.That(divisor.Value, Is.EqualTo(4));
         }
