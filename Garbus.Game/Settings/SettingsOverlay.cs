@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Garbus.Game.Configuration;
 using Garbus.Game.Input;
 using osu.Framework.Allocation;
@@ -10,15 +12,18 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osuTK;
 using osuTK.Graphics;
 
 namespace Garbus.Game.Settings
 {
     /// <summary>
-    /// A left-anchored slide-in panel exposing master/music/hitsound volume and scroll speed.
-    /// Volume rows bind to the framework <see cref="AudioManager"/> bindables (persisted by the
-    /// framework config); scroll speed binds to <see cref="GarbusSetting.ScrollSpeed"/>.
+    /// A left-anchored slide-in panel exposing master/music/hitsound volume, scroll speed, and the
+    /// frame-limiter and screen-mode display settings. Volume rows bind to the framework
+    /// <see cref="AudioManager"/> bindables (persisted by the framework config); scroll speed binds to
+    /// <see cref="GarbusSetting.ScrollSpeed"/>; the display rows bind straight to
+    /// <see cref="FrameworkConfigManager"/>.
     /// </summary>
     public partial class SettingsOverlay : VisibilityContainer
     {
@@ -35,6 +40,9 @@ namespace Garbus.Game.Settings
 
         [Resolved]
         private KeyBindingStore keyBindings { get; set; } = null!;
+
+        [Resolved]
+        private GameHost host { get; set; } = null!;
 
         private Container panel = null!;
         private FillFlowContainer settingsView = null!;
@@ -82,25 +90,46 @@ namespace Garbus.Game.Settings
                         Direction = FillDirection.Vertical,
                         Padding = new MarginPadding(20),
                         Spacing = new Vector2(0, 18),
-                        Children = new Drawable[]
-                        {
-                            new SpriteText
-                            {
-                                Text = "Settings",
-                                Font = FontUsage.Default.With(size: 28),
-                                Colour = Color4.White,
-                            },
-                            createVolumeRow("Master volume", audio.Volume),
-                            createVolumeRow("Music volume", audio.VolumeTrack),
-                            createVolumeRow("Hitsound volume", audio.VolumeSample),
-                            new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
-                            new SettingsEnumDropdown<FrameSync>("Frame limiter", frameworkConfig.GetBindable<FrameSync>(FrameworkSetting.FrameSync)),
-                            new ControlsButton(showControls),
-                        },
+                        Children = buildSettingsRows(),
                     },
                     },
                 },
             };
+        }
+
+        /// <summary>
+        /// The settings-view rows in display order. The screen-mode row is left out where the platform
+        /// offers a single window mode (mobile is fullscreen-only), since it would present no choice.
+        /// </summary>
+        private List<Drawable> buildSettingsRows()
+        {
+            var rows = new List<Drawable>
+            {
+                new SpriteText
+                {
+                    Text = "Settings",
+                    Font = FontUsage.Default.With(size: 28),
+                    Colour = Color4.White,
+                },
+                createVolumeRow("Master volume", audio.Volume),
+                createVolumeRow("Music volume", audio.VolumeTrack),
+                createVolumeRow("Hitsound volume", audio.VolumeSample),
+                new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
+                new SettingsEnumDropdown<FrameSync>("Frame limiter", frameworkConfig.GetBindable<FrameSync>(FrameworkSetting.FrameSync)),
+            };
+
+            // A headless host has no window at all; fall back to every mode so tests still get the row.
+            var windowModes = (host.Window?.SupportedWindowModes ?? Enum.GetValues<WindowMode>()).ToArray();
+
+            if (windowModes.Length > 1)
+            {
+                rows.Add(new SettingsEnumDropdown<WindowMode>("Screen mode",
+                    frameworkConfig.GetBindable<WindowMode>(FrameworkSetting.WindowMode), windowModes));
+            }
+
+            rows.Add(new ControlsButton(showControls));
+
+            return rows;
         }
 
         /// <summary>

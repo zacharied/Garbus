@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics;
@@ -12,13 +13,15 @@ using osuTK.Graphics;
 namespace Garbus.Game.Settings
 {
     /// <summary>
-    /// A labelled dropdown row: name on top, a dropdown over every value of the enum <typeparamref name="T"/>
-    /// below, bound to <c>current</c>. Item text uses each value's <c>[Description]</c> when it has one.
+    /// A labelled dropdown row: name on top, a dropdown over the enum <typeparamref name="T"/> below,
+    /// bound to <c>current</c>. Item text uses each value's <c>[Description]</c> when it has one.
+    /// Pass <c>items</c> to offer a subset of the enum rather than all of it — the window modes the
+    /// running platform actually supports, say.
     /// </summary>
     public partial class SettingsEnumDropdown<T> : CompositeDrawable
         where T : struct, Enum
     {
-        public SettingsEnumDropdown(string label, Bindable<T> current)
+        public SettingsEnumDropdown(string label, Bindable<T> current, IEnumerable<T>? items = null)
         {
             RelativeSizeAxes = Axes.X;
             AutoSizeAxes = Axes.Y;
@@ -40,7 +43,7 @@ namespace Garbus.Game.Settings
                     new DescriptionDropdown
                     {
                         RelativeSizeAxes = Axes.X,
-                        Items = Enum.GetValues<T>(),
+                        Items = items ?? Enum.GetValues<T>(),
                         Current = current,
                     },
                 },
