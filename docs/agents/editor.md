@@ -126,6 +126,13 @@ design and scroll speed read as gameplay rather than as a timeline.
   the playfield's chord index via `SetHitObjects` so chord tinting stays live; timing / design /
   scroll-speed reflect automatically because the drawables read shared state on re-apply. All
   subscriptions keep a field reference and are unsubscribed in `Dispose`.
+- The preview's playfield installs the shared `SliderPathPool` exactly as gameplay does (see
+  [gameplay.md](gameplay.md)), and scrubbing exercises the rent/return cycle constantly: seeking past a
+  slider's lifetime kills the body (its rented paths return to the pool), seeking back revives it (it
+  re-rents). Deleting an on-screen slider returns **and detaches** the paths in `OnKilled` before
+  `removeDrawable`'s explicit `Dispose()`, so the pool's instances survive the zombie-prevention
+  dispose. Pins: `TestSceneMiniPreview.TestSeekPastAndRewindRerentsPooledSliderPaths`,
+  `TestDeletingVisibleSliderLeavesPooledPathsUsable`.
 - `Edit/Preview/InlineChartPreviewPanel.cs` — the draggable docked chrome: bottom-right anchored,
   clamped to the Compose workspace, with a solid backdrop + border and persisted right/bottom offsets
   (`MiniPreviewX`/`MiniPreviewY` config). It lazily constructs the `MiniPreview` on first show.

@@ -45,6 +45,17 @@ Two parallel hierarchies:
   `SliderContactSpikes`, `ShoulderNoteGeometry`, and `GarbusHitSoundPlayback` support them.
   `IHasActivationProgress`/`IHittableNote`/`ISelfPosition` are the drawable-side contracts.
 
+**Slider path pooling:** every `Path` draws through a buffered draw node (its own framebuffer) and
+allocates a 9000-quad GPU vertex batch on first draw, while slider-body drawables are constructed up
+front for the whole chart — so `DrawableSliderBody` rents its `SmoothPath`s and `GlowPath` twins from
+`SliderPathPool`, a shared free-list `[Cached]` on `GarbusPlayfield` (resolved `CanBeNull`; bare test
+scenes without one construct per body). Bodies rent lazily in `updatePath` and hand everything back in
+`OnKilled`/`OnFree` — detaching each path from the body's own containers first — capping live `Path`
+instances at what is on screen and making the cycle safe under rewind, where a killed body revives and
+re-rents. Buckets key on `PathRadius` (crisp) / `GlowPath.Profile` (glow twins) so a body never
+receives a path shaped for a different look. Pin: `TestSceneGameplay.TestSliderPathsReturnToSharedPoolOnKill`;
+the editor Mini preview cycles are pinned in `TestSceneMiniPreview` (see [editor.md](editor.md)).
+
 Chording/coincidence helpers (`Objects/ChordHighlighter.cs`, `ChordColours`, `ChordIndex`,
 `UI/SlamCoincidenceIndex.cs`, `UI/ChordConnectorOverlay.cs`) group simultaneous objects for visuals
 and slam-coincidence judgement floors.
