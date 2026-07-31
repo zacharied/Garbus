@@ -105,11 +105,28 @@ namespace Garbus.Game.Settings
         {
             var rows = new List<Drawable>
             {
-                new SpriteText
+                new FillFlowContainer
                 {
-                    Text = "Settings",
-                    Font = FontUsage.Default.With(size: 28),
-                    Colour = Color4.White,
+                    RelativeSizeAxes = Axes.X,
+                    AutoSizeAxes = Axes.Y,
+                    Direction = FillDirection.Horizontal,
+                    Spacing = new Vector2(10, 0),
+                    Children = new Drawable[]
+                    {
+                        new LeaveButton(Hide)
+                        {
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                        },
+                        new SpriteText
+                        {
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                            Text = "Settings",
+                            Font = FontUsage.Default.With(size: 28),
+                            Colour = Color4.White,
+                        },
+                    },
                 },
                 createVolumeRow("Master volume", audio.Volume),
                 createVolumeRow("Music volume", audio.VolumeTrack),
@@ -193,6 +210,40 @@ namespace Garbus.Game.Settings
             settingsView.Show();
 
             buttonTestPanel.FadeOut(200, Easing.OutQuint);
+        }
+
+        // An icon button beside the title that dismisses the overlay.
+        private partial class LeaveButton : CompositeDrawable
+        {
+            private readonly Action onClick;
+
+            public LeaveButton(Action onClick)
+            {
+                this.onClick = onClick;
+
+                Size = new Vector2(28);
+                CornerRadius = 6;
+                Masking = true;
+
+                InternalChildren = new Drawable[]
+                {
+                    new Box { RelativeSizeAxes = Axes.Both, Colour = new Color4(60, 60, 78, 255) },
+                    new SpriteIcon
+                    {
+                        Anchor = Anchor.Centre,
+                        Origin = Anchor.Centre,
+                        Size = new Vector2(16),
+                        Icon = FontAwesome.Solid.SignOutAlt,
+                        Colour = Color4.White,
+                    },
+                };
+            }
+
+            protected override bool OnClick(ClickEvent e)
+            {
+                onClick();
+                return true;
+            }
         }
 
         // A labelled row that opens the controls sub-view.
