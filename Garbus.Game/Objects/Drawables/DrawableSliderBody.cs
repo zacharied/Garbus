@@ -105,7 +105,7 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     // and reach progressively further out. Composited source-over, inner radii (covered by every layer)
     // end up near-opaque while the rim (one layer) stays faint — a fade whose only caps are the graduated
     // rounded tips, not lumpy mid-band caps from short disjoint slices.
-    private const int escape_bands = 8;
+    private const int escape_bands = 1;
     private const float escape_layer_alpha = 0.28f;
 
     // Leading-tip "consumed" marker shown while the catcher is eating the body.
@@ -119,6 +119,14 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
     [Resolved]
     private AnalogInputManager analogInput { get; set; } = null!;
+
+    // Shared across every slider body so the live Path count tracks how many sliders are on screen
+    // rather than how many the chart contains — see SliderPathPool. Null in contexts that do not install
+    // one (bare test scenes); paths are then constructed per body exactly as before.
+    [Resolved(CanBeNull = true)]
+    private SliderPathPool? pathPool { get; set; }
+
+    private GlowPath.Profile glowProfile => new GlowPath.Profile(Thickness / 2, GlowBlurSigma, GlowStrength, GlowFalloff);
 
     // Tinted/faded as a unit (fade-in, red-on-miss): holds the crisp paths and their glow twins.
     // SmoothPath forces its own draw colour to white, so colour applied here is what tints the
@@ -700,13 +708,14 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     {
         while (pool.Count <= index)
         {
-            var path = new SmoothPath
-            {
-                // Anchor the polar origin (vertex 0,0) at the playfield centre. Position (set per frame)
-                // compensates for the auto-size bounding-box offset.
-                Anchor = Anchor.Centre,
-                PathRadius = Thickness / 2,
-            };
+            var path = pathPool?.RentPath(Thickness / 2)
+                       ?? new SmoothPath
+                       {
+                           // Anchor the polar origin (vertex 0,0) at the playfield centre. Position (set
+                           // per frame) compensates for the auto-size bounding-box offset.
+                           Anchor = Anchor.Centre,
+                           PathRadius = Thickness / 2,
+                       };
 
             pool.Add(path);
             container.Add(path);
@@ -722,16 +731,68 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     {
         while (pool.Count <= index)
         {
-            var glow = new GlowPath(Thickness / 2, GlowBlurSigma, GlowStrength, GlowFalloff)
-            {
-                Anchor = Anchor.Centre,
-            };
+            var glow = pathPool?.RentGlow(glowProfile)
+                       ?? new GlowPath(glowProfile)
+                       {
+                           Anchor = Anchor.Centre,
+                       };
 
             pool.Add(glow);
             container.Add(glow);
         }
 
         return pool[index];
+    }
+
+    /// <summary>
+    /// Hands every rented path back to the shared pool once this body stops being drawn, so the live
+    /// instance count follows what is on screen. The lists are cleared, so the next <see cref="updatePath"/>
+    /// re-rents through <see cref="getPath"/> / <see cref="getGlowPath"/> — which is what makes this safe
+    /// under rewind, where a killed body can come alive again.
+    /// </summary>
+    public override void OnKilled()
+    {
+        base.OnKilled();
+        returnPooledPaths();
+    }
+
+    protected override void OnFree()
+    {
+        base.OnFree();
+        returnPooledPaths();
+    }
+
+    private void returnPooledPaths()
+    {
+        if (pathPool == null)
+            return;
+
+        returnPaths(bodyPaths, pathContainer);
+        returnPaths(escapePaths, escapeContainer);
+        returnGlows(glowPaths, glowContainer);
+        returnGlows(escapeGlowPaths, escapeGlowContainer);
+
+        void returnPaths(List<SmoothPath> pool, Container<SmoothPath> container)
+        {
+            foreach (var path in pool)
+            {
+                container.Remove(path, false);
+                pathPool.Return(path);
+            }
+
+            pool.Clear();
+        }
+
+        void returnGlows(List<GlowPath> pool, Container<GlowPath> container)
+        {
+            foreach (var glow in pool)
+            {
+                container.Remove(glow, false);
+                pathPool.Return(glow);
+            }
+
+            pool.Clear();
+        }
     }
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)

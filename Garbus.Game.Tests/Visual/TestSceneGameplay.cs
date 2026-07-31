@@ -153,6 +153,53 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("spike hides after slider leaves ring", () => !contactSpikes.Active && contactSpikes.Alpha == 0);
         }
 
+        /// <summary>
+        /// Path drawables each own a buffered framebuffer and a GPU vertex batch, and hit objects are not
+        /// pooled — so without a shared pool the live Path count would track how many sliders the chart
+        /// contains rather than how many are on screen. This pins the borrow/return cycle that prevents that.
+        /// </summary>
+        [Test]
+        public void TestSliderPathsReturnToSharedPoolOnKill()
+        {
+            Objects.Drawables.DrawableSliderBody rightBody = null!;
+
+            AddUntilStep("right slider registered", () =>
+            {
+                rightBody = playfield.AllHitObjects
+                                     .OfType<Objects.Drawables.DrawableSliderBody>()
+                                     .SingleOrDefault(b => b.HitObject.Side == HorizontalDirection.Right)!;
+                return rightBody != null;
+            });
+
+            playThrough(3500);
+
+            AddUntilStep("body rents paths while alive", () => rightBody.BodyPaths.Count > 0 && rightBody.GlowPaths.Count > 0);
+            AddAssert("paths came from the shared pool", () => playfield.SliderPathPool.ConstructedPaths > 0);
+
+            // Well past the body's hit-state fade and Expire(), so the container has run RemoveDrawable
+            // (which is what calls OnKilled). playThrough is what moves the clock — an until-step alone
+            // would spin without ever advancing time.
+            playThrough(20000);
+
+            AddUntilStep("paths are handed back once the body is killed", () =>
+                !rightBody.IsAlive && rightBody.BodyPaths.Count == 0 && rightBody.GlowPaths.Count == 0
+                                   && rightBody.EscapePaths.Count == 0 && rightBody.EscapeGlowPaths.Count == 0);
+
+            // The returned instances must actually be reachable again, otherwise the pool leaks and every
+            // slider still constructs its own — the exact cost this exists to remove.
+            AddAssert("returned paths are reused rather than reconstructed", () =>
+            {
+                var pool = playfield.SliderPathPool;
+
+                int pathsBefore = pool.ConstructedPaths;
+                var path = pool.RentPath(rightBody.Thickness / 2);
+                bool pathReused = pool.ConstructedPaths == pathsBefore;
+                pool.Return(path);
+
+                return pathReused;
+            });
+        }
+
         [Test]
         public void TestSliderBodyGlowIsGeometric()
         {

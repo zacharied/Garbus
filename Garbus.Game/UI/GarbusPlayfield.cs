@@ -9,6 +9,7 @@ using Garbus.Game.Gameplay.Objects.Drawables;
 using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Input;
 using Garbus.Game.Objects;
+using Garbus.Game.Objects.Drawables;
 
 namespace Garbus.Game.UI;
 
@@ -32,6 +33,13 @@ public partial class GarbusPlayfield : Playfield
 
     [Cached]
     private ChordHighlighter chordHighlighter { get; set; } = new ChordHighlighter();
+
+    // Shared by every slider body in this playfield so Path instances (each of which owns a framebuffer
+    // and a GPU vertex batch) are reused across sliders instead of accumulating one set per chart object.
+    [Cached]
+    private SliderPathPool sliderPathPool { get; set; } = new SliderPathPool();
+
+    internal SliderPathPool SliderPathPool => sliderPathPool;
 
     /// <summary>
     /// The current combo, surfaced for the centre <see cref="ComboDisplay"/> to bind to. Driven by the

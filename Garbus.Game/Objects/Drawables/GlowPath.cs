@@ -31,12 +31,28 @@ public partial class GlowPath : SmoothPath
     private readonly float strength;
     private readonly float falloff;
 
+    /// <summary>
+    /// The construction-time parameters that fix this path's cross-section. Baked in at construction
+    /// (they determine <see cref="Path.PathRadius"/> and the profile texture), so <see cref="SliderPathPool"/>
+    /// buckets instances by this to avoid handing a body a path shaped for a different look.
+    /// </summary>
+    public readonly record struct Profile(float CoreRadius, float Sigma, float Strength, float Falloff);
+
+    public Profile ProfileKey { get; }
+
+    public GlowPath(Profile profile)
+        : this(profile.CoreRadius, profile.Sigma, profile.Strength, profile.Falloff)
+    {
+    }
+
     public GlowPath(float coreRadius, float sigma, float strength, float falloff = 1)
     {
         this.coreRadius = coreRadius;
         this.sigma = Math.Max(sigma, 1e-3f);
         this.strength = strength;
         this.falloff = Math.Max(falloff, 1e-3f);
+
+        ProfileKey = new Profile(coreRadius, sigma, strength, falloff);
 
         Blending = BlendingParameters.Additive;
         PathRadius = computeExtent();
