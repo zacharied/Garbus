@@ -49,7 +49,9 @@ framework settings, persisted to `framework.ini` with no `GarbusSetting` behind 
 (`FrameworkSetting.FrameSync`) and "Screen mode" (`FrameworkSetting.WindowMode`).
 
 `SettingsOverlay.buildSettingsRows()` assembles the rows so the screen-mode row can be skipped where
-the platform has only one window mode to offer.
+the platform has only one window mode to offer. The header row pairs the "Settings" title with a
+leave icon button (sign-out icon, left of the title) that dismisses the overlay — the in-panel
+counterpart to Escape / clicking outside the panel.
 
 ### Screen mode
 
@@ -65,8 +67,9 @@ Item list comes from `IWindow.SupportedWindowModes`, not `Enum.GetValues` — mo
 the selection. A headless host has no `Window`, so the row falls back to every mode and stays testable.
 
 `GlobalSettingsContainer` shows the floating gear only when the current screen is `IAllowSettings`
-**and** its `ShowSettingsGear` (default true) is true; the editor sets it false and opens the overlay
-from a menu item instead. It also implements `ISettingsOverlayControl` (`OpenSettings()`), cached in
+**and** its `ShowSettingsGear` (default true) is true **and** the overlay is closed — the gear yields
+to the overlay it opens (fading out while it is up, returning on dismissal); the editor sets
+`ShowSettingsGear` false and opens the overlay from a menu item instead. It also implements `ISettingsOverlayControl` (`OpenSettings()`), cached in
 DI by `GarbusGame` so any screen can open the overlay without holding a container reference.
 
 ## Chrome

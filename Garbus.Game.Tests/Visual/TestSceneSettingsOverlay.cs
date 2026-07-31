@@ -46,6 +46,9 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("hidden", () => overlay.State.Value == Visibility.Hidden);
         }
 
+        private SpriteIcon leaveButton =>
+            overlay.ChildrenOfType<SpriteIcon>().Single(i => i.Icon.Equals(FontAwesome.Solid.SignOutAlt));
+
         private BasicSliderBar<double> sliderFor(string label) =>
             overlay.ChildrenOfType<SettingsSlider>().Single(s => s.Name == label)
                    .ChildrenOfType<BasicSliderBar<double>>().Single();
@@ -89,6 +92,28 @@ namespace Garbus.Game.Tests.Visual
             AddStep("set speed 15", () => config.SetValue(GarbusSetting.ScrollSpeed, 15.0));
             AddAssert("scroll speed slider tracks speed", () =>
                 sliderFor("Scroll speed").Current.Value == 15.0);
+        }
+
+        /// <summary>
+        /// The leave button beside the "Settings" title dismisses the overlay, mirroring Escape /
+        /// clicking outside the panel.
+        /// </summary>
+        [Test]
+        public void TestLeaveButtonHidesOverlay()
+        {
+            AddStep("show", () => overlay.Show());
+            AddUntilStep("visible", () => overlay.State.Value == Visibility.Visible);
+
+            // Wait for the slide-in to bring the button onscreen — a click that misses it would also
+            // dismiss the overlay (click-outside), which must not be what this test ends up exercising.
+            AddUntilStep("leave button onscreen", () => leaveButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
+
+            AddStep("click leave button", () =>
+            {
+                manual.MoveMouseTo(leaveButton);
+                manual.Click(MouseButton.Left);
+            });
+            AddUntilStep("hidden", () => overlay.State.Value == Visibility.Hidden);
         }
 
         [Test]
