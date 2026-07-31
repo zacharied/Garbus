@@ -116,6 +116,7 @@ namespace Garbus.Game.Screens
         /// (the clock actually starts <c>LEAD_IN_TIME</c> before this), so no pre-roll offset is
         /// baked in here.
         /// </param>
+        /// <param name="jacket">The jacket texture to show as the gameplay background, or null for none.</param>
         public PlayScreen(GarbusChart chart, Track track, double startTime = 0, Texture? jacket = null)
         {
             var bridgeSong = new GarbusSong { Charts = { chart } };
