@@ -48,15 +48,21 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("gear hidden", () => gear.Alpha == 0);
         }
 
+        /// <summary>
+        /// The gear opens the overlay and yields to it: it fades out while the overlay is up (the
+        /// overlay owns dismissal via its leave button / Escape) and returns once the overlay closes.
+        /// </summary>
         [Test]
-        public void TestGearClickTogglesOverlay()
+        public void TestGearOpensOverlayAndYieldsToIt()
         {
             AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
             AddUntilStep("gear visible", () => gear.Alpha == 1);
             AddStep("click gear", () => gear.TriggerClick());
             AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
-            AddStep("click gear again", () => gear.TriggerClick());
+            AddUntilStep("gear hidden while overlay open", () => gear.Alpha == 0);
+            AddStep("close overlay", () => overlay.Hide());
             AddUntilStep("overlay hidden", () => overlay.State.Value == Visibility.Hidden);
+            AddUntilStep("gear returns", () => gear.Alpha == 1);
         }
 
         [Test]
