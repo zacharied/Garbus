@@ -55,11 +55,14 @@ public partial class JacketBackground : CompositeDrawable
                 Colour = new Colour4(WashBrightness, WashBrightness, WashBrightness, 1),
                 Child = new Sprite
                 {
-                    Texture = jacket,
+                    // Texture must come after RelativeSizeAxes: Sprite.Texture fills a zero Size
+                    // with the texture's pixel size, which Axes.Both would then treat as a
+                    // (texture-sized) relative factor.
                     RelativeSizeAxes = Axes.Both,
                     FillMode = FillMode.Fill,
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
+                    Texture = jacket,
                 },
             },
             // Disc: the jacket clipped to the playfield circle. Mirrors the playfield's geometry —
@@ -77,12 +80,13 @@ public partial class JacketBackground : CompositeDrawable
                     Masking = true,
                     Child = new Sprite
                     {
-                        Texture = jacket,
+                        // Texture after RelativeSizeAxes — same sizing trap as the wash sprite above.
                         RelativeSizeAxes = Axes.Both,
                         FillMode = FillMode.Fill,
                         Anchor = Anchor.Centre,
                         Origin = Anchor.Centre,
                         Colour = new Colour4(DiscBrightness, DiscBrightness, DiscBrightness, 1),
+                        Texture = jacket,
                     },
                 },
             },
