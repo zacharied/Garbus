@@ -3236,6 +3236,46 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestSettledTwinVisibilityIsNotReassertedEveryFrame()
+        {
+            // GC-storm pin, drawable half: updateTwin (editor drawable base + selection blueprint base)
+            // ran Show()/Hide() on the ghost twin every frame, allocating a fade transform per drawable
+            // per frame — during a seam drag that churn sat right next to the inspector rebuild in the
+            // trace. Show/Hide must fire only on visibility transitions. Observable: an alpha probe set
+            // on the twin from outside survives when the state machine is quiet, but a per-frame
+            // re-assert stomps it back to the twin's nominal 1 (shown) / 0 (hidden) within a frame.
+            // 0.31 is an arbitrary probe value, asserted only against itself.
+            waitForComposer();
+            placeSlamEdgeAt(105); // grid 15° — inside the 30° ghost band, so the twin exists and shows.
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamEdge>());
+            AddUntilStep("twin visual exists", () =>
+                composer.HitObjects.Single().ChildrenOfType<EditorSpritePiece>().Count() > 1);
+
+            // The twin is the piece the state machine offsets sideways; the main copy sits at X == 0.
+            Drawable drawableTwin = null!;
+            AddStep("capture twin piece", () =>
+                drawableTwin = composer.HitObjects.Single().ChildrenOfType<EditorSpritePiece>().Single(p => p.X != 0));
+
+            AddStep("probe alpha on shown twin", () => drawableTwin.FadeTo(0.31f));
+            AddWaitStep("hold with twin shown", 3);
+            AddAssert("twin probe survived", () => drawableTwin.Alpha, () => Is.EqualTo(0.31f).Within(0.001f));
+
+            AddStep("move slam away from the seam", () =>
+            {
+                placedObject<GarbusSlamEdge>()!.AngleDeg = 270;
+                editorChart.Update(placedObject<GarbusSlamEdge>()!);
+            });
+            AddWaitStep("let the one-shot hide apply", 2);
+            AddAssert("twin hidden after leaving the band", () => drawableTwin.Alpha == 0);
+
+            AddStep("probe alpha on hidden twin", () => drawableTwin.FadeTo(0.31f));
+            AddWaitStep("hold with twin hidden", 3);
+            AddAssert("twin probe survived hide state", () => drawableTwin.Alpha, () => Is.EqualTo(0.31f).Within(0.001f));
+        }
+
+        [Test]
         public void TestEasingDropdownShowsMultipleForDifferingNodes()
         {
             waitForComposer();
