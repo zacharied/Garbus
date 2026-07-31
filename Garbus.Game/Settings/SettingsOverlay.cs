@@ -213,7 +213,7 @@ namespace Garbus.Game.Settings
         }
 
         // An icon button beside the title that dismisses the overlay.
-        private partial class LeaveButton : CompositeDrawable
+        internal partial class LeaveButton : CompositeDrawable
         {
             private readonly Action onClick;
 

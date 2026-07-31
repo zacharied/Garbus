@@ -46,8 +46,10 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("hidden", () => overlay.State.Value == Visibility.Hidden);
         }
 
-        private SpriteIcon leaveButton =>
-            overlay.ChildrenOfType<SpriteIcon>().Single(i => i.Icon.Equals(FontAwesome.Solid.SignOutAlt));
+        // Located by type rather than by its glyph: which icon the button wears is a cosmetic
+        // detail, and pinning it here breaks this test whenever the symbol is restyled.
+        private SettingsOverlay.LeaveButton leaveButton =>
+            overlay.ChildrenOfType<SettingsOverlay.LeaveButton>().Single();
 
         private BasicSliderBar<double> sliderFor(string label) =>
             overlay.ChildrenOfType<SettingsSlider>().Single(s => s.Name == label)
