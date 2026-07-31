@@ -233,7 +233,7 @@ namespace Garbus.Game.Settings
                         Anchor = Anchor.Centre,
                         Origin = Anchor.Centre,
                         Size = new Vector2(16),
-                        Icon = FontAwesome.Solid.SignOutAlt,
+                        Icon = FontAwesome.Solid.Times,
                         Colour = Color4.White,
                     },
                 };
