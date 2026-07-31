@@ -113,3 +113,9 @@ its pinning test are noted; the domain doc has the full story.
   the redraw version, alpha applies at blit time). *Instance:* the warning-indicator glow — see
   [gameplay.md](gameplay.md). *Pins:* `TestSceneWarningIndicator.TestGlowBuffersAreCached`,
   `TestSceneWarningIndicator.TestAngleChangeForcesGlowRedraw`.
+- **Assign `Sprite.Texture` after `RelativeSizeAxes` in object initializers.** The `Texture` setter
+  fills a zero `Size` with the texture's pixel size; a later `RelativeSizeAxes.Both` assignment keeps
+  that Size and reinterprets it as a relative factor, scaling the sprite to texture-pixel-size times
+  its parent. A 1×1 texture (`renderer.WhitePixel`) accidentally works, so tests using it can't catch
+  the trap — pin with a larger texture. *Instance:* the gameplay jacket background — see
+  [gameplay.md](gameplay.md). *Pin:* `TestSceneJacketBackground.TestSpritesSizeToLayersNotTexture`.
