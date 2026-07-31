@@ -33,7 +33,7 @@ The minimal game loop replacing osu's `Player`: the clock stack → `GarbusInput
 playfield, with score/combo/accuracy tallied with rewind-revert and an inline results summary once the
 chart plays out. Controls: **Space** pauses/resumes, **R** restarts, **Escape** exits. Launched with a
 chart + track (song select guards a missing-audio chart so it never silently falls back to the
-bundled default). Also the target of the editor's F5/Test (an in-memory clone — see
+bundled default). `PlayScreen` hosts a `JacketBackground` under the gameplay subtree: the song's jacket circle-clipped to the ring's disc plus a cached blurred color wash behind it; song select passes the jacket via `IChartSource.GetBackground`, and a null jacket leaves the flat base background. Also the target of the editor's F5/Test (an in-memory clone — see
 [editor.md](editor.md)); on exit it stops and disposes its per-play track.
 
 ## Settings overlay — `Settings/`
