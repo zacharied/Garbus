@@ -146,6 +146,12 @@ namespace Garbus.Game.Settings
 
             rows.Add(new ControlsButton(showControls));
 
+            // Earlier rows draw in front of later ones so an open dropdown menu pops over the rows
+            // below it. Flow order is unaffected: FillFlowContainer lays out by layout position and
+            // insertion order, not depth.
+            for (int i = 0; i < rows.Count; i++)
+                rows[i].Depth = i;
+
             return rows;
         }
 

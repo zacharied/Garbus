@@ -50,8 +50,16 @@ framework settings, persisted to `framework.ini` with no `GarbusSetting` behind 
 
 `SettingsOverlay.buildSettingsRows()` assembles the rows so the screen-mode row can be skipped where
 the platform has only one window mode to offer. The header row pairs the "Settings" title with a
-leave icon button (sign-out icon, left of the title) that dismisses the overlay — the in-panel
+leave icon button (X icon, left of the title) that dismisses the overlay — the in-panel
 counterpart to Escape / clicking outside the panel.
+
+Dropdown rows pop their open menu **over** the rows below, combo-box style, instead of growing the
+row and reflowing the panel. Two pieces make that work: `SettingsEnumDropdown` sets
+`Menu.BypassAutoSizeAxes = Axes.Y` so the open menu doesn't contribute to the row's autosize, and
+`buildSettingsRows()` assigns each row an increasing `Depth` so earlier rows draw in front of later
+ones (a framework `FillFlowContainer` flows by layout position and insertion order, never `Depth`,
+so draw order is free to differ from flow order). Drop either piece and an open menu pushes the
+rows below down, or draws underneath them.
 
 ### Screen mode
 

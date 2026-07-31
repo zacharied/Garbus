@@ -53,6 +53,14 @@ namespace Garbus.Game.Settings
         // A BasicDropdown whose item text is the enum value's [Description] (falling back to its name).
         private partial class DescriptionDropdown : BasicDropdown<T>
         {
+            public DescriptionDropdown()
+            {
+                // The open menu pops over whatever sits below the row (combo-box style) instead of
+                // growing the row and reflowing the panel. Rows below must be drawn behind this one
+                // for the menu to be visible — SettingsOverlay reverses its row depths to that end.
+                Menu.BypassAutoSizeAxes = Axes.Y;
+            }
+
             protected override LocalisableString GenerateItemText(T item) => item.GetLocalisableDescription();
         }
     }
