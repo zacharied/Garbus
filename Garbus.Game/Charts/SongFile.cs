@@ -82,6 +82,13 @@ public class SongFile : IDisposable
             trackStoreDirectory = null;
         }
 
+        if (!string.Equals(destinationDirectory, jacketStoreDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            jacketStore?.Dispose();
+            jacketStore = null;
+            jacketStoreDirectory = null;
+        }
+
         FilePath = absolutePath;
         NeedsVersionUpgrade = false;
     }
@@ -187,6 +194,9 @@ public class SongFile : IDisposable
         (trackStore as IDisposable)?.Dispose();
         trackStore = null;
         trackStoreDirectory = null;
+        jacketStore?.Dispose();
+        jacketStore = null;
+        jacketStoreDirectory = null;
         IsDisposed = true;
     }
 
