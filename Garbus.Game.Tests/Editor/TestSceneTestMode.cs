@@ -44,7 +44,7 @@ namespace Garbus.Game.Tests.Editor
         private static GarbusChart buildChart(int hitObjectCount = 3)
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             for (int i = 0; i < hitObjectCount; i++)
                 chart.HitObjects.Add(new CardinalNote { StartTime = 1000 + i * 500.0, AngleDeg = i * 90 });

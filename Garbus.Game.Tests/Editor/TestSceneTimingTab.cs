@@ -43,7 +43,7 @@ namespace Garbus.Game.Tests.Editor
         private void setupEditor(double initialBpm = 120.0, double? secondPointTime = null) => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 60000.0 / initialBpm });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 60000.0 / initialBpm });
             if (secondPointTime != null)
                 chart.ControlPointInfo.Add(secondPointTime.Value, new TimingControlPoint { BeatLength = 500 });
 
@@ -259,7 +259,7 @@ namespace Garbus.Game.Tests.Editor
             Schedule(() =>
             {
                 var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
                 chart.ControlPointInfo.Add(2000, new TimingControlPoint { BeatLength = 400 });
                 var chartFile = new ChartFile(chart);
                 editor = new GarbusEditor(chartFile);
@@ -422,7 +422,7 @@ namespace Garbus.Game.Tests.Editor
         private void setupEditorWithObjects() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
             chart.ControlPointInfo.Add(4000, new TimingControlPoint { BeatLength = 400 });
             chart.HitObjects.Add(new CardinalNote { StartTime = 1000, AngleDeg = 0 });
             chart.HitObjects.Add(new CardinalNote { StartTime = 5000, AngleDeg = 90 });

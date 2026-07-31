@@ -2,8 +2,11 @@ using System.Linq;
 using Garbus.Game.Screens;
 using Garbus.Game.Settings;
 using NUnit.Framework;
+using osu.Framework.Allocation;
+using osu.Framework.Configuration;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
 using osu.Framework.Input.States;
@@ -18,8 +21,13 @@ namespace Garbus.Game.Tests.Visual
         private ScreenStack stack = null!;
         private GlobalSettingsContainer global = null!;
 
+        [Resolved]
+        private FrameworkConfigManager frameworkConfig { get; set; } = null!;
+
         private SettingsGearButton gear => global.ChildrenOfType<SettingsGearButton>().Single();
         private SettingsOverlay overlay => global.ChildrenOfType<SettingsOverlay>().Single();
+        private BasicDropdown<FrameSync> frameLimiter => overlay.ChildrenOfType<BasicDropdown<FrameSync>>().Single();
+        private BasicDropdown<WindowMode> screenMode => overlay.ChildrenOfType<BasicDropdown<WindowMode>>().Single();
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -70,6 +78,40 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
             AddStep("push disallowed screen", () => stack.Push(new DisallowedScreen()));
             AddUntilStep("overlay force-closed", () => overlay.State.Value == Visibility.Hidden);
+        }
+
+        [Test]
+        public void TestFrameLimiterDropdownDrivesConfig()
+        {
+            AddStep("set frame sync to 2x", () => frameworkConfig.SetValue(FrameworkSetting.FrameSync, FrameSync.Limit2x));
+            AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
+            AddUntilStep("gear visible", () => gear.Alpha == 1);
+            AddStep("open overlay", () => gear.TriggerClick());
+            AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
+
+            AddStep("select unlimited", () => frameLimiter.Current.Value = FrameSync.Unlimited);
+            AddAssert("config updated", () => frameworkConfig.Get<FrameSync>(FrameworkSetting.FrameSync) == FrameSync.Unlimited);
+        }
+
+        /// <summary>
+        /// The screen-mode row offers exclusive <see cref="WindowMode.Fullscreen"/> alongside
+        /// <see cref="WindowMode.Borderless"/>, and drives the same
+        /// <see cref="FrameworkSetting.WindowMode"/> bindable that Alt+Enter cycles.
+        /// </summary>
+        [Test]
+        public void TestScreenModeDropdownDrivesConfig()
+        {
+            AddStep("set windowed", () => frameworkConfig.SetValue(FrameworkSetting.WindowMode, WindowMode.Windowed));
+            AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
+            AddUntilStep("gear visible", () => gear.Alpha == 1);
+            AddStep("open overlay", () => gear.TriggerClick());
+            AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
+
+            AddAssert("offers exclusive fullscreen", () => screenMode.Items.Contains(WindowMode.Fullscreen));
+            AddAssert("offers borderless", () => screenMode.Items.Contains(WindowMode.Borderless));
+
+            AddStep("select fullscreen", () => screenMode.Current.Value = WindowMode.Fullscreen);
+            AddAssert("config updated", () => frameworkConfig.Get<WindowMode>(FrameworkSetting.WindowMode) == WindowMode.Fullscreen);
         }
 
         /// <summary>

@@ -45,7 +45,7 @@ namespace Garbus.Game.Tests.Editor
         public void SetUp() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             Child = harness = new TimelineHarness(chart) { RelativeSizeAxes = Axes.Both };
         });

@@ -36,7 +36,7 @@ namespace Garbus.Game.Tests.Visual.HitObjects
 
                 PopulateChart(chart);
 
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
                 // PlayScreen's injected-chart path (editor test mode) expects the caller to have
                 // already applied defaults — that's what populates HitWindows.

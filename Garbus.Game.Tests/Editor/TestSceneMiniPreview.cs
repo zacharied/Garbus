@@ -309,6 +309,112 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestSeekPastAndRewindRerentsPooledSliderPaths()
+        {
+            // The preview timeline is scrubbed constantly, so a slider body dies (seek past its
+            // lifetime end) and revives (seek back) far more often than in gameplay. Death returns
+            // the body's rented Path instances to the playfield's shared SliderPathPool (OnKilled);
+            // revival must re-rent and render the tube again, reusing the returned instances rather
+            // than constructing new ones — otherwise every scrub cycle grows the pool by a full set,
+            // recreating exactly the per-slider framebuffer cost the pool exists to remove.
+            MiniPreviewTestHost host = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            // Two-link slider spanning [2000, 2500] (last control point TimeOffset = 500).
+            AddStep("add a right-side slider at 2000ms", () => host.AddSlider(2000, HorizontalDirection.Right));
+
+            DrawableSliderBody body() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().Single();
+            SliderPathPool pool() => host.Preview.PlayfieldForTests.SliderPathPool;
+
+            AddStep("seek into the slider's span", () => host.EditorClock.Seek(2200));
+            AddUntilStep("body rents paths from the shared pool", () =>
+                body().IsAlive && body().BodyPaths.Count > 0 && body().GlowPaths.Count > 0
+                               && pool().ConstructedPaths > 0);
+
+            int constructedPaths = 0, constructedGlows = 0;
+            AddStep("capture construction counts", () =>
+            {
+                constructedPaths = pool().ConstructedPaths;
+                constructedGlows = pool().ConstructedGlows;
+            });
+
+            // Past the alive window ([StartTime - TimeRange, EndTime + TimeRange] = [1300, 3200]
+            // with the pinned 700ms range; the auto-hit fade expires the body even earlier), so the
+            // container kills the body and OnKilled hands every rented path back.
+            AddStep("seek far past the slider", () => host.EditorClock.Seek(5000));
+            AddUntilStep("killed body has returned all paths", () =>
+                !body().IsAlive && body().BodyPaths.Count == 0 && body().GlowPaths.Count == 0
+                                && body().EscapePaths.Count == 0 && body().EscapeGlowPaths.Count == 0);
+
+            AddStep("seek back into the slider's span", () => host.EditorClock.Seek(2200));
+            AddUntilStep("revived body renders the tube again", () =>
+                body().IsAlive && body().BodyPaths.Count > 0 && body().BodyPaths[0].Vertices.Count >= 2
+                               && body().GlowPaths.Count > 0);
+
+            AddAssert("revival reused the returned instances (nothing newly constructed)", () =>
+                pool().ConstructedPaths == constructedPaths && pool().ConstructedGlows == constructedGlows);
+        }
+
+        [Test]
+        public void TestDeletingVisibleSliderLeavesPooledPathsUsable()
+        {
+            // MiniPreview.removeDrawable detaches a deleted drawable and then Dispose()s it
+            // explicitly (the non-pooled zombie gotcha). The container's Remove fires OnKilled
+            // first, which detaches the rented paths from the body and returns them to the shared
+            // pool — so the explicit Dispose must not take the pool's instances down with the body.
+            // If it did, the next slider to rent would parent a disposed drawable into the scene
+            // graph and crash the preview on the following update.
+            MiniPreviewTestHost host = null!;
+            SliderBody slider = null!;
+            AddStep("pin the scroll time range", () => scrollingInfo.TimeRange.Value = 700);
+            AddStep("create preview over an editor chart", () => Child = host = new MiniPreviewTestHost());
+            AddUntilStep("preview loaded", () => host.Preview.IsLoaded);
+
+            AddStep("add a right-side slider at 2000ms", () => slider = host.AddSlider(2000, HorizontalDirection.Right));
+
+            DrawableSliderBody body() =>
+                host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().Single();
+            SliderPathPool pool() => host.Preview.PlayfieldForTests.SliderPathPool;
+
+            AddStep("seek into the slider's span", () => host.EditorClock.Seek(2200));
+            AddUntilStep("body renders with rented paths", () =>
+                body().IsAlive && body().BodyPaths.Count > 0 && body().GlowPaths.Count > 0);
+
+            osu.Framework.Graphics.Lines.SmoothPath rentedPath = null!;
+            GlowPath rentedGlow = null!;
+            int constructedPaths = 0, constructedGlows = 0;
+            AddStep("capture the rented instances", () =>
+            {
+                rentedPath = body().BodyPaths[0];
+                rentedGlow = body().GlowPaths[0];
+                constructedPaths = pool().ConstructedPaths;
+                constructedGlows = pool().ConstructedGlows;
+            });
+
+            AddStep("delete the slider from the editor while it is on screen", () => host.EditorChart.Remove(slider));
+            AddUntilStep("preview drops the slider", () =>
+                !host.Preview.PlayfieldForTests.AllHitObjects.OfType<DrawableSliderBody>().Any());
+            AddWaitStep("tick frames", 5);
+
+            AddStep("add a replacement slider at the same time", () => host.AddSlider(2000, HorizontalDirection.Right));
+            AddUntilStep("replacement renders from the pool", () =>
+                body().IsAlive && body().BodyPaths.Count > 0 && body().BodyPaths[0].Vertices.Count >= 2);
+            AddAssert("replacement reused the returned instances (nothing newly constructed)", () =>
+                pool().ConstructedPaths == constructedPaths && pool().ConstructedGlows == constructedGlows);
+
+            // A disposed drawable can never re-enter the scene graph (UpdateSubTree throws), so the
+            // returned instances being re-parented under the replacement body proves the deleted
+            // body's explicit Dispose did not take the pool's instances down with it.
+            AddAssert("the exact returned instances are live in the replacement's subtree", () =>
+                rentedPath.Parent != null && rentedGlow.Parent != null
+                && rentedPath.FindClosestParent<DrawableSliderBody>() == body()
+                && rentedGlow.FindClosestParent<DrawableSliderBody>() == body());
+        }
+
+        [Test]
         public void TestContentScaledDownToFitPanel()
         {
             // The reported bug: hit-object sprites (fixed 80px) were not scaled down, swamping the small
@@ -439,7 +545,7 @@ namespace Garbus.Game.Tests.Editor
         private static GarbusEditor buildEditor()
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             var chartFile = new ChartFile(chart);
             chartFile.Save(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".garbus"));
@@ -620,7 +726,7 @@ namespace Garbus.Game.Tests.Editor
                 dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
 
                 var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
                 EditorChart = new EditorChart(chart);
 
                 var beatDivisor = new BindableBeatDivisor(4);
@@ -757,7 +863,7 @@ namespace Garbus.Game.Tests.Editor
                 dependencies = new DependencyContainer(base.CreateChildDependencies(parent));
 
                 var chart = new GarbusChart();
-                chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+                chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
                 var editorChart = new EditorChart(chart);
 
                 var beatDivisor = new BindableBeatDivisor(4);

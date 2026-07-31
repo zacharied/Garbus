@@ -47,7 +47,7 @@ namespace Garbus.Game.Tests.Editor
         private void setupEditorUnsaved() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             // NOT saved — ChartFile.Directory will be null.
             var chartFile = new ChartFile(chart);
@@ -63,7 +63,7 @@ namespace Garbus.Game.Tests.Editor
         private void setupEditorSaved() => Schedule(() =>
         {
             var chart = new GarbusChart();
-            chart.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = 500 });
+            chart.ControlPointInfo!.Add(0, new TimingControlPoint { BeatLength = 500 });
 
             var chartFile = new ChartFile(chart);
             // Save to a dedicated subdirectory so chartFile.Directory is NOT the system temp dir.

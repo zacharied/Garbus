@@ -42,7 +42,27 @@ bundled default). Also the target of the editor's F5/Test (an in-memory clone �
 `GlobalSettingsContainer`. Panels: `ControlsPanel` (key rebinding UI over `KeyBindingStore` — see
 [input.md](input.md) — with `KeyBindingRow`), `ButtonTestPanel` (live input feedback),
 `SettingsSlider` + `VolumeCurve` / `ScrollSpeedMapping` (audio volumes, scroll speed, offset). These
-back the config settings in `Configuration/GarbusConfigManager.cs`.
+back the config settings in `Configuration/GarbusConfigManager.cs`. `SettingsEnumDropdown<T>` is the
+dropdown counterpart to `SettingsSlider` (item text uses each enum value's `[Description]`; pass
+`items` to offer a subset of the enum instead of all of it). Two rows use it to bind straight to
+framework settings, persisted to `framework.ini` with no `GarbusSetting` behind them: "Frame limiter"
+(`FrameworkSetting.FrameSync`) and "Screen mode" (`FrameworkSetting.WindowMode`).
+
+`SettingsOverlay.buildSettingsRows()` assembles the rows so the screen-mode row can be skipped where
+the platform has only one window mode to offer.
+
+### Screen mode
+
+The three window modes are the framework's: `Windowed`, `Borderless` (windowed fullscreen) and
+`Fullscreen` (exclusive). All three already existed before the dropdown — **Alt+Enter and F11 do not
+toggle, they cycle** `Windowed → Borderless → Fullscreen → Windowed` (`FrameworkAction.ToggleFullscreen`
+→ `IWindow.CycleMode()`), which is why a single press lands on borderless rather than exclusive
+fullscreen. The dropdown and the key both drive `FrameworkSetting.WindowMode`, so they stay in sync
+and neither needs to know about the other.
+
+Item list comes from `IWindow.SupportedWindowModes`, not `Enum.GetValues` — mobile supports
+`Fullscreen` only, and offering a mode the platform rejects would let the framework silently override
+the selection. A headless host has no `Window`, so the row falls back to every mode and stays testable.
 
 `GlobalSettingsContainer` shows the floating gear only when the current screen is `IAllowSettings`
 **and** its `ShowSettingsGear` (default true) is true; the editor sets it false and opens the overlay

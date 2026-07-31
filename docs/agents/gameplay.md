@@ -19,7 +19,10 @@ they are judged in time with the music.
 - `UI/Ring.cs` — the judgement ring at the playfield edge. It owns the hit-object layers and, above
   them, the `JudgementFeedbackDisplay` (below). It also hosts the keybeams (`PlayfieldKeybeam`),
   radial lines (`PlayfieldRadialLines`), stick indicator (`StickIndicator`/`StickCentreSpike`), and
-  warning indicators (`WarningIndicatorDisplay`).
+  warning indicators (`WarningIndicatorDisplay`). The warning glow's blur/mask `BufferedContainer`s
+  cache their framebuffers and are force-redrawn only when a side's revealed angle changes — an
+  uncached buffer re-blurs the whole playfield every frame, which cripples integrated GPUs (see the
+  gotcha in [osu-framework.md](osu-framework.md)).
 - `UI/Lane.cs` — the directional lanes objects travel along.
 - `UI/GarbusScrollingHitObjectContainer.cs` — the polar container. Instead of osu's linear
   time→position scroll, it maps each object's remaining time-to-judgement to a **radius** (centre =
@@ -41,6 +44,17 @@ Two parallel hierarchies:
   distinct from the editor's simplified drawables (see [editor.md](editor.md)). `GlowPath`,
   `SliderContactSpikes`, `ShoulderNoteGeometry`, and `GarbusHitSoundPlayback` support them.
   `IHasActivationProgress`/`IHittableNote`/`ISelfPosition` are the drawable-side contracts.
+
+**Slider path pooling:** every `Path` draws through a buffered draw node (its own framebuffer) and
+allocates a 9000-quad GPU vertex batch on first draw, while slider-body drawables are constructed up
+front for the whole chart — so `DrawableSliderBody` rents its `SmoothPath`s and `GlowPath` twins from
+`SliderPathPool`, a shared free-list `[Cached]` on `GarbusPlayfield` (resolved `CanBeNull`; bare test
+scenes without one construct per body). Bodies rent lazily in `updatePath` and hand everything back in
+`OnKilled`/`OnFree` — detaching each path from the body's own containers first — capping live `Path`
+instances at what is on screen and making the cycle safe under rewind, where a killed body revives and
+re-rents. Buckets key on `PathRadius` (crisp) / `GlowPath.Profile` (glow twins) so a body never
+receives a path shaped for a different look. Pin: `TestSceneGameplay.TestSliderPathsReturnToSharedPoolOnKill`;
+the editor Mini preview cycles are pinned in `TestSceneMiniPreview` (see [editor.md](editor.md)).
 
 Chording/coincidence helpers (`Objects/ChordHighlighter.cs`, `ChordColours`, `ChordIndex`,
 `UI/SlamCoincidenceIndex.cs`, `UI/ChordConnectorOverlay.cs`) group simultaneous objects for visuals
