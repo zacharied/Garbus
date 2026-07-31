@@ -4,7 +4,6 @@
 
 using System.IO;
 using Garbus.Game.Charts;
-using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Platform;

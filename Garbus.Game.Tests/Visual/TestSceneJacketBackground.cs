@@ -5,7 +5,6 @@
 
 using System;
 using System.Linq;
-using Garbus.Game.Tests.Visual;
 using Garbus.Game.UI;
 using NUnit.Framework;
 using osu.Framework.Allocation;

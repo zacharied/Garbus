@@ -242,9 +242,9 @@ namespace Garbus.Game.Tests.Visual
         {
             ChartCard? seeded = null;
 
-            // Pick a seeded directory chart by title — those have no background file, unlike the bundled
-            // resource charts (which carry jackets). Selecting an unordered .First() would land on
-            // whichever card sorts first (a bundled chart with a jacket), so assert against a known one.
+            // The seeded charts include Song 1 (with a generated jacket) and Song 2 (without a background
+            // file). Selecting Song 2 ensures we test the placeholder-path case; an unordered .First()
+            // would land on whichever chart sorts first, which may carry a background file.
             AddStep("select seeded chart", () =>
             {
                 seeded = songSelect.Groups.SelectMany(g => g.Charts).First(c => c.Title == "Song 2");
