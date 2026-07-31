@@ -278,7 +278,7 @@ namespace Garbus.Game.Tests.Visual
         public void TestLaunchPassesJacketToPlayScreen()
         {
             AddStep("select jacketed chart", () => songSelect.Select(
-                songSelect.Groups.SelectMany(g => g.Charts).First(c => !string.IsNullOrEmpty(c.BackgroundFile))));
+                songSelect.Groups.SelectMany(g => g.Charts).First(c => c.Title == "Song 1")));
             AddStep("launch", () => songSelect.Launch());
             AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
             AddUntilStep("jacket layers present", () => (stack.CurrentScreen as PlayScreen)
