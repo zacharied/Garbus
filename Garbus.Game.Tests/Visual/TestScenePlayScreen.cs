@@ -17,6 +17,8 @@ using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
@@ -29,6 +31,9 @@ namespace Garbus.Game.Tests.Visual
     {
         [Resolved]
         private GarbusConfigManager config { get; set; } = null!;
+
+        [Resolved]
+        private IRenderer renderer { get; set; } = null!;
 
         private PlayScreen playScreen = null!;
 
@@ -129,6 +134,31 @@ namespace Garbus.Game.Tests.Visual
                 () => Is.Zero);
             AddUntilStep("body sentinel judged", () => sliderBody.Judged);
             AddAssert("body sentinel is silent", () => sliderBody.SamplesPlayCount, () => Is.Zero);
+        }
+
+        [Test]
+        public void TestJacketLayersPresentWhenJacketProvided()
+        {
+            AddStep("recreate with jacket", () =>
+            {
+                var chart = new GarbusChart();
+                Child = new ScreenStack(playScreen = new PlayScreen(chart, new TrackVirtual(60000), jacket: renderer.WhitePixel))
+                {
+                    RelativeSizeAxes = Axes.Both,
+                };
+            });
+            AddUntilStep("screen loaded", () => playScreen.IsLoaded);
+            AddAssert("jacket background has layers", () =>
+                playScreen.ChildrenOfType<JacketBackground>().Single().ChildrenOfType<Sprite>().Any());
+        }
+
+        [Test]
+        public void TestNoJacketLayersOnBundledPath()
+        {
+            // The SetUpSteps screen is the bundled test chart, which has no jacket: the background
+            // component is present but empty, leaving the flat base box visible.
+            AddAssert("no jacket layers", () =>
+                !playScreen.ChildrenOfType<JacketBackground>().Single().ChildrenOfType<Sprite>().Any());
         }
     }
 }
