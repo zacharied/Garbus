@@ -61,7 +61,18 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
 selection-dependent controls (built in `addControls`). Values aggregate via `MultiValue`, rendering
 disagreement as `<multiple>` (an indeterminate dash for the checkbox); every edit writes the whole
 selection in one undo transaction. Node/head selection isn't event-observable, so the inspector polls
-it each frame and re-reads values on a 250ms roll — a control drawable is replaced regularly.
+it each frame and re-reads values on a 250ms roll.
+
+Rebuilds are throttled two ways, because a drag fires `HitObjectUpdated` per selected object per
+mouse-move event and a full per-event reconstruction (two dropdowns with DI loads for a slam-edge
+selection) was a GC storm at drag rates: events coalesce through `Scheduler.AddOnce(rebuild)`, and
+within a rebuild the text summary is always rewritten but `addControls` runs only when
+`buildControlsSignature` (selection identity + each control's aggregate state + each button's
+eligibility) differs from the last build. **Any control added to `addControls` must contribute its
+inputs to the signature or it goes stale** — a value-only change that the signature misses will leave
+the control showing the old value. Pins: `TestSlamEdgeDragDoesNotRecreateInspectorControls`
+(controls survive a drag; text still tracks), `TestExternalSideChangeRefreshesInspectorDropdown`
+(signature-covered value change still rebuilds).
 
 Each control appears only when the selection matches its condition:
 

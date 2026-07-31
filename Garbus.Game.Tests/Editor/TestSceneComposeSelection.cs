@@ -3156,6 +3156,86 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestSlamEdgeDragDoesNotRecreateInspectorControls()
+        {
+            // GC-storm pin, inspector half: every drag event fires HitObjectUpdated, which used to
+            // clear + reconstruct the whole inspector (text, plus Side AND Direction dropdowns with
+            // their DI loads — slam edges build both, the priciest selection type) once per event.
+            // At drag rates that churn alone drove a blocking gen1 GC every few frames. A value-only
+            // update (the angle moving) must leave the control drawables untouched; only the text
+            // summary may refresh.
+            waitForComposer();
+            // 45° is grid-degrees 315; dragging +90° crosses the wrap seam, mirroring the live repro.
+            placeSlamEdgeAt(45);
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamEdge>());
+
+            AddUntilStep("Side and Direction dropdowns shown", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any()
+                && composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Any());
+
+            Drawable sideDropdown = null!;
+            Drawable directionDropdown = null!;
+            AddStep("capture control instances", () =>
+            {
+                sideDropdown = composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+                directionDropdown = composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Single();
+            });
+
+            AddStep("press mouse on slam", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<GarbusSlamEdge>()!));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 30);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("slam followed cursor across seam to 135", () => placedObject<GarbusSlamEdge>()?.AngleDeg, () => Is.EqualTo(135));
+            AddAssert("Side dropdown never recreated", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single(), () => Is.SameAs(sideDropdown));
+            AddAssert("Direction dropdown never recreated", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Single(), () => Is.SameAs(directionDropdown));
+            // The text summary must still track the drag — controls are pinned, values are not.
+            AddUntilStep("summary text shows the new angle", () =>
+                composer.ChildrenOfType<Inspector>().Single().ChildrenOfType<SpriteText>()
+                        .Any(t => t.Text.ToString() == "135°"));
+        }
+
+        [Test]
+        public void TestExternalSideChangeRefreshesInspectorDropdown()
+        {
+            // Staleness guard for the signature-gated rebuild: a dropdown captures its aggregate at
+            // construction, so when a control-relevant value changes through another path (here the
+            // S-key side flip) the inspector must still reconstruct the control — only value-neutral
+            // updates may skip it.
+            waitForComposer();
+            placeSlamEdgeAt(270);
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamEdge>());
+
+            MultiValueEnumDropdown<HorizontalDirection> sideDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+
+            AddUntilStep("Side dropdown appears", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any());
+            AddAssert("dropdown shows the placed side", () => sideDropdown().Current.Value,
+                () => Is.EqualTo(new MultiValueEnumDropdown<HorizontalDirection>.Choice(placedObject<GarbusSlamEdge>()!.Side)));
+
+            HorizontalDirection flipped = default;
+            AddStep("flip side via S", () =>
+            {
+                var slam = placedObject<GarbusSlamEdge>()!;
+                flipped = slam.Side == HorizontalDirection.Left ? HorizontalDirection.Right : HorizontalDirection.Left;
+                input.Key(Key.S);
+            });
+            AddAssert("model side flipped", () => placedObject<GarbusSlamEdge>()!.Side, () => Is.EqualTo(flipped));
+            AddUntilStep("dropdown follows the flip", () =>
+                sideDropdown().Current.Value.Equals(new MultiValueEnumDropdown<HorizontalDirection>.Choice(flipped)));
+        }
+
+        [Test]
         public void TestEasingDropdownShowsMultipleForDifferingNodes()
         {
             waitForComposer();
