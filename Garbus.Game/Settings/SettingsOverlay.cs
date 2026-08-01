@@ -33,12 +33,6 @@ namespace Garbus.Game.Settings
     /// </summary>
     public partial class SettingsOverlay : VisibilityContainer
     {
-        /// <summary>
-        /// The settings scroll container's <see cref="Drawable.Name"/>. Dropdown menus bring their own
-        /// <see cref="BasicScrollContainer"/>s, so tests match on this rather than on type alone.
-        /// </summary>
-        public const string SettingsScrollName = "settings scroll";
-
         private const float panel_width = 350;
         private const float content_side_padding = 20;
         private const float content_bottom_padding = 40;
@@ -138,7 +132,7 @@ namespace Garbus.Game.Settings
                         contentArea = new Container
                         {
                             RelativeSizeAxes = Axes.Both,
-                            Child = settingsScroll = createScroll(SettingsScrollName, settingsView, out settingsContentPadding),
+                            Child = settingsScroll = createScroll("settings scroll", settingsView, out settingsContentPadding),
                         },
                         // Added last so it draws — and casts its shadow — over the scrolling content.
                         header,

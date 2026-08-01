@@ -42,6 +42,10 @@ area leans on, and its gotchas.
   implementation's own constants or functions; no test may be a strict subset of a sibling; bare
   styling values (colours, glyph icons, alphas, layout offsets) are never asserted — assert relations 
   instead. Details in [testing.md](docs/agents/testing.md).
+- **UI tests locate drawables by `Name`.** A drawable a test needs to reach sets `Name` to a
+  role-describing string literal in its constructor, and the test matches that literal. No name constants
+  on production types. Never widen a production type's visibility, index into a container, or match
+  on glyph/colour/label copy to find an element. Details in [testing.md](docs/agents/testing.md).
 - **Do not run the app unless asked.** Tests (headless and visual scenes) are how you verify. If you
   believe actually running the app would be more effective, ask first and say why.
 - **Temporary debugging instrumentation does not get a PR.** Profiling hooks, A/B experiments,

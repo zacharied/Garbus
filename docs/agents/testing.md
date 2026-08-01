@@ -55,6 +55,41 @@ only a successful push to `master` can publish the commit-specific prerelease.
     mirror, not a check — it changes in lockstep with the bug it should catch.
   - **No strict-subset tests.** If every assertion in a test is a setup precondition of a sibling
     test, delete it — it can never fail alone.
+- **Locate drawables by `Name` (enforced — see** [AGENTS.md](../../AGENTS.md) **Rules).** The element
+  names itself in its constructor; the test matches that name as a bare string:
+
+  ```csharp
+  // Garbus.Game/… — where the drawable is built
+  Name = "tap-bpm-plus1";
+
+  // Garbus.Game.Tests/Editor/TestSceneTimingTab.cs
+  editor.ChildrenOfType<RepeatNudgeButton>().Single(b => b.Name == "tap-bpm-plus1");
+  ```
+
+  `Drawable.Name` is a plain identification field — the framework reads it only in `ToString()` (and
+  so the draw visualiser), so it costs nothing and couples to nothing. It is the only locator that
+  survives the churn breaking the alternatives: moving an element between containers breaks index
+  and position lookups, restyling breaks glyph/colour matching, copy edits break label matching, and
+  type lookups pressure production types into `internal` for the test's benefit. As a bonus the name
+  labels the element in the draw visualiser. Rules:
+  - **No name constants.** Write the literal on both sides. A `public const string` on the production
+    type is a test-only member cluttering real code, and it does not buy what it looks like it buys —
+    changing the const's *value* breaks the test exactly as hard as changing a literal. The only
+    thing it catches is a typo at the test site, which `Single` already turns into an immediate,
+    unmissable failure. Grep is how you find a name's other end.
+  - **Name the role, not the look or the location.** `"settings header action"`, not
+    `"top-right gear"` — a name describing where the element sits is as brittle as the index was.
+  - **Names are unique within the subtree searched, and lookups use `Single`.** Scope the search to
+    the owning component rather than the whole scene. `Single` fails loudly when a second instance
+    appears; `First` silently picks one and hides the ambiguity.
+  - **Generic components repeated many times take their discriminator as the name** — `SettingsSection`
+    is named for its title, `SettingsSlider` for its label. That is the one case where the name is
+    user-facing copy, so it moves when the copy does; the test passes the same string it constructed
+    the scene with.
+  - **A name is a locator, not an API.** If the test wants to assert *state* rather than reach an
+    element, expose a bindable or property instead of poking at a named drawable.
+  - **Look up after load.** `ChildrenOfType` over a still-loading subtree returns nothing — wrap the
+    lookup in `AddUntilStep`, not a fixed `AddWaitStep`.
 - **New visual elements ship with a Tuning test (enforced — see** [AGENTS.md](../../AGENTS.md) **Rules).**
   When you add or reshape a visual element, add a scene under `Tuning/` (pattern:
   `TestSceneSliderGlowTuning`; `Profiling/` holds throughput scenes like
@@ -95,6 +130,7 @@ game-base runner so cached dependencies (config, chart store, clocks) are availa
   "why isn't this object judged?" test failure.
 - **In the UI, don't write ordering-dependent tests.** If a test depends on ordering, resolve the order
   dynamically rather than assuming it — order-dependent tests flake when UI elements are moved around.
+  To reach a specific element, name it (see the `Name` convention above) rather than indexing.
   For same-StartTime hit objects, capture references at add time instead of indexing `HitObjects` —
   the list re-sorts with an unstable sort on updates, so ties can swap.
 - **Asserting a UI element is absent: reach the shown state first, then transition.** "Assert hidden"

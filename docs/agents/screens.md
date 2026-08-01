@@ -61,10 +61,10 @@ leaves a menu drawing underneath its own section's next row.
 The header is shared by both views — `header.ShowAs(title, icon, action)` retargets its title and its
 icon button, which dismisses the overlay on the settings view (the in-panel counterpart to Escape /
 clicking outside the panel) and returns from the sub-view on the controls view. `ControlsPanel`
-therefore carries no title or back link of its own. Tests locate the button by
-`SettingsPanelHeader.ActionButtonName` and the settings scroll container by
-`SettingsOverlay.SettingsScrollName` — dropdown menus bring their own `BasicScrollContainer`s, so
-matching on type alone is ambiguous.
+therefore carries no title or back link of its own. Tests locate the button by the name
+`"settings header action"` and the settings scroll container by `"settings scroll"` — dropdown menus
+bring their own `BasicScrollContainer`s, so matching on type alone is ambiguous. See
+[testing.md](testing.md) for the naming convention.
 
 Panels: `ControlsPanel` (key rebinding UI over `KeyBindingStore` — see
 [input.md](input.md) — with `KeyBindingRow`), `ButtonTestPanel` (live input feedback),
