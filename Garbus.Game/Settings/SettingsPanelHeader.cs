@@ -84,8 +84,8 @@ namespace Garbus.Game.Settings
             {
                 Type = EdgeEffectType.Shadow,
                 Colour = new Color4(0, 0, 0, 140),
-                Radius = 12,
-                Offset = new Vector2(0, 3),
+                Radius = 12f,
+                Offset = new Vector2(0, 1.15f),
             };
 
             InternalChildren = new Drawable[]
