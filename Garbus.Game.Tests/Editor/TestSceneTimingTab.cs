@@ -778,6 +778,51 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        /// <summary>
+        /// The settings panel and the tap-timing panel stack in the same scroll column, so their
+        /// content must share one left and right edge — the waveform comparison's right edge
+        /// included. The two panels carried different insets, which left every tap-panel control
+        /// sitting wider than the settings controls directly above them.
+        /// </summary>
+        [Test]
+        public void TestRightColumnPanelsShareContentEdges()
+        {
+            setupEditor();
+            switchToTimingTab();
+
+            AddUntilStep("right column loaded", () =>
+                editor.ChildrenOfType<TimingPointSettings>().Any()
+                && editor.ChildrenOfType<TapButton>().Any()
+                && editor.ChildrenOfType<WaveformComparisonDisplay>().Any());
+
+            AddUntilStep("tap controls sit on the settings' content edges", () =>
+            {
+                // Aggregated over every text box, so these are the settings panel's content edges
+                // whatever order its controls sit in — the narrow time-signature box can widen
+                // neither bound, and the full-width boxes define both.
+                var boxes = editor.ChildrenOfType<TimingPointSettings>().First()
+                                  .ChildrenOfType<osu.Framework.Graphics.UserInterface.BasicTextBox>()
+                                  .ToList();
+
+                float settingsLeft = boxes.Min(b => b.ScreenSpaceDrawQuad.AABBFloat.Left);
+                float settingsRight = boxes.Max(b => b.ScreenSpaceDrawQuad.AABBFloat.Right);
+
+                var tap = editor.ChildrenOfType<TapButton>().Single().ScreenSpaceDrawQuad.AABBFloat;
+
+                return Math.Abs(tap.Left - settingsLeft) <= 0.5f
+                       && Math.Abs(tap.Right - settingsRight) <= 0.5f;
+            });
+
+            AddAssert("waveform comparison sits on the same right edge", () =>
+            {
+                var tap = editor.ChildrenOfType<TapButton>().Single().ScreenSpaceDrawQuad.AABBFloat;
+                var waveform = editor.ChildrenOfType<WaveformComparisonDisplay>().Single()
+                                     .ScreenSpaceDrawQuad.AABBFloat;
+
+                return Math.Abs(waveform.Right - tap.Right) <= 0.5f;
+            });
+        }
+
         // ------------------------------------------------------------------
         // 17. Timeline strip shown at the top of the Timing tab
         // ------------------------------------------------------------------

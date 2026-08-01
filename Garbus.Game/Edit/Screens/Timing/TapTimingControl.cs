@@ -2,8 +2,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
 // Adapted for Garbus: rebuilt on Basic* widgets; no osu.Game.Graphics/OverlayColourProvider;
-// waveform comparison uses the Garbus beat-grid display instead of WaveformGraph;
-// offset/BPM adjust rows under the metronome (repeat-on-hold).
+// the metronome's mute checkbox stacks under it in the auto-sized column; offset/BPM adjust rows
+// under the metronome (repeat-on-hold).
 
 using System.Linq;
 using Garbus.Game.Charts.Timing;
@@ -22,6 +22,18 @@ namespace Garbus.Game.Edit.Screens.Timing
     /// </summary>
     public partial class TapTimingControl : CompositeDrawable
     {
+        /// <summary>
+        /// Inset of this panel's content from its edges. Shared with <see cref="TimingPointSettings"/>
+        /// so both panels' controls line up down the timing tab's right column.
+        /// </summary>
+        private const float panel_inset = 12;
+
+        /// <summary>
+        /// Air between the metronome column and the waveform comparison. The metronome carries its
+        /// own padding, so this tops that up to <see cref="panel_inset"/>.
+        /// </summary>
+        private const float metronome_gutter = 4;
+
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
 
@@ -60,35 +72,53 @@ namespace Garbus.Game.Edit.Screens.Timing
                 AutoSizeAxes = Axes.Y,
                 Direction = FillDirection.Vertical,
                 Spacing = new Vector2(0, 8),
-                Padding = new MarginPadding(8),
+                // Matches TimingPointSettings' inset — the two panels stack in the same scroll
+                // column, so their content edges have to line up down the whole right side.
+                Padding = new MarginPadding(panel_inset),
                 Children = new Drawable[]
                 {
-                    // Metronome + waveform row.
-                    new Container
+                    // Metronome + waveform row. The metronome column auto-sizes to the pendulum and
+                    // its mute checkbox; the waveform comparison takes every remaining pixel, which
+                    // is what makes its 300ms-per-row slices wide enough to read (matching osu).
+                    new GridContainer
                     {
                         RelativeSizeAxes = Axes.X,
                         Height = 200,
-                        Children = new Drawable[]
+                        ColumnDimensions = new[]
                         {
-                            metronome = new MetronomeDisplay
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(),
+                        },
+                        Content = new[]
+                        {
+                            new Drawable[]
                             {
-                                Anchor = Anchor.CentreLeft,
-                                Origin = Anchor.CentreLeft,
-                            },
-                            clickCheckbox = new BasicCheckbox
-                            {
-                                Anchor = Anchor.BottomLeft,
-                                Origin = Anchor.BottomLeft,
-                                Position = new Vector2(8, -4),
-                                LabelText = "Metronome",
-                                Current = { BindTarget = metronome.EnableClicking },
-                            },
-                            waveform = new WaveformComparisonDisplay
-                            {
-                                Anchor = Anchor.CentreRight,
-                                Origin = Anchor.CentreRight,
-                                RelativeSizeAxes = Axes.Y,
-                                Width = 0.65f,
+                                new FillFlowContainer
+                                {
+                                    Anchor = Anchor.CentreLeft,
+                                    Origin = Anchor.CentreLeft,
+                                    AutoSizeAxes = Axes.Both,
+                                    Direction = FillDirection.Vertical,
+                                    Spacing = new Vector2(0, 4),
+                                    Children = new Drawable[]
+                                    {
+                                        metronome = new MetronomeDisplay(),
+                                        clickCheckbox = new BasicCheckbox
+                                        {
+                                            // MetronomeDisplay pads itself, so the checkbox needs the
+                                            // same offset to sit flush with the metronome's body.
+                                            Margin = new MarginPadding { Left = MetronomeDisplay.PADDING },
+                                            LabelText = "Metronome",
+                                            Current = { BindTarget = metronome.EnableClicking },
+                                        },
+                                    },
+                                },
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                    Padding = new MarginPadding { Left = metronome_gutter },
+                                    Child = waveform = new WaveformComparisonDisplay(),
+                                },
                             },
                         },
                     },

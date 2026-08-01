@@ -1,15 +1,24 @@
 // Modeled on osu.Game (https://github.com/ppy/osu) — osu.Game/Screens/Edit/Timing/WaveformComparisonDisplay.cs
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See https://github.com/ppy/osu/blob/master/LICENCE for full licence text.
-// Adapted for Garbus: WaveformGraph requires WorkingBeatmap (osu.Game) which is not available in
-// Garbus; replaced with a lightweight beat-grid overlay that shows the current beat position as
-// coloured bars. The interaction semantics (hover/lock/scrub) are preserved.
+// Adapted for Garbus: no WorkingBeatmap — the Waveform is decoded here from the song's audio
+// stream (the same route TimelineStrip takes) and shared by all rows; OverlayColourProvider /
+// OsuSpriteText replaced with explicit colours and SpriteText; the selected group arrives on the
+// SelectedGroup bindable rather than a DI-cached one; the next timing point comes from
+// EditorChart.ControlPointInfo. Deviation: a scale change re-arms the graph's resampling (see
+// WaveformRow.WaveformScale).
 
 using System;
+using System.Globalization;
+using System.Linq;
+using Garbus.Game.Charts;
 using Garbus.Game.Charts.Timing;
 using osu.Framework.Allocation;
+using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Audio;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
@@ -20,118 +29,232 @@ using osuTK.Graphics;
 namespace Garbus.Game.Edit.Screens.Timing
 {
     /// <summary>
-    /// Beat-grid display that shows beat positions relative to the selected timing point.
-    /// Acts as a lightweight stand-in for a full waveform display.
+    /// Slices the song's waveform into one row per beat of the selected timing point, stacked so the
+    /// beats line up vertically under a centre playhead. A timing point is correct when every row's
+    /// transient sits on that line.
     /// </summary>
+    /// <remarks>
+    /// Hovering scrubs the display along the track; clicking locks it so the rows stop following the
+    /// editor clock (useful while nudging offset/BPM against a fixed reference).
+    /// </remarks>
     public partial class WaveformComparisonDisplay : CompositeDrawable
     {
-        private const int visible_bars = 8;
+        private const int total_waveforms = 8;
+
+        private const float corner_radius = 6;
+
+        private static readonly Color4 background_colour = new Color4(28, 28, 36, 255);
+        private static readonly Color4 main_row_colour = new Color4(50, 50, 64, 255);
+        private static readonly Color4 beat_index_colour = new Color4(170, 170, 190, 255);
+        private static readonly Color4 locked_colour = new Color4(220, 60, 60, 255);
+
+        /// <summary>
+        /// Milliseconds of audio shown across the width of a single row.
+        /// </summary>
+        /// <remarks>
+        /// Vendored from osu's reasoning: a fixed window is a pretty usable number across all BPMs.
+        /// Scaling it with the BPM would be expensive to resample and harder to track while making
+        /// realtime adjustments, so the window stays constant and the rows move under it.
+        /// </remarks>
+        public float VisibleWidth
+        {
+            get => visibleWidth;
+            set
+            {
+                if (visibleWidth == value)
+                    return;
+
+                visibleWidth = value;
+                Scheduler.AddOnce(regenerateDisplay, false);
+            }
+        }
+
+        private float visibleWidth = 300;
 
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
 
+        [Resolved]
+        private EditorChart editorChart { get; set; } = null!;
+
+        [Resolved]
+        private SongFile songFile { get; set; } = null!;
+
         /// <summary>Bind to TimingPointList.SelectedGroup.</summary>
         public readonly Bindable<ControlPointGroup?> SelectedGroup = new Bindable<ControlPointGroup?>();
 
-        private TimingControlPoint? timingPoint;
-        private Container barContainer = null!;
-        private SpriteText lockLabel = null!;
-        private BeatBar[] beatBars = null!;
-        private bool displayLocked;
-        private double displayedBeat = double.MinValue;
+        private readonly BindableDouble beatLength = new BindableDouble();
+        private readonly BindableBool displayLocked = new BindableBool();
+
+        private WaveformRow[] rows = null!;
+        private LockedOverlay lockedOverlay = null!;
+
+        private TimingControlPoint timingPoint = new TimingControlPoint();
+
+        // NaN so the first showFromTime always regenerates — a real time of 0 would otherwise compare
+        // equal to the initial value and the display would never draw until the clock moved.
+        private double displayedTime = double.NaN;
+
+        private double selectedGroupStartTime;
+        private double selectedGroupEndTime;
+
+        // The WaveformGraph does not dispose the Waveform it is handed, so we own the single instance
+        // shared by every row and dispose it when replaced or on teardown (it disposes its own stream).
+        private Waveform? currentWaveform;
+
+        private ControlPointInfo controlPointInfo = null!;
 
         [BackgroundDependencyLoader]
         private void load()
         {
             RelativeSizeAxes = Axes.Both;
             Masking = true;
-            CornerRadius = 6;
+            CornerRadius = corner_radius;
 
-            beatBars = new BeatBar[visible_bars];
-
-            InternalChildren = new Drawable[]
+            AddInternal(new Box
             {
-                new Box
+                RelativeSizeAxes = Axes.Both,
+                Colour = background_colour,
+            });
+
+            rows = new WaveformRow[total_waveforms];
+
+            for (int i = 0; i < total_waveforms; i++)
+            {
+                AddInternal(rows[i] = new WaveformRow(i == total_waveforms / 2)
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Colour = new Color4(30, 30, 40, 255),
-                },
-                barContainer = new Container
-                {
-                    RelativeSizeAxes = Axes.Both,
-                },
-                new Box
-                {
-                    // Centre playhead marker.
-                    Anchor = Anchor.Centre,
-                    Origin = Anchor.Centre,
-                    RelativeSizeAxes = Axes.Y,
-                    Width = 2,
-                    Colour = Color4.White,
-                },
-                lockLabel = new SpriteText
-                {
-                    Anchor = Anchor.TopRight,
-                    Origin = Anchor.TopRight,
-                    Text = "Locked",
-                    Colour = Color4.OrangeRed,
-                    Padding = new MarginPadding(4),
-                    Font = FontUsage.Default.With(size: 12),
-                    Alpha = 0,
-                },
-            };
-
-            // Pre-populate bars with absolute positioning.
-            for (int i = 0; i < visible_bars; i++)
-            {
-                beatBars[i] = new BeatBar(i == visible_bars / 2);
-                barContainer.Add(beatBars[i]);
+                    RelativePositionAxes = Axes.Both,
+                    Height = 1f / total_waveforms,
+                    Y = (float)i / total_waveforms,
+                });
             }
+
+            AddInternal(new Circle
+            {
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                Colour = Color4.White,
+                RelativeSizeAxes = Axes.Y,
+                Width = 3,
+            });
+
+            AddInternal(lockedOverlay = new LockedOverlay());
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            SelectedGroup.BindValueChanged(_ => onGroupChanged(), true);
+
+            bindControlPointInfo();
+            editorChart.ChartChanged += onChartChanged;
+
+            editorClock.TrackChanged += updateWaveform;
+            updateWaveform();
+
+            SelectedGroup.BindValueChanged(_ => updateTimingGroup(), true);
+
+            beatLength.BindValueChanged(_ => Scheduler.AddOnce(regenerateDisplay, true), true);
+
+            displayLocked.BindValueChanged(locked =>
+            {
+                if (locked.NewValue)
+                    lockedOverlay.Show();
+                else
+                    lockedOverlay.Hide();
+            }, true);
         }
 
-        private void onGroupChanged()
+        private void onChartChanged(GarbusChart _, GarbusChart __)
         {
-            timingPoint = null;
+            bindControlPointInfo();
+            updateTimingGroup();
+        }
 
-            if (SelectedGroup.Value == null) return;
+        private void bindControlPointInfo()
+        {
+            if (controlPointInfo != null)
+                controlPointInfo.ControlPointsChanged -= updateTimingGroup;
 
-            foreach (var cp in SelectedGroup.Value.ControlPoints)
+            controlPointInfo = editorChart.ControlPointInfo;
+            controlPointInfo.ControlPointsChanged += updateTimingGroup;
+        }
+
+        private void updateTimingGroup()
+        {
+            beatLength.UnbindBindings();
+
+            var tcp = SelectedGroup.Value?.ControlPoints.OfType<TimingControlPoint>().FirstOrDefault();
+
+            if (tcp == null)
             {
-                if (cp is TimingControlPoint tp)
-                {
-                    timingPoint = tp;
-                    break;
-                }
+                timingPoint = new TimingControlPoint();
+                // Moving a control point's offset is implemented as a remove followed by an insert at
+                // the new time, so this branch is hit momentarily mid-move. selectedGroupStartTime is
+                // deliberately left alone — the re-insert below needs the previous value to work out
+                // how far the display should travel.
+                selectedGroupEndTime = editorClock.TrackLength;
+                return;
             }
 
-            displayedBeat = double.MinValue; // force refresh
+            timingPoint = tcp;
+            beatLength.BindTo(timingPoint.BeatLengthBindable);
+
+            double? newStartTime = SelectedGroup.Value?.Time;
+            double? offsetChange = newStartTime - selectedGroupStartTime;
+
+            var nextTimingPoint = controlPointInfo.TimingPoints
+                                                  .SkipWhile(t => !ReferenceEquals(t, tcp))
+                                                  .Skip(1)
+                                                  .FirstOrDefault();
+
+            selectedGroupStartTime = newStartTime ?? 0;
+            selectedGroupEndTime = nextTimingPoint?.Time ?? editorClock.TrackLength;
+
+            if (newStartTime.HasValue && offsetChange.HasValue)
+            {
+                // The selected point's offset may have moved. Travel with it, so a locked display
+                // keeps showing the same audio while the user nudges the point onto it.
+                showFromTime(displayedTime + offsetChange.Value, true);
+            }
+        }
+
+        private void updateWaveform()
+        {
+            // Null for an unsaved song, no audio file, a missing file, or a virtual track — the rows
+            // then render their beat indices over empty backgrounds rather than failing.
+            var stream = songFile.GetAudioStream();
+
+            foreach (var row in rows)
+                row.Waveform = null;
+
+            currentWaveform?.Dispose();
+            currentWaveform = stream == null ? null : new Waveform(stream);
+
+            foreach (var row in rows)
+                row.Waveform = currentWaveform;
+
+            Scheduler.AddOnce(regenerateDisplay, false);
         }
 
         protected override bool OnHover(HoverEvent e) => true;
 
         protected override bool OnMouseMove(MouseMoveEvent e)
         {
-            if (!displayLocked && timingPoint != null)
+            if (!displayLocked.Value)
             {
                 double trackLength = editorClock.TrackLength;
-                double groupStart = SelectedGroup.Value?.Time ?? 0;
-                int totalBeats = Math.Max(1, (int)((trackLength - groupStart) / timingPoint.BeatLength));
-                int targetBeat = (int)(e.MousePosition.X / DrawWidth * totalBeats);
-                showFromBeat(targetBeat);
+                int totalBeatsAvailable = (int)((trackLength - timingPoint.Time) / timingPoint.BeatLength);
+
+                Scheduler.AddOnce(showFromBeat, (int)(e.MousePosition.X / DrawWidth * totalBeatsAvailable));
             }
+
             return base.OnMouseMove(e);
         }
 
         protected override bool OnClick(ClickEvent e)
         {
-            displayLocked = !displayLocked;
-            lockLabel.FadeTo(displayLocked ? 1 : 0, 100, Easing.OutQuint);
+            displayLocked.Toggle();
             return true;
         }
 
@@ -139,59 +262,154 @@ namespace Garbus.Game.Edit.Screens.Timing
         {
             base.Update();
 
-            // Position bars to fill width correctly.
-            float barWidth = DrawWidth / visible_bars;
-            for (int i = 0; i < visible_bars; i++)
+            if (!IsHovered && !displayLocked.Value)
             {
-                beatBars[i].X = i * barWidth;
-                beatBars[i].Width = barWidth - 1;
-                beatBars[i].Height = DrawHeight;
-            }
+                int currentBeat = (int)Math.Floor((editorClock.CurrentTimeAccurate - selectedGroupStartTime) / timingPoint.BeatLength);
 
-            if (!IsHovered && !displayLocked && timingPoint != null)
-            {
-                double groupStart = SelectedGroup.Value?.Time ?? 0;
-                int currentBeat = (int)Math.Floor((editorClock.CurrentTimeAccurate - groupStart) / timingPoint.BeatLength);
                 showFromBeat(currentBeat);
             }
         }
 
-        private void showFromBeat(int beat)
+        private void showFromBeat(int beatIndex) =>
+            showFromTime(selectedGroupStartTime + beatIndex * timingPoint.BeatLength, false);
+
+        private void showFromTime(double time, bool animated)
         {
-            if (displayedBeat == beat) return;
-            displayedBeat = beat;
-            regenerateBars();
+            if (displayedTime == time)
+                return;
+
+            displayedTime = time;
+            Scheduler.AddOnce(regenerateDisplay, animated);
         }
 
-        private void regenerateBars()
+        private void regenerateDisplay(bool animated)
         {
-            if (timingPoint == null) return;
+            float trackLength = (float)editorClock.TrackLength;
 
-            double groupStart = SelectedGroup.Value?.Time ?? 0;
-            int numerator = timingPoint.TimeSignature.Numerator;
-            int startBeat = (int)displayedBeat - visible_bars / 2;
-
-            for (int barIdx = 0; barIdx < visible_bars; barIdx++)
+            // Track length reads 0 until the track loads. Drop back to the "nothing shown yet"
+            // sentinel so the next Update() re-attempts, rather than rescheduling ourselves forever.
+            if (trackLength <= 0 || double.IsNaN(displayedTime))
             {
-                int beatNum = startBeat + barIdx;
-                double beatTime = groupStart + beatNum * timingPoint.BeatLength;
-                bool isDownbeat = ((beatNum % numerator) + numerator) % numerator == 0;
-                bool isCurrent = barIdx == visible_bars / 2;
+                displayedTime = double.NaN;
+                return;
+            }
 
-                beatBars[barIdx].SetState(beatNum, isDownbeat, isCurrent, beatTime < 0 || beatTime > editorClock.TrackLength);
+            double index = (displayedTime - selectedGroupStartTime) / timingPoint.BeatLength;
+
+            // Each row is VisibleWidth ms wide, so the whole track drawn at this scale spans
+            // trackLength / VisibleWidth row widths.
+            float scale = trackLength / VisibleWidth;
+
+            // Start displaying from before the current beat, so it lands on the main (centre) row.
+            index -= total_waveforms / 2;
+
+            foreach (var row in rows)
+            {
+                // Offset to the required beat index.
+                double time = selectedGroupStartTime + index * timingPoint.BeatLength;
+
+                float offset = (float)(time - VisibleWidth / 2 + GarbusEditor.WAVEFORM_VISUAL_OFFSET) / trackLength * scale;
+
+                row.Alpha = time < selectedGroupStartTime || time > selectedGroupEndTime ? 0.2f : 1;
+                row.WaveformScale = new Vector2(scale, 1);
+                row.WaveformOffsetTo(-offset, animated);
+                row.BeatIndex = (int)Math.Round(index);
+
+                index++;
             }
         }
 
-        private partial class BeatBar : CompositeDrawable
+        protected override void Dispose(bool isDisposing)
         {
-            private readonly bool isMain;
-            private Box fill = null!;
-            private SpriteText label = null!;
+            base.Dispose(isDisposing);
 
-            public BeatBar(bool isMain)
+            if (editorChart.IsNotNull())
+                editorChart.ChartChanged -= onChartChanged;
+
+            if (controlPointInfo.IsNotNull())
+                controlPointInfo.ControlPointsChanged -= updateTimingGroup;
+
+            if (editorClock.IsNotNull())
+                editorClock.TrackChanged -= updateWaveform;
+
+            currentWaveform?.Dispose();
+        }
+
+        private partial class LockedOverlay : CompositeDrawable
+        {
+            private SpriteText text = null!;
+
+            [BackgroundDependencyLoader]
+            private void load()
             {
-                this.isMain = isMain;
-                // Absolutely positioned within barContainer; size set in parent's Update().
+                RelativeSizeAxes = Axes.Both;
+                Masking = true;
+                CornerRadius = corner_radius;
+                BorderColour = locked_colour;
+                BorderThickness = 3;
+                Alpha = 0;
+
+                InternalChildren = new Drawable[]
+                {
+                    new Box
+                    {
+                        // Masking traces the border around the composite's children, so an invisible
+                        // always-present child is what gives that border an area to follow.
+                        AlwaysPresent = true,
+                        RelativeSizeAxes = Axes.Both,
+                        Alpha = 0,
+                    },
+                    new Container
+                    {
+                        Anchor = Anchor.TopRight,
+                        Origin = Anchor.TopRight,
+                        AutoSizeAxes = Axes.Both,
+                        Children = new Drawable[]
+                        {
+                            new Box
+                            {
+                                Colour = locked_colour,
+                                RelativeSizeAxes = Axes.Both,
+                            },
+                            text = new SpriteText
+                            {
+                                Name = "waveform comparison lock indicator",
+                                Colour = Color4.White,
+                                Text = "Locked",
+                                Margin = new MarginPadding(5),
+                                Font = FontUsage.Default.With(size: 12),
+                            },
+                        },
+                    },
+                };
+            }
+
+            public override void Show()
+            {
+                this.FadeIn(100, Easing.OutQuint);
+
+                text
+                    .FadeIn().Then().Delay(600)
+                    .FadeOut().Then().Delay(600)
+                    .Loop();
+            }
+
+            public override void Hide()
+            {
+                this.FadeOut(100, Easing.OutQuint);
+            }
+        }
+
+        private partial class WaveformRow : CompositeDrawable
+        {
+            private readonly bool isMainRow;
+
+            private SpriteText beatIndexText = null!;
+            private WaveformGraph waveformGraph = null!;
+
+            public WaveformRow(bool isMainRow)
+            {
+                this.isMainRow = isMainRow;
             }
 
             [BackgroundDependencyLoader]
@@ -199,33 +417,74 @@ namespace Garbus.Game.Edit.Screens.Timing
             {
                 InternalChildren = new Drawable[]
                 {
-                    fill = new Box
+                    new Box
+                    {
+                        Colour = main_row_colour,
+                        Alpha = isMainRow ? 1 : 0,
+                        RelativeSizeAxes = Axes.Both,
+                    },
+                    waveformGraph = new WaveformGraph
                     {
                         RelativeSizeAxes = Axes.Both,
-                        Alpha = isMain ? 0.4f : 0.15f,
-                        Colour = Color4.White,
+                        RelativePositionAxes = Axes.Both,
+                        Resolution = 1,
+
+                        // The same frequency palette the timeline strip uses, so a transient reads
+                        // the same way in both places.
+                        BaseColour = Colour4.Blue.Opacity(0.2f),
+                        LowColour = Colour4.CornflowerBlue,
+                        MidColour = Colour4.DodgerBlue,
+                        HighColour = Colour4.SteelBlue,
                     },
-                    label = new SpriteText
+                    beatIndexText = new SpriteText
                     {
-                        Anchor = Anchor.BottomCentre,
-                        Origin = Anchor.BottomCentre,
-                        Font = FontUsage.Default.With(size: 10),
-                        Colour = Color4.White,
-                        Alpha = 0.6f,
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Padding = new MarginPadding(5),
+                        Font = FontUsage.Default.With(size: 12),
+                        Colour = beat_index_colour,
                     },
                 };
             }
 
-            public void SetState(int beatNum, bool isDownbeat, bool isCurrent, bool outOfRange)
+            public Waveform? Waveform
             {
-                fill.Colour = outOfRange
-                    ? new Color4(60, 60, 60, 255)
-                    : isDownbeat
-                        ? new Color4(240, 200, 80, 255)
-                        : new Color4(100, 150, 220, 255);
+                set => waveformGraph.Waveform = value;
+            }
 
-                fill.Alpha = outOfRange ? 0.1f : isCurrent ? 0.6f : isDownbeat ? 0.5f : 0.2f;
-                label.Text = beatNum.ToString();
+            public int BeatIndex
+            {
+                set => beatIndexText.Text = value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            public Vector2 WaveformScale
+            {
+                set
+                {
+                    if (waveformGraph.Scale == value)
+                        return;
+
+                    waveformGraph.Scale = value;
+
+                    // Deviation from osu: WaveformGraph derives its resampled point count from
+                    // DrawWidth * Scale.X, but only re-resamples when Waveform, Resolution or
+                    // DrawSize change — a scale change alone leaves it drawing points generated for
+                    // the old (much smaller) width, which reads as a blocky smear. Re-assigning the
+                    // waveform re-arms the resample; the graph's own scheduler coalesces it, and this
+                    // only runs when the scale actually moves (a BPM or track-length change).
+                    var current = waveformGraph.Waveform;
+                    waveformGraph.Waveform = null;
+                    waveformGraph.Waveform = current;
+                }
+            }
+
+            public void WaveformOffsetTo(float value, bool animated) =>
+                this.TransformTo(nameof(waveformOffset), value, animated ? 300 : 0, Easing.OutQuint);
+
+            private float waveformOffset
+            {
+                get => waveformGraph.X;
+                set => waveformGraph.X = value;
             }
         }
     }
