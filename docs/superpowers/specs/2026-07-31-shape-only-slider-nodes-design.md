@@ -75,8 +75,12 @@ no `SliderChild` being spawned. The body renders identically to today.
 Per `docs/agents/testing.md` — hand-derived, spec-anchored expectations:
 
 - **Judgement:** a slider with shape-only mid-points yields exactly one judgement per judged node;
-  the merged segment's duration grading requires catching through the bend (an input that ignores
-  the shape-only deflection degrades the result); the head-reference chain skips shape-only points.
+  the head-reference chain skips shape-only points. Merged-segment grading through the bend is
+  covered at the component level rather than by an end-to-end input simulation: the segment-timing
+  pin (`GetSegmentStartTime`) establishes which judged node a shape-only point's segment grades
+  against, and the sweep-geometry pin (`ShapeOnlyPointsStillShapeTheSweep`) establishes that
+  `AngleDegAt` still bends through the shape-only point. `DrawableSliderChild` itself is unchanged
+  and samples that same swept angle continuously, so no separate input-simulation test exists for it.
 - **Model:** `GetSegmentStartTime` pins for children preceded by one and by several shape-only
   points, and for a first-segment child.
 - **Serialization:** `ShapeOnly` roundtrip; decode rejection of a trailing shape-only point;

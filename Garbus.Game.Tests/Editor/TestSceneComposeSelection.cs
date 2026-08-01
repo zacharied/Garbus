@@ -3531,6 +3531,65 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestMergePropagatesShapeOnlyFlag()
+        {
+            waitForComposer();
+
+            // Base has one own node (not shape-only). The joined slider carries two own nodes: a
+            // shape-only middle deflection point, then a judged final point — the last control point of
+            // a slider is never shape-only, so this one starts (and must stay) false.
+            AddStep("add base + joined slider with a shape-only middle node, select both", () =>
+            {
+                var baseSlider = new SliderBody
+                {
+                    StartTime = 1000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                };
+                var joined = new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 10,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 20, ShapeOnly = true },
+                            new GarbusPathControlPoint { TimeOffset = 400, RotationOffset = -10, ShapeOnly = false },
+                        },
+                    },
+                };
+                editorChart.Add(baseSlider);
+                editorChart.Add(joined);
+                editorChart.SelectedHitObjects.Add(baseSlider);
+                editorChart.SelectedHitObjects.Add(joined);
+            });
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+
+            AddStep("merge", () => mergeButton()!.Action!.Invoke());
+            AddAssert("shape-only middle node propagates; merged final node stays judged", () =>
+            {
+                var cps = editorChart.HitObjects.OfType<SliderBody>().Single().Path.ControlPoints;
+
+                // mergeSliders appends, for each joined slider: one reparented head CP, then that
+                // slider's own control points in order. Base contributes its 1 own CP first, so the
+                // merged order is [0] base's own node, [1] joined's reparented head, [2] joined's own
+                // first node (the shape-only middle point), [3] joined's own second node (its final
+                // point). Hence cps.Count == 4, the shape-only point lands at index 2, and the merged
+                // path's final point (index 3 == cps[^1]) is the one that must stay non-shape-only.
+                return cps.Count == 4 && cps[2].ShapeOnly && !cps[^1].ShapeOnly;
+            });
+        }
+
+        [Test]
         public void TestMergeIsUndoneInOneStep()
         {
             waitForComposer();

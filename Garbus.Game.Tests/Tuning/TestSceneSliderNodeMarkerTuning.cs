@@ -4,6 +4,7 @@
 // their own geometry from ShapeOnly alone — so, unlike TestSceneSliderGlowTuning, there's nothing to
 // rebuild per change: the sliders mutate the existing drawables in place.
 
+using System.Collections.Generic;
 using Garbus.Game.Edit.Drawables;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
@@ -19,6 +20,10 @@ public partial class TestSceneSliderNodeMarkerTuning : GarbusTestScene
 {
     private FillFlowContainer<SliderNodeMarker> row = null!;
 
+    // The ring-thickness step only touches the hollow (shape-only) markers, so it needs to target
+    // them directly rather than infer "hollow" from a drawable property it is itself about to set.
+    private SliderNodeMarker[] shapeOnlyMarkers = null!;
+
     [SetUp]
     public void SetUp() => Schedule(() =>
     {
@@ -30,8 +35,19 @@ public partial class TestSceneSliderNodeMarkerTuning : GarbusTestScene
             Spacing = new Vector2(30),
         };
 
+        var shapeOnlyMarkerList = new List<SliderNodeMarker>();
+
         for (int i = 0; i < 6; i++)
-            row.Add(new SliderNodeMarker { ShapeOnly = i % 2 == 1, Anchor = Anchor.CentreLeft, Origin = Anchor.Centre });
+        {
+            bool isShapeOnly = i % 2 == 1;
+            var marker = new SliderNodeMarker { ShapeOnly = isShapeOnly, Anchor = Anchor.CentreLeft, Origin = Anchor.Centre };
+            row.Add(marker);
+
+            if (isShapeOnly)
+                shapeOnlyMarkerList.Add(marker);
+        }
+
+        shapeOnlyMarkers = shapeOnlyMarkerList.ToArray();
     });
 
     [Test]
@@ -46,10 +62,7 @@ public partial class TestSceneSliderNodeMarkerTuning : GarbusTestScene
         AddSliderStep("ring thickness", 1f, 6f, 2.5f, thickness =>
         {
             if (row.IsNotNull())
-                foreach (var m in row)
-                {
-                    if (m.BorderThickness > 0) m.BorderThickness = thickness;
-                }
+                foreach (var m in shapeOnlyMarkers) m.BorderThickness = thickness;
         });
     }
 }
