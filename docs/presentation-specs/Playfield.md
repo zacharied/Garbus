@@ -6,9 +6,45 @@ This is the canonical reference for how every Garbus hit object is presented vis
 
 ## Playfield model
 
-The gameplay is presented as a large circle (the playfield) on the player's display. Small visuals (hit objects) emerge from the center of the circle and move toward the outer circumference. The shape and color of a hit object represents a prompt that requests some action to be performed (see `../rules-specs/Inputs.md` for the physical mapping).
+The gameplay is presented as a large circle (the playfield) on the player's display. Small visuals (hit objects) appear on the **spawn halo** — a small circle concentric with the playfield — and move outward toward the outer circumference. The shape and color of a hit object represents a prompt that requests some action to be performed (see `../rules-specs/Inputs.md` for the physical mapping).
 
 The playfield circle is divided at the center into a Cartesian grid rotated 45 degrees, such that it forms four quadrants with each quadrant opening towards a unique cardinal direction. A hit object's Angle is the direction from center along which it travels; the outer circumference serves as the judgement line, which the object reaches at its StartTime.
+
+## Spawn halo and spawn phase
+
+A hit object does not appear at the playfield centre. It appears on the **spawn halo**, a circle
+concentric with the playfield whose radius is a fixed fraction of the playfield radius, at the
+object's own Angle. It holds that position, motionless, while its spawn animation plays. The instant
+that animation completes it begins travelling outward, reaching the ring at its StartTime.
+
+Three parameters govern this:
+
+| Parameter | Meaning |
+| --- | --- |
+| `TimeRange` | Sets radial velocity: one playfield radius per `TimeRange`. |
+| `SpawnHaloFraction` | Halo radius as a fraction of the playfield radius. |
+| `SpawnDuration` | How long an object holds on the halo — and how long its spawn animation runs. |
+
+Writing `ScrollLength` for the playfield radius and `Δ` for the time remaining until an object's
+StartTime, the derived quantities and the radius function are:
+
+    haloRadius = ScrollLength × SpawnHaloFraction
+    travelTime = TimeRange × (1 − SpawnHaloFraction)
+    leadTime   = travelTime + SpawnDuration
+
+    radius(Δ) = max(haloRadius, ScrollLength − Δ × ScrollLength / TimeRange)
+
+An object appears at `Δ = leadTime` and holds at `haloRadius` until `Δ = travelTime`, where the floor
+and the ramp meet without a seam. It reaches `ScrollLength` at `Δ = 0`. Radial velocity through the
+travel phase is `ScrollLength / TimeRange`, independent of the halo.
+
+The spawn animation's duration and the hold are the same quantity, so an object is never still
+growing while it moves, and never fully grown while it is still.
+
+The halo is not drawn. Objects simply appear at that radius.
+
+An object with duration whose span falls entirely inside the hold window renders as a stub at the
+halo before extending outward, because every point along it maps to `haloRadius`.
 
 ## Hit object presentation
 

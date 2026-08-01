@@ -12,8 +12,10 @@ points there for authority. The data model is in [charts.md](charts.md); actions
 
 ## Layout: playfield → ring → lanes
 
-Objects spawn at the **centre** of a circular playfield and travel **outward** to the ring, where
-they are judged in time with the music.
+Objects spawn on a small **halo** around the centre of a circular playfield, hold still there while
+their spawn animation plays, then travel **outward** to the ring, where they are judged in time with
+the music. The halo radius, the hold duration, and the time→radius map are specified in
+[`docs/presentation-specs/Playfield.md`](../presentation-specs/Playfield.md).
 
 - `UI/GarbusPlayfield.cs` — the top-level playfield (a `ScrollingPlayfield`).
 - `UI/Ring.cs` — the judgement ring at the playfield edge. It owns the hit-object layers and, above
