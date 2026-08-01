@@ -131,6 +131,31 @@ Each control appears only when the selection matches its condition:
 - `Edit/EditorClipboard.cs` — cut/copy/paste/clone (clone deliberately does **not** touch clipboard
   content, matching osu).
 
+### Waveform comparison
+
+`Edit/Screens/Timing/WaveformComparisonDisplay.cs` — the panel right of the metronome in
+`TapTimingControl`. It slices the song's waveform into eight rows, one per beat of the selected
+timing point, stacked so the beats line up under a centre playhead: the point is right when every
+row's transient sits on that line. Hovering scrubs along the track, clicking locks the display (red
+border + blinking "Locked") so the rows stop following the clock while offset/BPM are nudged.
+
+Each row is a `WaveformGraph` showing a fixed `VisibleWidth` (300 ms) window: the graph is scaled by
+`trackLength / VisibleWidth` so one row width spans that window, then offset so its beat lands on the
+centre — shifted early by `GarbusEditor.WAVEFORM_VISUAL_OFFSET`, the same correction the timeline
+applies. Rows outside the selected point's section (its start to the next timing point) dim to 0.2.
+`VisibleWidth` is deliberately not BPM-scaled: resampling per BPM is expensive and a moving window is
+harder to track during realtime adjustment (osu's reasoning, kept). The metronome/waveform row is a
+`GridContainer` with an auto-size metronome column so the display takes every remaining pixel — the
+window is only readable at width. Pins: `TestSceneWaveformComparison`; tune it in
+`Tuning/TestSceneWaveformComparisonTuning`.
+
+The `Waveform` itself is decoded here from `SongFile.GetAudioStream()` and **shared by all eight
+rows** — `WaveformGraph` is an osu-framework drawable that takes an
+`osu.Framework.Audio.Track.Waveform`, with no osu.Game/`WorkingBeatmap` involvement (the same route
+`TimelineStrip` takes). It owns that instance and disposes it, because the graph never disposes what
+it is handed. Note each strip/display decodes its own copy today; osu shares one via
+`WorkingBeatmap.Waveform`, and a DI-cached decode would be the equivalent here.
+
 ## Mini preview
 
 A small, silent, read-only live gameplay preview docked in the Compose workspace — it shows the chart
@@ -233,6 +258,13 @@ viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. 
   `TestFileMenuSaveViaClick`.
 - **Wheel-seek convention:** wheel-down (negative `ScrollDelta.Y`) = forward in time, wheel-up =
   backward (matches osu's `Editor.cs`).
+- **`WaveformGraph.Scale` does not re-trigger resampling.** The graph sizes its resampled point
+  buffer from `DrawWidth * Scale.X`, but only re-runs that resample when `Waveform`, `Resolution` or
+  `DrawSize` change — so a drawable that zooms by scaling (the comparison display scales by
+  `trackLength / VisibleWidth`, often several hundred ×) keeps drawing points generated for the
+  unscaled width and reads as a blocky smear. `WaveformRow.WaveformScale` re-assigns `Waveform` after
+  a scale change to re-arm it; the graph's own `Scheduler.AddOnce` coalesces the work, and the setter
+  early-returns when the scale is unchanged, so the per-beat regeneration costs nothing.
 - **Fixed overlays on the `TimelineStrip` must use `AddInternal`, not `base.Content.Add`.** A
   `ScrollContainer`'s `base.Content` scrolls and auto-sizes to the full track width, so
   `Anchor.TopCentre` there pins to the track midpoint and drifts. The centre-marker playhead lives in
