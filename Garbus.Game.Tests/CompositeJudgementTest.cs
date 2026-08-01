@@ -30,6 +30,26 @@ public class CompositeJudgementTest
         => Assert.That(new SliderCatchHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
     [Test]
+    public void ShapeOnlyControlPointsSpawnNoChildren()
+    {
+        var slider = createSlider(100, 300, 500);
+        slider.Path.ControlPoints[1].ShapeOnly = true;
+        slider.ApplyDefaults();
+
+        var head = slider.NestedHitObjects.OfType<SliderHead>().Single();
+        var children = slider.NestedHitObjects.OfType<SliderChild>().OrderBy(c => c.StartTime).ToArray();
+
+        // Judged nodes are CP[0] (offset 100) and CP[2] (offset 500); CP[1] shapes only.
+        Assert.That(children, Has.Length.EqualTo(2));
+        Assert.That(children[0].StartTime, Is.EqualTo(1100));
+        Assert.That(children[1].StartTime, Is.EqualTo(1500));
+
+        // The head-reference chain skips the shape-only point.
+        Assert.That(children[0].HeadReference, Is.SameAs(head));
+        Assert.That(children[1].HeadReference, Is.SameAs(children[0]));
+    }
+
+    [Test]
     public void SliderChildrenFormAHeadReferenceChain()
     {
         var slider = createSlider(100, 300);

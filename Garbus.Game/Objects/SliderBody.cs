@@ -117,6 +117,11 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle, IHasS
 
         foreach (var controlPoint in Path.ControlPoints)
         {
+            // Shape-only points contribute geometry but are not nodes; previousNode advances only on
+            // spawned children, so the head-reference chain skips them.
+            if (controlPoint.ShapeOnly)
+                continue;
+
             var childHitObject = new SliderChild(this, controlPoint, previousNode)
             {
                 StartTime = StartTime + controlPoint.TimeOffset,
