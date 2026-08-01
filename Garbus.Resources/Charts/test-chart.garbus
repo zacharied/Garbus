@@ -40,19 +40,22 @@
               "timeOffset": 1000,
               "rotationOffset": 0,
               "smooth": false,
-              "sweepEasing": "None"
+              "sweepEasing": "None",
+              "shapeOnly": false
             },
             {
               "timeOffset": 2000,
               "rotationOffset": 90,
               "smooth": false,
-              "sweepEasing": "None"
+              "sweepEasing": "None",
+              "shapeOnly": true
             },
             {
               "timeOffset": 4000,
               "rotationOffset": 90,
               "smooth": false,
-              "sweepEasing": "None"
+              "sweepEasing": "None",
+              "shapeOnly": false
             }
           ],
           "time": 2000
@@ -66,19 +69,22 @@
               "timeOffset": 1000,
               "rotationOffset": 0,
               "smooth": false,
-              "sweepEasing": "None"
+              "sweepEasing": "None",
+              "shapeOnly": false
             },
             {
               "timeOffset": 2000,
               "rotationOffset": 90,
               "smooth": false,
-              "sweepEasing": "None"
+              "sweepEasing": "None",
+              "shapeOnly": false
             },
             {
               "timeOffset": 4000,
               "rotationOffset": 90,
               "smooth": false,
-              "sweepEasing": "None"
+              "sweepEasing": "None",
+              "shapeOnly": false
             }
           ],
           "time": 5000
