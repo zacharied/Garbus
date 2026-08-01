@@ -9,6 +9,8 @@ on:
       - master
     paths:
       - .github/workflows/release-master.yml
+      - Garbus.Desktop/Garbus.Desktop.csproj
+      - Garbus.Desktop/Packaging/**
 
 concurrency:
   group: master-release-${{ github.ref }}
@@ -62,6 +64,18 @@ jobs:
               "Runtime: ${rid}" \
               "Launch: ${launch_command}" \
               > "${publish_dir}/BUILD-INFO.txt"
+
+            case "${rid}" in
+              win-x64)
+                test -f "${publish_dir}/update.bat"
+                test ! -e "${publish_dir}/update.sh"
+                ;;
+              linux-x64|osx-arm64)
+                test -x "${publish_dir}/update.sh"
+                test ! -e "${publish_dir}/update.bat"
+                bash -n "${publish_dir}/update.sh"
+                ;;
+            esac
 
             (
               cd "${package_root}"
