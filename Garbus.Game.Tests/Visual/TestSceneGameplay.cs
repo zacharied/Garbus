@@ -443,7 +443,9 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("restart (clock to 0)", () => manualClock.CurrentTime = 0);
 
-            // Re-enter the spawn window: scroll-in 1300 + 60ms = 1360, mid-scale-in.
+            // Re-enter the spawn window. LeadTime = TimeRange × (1 − SpawnHaloFraction) + SpawnDuration =
+            // 700 × 0.88 + 125 = 741, so the first cardinal (StartTime 2000) spawns at 2000 − 741 = 1259;
+            // 1360 lands 101ms into its 125ms tween — mid-scale-in.
             AddStep("seek into spawn window", () => manualClock.CurrentTime = 1360);
             AddUntilStep("spawn animation replays (scale mid-way)", () =>
             {
