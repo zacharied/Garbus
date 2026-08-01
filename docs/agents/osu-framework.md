@@ -88,6 +88,15 @@ its pinning test are noted; the domain doc has the full story.
   measures as zero. Use a padded plain `Container` (reserve sibling space via `Padding`) when a child
   must fill remaining space. *Instance:* the editor tab-content area — see [editor.md](editor.md).
   *Pin:* `TestSceneEditorShell.TestTabContentHasHeight`.
+- **A composite's child list is depth-sorted, so `Children.Contains(drawable)` matches by `Depth`,
+  not by reference.** The lookup binary-searches with the depth comparer, so it reports a hit for any
+  child sharing that drawable's depth — including a drawable that lives in a completely different
+  container. Harmless while every child sits at depth 0; wrong the moment depths are assigned
+  (`FrontFirstFillFlowContainer`). Use `drawable.Parent`, or compare with `ReferenceEquals`, to find
+  the real owner. Likewise, a depth-assigned container enumerates **back-to-front** — the reverse of
+  display order — so assert display order by `ScreenSpaceDrawQuad` position, never by tree order.
+  *Instance:* the sectioned settings panel — see [screens.md](screens.md). *Pin:*
+  `TestSceneSettingsOverlay.TestRowsGroupedIntoSections`.
 - **A `ScrollContainer`'s `base.Content` scrolls and auto-sizes to the full scrollable extent**, so
   anchoring an overlay there pins it to the content midpoint, not the viewport. Fixed overlays
   (playheads, centre markers) must be added via `AddInternal`, outside the scrolling content.

@@ -34,7 +34,7 @@ namespace Garbus.Game.Tests.Visual
                 Child = manual = new ManualInputManager
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Child = panel = new ControlsPanel(store, () => { }),
+                    Child = panel = new ControlsPanel(store),
                 };
             });
         }

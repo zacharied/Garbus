@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Configuration;
 using Garbus.Game.Settings;
@@ -18,6 +19,10 @@ namespace Garbus.Game.Tests.Visual
     [TestFixture]
     public partial class TestSceneSettingsOverlay : GarbusTestScene
     {
+        // Short enough that the sections overflow the panel, so the scroll behaviour is exercised
+        // rather than assumed. A full-height window would leave nothing to scroll.
+        private const float panel_height = 320;
+
         [Resolved]
         private AudioManager audio { get; set; } = null!;
 
@@ -30,10 +35,15 @@ namespace Garbus.Game.Tests.Visual
         [SetUpSteps]
         public void SetUpSteps()
         {
-            AddStep("create overlay", () => Child = manual = new ManualInputManager
+            AddStep("create overlay", () => Child = new Container
             {
-                RelativeSizeAxes = Axes.Both,
-                Child = overlay = new SettingsOverlay(),
+                RelativeSizeAxes = Axes.X,
+                Height = panel_height,
+                Child = manual = new ManualInputManager
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Child = overlay = new SettingsOverlay(),
+                },
             });
         }
 
@@ -46,8 +56,27 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("hidden", () => overlay.State.Value == Visibility.Hidden);
         }
 
-        private SpriteIcon leaveButton =>
-            overlay.ChildrenOfType<SpriteIcon>().Single(i => i.Icon.Equals(FontAwesome.Solid.SignOutAlt));
+        // Located by name rather than by glyph or by type: which icon the button wears is a cosmetic
+        // detail, and matching on type would mean widening a nested type's visibility for the test.
+        private Drawable headerButton =>
+            overlay.ChildrenOfType<Drawable>().Single(d => d.Name == SettingsPanelHeader.ActionButtonName);
+
+        private SettingsPanelHeader header => overlay.ChildrenOfType<SettingsPanelHeader>().Single();
+
+        // Dropdown menus carry their own scroll containers, so match on the name too.
+        private BasicScrollContainer settingsScroll =>
+            overlay.ChildrenOfType<BasicScrollContainer>().Single(s => s.Name == SettingsOverlay.SettingsScrollName);
+
+        private SettingsSection section(string title) =>
+            overlay.ChildrenOfType<SettingsSection>().Single(s => s.Name == title);
+
+        /// <summary>
+        /// Names in the order they appear down the panel. The flows are front-first, so their child
+        /// lists run back-to-front — the reverse of display order — and tree order would assert the
+        /// opposite of what is on screen.
+        /// </summary>
+        private static IEnumerable<string> topToBottom(IEnumerable<Drawable> drawables) =>
+            drawables.OrderBy(d => d.ScreenSpaceDrawQuad.TopLeft.Y).Select(d => d.Name);
 
         private BasicSliderBar<double> sliderFor(string label) =>
             overlay.ChildrenOfType<SettingsSlider>().Single(s => s.Name == label)
@@ -95,7 +124,87 @@ namespace Garbus.Game.Tests.Visual
         }
 
         /// <summary>
-        /// The leave button beside the "Settings" title dismisses the overlay, mirroring Escape /
+        /// The rows are grouped into the three sections, in order.
+        /// </summary>
+        [Test]
+        public void TestRowsGroupedIntoSections()
+        {
+            AddStep("show", () => overlay.Show());
+
+            AddAssert("sections in order", () =>
+                topToBottom(overlay.ChildrenOfType<SettingsSection>())
+                    .SequenceEqual(new[] { "Audio", "Graphics", "Gameplay" }));
+
+            AddAssert("audio section holds the volume rows", () =>
+                topToBottom(section("Audio").ChildrenOfType<SettingsSlider>())
+                    .SequenceEqual(new[] { "Master volume", "Music volume", "Hitsound volume" }));
+
+            AddAssert("gameplay section holds scroll speed", () =>
+                topToBottom(section("Gameplay").ChildrenOfType<SettingsSlider>())
+                    .SequenceEqual(new[] { "Scroll speed" }));
+        }
+
+        /// <summary>
+        /// The header floats: scrolling moves the rows beneath it while the header itself stays put.
+        /// </summary>
+        [Test]
+        public void TestHeaderStaysPutWhileContentScrolls()
+        {
+            AddStep("show", () => overlay.Show());
+            AddUntilStep("panel slid in", () => headerButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
+
+            AddAssert("content overflows the panel", () => settingsScroll.ScrollableExtent > 0);
+
+            float headerY = 0;
+            float audioY = 0;
+
+            AddStep("record positions", () =>
+            {
+                headerY = header.ScreenSpaceDrawQuad.TopLeft.Y;
+                audioY = section("Audio").ScreenSpaceDrawQuad.TopLeft.Y;
+            });
+
+            AddStep("scroll to end", () => settingsScroll.ScrollToEnd(false));
+
+            AddUntilStep("rows moved up", () =>
+                section("Audio").ScreenSpaceDrawQuad.TopLeft.Y < audioY);
+
+            AddAssert("header did not move", () =>
+                Precision.AlmostEquals(header.ScreenSpaceDrawQuad.TopLeft.Y, headerY, 0.5f));
+        }
+
+        /// <summary>
+        /// Unscrolled, the first row of either view sits clear of the header, so the header's drop
+        /// shadow falls on empty panel rather than on the top row. The size of that gap is a tuning
+        /// value; that it exists at all is the requirement.
+        /// </summary>
+        [Test]
+        public void TestFirstRowClearsHeader()
+        {
+            AddStep("show", () => overlay.Show());
+            AddUntilStep("panel slid in", () => headerButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
+
+            AddAssert("settings first row clears the header", () =>
+                section("Audio").ScreenSpaceDrawQuad.TopLeft.Y > header.ScreenSpaceDrawQuad.BottomLeft.Y);
+
+            // The Controls row sits in the last section, below the fold of the shortened panel.
+            AddStep("scroll to end", () => settingsScroll.ScrollToEnd(false));
+
+            AddStep("click Controls", () =>
+            {
+                var controls = overlay.ChildrenOfType<SpriteText>().First(t => t.Text.ToString() == "Controls…");
+                manual.MoveMouseTo(controls);
+                manual.Click(MouseButton.Left);
+            });
+
+            AddUntilStep("controls first row clears the header", () =>
+                overlay.ChildrenOfType<KeyBindingRow>().Any()
+                && overlay.ChildrenOfType<KeyBindingRow>().Min(r => r.ScreenSpaceDrawQuad.TopLeft.Y)
+                   > header.ScreenSpaceDrawQuad.BottomLeft.Y);
+        }
+
+        /// <summary>
+        /// The header button dismisses the overlay from the settings view, mirroring Escape /
         /// clicking outside the panel.
         /// </summary>
         [Test]
@@ -106,11 +215,11 @@ namespace Garbus.Game.Tests.Visual
 
             // Wait for the slide-in to bring the button onscreen — a click that misses it would also
             // dismiss the overlay (click-outside), which must not be what this test ends up exercising.
-            AddUntilStep("leave button onscreen", () => leaveButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
+            AddUntilStep("leave button onscreen", () => headerButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
 
             AddStep("click leave button", () =>
             {
-                manual.MoveMouseTo(leaveButton);
+                manual.MoveMouseTo(headerButton);
                 manual.Click(MouseButton.Left);
             });
             AddUntilStep("hidden", () => overlay.State.Value == Visibility.Hidden);
@@ -120,7 +229,11 @@ namespace Garbus.Game.Tests.Visual
         public void TestControlsButtonShowsRebindPanel()
         {
             AddStep("show", () => overlay.Show());
+            AddUntilStep("panel slid in", () => headerButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
             AddAssert("no controls panel yet", () => !overlay.ChildrenOfType<ControlsPanel>().Any());
+
+            // The Controls row sits in the last section, below the fold of the shortened panel.
+            AddStep("scroll to end", () => settingsScroll.ScrollToEnd(false));
 
             AddStep("click Controls", () =>
             {
@@ -129,14 +242,15 @@ namespace Garbus.Game.Tests.Visual
                 manual.Click(MouseButton.Left);
             });
             AddUntilStep("controls panel visible", () => overlay.ChildrenOfType<ControlsPanel>().Any());
+            AddUntilStep("header retargeted", () => header.Title.ToString() == "Controls");
 
-            AddStep("click Back", () =>
+            AddStep("click header button", () =>
             {
-                var back = overlay.ChildrenOfType<SpriteText>().First(t => t.Text.ToString() == "‹ Back");
-                manual.MoveMouseTo(back);
+                manual.MoveMouseTo(headerButton);
                 manual.Click(MouseButton.Left);
             });
             AddUntilStep("controls panel gone", () => !overlay.ChildrenOfType<ControlsPanel>().Any());
+            AddUntilStep("header back to Settings", () => header.Title.ToString() == "Settings");
         }
     }
 }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Garbus.Game.UI;
 using osu.Framework.Extensions;
-using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Localisation;
 
 namespace Garbus.Game.Edit
@@ -12,7 +12,7 @@ namespace Garbus.Game.Edit
     /// selection holds differing values. Picking a real value invokes the supplied callback; the
     /// "&lt;multiple&gt;" entry is display-only and disappears once the caller re-aggregates.
     /// </summary>
-    public partial class MultiValueEnumDropdown<T> : BasicDropdown<MultiValueEnumDropdown<T>.Choice> where T : struct, Enum
+    public partial class MultiValueEnumDropdown<T> : PopoverDropdown<MultiValueEnumDropdown<T>.Choice> where T : struct, Enum
     {
         public const string MixedText = "<multiple>";
 

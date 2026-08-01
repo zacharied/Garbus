@@ -20,6 +20,7 @@ using Garbus.Game.Edit.Blueprints;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Objects;
+using Garbus.Game.UI;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -87,7 +88,8 @@ namespace Garbus.Game.Edit
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,
                     },
-                    controlsFlow = new FillFlowContainer
+                    // Front-first so an open dropdown menu pops over the control rows below it.
+                    controlsFlow = new FrontFirstFillFlowContainer
                     {
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,

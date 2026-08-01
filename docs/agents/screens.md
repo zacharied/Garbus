@@ -39,7 +39,34 @@ bundled default). Also the target of the editor's F5/Test (an in-memory clone �
 ## Settings overlay — `Settings/`
 
 `SettingsOverlay.cs` (a `VisibilityContainer`) opened by `SettingsGearButton` /
-`GlobalSettingsContainer`. Panels: `ControlsPanel` (key rebinding UI over `KeyBindingStore` — see
+`GlobalSettingsContainer`. The panel is three layers: a background box, a full-height
+`BasicScrollContainer` holding the rows, and a `SettingsPanelHeader` added last so it draws over
+them. The scroll container spans the whole panel and its content carries top padding of the header
+height *plus a gap*, so rows scroll *underneath* the header and pick up its drop shadow rather than
+stopping short of it, while the top row still sits clear of the shadow when the view is unscrolled.
+`panel.Masking` clips that shadow's spill past the panel edges. Both views share the one
+`contentPadding()` helper, so the clearance is identical in the settings and controls views.
+
+Rows are grouped by `SettingsSection` (an uppercase title over a divider rule, located by `Name`):
+**Audio** (master / music / hitsound volume), **Graphics** (frame limiter, screen mode) and
+**Gameplay** (scroll speed, the Controls… button). `SettingsOverlay.buildSections()` assembles them
+so the screen-mode row can be skipped where the platform has only one window mode to offer.
+
+Sectioning puts **two** vertical stacks between a dropdown and the rows it must pop over, so both are
+`FrontFirstFillFlowContainer`s (see the dropdown note below): the flow holding the sections, so the
+Graphics section's open menu covers the Gameplay section, and each `SettingsSection`'s own row flow,
+so "Frame limiter" covers "Screen mode" inside the one section. Making only the outer one front-first
+leaves a menu drawing underneath its own section's next row.
+
+The header is shared by both views — `header.ShowAs(title, icon, action)` retargets its title and its
+icon button, which dismisses the overlay on the settings view (the in-panel counterpart to Escape /
+clicking outside the panel) and returns from the sub-view on the controls view. `ControlsPanel`
+therefore carries no title or back link of its own. Tests locate the button by
+`SettingsPanelHeader.ActionButtonName` and the settings scroll container by
+`SettingsOverlay.SettingsScrollName` — dropdown menus bring their own `BasicScrollContainer`s, so
+matching on type alone is ambiguous.
+
+Panels: `ControlsPanel` (key rebinding UI over `KeyBindingStore` — see
 [input.md](input.md) — with `KeyBindingRow`), `ButtonTestPanel` (live input feedback),
 `SettingsSlider` + `VolumeCurve` / `ScrollSpeedMapping` (audio volumes, scroll speed, offset). These
 back the config settings in `Configuration/GarbusConfigManager.cs`. `SettingsEnumDropdown<T>` is the
@@ -48,10 +75,25 @@ dropdown counterpart to `SettingsSlider` (item text uses each enum value's `[Des
 framework settings, persisted to `framework.ini` with no `GarbusSetting` behind them: "Frame limiter"
 (`FrameworkSetting.FrameSync`) and "Screen mode" (`FrameworkSetting.WindowMode`).
 
-`SettingsOverlay.buildSettingsRows()` assembles the rows so the screen-mode row can be skipped where
-the platform has only one window mode to offer. The header row pairs the "Settings" title with a
-leave icon button (sign-out icon, left of the title) that dismisses the overlay — the in-panel
-counterpart to Escape / clicking outside the panel.
+`Tuning/TestSceneSettingsPanelTuning.cs` drives the header height/colour, shadow radius/offset/alpha,
+section label colour and divider alpha live.
+
+Dropdown rows pop their open menu **over** the rows below, combo-box style, instead of growing the
+row and reflowing the panel. Two shared pieces in `UI/` make that work everywhere (settings,
+inspector, setup tab): `PopoverDropdown<T>` sets `Menu.BypassAutoSizeAxes = Axes.Y` so the open
+menu doesn't contribute to its row's autosize, and `FrontFirstFillFlowContainer` draws earlier
+children in front of later ones so the spilling menu covers the content below (a framework
+`FillFlowContainer` flows by layout position and insertion order, never `Depth`, so draw order is
+free to differ from flow order; input follows draw order, so the menu also wins clicks). Every
+vertical stack that hosts a dropdown must be front-first — drop either piece and an open menu
+pushes the content below down, or draws underneath it.
+
+`PopoverDropdown<T>` also caps `Menu.MaxHeight`. The framework leaves it unbounded, which sizes the
+menu to its entire item list: the item flow then fits its scroll container exactly, so the container
+has no scrollable extent and the wheel does nothing. For a list as long as the editor's easing enum
+(three dozen entries, taller than the window) that also puts the tail of the list off-screen with no
+way to reach it. The cap gives the scroll container an extent, so long menus scroll; short menus are
+unaffected. Pinned by `TestSceneMultiValueDropdown`'s two easing-menu scroll tests.
 
 ### Screen mode
 
@@ -76,6 +118,12 @@ DI by `GarbusGame` so any screen can open the overlay without holding a containe
 
 `BuildInfoOverlay.cs` / `BuildInfo.cs` show build/version info in-app.
 
+Desktop release archives ship a standalone updater beside the executable. Windows uses `update.bat`;
+Linux and Apple Silicon macOS use `update.sh`, which selects the matching release asset at runtime.
+Both paths refuse to update while Garbus is running, verify the archive against `SHA256SUMS.txt`, and
+stage files before replacing the installation. The macOS path also verifies the release's Mach-O code
+signatures before and after installation.
+
 ## osu-framework background
 
 `Screen`/`ScreenStack` and `IScreen` push/exit semantics; `VisibilityContainer` for overlays;
@@ -96,3 +144,9 @@ State these as current gaps, not "phase" items:
   falls back to the bundled default track.
 - **`PlayScreen` owns its track** — it stops and disposes a per-play instance on exit; tracks are
   never shared with the editor.
+- **An open dropdown menu near the bottom of the settings panel is clipped by the scroll container's
+  masking.** Same as osu.Game's settings panel; the flow's bottom padding reduces how often it bites
+  but does not eliminate it.
+- **The settings scrollbar runs the full panel height**, so its top few pixels sit behind the
+  floating header. Insetting it would mean padding the scroll container itself, which would stop
+  rows scrolling under the header and leave the drop shadow with nothing to fall on.

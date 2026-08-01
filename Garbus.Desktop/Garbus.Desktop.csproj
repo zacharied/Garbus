@@ -37,14 +37,15 @@
   </ItemGroup>
   <ItemGroup Label="Updater scripts">
     <!-- Ship the matching updater beside the executable in the publish output.
-         RID-conditioned so win-x64 gets only update.bat and linux-x64 only update.sh.
+         RID-conditioned so win-x64 gets only update.bat, while Linux and macOS get update.sh.
          Content stays loose (not bundled into the single-file exe); Link flattens it
          to the output root. -->
     <Content Include="Packaging\update.bat" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
       <Link>update.bat</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Packaging\update.sh" Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <Content Include="Packaging\update.sh"
+             Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
       <Link>update.sh</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

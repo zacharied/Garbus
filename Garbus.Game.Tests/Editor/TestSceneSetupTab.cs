@@ -28,9 +28,11 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
+using osu.Framework.Utils;
 
 namespace Garbus.Game.Tests.Editor
 {
@@ -244,6 +246,39 @@ namespace Garbus.Game.Tests.Editor
             AddStep("redo", () => changeHandler.Redo());
             AddAssert("difficulty restored to Expert", () =>
                 editor.EditorChart.Metadata.Difficulty == Difficulty.Expert);
+        }
+
+        /// <summary>
+        /// An open difficulty menu pops over the tab, combo-box style: it must not grow the metadata
+        /// section or its scroll column (which would move content and grow the scrollable height).
+        /// </summary>
+        [Test]
+        public void TestDifficultyDropdownMenuDoesNotReflowColumn()
+        {
+            setupEditorUnsaved();
+            waitForSetupTab();
+
+            ChartMetadataSection section() => editor.ChildrenOfType<ChartMetadataSection>().First();
+            Menu menu() => section().DifficultyDropdown.ChildrenOfType<Menu>().Single();
+            Drawable columnFlow() => section().Parent!;
+
+            float sectionHeight = 0, columnHeight = 0;
+            AddStep("capture heights", () =>
+            {
+                sectionHeight = section().ScreenSpaceDrawQuad.Height;
+                columnHeight = columnFlow().ScreenSpaceDrawQuad.Height;
+            });
+
+            AddStep("open difficulty menu", () => menu().Open());
+            AddUntilStep("menu open and dropped down", () =>
+                menu().State == MenuState.Open && menu().ScreenSpaceDrawQuad.Height > 0);
+
+            AddAssert("section did not grow", () =>
+                Precision.AlmostEquals(sectionHeight, section().ScreenSpaceDrawQuad.Height));
+            AddAssert("scroll column did not grow", () =>
+                Precision.AlmostEquals(columnHeight, columnFlow().ScreenSpaceDrawQuad.Height));
+            AddAssert("menu extends below the section", () =>
+                menu().ScreenSpaceDrawQuad.BottomLeft.Y > section().ScreenSpaceDrawQuad.BottomLeft.Y);
         }
 
         // ------------------------------------------------------------------
