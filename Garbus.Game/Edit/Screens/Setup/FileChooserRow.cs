@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using Garbus.Game.Configuration;
+using Garbus.Game.Edit.Screens.Dialogs;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -105,60 +106,25 @@ namespace Garbus.Game.Edit.Screens.Setup
             if (overlayContainer == null)
                 return;
 
-            var selector = new GarbusFileSelector(LastFileDirectory.Get(config), validExtensions)
-            {
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Size = new Vector2(700, 500),
-            };
+            var container = overlayContainer;
 
-            var selectorPanel = new Container
-            {
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Size = new Vector2(700, 560),
-                Children = new Drawable[]
-                {
-                    new osu.Framework.Graphics.Shapes.Box
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Colour = new osuTK.Graphics.Color4(30, 30, 40, 255),
-                    },
-                    selector,
-                    new BasicButton
-                    {
-                        Anchor = Anchor.BottomLeft,
-                        Origin = Anchor.BottomLeft,
-                        Text = "Select",
-                        Size = new Vector2(100, 40),
-                        Margin = new MarginPadding { Left = 8, Bottom = 8 },
-                        Action = () =>
-                        {
-                            var file = selector.CurrentFile.Value;
-                            if (file != null)
-                            {
-                                overlayContainer.Clear();
-                                commitPick(file.FullName);
-                            }
-                        },
-                    },
-                    new BasicButton
-                    {
-                        Anchor = Anchor.BottomRight,
-                        Origin = Anchor.BottomRight,
-                        Text = "Cancel",
-                        Size = new Vector2(100, 40),
-                        Margin = new MarginPadding { Right = 8, Bottom = 8 },
-                        Action = () => overlayContainer.Clear(),
-                    },
-                },
-            };
+            var dialog = new FileSelectDialog(validExtensions, "Select", commitPick);
 
-            overlayContainer.Child = selectorPanel;
+            // The dialog hides itself on both confirm and cancel; clearing the host on hide keeps a
+            // dismissed dialog from sitting there swallowing input.
+            dialog.State.BindValueChanged(state =>
+            {
+                if (state.NewValue == Visibility.Hidden)
+                    container.Clear();
+            });
+
+            container.Child = dialog;
+            dialog.Show();
         }
 
         private void commitPick(string fullPath)
         {
+            // FileSelectDialog already persisted the directory; this path also serves SimulatePick.
             LastFileDirectory.Set(config, Path.GetDirectoryName(fullPath));
 
             fileNameText.Text = Path.GetFileName(fullPath);

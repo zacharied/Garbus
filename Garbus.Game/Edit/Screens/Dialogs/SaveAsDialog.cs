@@ -6,23 +6,26 @@ using Garbus.Game.Configuration;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
-using osuTK;
 using osuTK.Graphics;
 
 namespace Garbus.Game.Edit.Screens.Dialogs
 {
     /// <summary>
-    /// Modal overlay: directory selector + filename text box + Save/Cancel buttons.
+    /// Modal overlay: directory selector + filename text box, with the show-hidden-items setting at
+    /// the bottom-left and Cancel/Save at the bottom-right.
     /// Calls the <c>onSave</c> callback with the resolved absolute path (guaranteed to end with .garbus).
     /// </summary>
-    public partial class SaveAsDialog : VisibilityContainer
+    public partial class SaveAsDialog : ModalOverlay
     {
+        public const string FilenameBoxName = "save as dialog filename";
+        public const string ShowHiddenCheckboxName = "save as dialog show hidden";
+
         private readonly Action<string> onSave;
         private readonly string defaultFilename;
-        private BasicDirectorySelector directorySelector = null!;
+
+        private GarbusDirectorySelector directorySelector = null!;
         private BasicTextBox filenameBox = null!;
 
         [Resolved]
@@ -32,116 +35,68 @@ namespace Garbus.Game.Edit.Screens.Dialogs
         {
             this.onSave = onSave;
             this.defaultFilename = defaultFilename;
-
-            RelativeSizeAxes = Axes.Both;
         }
 
         [BackgroundDependencyLoader]
         private void load()
         {
-            // dim background
-            AddInternal(new Box
-            {
-                RelativeSizeAxes = Axes.Both,
-                Colour = Color4.Black,
-                Alpha = 0.6f,
-            });
-
             filenameBox = new BasicTextBox
             {
+                Name = FilenameBoxName,
                 RelativeSizeAxes = Axes.X,
                 Height = 30,
                 Text = defaultFilename,
             };
 
-            directorySelector = new BasicDirectorySelector
+            // Enter inside the text box never reaches the dialog's own key handling — TextBox
+            // consumes it to commit — so route the commit to the same action.
+            filenameBox.OnCommit += (_, _) => Confirm();
+
+            directorySelector = new GarbusDirectorySelector
             {
                 RelativeSizeAxes = Axes.Both,
             };
 
-            // The panel uses a fixed height. We use a Container with explicit padding to carve out
-            // room for the title, filename box, and button row at the bottom.
-            // directorySelector is placed in a Container that leaves bottom room.
-            const float titleHeight = 32;
-            const float filenameHeight = 38;
-            const float buttonRowHeight = 48;
-            const float bottomReserve = filenameHeight + buttonRowHeight;
+            var footer = new DialogFooter("Save", Confirm, Cancel);
+            footer.AddSetting(ShowHiddenCheckboxName, "Show hidden items", directorySelector.ShowHiddenDirectories);
 
-            var panel = new Container
+            const float title_height = 32;
+            const float filename_height = 38;
+
+            Panel.AddRange(new Drawable[]
             {
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Size = new Vector2(700, 560),
-                Children = new Drawable[]
+                new SpriteText
                 {
-                    new Box
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Colour = new Color4(30, 30, 40, 255),
-                    },
-                    new SpriteText
-                    {
-                        Anchor = Anchor.TopCentre,
-                        Origin = Anchor.TopCentre,
-                        Text = "Save Song As…",
-                        Font = FontUsage.Default.With(size: 20),
-                        Colour = Color4.White,
-                        Y = 6,
-                    },
-                    // Directory selector fills the middle section.
-                    new Container
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Padding = new MarginPadding { Top = titleHeight, Bottom = bottomReserve },
-                        Child = directorySelector,
-                    },
-                    // Filename label + box near the bottom.
-                    new Container
-                    {
-                        Anchor = Anchor.BottomLeft,
-                        Origin = Anchor.BottomLeft,
-                        RelativeSizeAxes = Axes.X,
-                        Height = filenameHeight,
-                        Y = -buttonRowHeight,
-                        Padding = new MarginPadding { Horizontal = 8, Vertical = 4 },
-                        Child = filenameBox,
-                    },
-                    // Button row at the very bottom.
-                    new Container
-                    {
-                        Anchor = Anchor.BottomLeft,
-                        Origin = Anchor.BottomLeft,
-                        RelativeSizeAxes = Axes.X,
-                        Height = buttonRowHeight,
-                        Children = new Drawable[]
-                        {
-                            new BasicButton
-                            {
-                                Anchor = Anchor.CentreLeft,
-                                Origin = Anchor.CentreLeft,
-                                Text = "Save",
-                                Size = new Vector2(100, 36),
-                                X = 8,
-                                Action = onSavePressed,
-                            },
-                            new BasicButton
-                            {
-                                Anchor = Anchor.CentreRight,
-                                Origin = Anchor.CentreRight,
-                                Text = "Cancel",
-                                Size = new Vector2(100, 36),
-                                X = -8,
-                                Action = () => Hide(),
-                            },
-                        },
-                    },
+                    Anchor = Anchor.TopCentre,
+                    Origin = Anchor.TopCentre,
+                    Text = "Save Song As…",
+                    Font = FontUsage.Default.With(size: 20),
+                    Colour = Color4.White,
+                    Y = 6,
                 },
-            };
-
-            AddInternal(panel);
+                // Directory selector fills the middle section.
+                new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Padding = new MarginPadding { Top = title_height, Bottom = filename_height + DialogFooter.HEIGHT },
+                    Child = directorySelector,
+                },
+                // Filename box sits directly above the footer.
+                new Container
+                {
+                    Anchor = Anchor.BottomLeft,
+                    Origin = Anchor.BottomLeft,
+                    RelativeSizeAxes = Axes.X,
+                    Height = filename_height,
+                    Y = -DialogFooter.HEIGHT,
+                    Padding = new MarginPadding { Horizontal = 8, Vertical = 4 },
+                    Child = filenameBox,
+                },
+                footer,
+            });
         }
 
-        private void onSavePressed()
+        protected override void Confirm()
         {
             var dir = directorySelector.CurrentPath.Value;
             if (dir == null)
@@ -172,8 +127,5 @@ namespace Garbus.Game.Edit.Screens.Dialogs
             if (LastFileDirectory.Get(config) is string last)
                 directorySelector.CurrentPath.Value = new DirectoryInfo(last);
         }
-
-        protected override void PopIn() => this.FadeIn(150);
-        protected override void PopOut() => this.FadeOut(150);
     }
 }

@@ -19,20 +19,29 @@ The editor's file pickers are modal in appearance only.
 ### `ModalOverlay` (new, abstract)
 
 `Edit/Screens/Dialogs/ModalOverlay.cs`. Base for the picker dialogs. Derives from the framework's
-`OverlayContainer` — itself a `VisibilityContainer`, so `Show`/`Hide`/`PopIn`/`PopOut` semantics are
-unchanged for callers.
+`FocusedOverlayContainer` — itself a `VisibilityContainer`, so `Show`/`Hide`/`PopIn`/`PopOut`
+semantics are unchanged for callers.
 
-- `BlockNonPositionalInput => true`. `OverlayContainer.BuildNonPositionalInputQueue` strips every
-  drawable queued before the overlay from the keyboard queue, keeping only `IHandleGlobalKeyboardInput`
-  implementers. The queue is built root-first, so ancestors — `GarbusEditor` included — are queued
-  before the overlay and are stripped. Global handlers (fullscreen, frame statistics) survive by
-  design.
-- `BlockPositionalInput` is `true` by default on `OverlayContainer`, which also blocks the editor's
-  wheel-seek (`BlockScrollInput` follows it).
+Owning the keyboard takes three mechanisms, each covering a case the others miss:
+
 - `OnKeyDown` dispatches `Escape` to `Cancel()` and `Enter`/`KeypadEnter` to `Confirm()`, then returns
-  `true` **unconditionally** — every other key is swallowed. Both handlers are `protected virtual`;
-  the base `Cancel()` hides the dialog and the base `Confirm()` does nothing.
-- Owns the dim backdrop and the centred panel `Container`; subclasses fill the panel.
+  `true` **unconditionally** — every other key is swallowed. Because non-positional events dispatch
+  deepest-first, this alone stops anything unbound from reaching an *ancestor*, which is what silences
+  the editor's hotkeys. Both handlers are `protected virtual`; the base `Cancel()` hides the dialog and
+  the base `Confirm()` does nothing.
+- `FocusedOverlayContainer` takes focus on show. `InputManager` re-appends the focused drawable to the
+  end of the input queue — dispatched *first* — **after** blocking has filtered it, so a text box
+  focused behind the dialog would otherwise keep receiving keys regardless of the other two
+  mechanisms.
+- `BlockNonPositionalInput => true`. `OverlayContainer.BuildNonPositionalInputQueue` strips every
+  drawable queued before the overlay from the keyboard queue, keeping only
+  `IHandleGlobalKeyboardInput` implementers (fullscreen, frame statistics — preserved by design).
+  This is what covers key bindings and non-ancestor handlers.
+
+`BlockPositionalInput` is `true` by default on `OverlayContainer`, which also blocks the editor's
+wheel-seek (`BlockScrollInput` follows it).
+
+The base owns the dim backdrop and the centred panel `Container`; subclasses fill the panel.
 
 `ConfirmDialog` is deliberately left on plain `VisibilityContainer` for now.
 
@@ -80,13 +89,13 @@ Enter is wired through `filenameBox.OnCommit` as well as the base `Confirm()`.
 Accepted wrinkle: while the filename box holds focus, the framework's `TextBox` consumes `Escape`
 itself (unfocusing), so Escape-to-cancel needs a second press there.
 
-## Known limitation
+## Host container
 
 `FileChooserRow` presents its dialog into a local overlay container inside the Setup tab rather than
 the editor's top-level `dialogOverlay`. Blocking strips only what is queued *before* the overlay,
-which covers `GarbusEditor` — the reported problem — but not the top/bottom bars, queued after
-`tabContainer`. Implementation verifies whether those bars handle key input; if they do, that picker
-moves to the shared overlay, otherwise it stays local.
+which covers `GarbusEditor` but not the top/bottom bars queued after `tabContainer` — neither of which
+handles key input, so the local host stays. The row clears that host when the dialog hides, on both
+confirm and cancel.
 
 ## Testing
 

@@ -10,7 +10,6 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
-using osuTK;
 using osuTK.Graphics;
 
 namespace Garbus.Game.Edit.Screens
@@ -19,24 +18,20 @@ namespace Garbus.Game.Edit.Screens
     {
         internal static readonly Color4 SELECTION_COLOUR = new Color4(70, 90, 140, 255);
 
+        /// <summary>
+        /// Whether hidden files and directories are listed. Exposed because the framework keeps
+        /// <c>ShowHiddenItems</c> protected, and the toggle now lives outside the selector — in the
+        /// hosting dialog's footer.
+        /// </summary>
+        public BindableBool ShowHiddenFiles => ShowHiddenItems;
+
         public GarbusFileSelector(string? initialPath = null, string[]? validFileExtensions = null)
             : base(initialPath, validFileExtensions)
         {
         }
 
-        protected override Drawable CreateHiddenToggleButton()
-        {
-            var button = new BasicButton
-            {
-                Size = new Vector2(200, 25),
-                Action = ShowHiddenItems.Toggle,
-            };
-
-            ShowHiddenItems.BindValueChanged(showing =>
-                button.Text = showing.NewValue ? "Hide hidden files" : "Show hidden files", true);
-
-            return button;
-        }
+        // No in-selector toggle: the hosting dialog owns the show-hidden-items checkbox.
+        protected override Drawable CreateHiddenToggleButton() => Empty();
 
         protected override DirectoryListingFile CreateFileItem(FileInfo file) => new FileItem(file);
 
