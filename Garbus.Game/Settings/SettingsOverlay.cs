@@ -21,14 +21,31 @@ namespace Garbus.Game.Settings
 {
     /// <summary>
     /// A left-anchored slide-in panel exposing master/music/hitsound volume, scroll speed, and the
-    /// frame-limiter and screen-mode display settings. Volume rows bind to the framework
-    /// <see cref="AudioManager"/> bindables (persisted by the framework config); scroll speed binds to
+    /// frame-limiter and screen-mode display settings, grouped into Audio / Graphics / Gameplay
+    /// sections under a scrollable view. Volume rows bind to the framework <see cref="AudioManager"/>
+    /// bindables (persisted by the framework config); scroll speed binds to
     /// <see cref="GarbusSetting.ScrollSpeed"/>; the display rows bind straight to
     /// <see cref="FrameworkConfigManager"/>.
+    ///
+    /// A single <see cref="SettingsPanelHeader"/> floats over the scrolling content and is retargeted
+    /// between the settings view and the controls sub-view, so rows pass beneath it and pick up its
+    /// drop shadow.
     /// </summary>
     public partial class SettingsOverlay : VisibilityContainer
     {
+        /// <summary>
+        /// The settings scroll container's <see cref="Drawable.Name"/>. Dropdown menus bring their own
+        /// <see cref="BasicScrollContainer"/>s, so tests match on this rather than on type alone.
+        /// </summary>
+        public const string SettingsScrollName = "settings scroll";
+
         private const float panel_width = 350;
+        private const float content_side_padding = 20;
+        private const float content_bottom_padding = 40;
+
+        // Clearance between the header's bottom edge and the first row, so the header's drop shadow
+        // falls on empty panel rather than on the top row while the view sits unscrolled.
+        private const float content_header_gap = 16;
 
         [Resolved]
         private AudioManager audio { get; set; } = null!;
@@ -46,14 +63,32 @@ namespace Garbus.Game.Settings
         private GameHost host { get; set; } = null!;
 
         private Container panel = null!;
-        private FillFlowContainer settingsView = null!;
-        private ControlsPanel? controlsView;
+        private Container contentArea = null!;
+        private SettingsPanelHeader header = null!;
+
+        private BasicScrollContainer settingsScroll = null!;
+        private Container settingsContentPadding = null!;
+        private BasicScrollContainer? controlsScroll;
 
         // Sits just right of the sliding panel; shown only while the Controls sub-view is up.
         private ButtonTestPanel buttonTestPanel = null!;
 
         // Teardown for the volume-row subscriptions to the long-lived AudioManager bindables.
         private Action? volumeCleanup;
+
+        /// <summary>
+        /// The floating header's height, and with it the top padding that keeps the first row clear of
+        /// the header at rest. The controls sub-view reads this when it is next opened.
+        /// </summary>
+        public float HeaderHeight
+        {
+            get => header.Height;
+            set
+            {
+                header.Height = value;
+                settingsContentPadding.Padding = contentPadding(value);
+            }
+        }
 
         public SettingsOverlay()
         {
@@ -64,6 +99,20 @@ namespace Garbus.Game.Settings
         private void load()
         {
             Alpha = 0;
+
+            // Front-first so an open dropdown menu in one section pops over the sections below it
+            // rather than being drawn underneath them — see FrontFirstFillFlowContainer.
+            var settingsView = new FrontFirstFillFlowContainer
+            {
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Direction = FillDirection.Vertical,
+                Padding = new MarginPadding { Horizontal = content_side_padding },
+                Spacing = new Vector2(0, 24),
+                Children = buildSections(),
+            };
+
+            header = new SettingsPanelHeader();
 
             InternalChildren = new Drawable[]
             {
@@ -77,63 +126,67 @@ namespace Garbus.Game.Settings
                 {
                     RelativeSizeAxes = Axes.Y,
                     Width = panel_width,
+                    // Keeps the header's drop shadow from spilling out past the panel edges.
+                    Masking = true,
                     Children = new Drawable[]
                     {
-                    new Box
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Colour = new Color4(20, 20, 28, 240),
-                    },
-                    settingsView = new FrontFirstFillFlowContainer
-                    {
-                        RelativeSizeAxes = Axes.X,
-                        AutoSizeAxes = Axes.Y,
-                        Direction = FillDirection.Vertical,
-                        Padding = new MarginPadding(20),
-                        Spacing = new Vector2(0, 18),
-                        Children = buildSettingsRows(),
-                    },
+                        new Box
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Colour = new Color4(20, 20, 28, 240),
+                        },
+                        contentArea = new Container
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Child = settingsScroll = createScroll(SettingsScrollName, settingsView, out settingsContentPadding),
+                        },
+                        // Added last so it draws — and casts its shadow — over the scrolling content.
+                        header,
                     },
                 },
             };
         }
 
+        private MarginPadding contentPadding(float headerHeight) => new MarginPadding
+        {
+            Top = headerHeight + content_header_gap,
+            Bottom = content_bottom_padding,
+        };
+
         /// <summary>
-        /// The settings-view rows in display order. The screen-mode row is left out where the platform
+        /// Wraps <paramref name="content"/> in a full-height scroll container. The content sits inside
+        /// a padding wrapper rather than the scroll container being inset, so rows scroll underneath
+        /// the floating header instead of stopping short of it.
+        /// </summary>
+        private BasicScrollContainer createScroll(string name, Drawable content, out Container padding)
+        {
+            padding = new Container
+            {
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Padding = contentPadding(header.Height),
+                Child = content,
+            };
+
+            return new BasicScrollContainer
+            {
+                Name = name,
+                RelativeSizeAxes = Axes.Both,
+                ScrollbarVisible = true,
+                Child = padding,
+            };
+        }
+
+        /// <summary>
+        /// The settings sections in display order. The screen-mode row is left out where the platform
         /// offers a single window mode (mobile is fullscreen-only), since it would present no choice.
         /// </summary>
-        private List<Drawable> buildSettingsRows()
+        private List<Drawable> buildSections()
         {
-            var rows = new List<Drawable>
+            var graphicsRows = new List<Drawable>
             {
-                new FillFlowContainer
-                {
-                    RelativeSizeAxes = Axes.X,
-                    AutoSizeAxes = Axes.Y,
-                    Direction = FillDirection.Horizontal,
-                    Spacing = new Vector2(10, 0),
-                    Children = new Drawable[]
-                    {
-                        new LeaveButton(Hide)
-                        {
-                            Anchor = Anchor.CentreLeft,
-                            Origin = Anchor.CentreLeft,
-                        },
-                        new SpriteText
-                        {
-                            Anchor = Anchor.CentreLeft,
-                            Origin = Anchor.CentreLeft,
-                            Text = "Settings",
-                            Font = FontUsage.Default.With(size: 28),
-                            Colour = Color4.White,
-                        },
-                    },
-                },
-                createVolumeRow("Master volume", audio.Volume),
-                createVolumeRow("Music volume", audio.VolumeTrack),
-                createVolumeRow("Hitsound volume", audio.VolumeSample),
-                new SettingsSlider("Scroll speed", config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
-                new SettingsEnumDropdown<FrameSync>("Frame limiter", frameworkConfig.GetBindable<FrameSync>(FrameworkSetting.FrameSync)),
+                new SettingsEnumDropdown<FrameSync>("Frame limiter",
+                    frameworkConfig.GetBindable<FrameSync>(FrameworkSetting.FrameSync)),
             };
 
             // A headless host has no window at all; fall back to every mode so tests still get the row.
@@ -141,13 +194,22 @@ namespace Garbus.Game.Settings
 
             if (windowModes.Length > 1)
             {
-                rows.Add(new SettingsEnumDropdown<WindowMode>("Screen mode",
+                graphicsRows.Add(new SettingsEnumDropdown<WindowMode>("Screen mode",
                     frameworkConfig.GetBindable<WindowMode>(FrameworkSetting.WindowMode), windowModes));
             }
 
-            rows.Add(new ControlsButton(showControls));
-
-            return rows;
+            return new List<Drawable>
+            {
+                new SettingsSection("Audio",
+                    createVolumeRow("Master volume", audio.Volume),
+                    createVolumeRow("Music volume", audio.VolumeTrack),
+                    createVolumeRow("Hitsound volume", audio.VolumeSample)),
+                new SettingsSection("Graphics", graphicsRows.ToArray()),
+                new SettingsSection("Gameplay",
+                    new SettingsSlider("Scroll speed",
+                        config.GetBindable<double>(GarbusSetting.ScrollSpeed), ScrollSpeedMapping.FormatSpeed),
+                    new ControlsButton(showControls)),
+            };
         }
 
         /// <summary>
@@ -196,55 +258,25 @@ namespace Garbus.Game.Settings
 
         private void showControls()
         {
-            settingsView.Hide();
+            settingsScroll.Hide();
 
-            controlsView?.Expire();
-            panel.Add(controlsView = new ControlsPanel(keyBindings, showSettings));
+            controlsScroll?.Expire();
+            contentArea.Add(controlsScroll = createScroll("controls scroll", new ControlsPanel(keyBindings), out _));
+
+            header.ShowAs("Controls", FontAwesome.Solid.ChevronLeft, showSettings);
 
             buttonTestPanel.FadeIn(200, Easing.OutQuint);
         }
 
         private void showSettings()
         {
-            controlsView?.Expire();
-            controlsView = null;
-            settingsView.Show();
+            controlsScroll?.Expire();
+            controlsScroll = null;
+            settingsScroll.Show();
+
+            header.ShowAs("Settings", FontAwesome.Solid.Times, Hide);
 
             buttonTestPanel.FadeOut(200, Easing.OutQuint);
-        }
-
-        // An icon button beside the title that dismisses the overlay.
-        internal partial class LeaveButton : CompositeDrawable
-        {
-            private readonly Action onClick;
-
-            public LeaveButton(Action onClick)
-            {
-                this.onClick = onClick;
-
-                Size = new Vector2(28);
-                CornerRadius = 6;
-                Masking = true;
-
-                InternalChildren = new Drawable[]
-                {
-                    new Box { RelativeSizeAxes = Axes.Both, Colour = new Color4(60, 60, 78, 255) },
-                    new SpriteIcon
-                    {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        Size = new Vector2(16),
-                        Icon = FontAwesome.Solid.Times,
-                        Colour = Color4.White,
-                    },
-                };
-            }
-
-            protected override bool OnClick(ClickEvent e)
-            {
-                onClick();
-                return true;
-            }
         }
 
         // A labelled row that opens the controls sub-view.
@@ -288,6 +320,8 @@ namespace Garbus.Game.Settings
         {
             // Always open on the settings view, never the controls sub-view.
             showSettings();
+
+            settingsScroll.ScrollToStart(false);
 
             panel.MoveToX(-panel_width).MoveToX(0, 500, Easing.OutQuint);
             this.FadeIn(300, Easing.OutQuint);
