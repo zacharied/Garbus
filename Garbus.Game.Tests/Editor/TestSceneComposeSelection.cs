@@ -3435,13 +3435,13 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
 
             AddUntilStep("Smoothing checkbox shows the mixed dash", () =>
-                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault()?.State == TernaryState.Indeterminate);
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Smoothing")?.State == TernaryState.Indeterminate);
 
             // The inspector rebuilds on a 250ms roll, so the checkbox drawable under the cursor may be a
             // fresh instance by click time — it occupies the same slot, so the click still lands on one.
             AddStep("click the checkbox", () =>
             {
-                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First());
+                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First(c => c.Label == "Smoothing"));
                 input.Click(MouseButton.Left);
             });
 

@@ -20,6 +20,9 @@ namespace Garbus.Game.Edit
     {
         public TernaryState State { get; }
 
+        /// <summary>The visible label text; the inspector shows several of these, so tests select by it.</summary>
+        public string Label => label;
+
         private readonly string label;
         private readonly Action<bool> onChange;
 
