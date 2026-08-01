@@ -111,6 +111,12 @@ DI by `GarbusGame` so any screen can open the overlay without holding a containe
 
 `BuildInfoOverlay.cs` / `BuildInfo.cs` show build/version info in-app.
 
+Desktop release archives ship a standalone updater beside the executable. Windows uses `update.bat`;
+Linux and Apple Silicon macOS use `update.sh`, which selects the matching release asset at runtime.
+Both paths refuse to update while Garbus is running, verify the archive against `SHA256SUMS.txt`, and
+stage files before replacing the installation. The macOS path also verifies the release's Mach-O code
+signatures before and after installation.
+
 ## osu-framework background
 
 `Screen`/`ScreenStack` and `IScreen` push/exit semantics; `VisibilityContainer` for overlays;
