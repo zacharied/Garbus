@@ -85,6 +85,12 @@ namespace Garbus.Game.Tests.Visual
             // extrapolating so callers can clip what the outer edge has consumed.
             AddAssert("unclamped overshoots (delta -100)", () => Precision.AlmostEquals(unclampedRadiusAt(-100), 225, 0.001));
             AddAssert("clamped pins at ring (delta -100)", () => Precision.AlmostEquals(radiusAt(-100), 200, 0.001));
+
+            // The halo floor must live in DistanceFromCentreAtTime itself, not merely fall out of
+            // ProgressAtTime's clamp — DrawableCardinalHoldNote/DrawableSliderBody read the unclamped
+            // accessor directly to stub a duration object at the halo while it's inside the hold
+            // window. delta 700 = leadTime, still inside the hold: unclamped must also read haloRadius.
+            AddAssert("unclamped floors at halo during the hold (delta 700)", () => Precision.AlmostEquals(unclampedRadiusAt(700), 50, 0.001));
         }
 
         [Test]
