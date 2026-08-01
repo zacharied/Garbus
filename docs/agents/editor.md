@@ -128,6 +128,8 @@ Each control appears only when the selection matches its condition:
 - `Edit/Screens/BottomBar/` — transport, summary timeline, Test button. F5/Test launches a
   `PlayScreen` with a serializer deep-clone of the WIP chart, starting 1500 ms before the playhead;
   returning seeks the editor clock to the gameplay exit time. Escape exits back to the editor.
+  Test mode also passes the song's jacket (`SongFile.GetJacketTexture`) so the pushed `PlayScreen`
+  shows the same jacket background as real play; unsaved songs or songs without a jacket get none.
 - `Edit/Screens/Setup/` — metadata/resources/difficulty form. `Edit/Screens/Timing/` — timing-point
   list + settings + tap-timing + metronome (full osu timing-screen feature set: chip table, time
   signature / omit-barline, repeat nudge, use-current-time group move, section-wide object

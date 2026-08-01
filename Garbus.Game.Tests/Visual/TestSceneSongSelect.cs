@@ -10,11 +10,13 @@ using Garbus.Game.Charts.Format;
 using Garbus.Game.Configuration;
 using Garbus.Game.Screens;
 using Garbus.Game.Screens.SongSelect;
+using Garbus.Game.UI;
 using Garbus.Resources;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input;
 using osu.Framework.IO.Stores;
@@ -23,6 +25,8 @@ using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Framework.Testing.Input;
 using osuTK.Input;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Garbus.Game.Tests.Visual
 {
@@ -65,10 +69,24 @@ namespace Garbus.Game.Tests.Visual
                     if (!File.Exists(audioPath))
                         File.WriteAllBytes(audioPath, track);
 
+                    string background = string.Empty;
+
+                    if (i == 1)
+                    {
+                        // A generated jacket (never real song content) so the launch test can assert jacket flow.
+                        string jacketPath = Path.Combine(dir, "jacket.png");
+                        if (!File.Exists(jacketPath))
+                        {
+                            using var img = new Image<Rgba32>(4, 4);
+                            img.SaveAsPng(jacketPath);
+                        }
+                        background = "jacket.png";
+                    }
+
                     string path = Path.Combine(dir, "chart.garbus");
                     if (!File.Exists(path))
                     {
-                        var chart = new GarbusChart { Metadata = { Title = $"Song {i}", Artist = "Test", Level = i, AudioFile = "test-track.ogg" } };
+                        var chart = new GarbusChart { Metadata = { Title = $"Song {i}", Artist = "Test", Level = i, AudioFile = "test-track.ogg", BackgroundFile = background } };
                         File.WriteAllText(path, GarbusChartSerializer.Encode(chart));
                     }
                 }
@@ -224,12 +242,12 @@ namespace Garbus.Game.Tests.Visual
         {
             ChartCard? seeded = null;
 
-            // Pick a seeded directory chart by title — those have no background file, unlike the bundled
-            // resource charts (which carry jackets). Selecting an unordered .First() would land on
-            // whichever card sorts first (a bundled chart with a jacket), so assert against a known one.
+            // The seeded charts include Song 1 (with a generated jacket) and Song 2 (without a background
+            // file). Selecting Song 2 ensures we test the placeholder-path case; an unordered .First()
+            // would land on whichever chart sorts first, which may carry a background file.
             AddStep("select seeded chart", () =>
             {
-                seeded = songSelect.Groups.SelectMany(g => g.Charts).First(c => c.Title == "Song 1");
+                seeded = songSelect.Groups.SelectMany(g => g.Charts).First(c => c.Title == "Song 2");
                 songSelect.Select(seeded);
             });
 
@@ -254,6 +272,18 @@ namespace Garbus.Game.Tests.Visual
             });
 
             AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
+        }
+
+        [Test]
+        public void TestLaunchPassesJacketToPlayScreen()
+        {
+            AddStep("select jacketed chart", () => songSelect.Select(
+                songSelect.Groups.SelectMany(g => g.Charts).First(c => c.Title == "Song 1")));
+            AddStep("launch", () => songSelect.Launch());
+            AddUntilStep("play screen pushed", () => stack.CurrentScreen is PlayScreen);
+            AddUntilStep("jacket layers present", () => (stack.CurrentScreen as PlayScreen)
+                ?.ChildrenOfType<JacketBackground>().SingleOrDefault()
+                ?.ChildrenOfType<Sprite>().Any() == true);
         }
     }
 }

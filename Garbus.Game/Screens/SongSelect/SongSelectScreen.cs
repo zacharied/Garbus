@@ -292,7 +292,7 @@ namespace Garbus.Game.Screens.SongSelect
             stopPreviewImmediately();
 
             var chart = SelectedChart.LoadChart();
-            this.Push(new PlayScreen(chart, track));
+            this.Push(new PlayScreen(chart, track, jacket: SelectedChart.Source.GetBackground(SelectedChart)));
         }
 
         protected override bool OnKeyDown(KeyDownEvent e)

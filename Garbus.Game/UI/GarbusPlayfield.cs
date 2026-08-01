@@ -21,6 +21,12 @@ namespace Garbus.Game.UI;
 [Cached]
 public partial class GarbusPlayfield : Playfield
 {
+    /// <summary>
+    /// The screen-edge padding inside which the playfield circle is inscribed. Shared with
+    /// <see cref="JacketBackground"/> so the background's jacket disc aligns with the judgement ring.
+    /// </summary>
+    public const float SCREEN_PADDING = 30;
+
     private readonly Ring ring = new Ring();
 
     private readonly Drawable stickIndicatorL = new StickIndicator() { Side = HorizontalDirection.Left };
@@ -58,7 +64,7 @@ public partial class GarbusPlayfield : Playfield
     {
         this.interactive = interactive;
         warningIndicators = miniStyle ? new MiniWarningIndicatorDisplay() : new WarningIndicatorDisplay();
-        Padding = new MarginPadding(30);
+        Padding = new MarginPadding(SCREEN_PADDING);
         AddNested(ring);
     }
 

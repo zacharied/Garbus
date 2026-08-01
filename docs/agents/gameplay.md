@@ -15,6 +15,7 @@ points there for authority. The data model is in [charts.md](charts.md); actions
 Objects spawn at the **centre** of a circular playfield and travel **outward** to the ring, where
 they are judged in time with the music.
 
+- `UI/JacketBackground.cs` — the static jacket background under the playfield (hosted by `PlayScreen`, outside the gameplay-clock subtree): the song jacket circle-clipped to the ring's disc (sharing `GarbusPlayfield.SCREEN_PADDING` for alignment) plus a one-shot cached downscale+blur color wash behind it. Tuned in `Tuning/TestSceneJacketBackgroundTuning`.
 - `UI/GarbusPlayfield.cs` — the top-level playfield (a `ScrollingPlayfield`).
 - `UI/Ring.cs` — the judgement ring at the playfield edge. It owns the hit-object layers and, above
   them, the `JudgementFeedbackDisplay` (below). It also hosts the keybeams (`PlayfieldKeybeam`),

@@ -5,6 +5,7 @@ using System.Text;
 using Garbus.Game.Charts.Format;
 using osu.Framework.Audio;
 using osu.Framework.Audio.Track;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 
@@ -23,6 +24,9 @@ public class SongFile : IDisposable
 
     private ITrackStore? trackStore;
     private string? trackStoreDirectory;
+
+    private LargeTextureStore? jacketStore;
+    private string? jacketStoreDirectory;
 
     public SongFile(GarbusSong song, string? filePath = null, bool needsVersionUpgrade = false)
     {
@@ -78,6 +82,13 @@ public class SongFile : IDisposable
             trackStoreDirectory = null;
         }
 
+        if (!string.Equals(destinationDirectory, jacketStoreDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            jacketStore?.Dispose();
+            jacketStore = null;
+            jacketStoreDirectory = null;
+        }
+
         FilePath = absolutePath;
         NeedsVersionUpgrade = false;
     }
@@ -111,6 +122,27 @@ public class SongFile : IDisposable
         trackStore = audio.GetTrackStore(new StorageBackedResourceStore(new NativeStorage(Directory)));
         trackStoreDirectory = Directory;
         return trackStore;
+    }
+
+    /// <summary>
+    /// Loads the song's jacket texture from its directory, or null when the song has never been
+    /// saved or has no <see cref="SongResources.Background"/>. Mirrors <see cref="GetTrackStore"/>'s
+    /// per-directory store caching. LargeTextureStore: jackets are large and must not be atlased.
+    /// </summary>
+    public Texture? GetJacketTexture(GameHost host)
+    {
+        if (Directory == null || string.IsNullOrEmpty(Song.Resources.Background))
+            return null;
+
+        if (jacketStore == null || !string.Equals(jacketStoreDirectory, Directory, StringComparison.OrdinalIgnoreCase))
+        {
+            jacketStore = new LargeTextureStore(host.Renderer,
+                host.CreateTextureLoaderStore(new StorageBackedResourceStore(new NativeStorage(Directory))),
+                manualMipmaps: false);
+            jacketStoreDirectory = Directory;
+        }
+
+        return jacketStore.Get(Song.Resources.Background);
     }
 
     public Stream? GetAudioStream()
@@ -162,6 +194,9 @@ public class SongFile : IDisposable
         (trackStore as IDisposable)?.Dispose();
         trackStore = null;
         trackStoreDirectory = null;
+        jacketStore?.Dispose();
+        jacketStore = null;
+        jacketStoreDirectory = null;
         IsDisposed = true;
     }
 

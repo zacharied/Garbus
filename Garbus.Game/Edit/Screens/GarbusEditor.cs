@@ -21,6 +21,7 @@ using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
+using osu.Framework.Platform;
 using osu.Framework.Screens;
 using osuTK.Input;
 
@@ -34,6 +35,9 @@ namespace Garbus.Game.Edit.Screens
 
         [Resolved(CanBeNull = true)]
         private ISettingsOverlayControl? settingsControl { get; set; }
+
+        [Resolved]
+        private GameHost gameHost { get; set; } = null!;
 
         /// <summary>
         /// An offset (ms) applied to waveform visuals to align them with expectations.
@@ -381,7 +385,7 @@ namespace Garbus.Game.Edit.Screens
             // editor no longer needs its own ad-hoc pre-roll offset.
             double startTime = Math.Max(0, editorClock.CurrentTime);
 
-            this.Push(new PlayScreen(clonedChart, freshTrack, startTime));
+            this.Push(new PlayScreen(clonedChart, freshTrack, startTime, SongFile.GetJacketTexture(gameHost)));
         }
 
         public override void OnResuming(ScreenTransitionEvent e)

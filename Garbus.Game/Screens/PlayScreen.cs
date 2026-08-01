@@ -12,6 +12,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Input.Events;
 using osu.Framework.Screens;
 using Garbus.Game.Charts;
@@ -46,6 +47,7 @@ namespace Garbus.Game.Screens
 
         private GarbusChart chart = null!;
         private double chartEndTime;
+        private readonly Texture? jacket;
 
         // Scoring state, reverted through JudgementResult's stored prior values on rewind.
         private readonly Dictionary<HitResult, int> resultCounts = new Dictionary<HitResult, int>();
@@ -114,7 +116,8 @@ namespace Garbus.Game.Screens
         /// (the clock actually starts <c>LEAD_IN_TIME</c> before this), so no pre-roll offset is
         /// baked in here.
         /// </param>
-        public PlayScreen(GarbusChart chart, Track track, double startTime = 0)
+        /// <param name="jacket">The jacket texture to show as the gameplay background, or null for none.</param>
+        public PlayScreen(GarbusChart chart, Track track, double startTime = 0, Texture? jacket = null)
         {
             var bridgeSong = new GarbusSong { Charts = { chart } };
             injectedPlayableChart = new PlayableChart(
@@ -123,13 +126,15 @@ namespace Garbus.Game.Screens
                 chart.ControlPointInfo ?? new Charts.Timing.ControlPointInfo());
             injectedTrack = track;
             StartTime = startTime;
+            this.jacket = jacket;
         }
 
-        public PlayScreen(PlayableChart chart, Track track, double startTime = 0)
+        public PlayScreen(PlayableChart chart, Track track, double startTime = 0, Texture? jacket = null)
         {
             injectedPlayableChart = chart;
             injectedTrack = track;
             StartTime = startTime;
+            this.jacket = jacket;
         }
 
         [BackgroundDependencyLoader]
@@ -165,6 +170,7 @@ namespace Garbus.Game.Screens
                     Colour = new Color4(18, 18, 26, 255),
                     RelativeSizeAxes = Axes.Both,
                 },
+                new JacketBackground(jacket),
                 gameplayClock = new MasterGameplayClockContainer(track, StartTime)
                 {
                     // The overlay must live inside the gameplay-clock subtree so it reads gameplay
