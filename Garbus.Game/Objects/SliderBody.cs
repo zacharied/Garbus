@@ -34,7 +34,7 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle, IHasS
     public double EndTime => StartTime + Duration;
 
     /// <summary>
-    /// The absolute time of the node immediately preceding <paramref name="child"/> along the path —
+    /// The absolute time of the judged node immediately preceding <paramref name="child"/> along the path —
     /// the start of the segment that ends at the child. For the first control point this is the head
     /// node at <see cref="HitObject.StartTime"/>.
     /// </summary>
@@ -42,8 +42,13 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle, IHasS
     {
         // Node 0 is the head at StartTime; control point i is node i+1 at StartTime + TimeOffset.
         // IndexOf is by reference (each control point instance is unique), matching DrawableSliderBody.
-        int index = Path.ControlPoints.IndexOf(child.ControlPoint);
-        return index <= 0 ? StartTime : StartTime + Path.ControlPoints[index - 1].TimeOffset;
+        int index = Path.ControlPoints.IndexOf(child.ControlPoint) - 1;
+
+        // Shape-only points are not nodes — the segment reaches back to the previous judged node.
+        while (index >= 0 && Path.ControlPoints[index].ShapeOnly)
+            index--;
+
+        return index < 0 ? StartTime : StartTime + Path.ControlPoints[index].TimeOffset;
     }
 
     /// <summary>
