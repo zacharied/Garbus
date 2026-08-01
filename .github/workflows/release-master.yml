@@ -9,6 +9,8 @@ on:
       - master
     paths:
       - .github/workflows/release-master.yml
+      - Garbus.Desktop/Garbus.Desktop.csproj
+      - Garbus.Desktop/Packaging/**
 
 concurrency:
   group: master-release-${{ github.ref }}
@@ -32,7 +34,7 @@ jobs:
       - name: Run tests
         run: dotnet test Garbus.Game.Tests/Garbus.Game.Tests.csproj --configuration Release
 
-      - name: Publish archives
+      - name: Publish unsigned archives
         shell: bash
         run: |
           set -euo pipefail
@@ -40,7 +42,7 @@ jobs:
           rm -rf release
           mkdir -p release
 
-          for rid in win-x64 linux-x64; do
+          for rid in win-x64 linux-x64 osx-arm64; do
             package_root="release/${rid}"
             publish_dir="${package_root}/Garbus"
 
@@ -53,6 +55,7 @@ jobs:
             case "${rid}" in
               win-x64) launch_command='Garbus.exe' ;;
               linux-x64) launch_command='./Garbus' ;;
+              osx-arm64) launch_command='./Garbus' ;;
             esac
 
             printf '%s\n' \
@@ -62,17 +65,142 @@ jobs:
               "Launch: ${launch_command}" \
               > "${publish_dir}/BUILD-INFO.txt"
 
+            case "${rid}" in
+              win-x64)
+                test -f "${publish_dir}/update.bat"
+                test ! -e "${publish_dir}/update.sh"
+                ;;
+              linux-x64|osx-arm64)
+                test -x "${publish_dir}/update.sh"
+                test ! -e "${publish_dir}/update.bat"
+                bash -n "${publish_dir}/update.sh"
+                ;;
+            esac
+
             (
               cd "${package_root}"
-              zip -9 -r "../Garbus-${rid}.zip" Garbus
+              if [[ "${rid}" == 'osx-arm64' ]]; then
+                zip -9 -r "../Garbus-${rid}-unsigned.zip" Garbus
+              else
+                zip -9 -r "../Garbus-${rid}.zip" Garbus
+              fi
             )
 
             rm -rf "${package_root}"
           done
 
+      - name: Upload unsigned Windows and Linux archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-desktop-release
+          path: |
+            release/Garbus-win-x64.zip
+            release/Garbus-linux-x64.zip
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload unsigned macOS archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-macos-release
+          path: release/Garbus-osx-arm64-unsigned.zip
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  sign-macos:
+    name: Sign macOS archive
+    needs: package
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download unsigned macOS archive
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-macos-release
+          path: unsigned-release
+
+      - name: Sign macOS binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p signed-package signed-release verify-package
+          ditto -x -k \
+            unsigned-release/Garbus-osx-arm64-unsigned.zip \
+            signed-package
+          chmod +x signed-package/Garbus/Garbus
+
+          while IFS= read -r -d '' binary; do
+            if file "${binary}" | grep -q 'Mach-O'; then
+              codesign --force --sign - --timestamp=none "${binary}"
+            fi
+          done < <(find signed-package/Garbus -type f ! -path '*/Garbus' -print0)
+
+          codesign --force --sign - --timestamp=none signed-package/Garbus/Garbus
+
+          signature_info="$(codesign -dvv signed-package/Garbus/Garbus 2>&1)"
+          grep -Fx 'Signature=adhoc' <<< "${signature_info}"
+          grep -Fx "Commit: ${GITHUB_SHA}" signed-package/Garbus/BUILD-INFO.txt
+          grep -Fx 'Runtime: osx-arm64' signed-package/Garbus/BUILD-INFO.txt
+
+          ditto -c -k --keepParent \
+            signed-package/Garbus \
+            signed-release/Garbus-osx-arm64.zip
+
+          ditto -x -k signed-release/Garbus-osx-arm64.zip verify-package
+          while IFS= read -r -d '' binary; do
+            if file "${binary}" | grep -q 'Mach-O'; then
+              codesign --verify --strict --verbose=2 "${binary}"
+            fi
+          done < <(find verify-package/Garbus -type f -print0)
+
+      - name: Upload signed macOS archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-macos-release
+          path: signed-release/Garbus-osx-arm64.zip
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  assemble:
+    name: Assemble release files
+    needs:
+      - package
+      - sign-macos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download unsigned Windows and Linux archives
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-desktop-release
+          path: unsigned-release
+
+      - name: Download signed macOS archive
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-macos-release
+          path: signed-release
+
+      - name: Assemble and verify release files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p release
+          cp unsigned-release/Garbus-win-x64.zip release/
+          cp unsigned-release/Garbus-linux-x64.zip release/
+          cp signed-release/Garbus-osx-arm64.zip release/
+
           (
             cd release
             sha256sum Garbus-*.zip > SHA256SUMS.txt
+            sha256sum --check SHA256SUMS.txt
           )
 
       - name: Upload release files
@@ -82,6 +210,7 @@ jobs:
           path: |
             release/Garbus-win-x64.zip
             release/Garbus-linux-x64.zip
+            release/Garbus-osx-arm64.zip
             release/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 1
@@ -90,7 +219,7 @@ jobs:
   release:
     name: Publish commit prerelease
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: package
+    needs: assemble
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -117,6 +246,7 @@ jobs:
 
           - Windows x64: \`Garbus-win-x64.zip\`
           - Linux x64: \`Garbus-linux-x64.zip\`
+          - macOS Apple Silicon: \`Garbus-osx-arm64.zip\`
           - Download verification: \`SHA256SUMS.txt\`
           EOF
 

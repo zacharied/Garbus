@@ -1,5 +1,6 @@
-// The rebind sub-view: a Back button, one KeyBindingRow per GarbusAction, and a Reset-to-defaults
-// button. Given the store by its host (SettingsOverlay) so it stays test-constructible without DI.
+// The rebind sub-view: one KeyBindingRow per GarbusAction and a Reset-to-defaults button. The title
+// and the back affordance live on the shared SettingsPanelHeader, not here. Given the store by its
+// host (SettingsOverlay) so it stays test-constructible without DI.
 
 using System;
 using Garbus.Game.Input;
@@ -17,16 +18,14 @@ namespace Garbus.Game.Settings
     public partial class ControlsPanel : CompositeDrawable
     {
         private readonly KeyBindingStore store;
-        private readonly Action onBack;
 
-        public ControlsPanel(KeyBindingStore store, Action onBack)
+        public ControlsPanel(KeyBindingStore store)
         {
             this.store = store;
-            this.onBack = onBack;
 
             RelativeSizeAxes = Axes.X;
             AutoSizeAxes = Axes.Y;
-            Padding = new MarginPadding(20);
+            Padding = new MarginPadding { Horizontal = 20 };
         }
 
         [BackgroundDependencyLoader]
@@ -39,14 +38,6 @@ namespace Garbus.Game.Settings
                 Direction = FillDirection.Vertical,
                 Spacing = new Vector2(0, 6),
             };
-
-            flow.Add(new ClickableText("‹ Back", onBack));
-            flow.Add(new SpriteText
-            {
-                Text = "Controls",
-                Font = FontUsage.Default.With(size: 24),
-                Colour = Color4.White,
-            });
 
             foreach (GarbusAction action in Enum.GetValues<GarbusAction>())
                 flow.Add(new KeyBindingRow(store, action));

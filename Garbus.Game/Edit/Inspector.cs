@@ -8,7 +8,9 @@
 // control-point nodes are picked in a SliderSelectionBlueprint. Each shows "<multiple>" (a dash, for the checkbox)
 // when the selection's values disagree and applies an edit to the whole selection as one undo step. Node selection
 // isn't in EditorChart.SelectedHitObjects — polled via the composer's SelectionHandler alongside the 250ms rolling
-// refresh.
+// refresh. Unlike osu's text-only inspector this one builds real controls, so rebuilds are throttled: update events
+// coalesce via Scheduler.AddOnce, and the controls block is reconstructed only when its rendered inputs
+// (buildControlsSignature) change — the per-drag-event widget teardown was a GC storm otherwise.
 
 using System;
 using System.Collections.Generic;
@@ -18,6 +20,7 @@ using Garbus.Game.Edit.Blueprints;
 using Garbus.Game.Gameplay.Objects;
 using Garbus.Game.Gameplay.Objects.Types;
 using Garbus.Game.Objects;
+using Garbus.Game.UI;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -85,7 +88,8 @@ namespace Garbus.Game.Edit
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,
                     },
-                    controlsFlow = new FillFlowContainer
+                    // Front-first so an open dropdown menu pops over the control rows below it.
+                    controlsFlow = new FrontFirstFillFlowContainer
                     {
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,
@@ -100,8 +104,11 @@ namespace Garbus.Game.Edit
         {
             base.LoadComplete();
 
-            editorChart.SelectedHitObjects.CollectionChanged += (_, _) => rebuild();
-            editorChart.HitObjectUpdated += _ => rebuild();
+            // AddOnce: a drag updates every selected object every mouse-move event, so the raw events
+            // arrive N-per-frame — coalesce to one rebuild per frame (same pattern as
+            // EditorSelectionHandler's ternary-state refresh).
+            editorChart.SelectedHitObjects.CollectionChanged += (_, _) => Scheduler.AddOnce(rebuild);
+            editorChart.HitObjectUpdated += _ => Scheduler.AddOnce(rebuild);
             rebuild();
         }
 
@@ -149,33 +156,88 @@ namespace Garbus.Game.Edit
             return set;
         }
 
+        // Flattened inputs of the controls block as last built — see buildControlsSignature.
+        private readonly List<object?> controlsSignature = new List<object?>();
+
         private void rebuild()
         {
-            inspectorText.Clear();
-            controlsFlow.Clear();
-
             rollingUpdate?.Cancel();
             rollingUpdate = null;
 
             var objects = editorChart.SelectedHitObjects.ToArray();
             var selectedNodes = collectSelectedNodes();
+            var selectedHeads = collectHeadSelectedSliders();
 
             lastNodeSelectionSnapshot.Clear();
             foreach (var n in selectedNodes) lastNodeSelectionSnapshot.Add(n);
 
             lastHeadSelectionSnapshot.Clear();
-            foreach (var h in collectHeadSelectedSliders()) lastHeadSelectionSnapshot.Add(h);
+            foreach (var h in selectedHeads) lastHeadSelectionSnapshot.Add(h);
 
-            writeSummary(objects, selectedNodes);
-            addControls(objects, selectedNodes);
+            inspectorText.Clear();
+            writeSummary(objects, selectedNodes, selectedHeads);
+
+            // The controls (dropdowns with DI loads, buttons) are far more expensive to construct than
+            // the text, and a drag fires an update per frame while changing nothing a control renders —
+            // reconstruct them only when their rendered inputs actually differ, else the discarded
+            // widget trees alone drive GC pressure at drag rates.
+            var signature = buildControlsSignature(objects, selectedNodes, selectedHeads);
+            if (!signature.SequenceEqual(controlsSignature))
+            {
+                controlsSignature.Clear();
+                controlsSignature.AddRange(signature);
+
+                controlsFlow.Clear();
+                addControls(objects, selectedNodes, selectedHeads);
+            }
 
             // Middle-ground rolling refresh (osu's HitObjectInspector does the same) — catches value changes
             // from drags/other panels without binding to every property.
-            if (objects.Length > 0 || selectedNodes.Count > 0 || collectHeadSelectedSliders().Count > 0)
+            if (objects.Length > 0 || selectedNodes.Count > 0 || selectedHeads.Count > 0)
                 rollingUpdate ??= Scheduler.AddDelayed(rebuild, 250);
         }
 
-        private void writeSummary(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes)
+        /// <summary>
+        /// Everything the controls block renders, flattened for equality: the selected objects, nodes
+        /// and heads by identity, then each control's aggregate state and each button's eligibility.
+        /// <see cref="rebuild"/> skips reconstructing the controls while this is unchanged, so any
+        /// control added to <see cref="addControls"/> must contribute its inputs here or it goes stale.
+        /// </summary>
+        private static List<object?> buildControlsSignature(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes, HashSet<SliderBody> selectedHeads)
+        {
+            var sig = new List<object?>();
+
+            sig.AddRange(objects);
+            sig.Add(null);
+            sig.AddRange(selectedNodes);
+            sig.Add(null);
+            sig.AddRange(selectedHeads);
+            sig.Add(null);
+
+            if (objects.Length > 0 && objects.All(o => o is IHasSide))
+                sig.Add(MultiValue.Aggregate(objects.Cast<IHasSide>().ToArray(), s => s.Side));
+
+            if (objects.Length > 0 && objects.All(o => o is GarbusSlamEdge))
+                sig.Add(MultiValue.Aggregate(objects.Cast<GarbusSlamEdge>().ToArray(), s => s.Direction));
+
+            sig.Add(objects.Length >= 2 && objects.All(o => o is SliderBody)
+                    && selectedNodes.Count == 0 && selectedHeads.Count == 0
+                    && timeRangesDisjoint(objects.Cast<SliderBody>().ToArray()));
+
+            if (selectedNodes.Count > 0)
+            {
+                var nodes = selectedNodes.ToArray();
+                sig.Add(MultiValue.Aggregate(nodes, n => n.SweepEasing));
+                sig.Add(MultiValue.Aggregate(nodes, n => n.Smooth));
+            }
+
+            foreach (var s in objects.OfType<SliderBody>())
+                sig.Add(s.Path.ControlPoints.Count > 0);
+
+            return sig;
+        }
+
+        private void writeSummary(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes, HashSet<SliderBody> selectedHeads)
         {
             if (objects.Length == 0 && selectedNodes.Count == 0)
             {
@@ -231,15 +293,14 @@ namespace Garbus.Game.Edit
                     break;
             }
 
-            int headCount = collectHeadSelectedSliders().Count;
-            if (selectedNodes.Count + headCount > 0)
+            if (selectedNodes.Count + selectedHeads.Count > 0)
             {
                 addHeader("Selected Nodes");
-                addValue($"{selectedNodes.Count + headCount}");
+                addValue($"{selectedNodes.Count + selectedHeads.Count}");
             }
         }
 
-        private void addControls(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes)
+        private void addControls(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes, HashSet<SliderBody> selectedHeads)
         {
             // Side: every selected object must carry a mutable Side (slider + both slam types).
             if (objects.Length > 0 && objects.All(o => o is IHasSide))
@@ -282,7 +343,7 @@ namespace Garbus.Game.Edit
             // homogeneous multi-slider selection with no node/head picks and no time-range overlap —
             // the same conditions the merge itself relies on to build a valid, non-decreasing path.
             if (objects.Length >= 2 && objects.All(o => o is SliderBody)
-                && selectedNodes.Count == 0 && collectHeadSelectedSliders().Count == 0)
+                && selectedNodes.Count == 0 && selectedHeads.Count == 0)
             {
                 var sliders = objects.Cast<SliderBody>().ToArray();
 

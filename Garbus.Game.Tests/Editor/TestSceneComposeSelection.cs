@@ -3199,6 +3199,178 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        /// <summary>
+        /// An open inspector dropdown menu behaves like a desktop combo box: it pops over the rows
+        /// below it rather than growing its own row and reflowing the toolbox. With two slam edges
+        /// selected the inspector shows a Side row above a Direction row; opening the Side menu must
+        /// leave the Direction row in place, overlap it, and draw in front of it.
+        /// </summary>
+        [Test]
+        public void TestInspectorDropdownMenuPopsOverRowsBelow()
+        {
+            waitForComposer();
+
+            AddStep("add two selected slam edges", () =>
+            {
+                var a = new GarbusSlamEdge { AngleDeg = 0, Side = HorizontalDirection.Left, StartTime = 1000 };
+                var b = new GarbusSlamEdge { AngleDeg = 90, Side = HorizontalDirection.Right, StartTime = 2000 };
+                editorChart.Add(a);
+                editorChart.Add(b);
+                editorChart.SelectedHitObjects.Add(a);
+                editorChart.SelectedHitObjects.Add(b);
+            });
+
+            MultiValueEnumDropdown<HorizontalDirection> sideDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+            MultiValueEnumDropdown<RotationalDirection> directionDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Single();
+            Menu sideMenu() => sideDropdown().ChildrenOfType<Menu>().Single();
+
+            AddUntilStep("Side and Direction rows appear", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any() &&
+                composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Any());
+
+            float directionY = 0;
+            AddStep("capture Direction row Y", () => directionY = directionDropdown().ScreenSpaceDrawQuad.TopLeft.Y);
+
+            AddStep("open Side menu", () => sideMenu().Open());
+            AddUntilStep("menu open", () => sideMenu().State == MenuState.Open);
+
+            AddUntilStep("menu overlaps Direction row", () =>
+                sideMenu().ScreenSpaceDrawQuad.AABBFloat.IntersectsWith(directionDropdown().ScreenSpaceDrawQuad.AABBFloat));
+            AddAssert("Direction row did not move", () =>
+                Precision.AlmostEquals(directionY, directionDropdown().ScreenSpaceDrawQuad.TopLeft.Y));
+            AddAssert("inspector rows draw front-to-back downward", () =>
+            {
+                // Draw order of the inspector's control rows (list order, back-to-front) must be the
+                // reverse of layout order (top-to-bottom) so the open menu covers the rows below it.
+                var flow = (FillFlowContainer)sideDropdown().Parent!.Parent!;
+                var rows = flow.Children.Where(c => c.IsPresent).ToList();
+                var topToBottom = rows.OrderBy(r => r.ScreenSpaceDrawQuad.TopLeft.Y).ToList();
+                return rows.Count >= 2 && topToBottom.SequenceEqual(rows.AsEnumerable().Reverse());
+            });
+        }
+
+        [Test]
+        public void TestSlamEdgeDragDoesNotRecreateInspectorControls()
+        {
+            // GC-storm pin, inspector half: every drag event fires HitObjectUpdated, which used to
+            // clear + reconstruct the whole inspector (text, plus Side AND Direction dropdowns with
+            // their DI loads — slam edges build both, the priciest selection type) once per event.
+            // At drag rates that churn alone drove a blocking gen1 GC every few frames. A value-only
+            // update (the angle moving) must leave the control drawables untouched; only the text
+            // summary may refresh.
+            waitForComposer();
+            // 45° is grid-degrees 315; dragging +90° crosses the wrap seam, mirroring the live repro.
+            placeSlamEdgeAt(45);
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamEdge>());
+
+            AddUntilStep("Side and Direction dropdowns shown", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any()
+                && composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Any());
+
+            Drawable sideDropdown = null!;
+            Drawable directionDropdown = null!;
+            AddStep("capture control instances", () =>
+            {
+                sideDropdown = composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+                directionDropdown = composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Single();
+            });
+
+            AddStep("press mouse on slam", () =>
+            {
+                input.MoveMouseTo(screenPositionOf(placedObject<GarbusSlamEdge>()!));
+                input.PressButton(MouseButton.Left);
+            });
+            AddRepeatStep("drag 3° right", () => dragStepRight(3), 30);
+            AddStep("release", () => input.ReleaseButton(MouseButton.Left));
+
+            AddAssert("slam followed cursor across seam to 135", () => placedObject<GarbusSlamEdge>()?.AngleDeg, () => Is.EqualTo(135));
+            AddAssert("Side dropdown never recreated", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single(), () => Is.SameAs(sideDropdown));
+            AddAssert("Direction dropdown never recreated", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Single(), () => Is.SameAs(directionDropdown));
+            // The text summary must still track the drag — controls are pinned, values are not.
+            AddUntilStep("summary text shows the new angle", () =>
+                composer.ChildrenOfType<Inspector>().Single().ChildrenOfType<SpriteText>()
+                        .Any(t => t.Text.ToString() == "135°"));
+        }
+
+        [Test]
+        public void TestExternalSideChangeRefreshesInspectorDropdown()
+        {
+            // Staleness guard for the signature-gated rebuild: a dropdown captures its aggregate at
+            // construction, so when a control-relevant value changes through another path (here the
+            // S-key side flip) the inspector must still reconstruct the control — only value-neutral
+            // updates may skip it.
+            waitForComposer();
+            placeSlamEdgeAt(270);
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamEdge>());
+
+            MultiValueEnumDropdown<HorizontalDirection> sideDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+
+            AddUntilStep("Side dropdown appears", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any());
+            AddAssert("dropdown shows the placed side", () => sideDropdown().Current.Value,
+                () => Is.EqualTo(new MultiValueEnumDropdown<HorizontalDirection>.Choice(placedObject<GarbusSlamEdge>()!.Side)));
+
+            HorizontalDirection flipped = default;
+            AddStep("flip side via S", () =>
+            {
+                var slam = placedObject<GarbusSlamEdge>()!;
+                flipped = slam.Side == HorizontalDirection.Left ? HorizontalDirection.Right : HorizontalDirection.Left;
+                input.Key(Key.S);
+            });
+            AddAssert("model side flipped", () => placedObject<GarbusSlamEdge>()!.Side, () => Is.EqualTo(flipped));
+            AddUntilStep("dropdown follows the flip", () =>
+                sideDropdown().Current.Value.Equals(new MultiValueEnumDropdown<HorizontalDirection>.Choice(flipped)));
+        }
+
+        [Test]
+        public void TestSettledTwinVisibilityIsNotReassertedEveryFrame()
+        {
+            // GC-storm pin, drawable half: updateTwin (editor drawable base + selection blueprint base)
+            // ran Show()/Hide() on the ghost twin every frame, allocating a fade transform per drawable
+            // per frame — during a seam drag that churn sat right next to the inspector rebuild in the
+            // trace. Show/Hide must fire only on visibility transitions. Observable: an alpha probe set
+            // on the twin from outside survives when the state machine is quiet, but a per-frame
+            // re-assert stomps it back to the twin's nominal 1 (shown) / 0 (hidden) within a frame.
+            // 0.31 is an arbitrary probe value, asserted only against itself.
+            waitForComposer();
+            placeSlamEdgeAt(105); // grid 15° — inside the 30° ghost band, so the twin exists and shows.
+
+            hoverThenClick(() => screenPositionOf(placedObject<GarbusSlamEdge>()!));
+            AddAssert("slam selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<GarbusSlamEdge>());
+            AddUntilStep("twin visual exists", () =>
+                composer.HitObjects.Single().ChildrenOfType<EditorSpritePiece>().Count() > 1);
+
+            // The twin is the piece the state machine offsets sideways; the main copy sits at X == 0.
+            Drawable drawableTwin = null!;
+            AddStep("capture twin piece", () =>
+                drawableTwin = composer.HitObjects.Single().ChildrenOfType<EditorSpritePiece>().Single(p => p.X != 0));
+
+            AddStep("probe alpha on shown twin", () => drawableTwin.FadeTo(0.31f));
+            AddWaitStep("hold with twin shown", 3);
+            AddAssert("twin probe survived", () => drawableTwin.Alpha, () => Is.EqualTo(0.31f).Within(0.001f));
+
+            AddStep("move slam away from the seam", () =>
+            {
+                placedObject<GarbusSlamEdge>()!.AngleDeg = 270;
+                editorChart.Update(placedObject<GarbusSlamEdge>()!);
+            });
+            AddWaitStep("let the one-shot hide apply", 2);
+            AddAssert("twin hidden after leaving the band", () => drawableTwin.Alpha == 0);
+
+            AddStep("probe alpha on hidden twin", () => drawableTwin.FadeTo(0.31f));
+            AddWaitStep("hold with twin hidden", 3);
+            AddAssert("twin probe survived hide state", () => drawableTwin.Alpha, () => Is.EqualTo(0.31f).Within(0.001f));
+        }
+
         [Test]
         public void TestEasingDropdownShowsMultipleForDifferingNodes()
         {

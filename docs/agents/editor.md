@@ -40,10 +40,12 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   after passing it.
 - `Edit/Drawables/` — simplified editor sprites (separate from the gameplay polar drawables); x is
   driven from angle every frame plus a ±360° ghost twin near grid edges. **Non-pooled**, tracked in
-  the composer's per-hit-object `drawableMap`. In `SliderPolylineVisual`, node dots are
-  `SliderNodeMarker`s: filled for judged nodes, hollow rings for shape-only control points (tuned in
-  `TestSceneSliderNodeMarkerTuning`). Gameplay renders shape-only points seamlessly — the compose dot
-  is the only place the distinction is visible.
+  the composer's per-hit-object `drawableMap`. The twin's `Show`/`Hide` fires only on visibility
+  transitions (per-frame re-asserting allocated a fade transform per drawable per frame — GC churn at
+  drag rates; pin: `TestSettledTwinVisibilityIsNotReassertedEveryFrame`). In `SliderPolylineVisual`,
+  node dots are `SliderNodeMarker`s: filled for judged nodes, hollow rings for shape-only control
+  points (tuned in `TestSceneSliderNodeMarkerTuning`). Gameplay renders shape-only points seamlessly —
+  the compose dot is the only place the distinction is visible.
 - `Edit/Compose/` — the vendored blueprint/composer stack: `BlueprintContainer`,
   `ComposeBlueprintContainer`, `HitObjectComposer`/`ScrollingHitObjectComposer`, placement/selection
   blueprints, `SelectionBox`, `BeatSnapGrid`, drag box, radio-button toolbox, `GarbusMenu`/toggle
@@ -64,7 +66,26 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
 selection-dependent controls (built in `addControls`). Values aggregate via `MultiValue`, rendering
 disagreement as `<multiple>` (an indeterminate dash for the checkbox); every edit writes the whole
 selection in one undo transaction. Node/head selection isn't event-observable, so the inspector polls
-it each frame and re-reads values on a 250ms roll — a control drawable is replaced regularly.
+it each frame and re-reads values on a 250ms roll.
+
+Rebuilds are throttled two ways, because a drag fires `HitObjectUpdated` per selected object per
+mouse-move event and a full per-event reconstruction (two dropdowns with DI loads for a slam-edge
+selection) was a GC storm at drag rates: events coalesce through `Scheduler.AddOnce(rebuild)`, and
+within a rebuild the text summary is always rewritten but `addControls` runs only when
+`buildControlsSignature` (selection identity + each control's aggregate state + each button's
+eligibility) differs from the last build. **Any control added to `addControls` must contribute its
+inputs to the signature or it goes stale** — a value-only change that the signature misses will leave
+the control showing the old value. Pins: `TestSlamEdgeDragDoesNotRecreateInspectorControls`
+(controls survive a drag; text still tracks), `TestExternalSideChangeRefreshesInspectorDropdown`
+(signature-covered value change still rebuilds).
+
+Editor dropdowns (`MultiValueEnumDropdown`, the setup tab's difficulty dropdown) derive from
+`UI/PopoverDropdown` so an open menu pops over the content below instead of reflowing it; the flows
+that stack them (the inspector's control rows, `ExpandingToolboxContainer`, the setup tab columns and
+sections) are `UI/FrontFirstFillFlowContainer`s so the menu draws — and receives input — in front of
+that content. Any new vertical stack hosting a dropdown must be front-first too, and the same base
+caps the open menu's height so a long list (the Easing enum's three dozen entries) scrolls on the
+wheel instead of running off the bottom of the window (details in [screens.md](screens.md)).
 
 Each control appears only when the selection matches its condition:
 
@@ -187,6 +208,13 @@ viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. 
 - **Lambda event subscriptions leak.** Timeline/metronome components subscribe to
   `ControlPointInfo.ControlPointsChanged`, the clock, selection, `HitObjectUpdated`. Keep a field
   reference and unsubscribe in `Dispose`.
+- **`config.GetBindable(...)` copies need an owner or they are GC'd.** `GetBindable` returns a bound
+  copy the config holds only *weakly*, and `BindTo` links weakly in both directions — so a copy kept
+  alive only by a local, a closure that captures something else, or another bindable's bind link
+  disappears at the next GC and the setting silently stops propagating. Store it in a field.
+  `ToggleMenuItem` now owns the bindable handed to its constructor for exactly this reason (a menu
+  toggle whose copy was collected keeps flipping its own checkbox while writing nowhere, so it reads
+  as an inert setting). Pins: `TestSceneEditorViewMenuConfig`, `TestSceneComposeTabConfig`.
 - **The top/bottom bars must come AFTER the tab container in `GarbusEditor`'s child list** (osu's
   order: content first, bars after). The compose blueprint stack claims positional input over the
   whole screen (`ReceivePositionalInputAt => true`), so bars listed earlier never receive clicks and

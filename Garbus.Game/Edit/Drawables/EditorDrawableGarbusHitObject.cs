@@ -26,6 +26,10 @@ public abstract partial class EditorDrawableGarbusHitObject<T> : DrawableHitObje
 
     private Drawable? twin;
 
+    // Show/Hide allocate a fade transform per call, and updateTwin runs every frame — null until the
+    // twin's first state is applied, then tracks it so a fade fires only on an actual transition.
+    private bool? twinShown;
+
     protected EditorDrawableGarbusHitObject(T hitObject)
         : base(hitObject)
     {
@@ -63,10 +67,18 @@ public abstract partial class EditorDrawableGarbusHitObject<T> : DrawableHitObje
                 AddInternal(twin = CreateVisual());
 
             twin.X = (twinX - ComputeXFraction()) * (Parent?.DrawWidth ?? 0);
-            twin.Show();
+
+            if (twinShown != true)
+            {
+                twin.Show();
+                twinShown = true;
+            }
         }
-        else
-            twin?.Hide();
+        else if (twin != null && twinShown != false)
+        {
+            twin.Hide();
+            twinShown = false;
+        }
     }
 
     /// <summary>The x position (as a fraction of the full editor width). Defaults to the object's angle.</summary>

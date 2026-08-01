@@ -30,12 +30,22 @@ public class ToggleMenuItem : MenuItem
 {
     public readonly BindableBool State = new BindableBool();
 
+    /// <summary>
+    /// Strong reference to the bindable passed in. <see cref="Bindable{T}.BindTo"/> links only weakly in
+    /// both directions, and <c>ConfigManager.GetBindable</c> hands out a bound copy the config itself
+    /// holds only weakly — so without an owning reference here that copy becomes GC-eligible the moment
+    /// the caller's local goes out of scope. Once collected the item still flips <see cref="State"/> (and
+    /// its checkbox) but the change reaches nothing, making the toggle look inert.
+    /// </summary>
+    private readonly Bindable<bool> source;
+
     /// <param name="text">The displayed text.</param>
     /// <param name="state">The bindable this item's state follows and toggles (e.g. a config bindable).</param>
     public ToggleMenuItem(LocalisableString text, Bindable<bool> state)
         : base(text)
     {
-        State.BindTo(state);
+        source = state;
+        State.BindTo(source);
         Action.Value = () => State.Value = !State.Value;
     }
 }

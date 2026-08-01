@@ -12,6 +12,7 @@ using osu.Framework.Input.Events;
 using osu.Framework.Input.States;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
+using osu.Framework.Utils;
 
 namespace Garbus.Game.Tests.Visual
 {
@@ -28,6 +29,8 @@ namespace Garbus.Game.Tests.Visual
         private SettingsOverlay overlay => global.ChildrenOfType<SettingsOverlay>().Single();
         private BasicDropdown<FrameSync> frameLimiter => overlay.ChildrenOfType<BasicDropdown<FrameSync>>().Single();
         private BasicDropdown<WindowMode> screenMode => overlay.ChildrenOfType<BasicDropdown<WindowMode>>().Single();
+        private SettingsEnumDropdown<FrameSync> frameLimiterRow => overlay.ChildrenOfType<SettingsEnumDropdown<FrameSync>>().Single();
+        private SettingsEnumDropdown<WindowMode> screenModeRow => overlay.ChildrenOfType<SettingsEnumDropdown<WindowMode>>().Single();
 
         [SetUpSteps]
         public void SetUpSteps()
@@ -48,15 +51,21 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("gear hidden", () => gear.Alpha == 0);
         }
 
+        /// <summary>
+        /// The gear opens the overlay and yields to it: it fades out while the overlay is up (the
+        /// overlay owns dismissal via its leave button / Escape) and returns once the overlay closes.
+        /// </summary>
         [Test]
-        public void TestGearClickTogglesOverlay()
+        public void TestGearOpensOverlayAndYieldsToIt()
         {
             AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
             AddUntilStep("gear visible", () => gear.Alpha == 1);
             AddStep("click gear", () => gear.TriggerClick());
             AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
-            AddStep("click gear again", () => gear.TriggerClick());
+            AddUntilStep("gear hidden while overlay open", () => gear.Alpha == 0);
+            AddStep("close overlay", () => overlay.Hide());
             AddUntilStep("overlay hidden", () => overlay.State.Value == Visibility.Hidden);
+            AddUntilStep("gear returns", () => gear.Alpha == 1);
         }
 
         [Test]
@@ -113,6 +122,48 @@ namespace Garbus.Game.Tests.Visual
             AddStep("select fullscreen", () => screenMode.Current.Value = WindowMode.Fullscreen);
             AddAssert("config updated", () => frameworkConfig.Get<WindowMode>(FrameworkSetting.WindowMode) == WindowMode.Fullscreen);
         }
+
+        /// <summary>
+        /// An open dropdown menu behaves like a desktop combo box: it pops over the rows below it
+        /// rather than growing its own row. Later rows hold their position, the open menu's bounds
+        /// overlap the next row, and the settings flow draws earlier rows in front of later ones so
+        /// the menu is actually visible above them.
+        /// </summary>
+        [Test]
+        public void TestDropdownMenuPopsOverLaterRows()
+        {
+            AddStep("push allowed screen", () => stack.Push(new AllowedScreen()));
+            AddUntilStep("gear visible", () => gear.Alpha == 1);
+            AddStep("open overlay", () => gear.TriggerClick());
+            AddUntilStep("overlay visible", () => overlay.State.Value == Visibility.Visible);
+
+            float screenModeY = 0;
+            AddStep("capture screen-mode row Y", () => screenModeY = screenModeRow.ScreenSpaceDrawQuad.TopLeft.Y);
+
+            AddStep("open frame limiter menu", () => frameLimiterMenu.Open());
+            AddUntilStep("menu open", () => frameLimiterMenu.State == MenuState.Open);
+
+            AddUntilStep("menu overlaps screen-mode row", () =>
+                frameLimiterMenu.ScreenSpaceDrawQuad.AABBFloat.IntersectsWith(screenModeRow.ScreenSpaceDrawQuad.AABBFloat));
+            AddAssert("screen-mode row did not move", () =>
+                Precision.AlmostEquals(screenModeY, screenModeRow.ScreenSpaceDrawQuad.TopLeft.Y));
+            AddAssert("rows draw front-to-back down the panel", () =>
+            {
+                // Draw order in the settings flow (list order, back-to-front) must be the reverse of
+                // layout order (top-to-bottom) so an open menu on any row covers everything below it.
+                var rows = settingsFlow.Children.Where(c => c.IsPresent).ToList();
+                var topToBottom = rows.OrderBy(r => r.ScreenSpaceDrawQuad.TopLeft.Y).ToList();
+                return topToBottom.SequenceEqual(rows.AsEnumerable().Reverse());
+            });
+        }
+
+        private Menu frameLimiterMenu => frameLimiter.ChildrenOfType<Menu>().Single();
+
+        // The flow the dropdown rows actually sit in — the Graphics section's row flow, now that the
+        // panel is sectioned. Taken from the row's own Parent rather than by searching for a flow
+        // that Contains() it: a flow's child list is depth-sorted, so Contains() binary-searches by
+        // Depth and reports a match for any child sharing that depth, not for this instance.
+        private FillFlowContainer settingsFlow => (FillFlowContainer)frameLimiterRow.Parent!;
 
         /// <summary>
         /// A screen that allows settings but sets <see cref="IAllowSettings.ShowSettingsGear"/> to

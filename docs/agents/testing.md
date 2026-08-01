@@ -15,6 +15,19 @@ how-to they point at.
 - **Visual browser:** run `Garbus.Game.Tests` directly for the interactive test browser
   (`GarbusTestBrowser`) — step through scenes, watch draw counters, eyeball visuals.
 
+## Master release CI
+
+`.github/workflows/release-master.yml` runs the headless suite and cross-publishes self-contained
+`win-x64`, `linux-x64`, and `osx-arm64` archives on Ubuntu. The macOS publish then passes through a
+dedicated `macos-latest` job that only signs and verifies the Mach-O files; it does not rebuild the
+game. Ubuntu assembles the signed macOS archive with the Windows and Linux archives and generates
+`SHA256SUMS.txt` from those final bytes.
+
+The macOS archive uses an ad-hoc signature (`codesign --sign -`) so Apple Silicon accepts the
+cross-published executable and native libraries. It is not Developer ID signed or notarized. Pull
+requests that change the workflow exercise build, signing, and assembly with read-only permissions;
+only a successful push to `master` can publish the commit-specific prerelease.
+
 ## Layout
 
 - `Garbus.Game.Tests/Visual/` — `TestScene`-based scenes; `GarbusTestScene` is the base (it hosts a
