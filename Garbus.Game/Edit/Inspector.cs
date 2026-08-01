@@ -203,7 +203,7 @@ namespace Garbus.Game.Edit
         /// <see cref="rebuild"/> skips reconstructing the controls while this is unchanged, so any
         /// control added to <see cref="addControls"/> must contribute its inputs here or it goes stale.
         /// </summary>
-        private static List<object?> buildControlsSignature(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes, HashSet<SliderBody> selectedHeads)
+        private List<object?> buildControlsSignature(GarbusHitObject[] objects, HashSet<GarbusPathControlPoint> selectedNodes, HashSet<SliderBody> selectedHeads)
         {
             var sig = new List<object?>();
 
@@ -229,6 +229,10 @@ namespace Garbus.Game.Edit
                 var nodes = selectedNodes.ToArray();
                 sig.Add(MultiValue.Aggregate(nodes, n => n.SweepEasing));
                 sig.Add(MultiValue.Aggregate(nodes, n => n.Smooth));
+
+                var eligibleNodes = ShapeOnlyEligible(nodes, slidersOwningSelectedNodes(selectedNodes));
+                if (eligibleNodes.Length > 0)
+                    sig.Add(MultiValue.Aggregate(eligibleNodes, n => n.ShapeOnly));
             }
 
             foreach (var s in objects.OfType<SliderBody>())
@@ -367,9 +371,7 @@ namespace Garbus.Game.Edit
                 var easingState = MultiValue.Aggregate(nodes, n => n.SweepEasing);
                 var smoothState = MultiValue.Aggregate(nodes, n => n.Smooth);
 
-                var affectedSliders = editorChart.HitObjects.OfType<SliderBody>()
-                    .Where(s => s.Path.ControlPoints.Any(cp => selectedNodes.Contains(cp)))
-                    .ToArray();
+                var affectedSliders = slidersOwningSelectedNodes(selectedNodes);
 
                 addMultiValueDropdown("Easing", easingState, value =>
                 {
@@ -433,6 +435,17 @@ namespace Garbus.Game.Edit
 
             changeHandler?.EndChange();
         }
+
+        /// <summary>
+        /// The sliders whose paths contain any of the <paramref name="selectedNodes"/> — the set the
+        /// per-node controls edit and refresh. Shared by <see cref="addControls"/> and
+        /// <see cref="buildControlsSignature"/> so the rendered state and its staleness signature
+        /// cannot diverge.
+        /// </summary>
+        private SliderBody[] slidersOwningSelectedNodes(HashSet<GarbusPathControlPoint> selectedNodes)
+            => editorChart.HitObjects.OfType<SliderBody>()
+                          .Where(s => s.Path.ControlPoints.Any(cp => selectedNodes.Contains(cp)))
+                          .ToArray();
 
         /// <summary>
         /// The selected nodes eligible for the Shape-only toggle: every node except its owning slider's

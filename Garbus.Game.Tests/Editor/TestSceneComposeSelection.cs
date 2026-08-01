@@ -3458,6 +3458,34 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        [Test]
+        public void TestShapeOnlyCheckboxRefreshesOnClick()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode(); // two control points: node 0 is eligible, node 1 is the (excluded) final point.
+
+            selectSliderOnLine();
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+
+            AddUntilStep("Shape only checkbox appears unchecked", () =>
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Shape only")?.State == TernaryState.False);
+
+            AddStep("click the checkbox", () =>
+            {
+                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First(c => c.Label == "Shape only"));
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("node 0 marked shape-only", () =>
+                placedObject<SliderBody>()!.Path.ControlPoints[0].ShapeOnly, () => Is.True);
+
+            // The display must follow the model without touching the selection: the model change fires
+            // HitObjectUpdated, whose rebuild reconstructs the checkbox with the new aggregate state.
+            AddUntilStep("Shape only checkbox shows checked", () =>
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Shape only")?.State == TernaryState.True);
+        }
+
         // ------------------------------------------------------------------
         // Merge sliders (inspector button)
         // ------------------------------------------------------------------
