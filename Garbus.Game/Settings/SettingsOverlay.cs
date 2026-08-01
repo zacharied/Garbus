@@ -43,6 +43,10 @@ namespace Garbus.Game.Settings
         private const float content_side_padding = 20;
         private const float content_bottom_padding = 40;
 
+        // Clearance between the header's bottom edge and the first row, so the header's drop shadow
+        // falls on empty panel rather than on the top row while the view sits unscrolled.
+        private const float content_header_gap = 16;
+
         [Resolved]
         private AudioManager audio { get; set; } = null!;
 
@@ -145,7 +149,7 @@ namespace Garbus.Game.Settings
 
         private MarginPadding contentPadding(float headerHeight) => new MarginPadding
         {
-            Top = headerHeight,
+            Top = headerHeight + content_header_gap,
             Bottom = content_bottom_padding,
         };
 

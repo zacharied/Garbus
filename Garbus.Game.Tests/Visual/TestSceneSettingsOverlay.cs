@@ -165,6 +165,36 @@ namespace Garbus.Game.Tests.Visual
         }
 
         /// <summary>
+        /// Unscrolled, the first row of either view sits clear of the header, so the header's drop
+        /// shadow falls on empty panel rather than on the top row. The size of that gap is a tuning
+        /// value; that it exists at all is the requirement.
+        /// </summary>
+        [Test]
+        public void TestFirstRowClearsHeader()
+        {
+            AddStep("show", () => overlay.Show());
+            AddUntilStep("panel slid in", () => headerButton.ScreenSpaceDrawQuad.TopLeft.X > 0);
+
+            AddAssert("settings first row clears the header", () =>
+                section("Audio").ScreenSpaceDrawQuad.TopLeft.Y > header.ScreenSpaceDrawQuad.BottomLeft.Y);
+
+            // The Controls row sits in the last section, below the fold of the shortened panel.
+            AddStep("scroll to end", () => settingsScroll.ScrollToEnd(false));
+
+            AddStep("click Controls", () =>
+            {
+                var controls = overlay.ChildrenOfType<SpriteText>().First(t => t.Text.ToString() == "Controls…");
+                manual.MoveMouseTo(controls);
+                manual.Click(MouseButton.Left);
+            });
+
+            AddUntilStep("controls first row clears the header", () =>
+                overlay.ChildrenOfType<KeyBindingRow>().Any()
+                && overlay.ChildrenOfType<KeyBindingRow>().Min(r => r.ScreenSpaceDrawQuad.TopLeft.Y)
+                   > header.ScreenSpaceDrawQuad.BottomLeft.Y);
+        }
+
+        /// <summary>
         /// The header button dismisses the overlay from the settings view, mirroring Escape /
         /// clicking outside the panel.
         /// </summary>
