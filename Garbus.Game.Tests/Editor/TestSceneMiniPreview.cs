@@ -161,7 +161,9 @@ namespace Garbus.Game.Tests.Editor
             AddUntilStep("drawable present at new time", () => drawable() != null);
 
             // Alive window (GarbusScrollingHitObjectContainer.setComputedLifetime) is
-            // [StartTime - TimeRange, GetEndTime() + TimeRange] = [1800, 3200]; the 350ms hit fade
+            // [StartTime - LeadTime, GetEndTime() + TimeRange], where LeadTime =
+            // TimeRange * (1 - SpawnHaloFraction) + SpawnDuration = 700 * 0.88 + 125 = 741 with the
+            // pinned 700ms range and default halo params, giving [1759, 3200]; the 350ms hit fade
             // completes at 2850. Seek into the gap between fade-complete and lifetime end so a stuck
             // (never re-armed) drawable is distinguishable from one that correctly re-forced Hit after
             // the DefaultsApplied re-apply triggered by EditorChart.Update.
