@@ -267,6 +267,7 @@ namespace Garbus.Game.Tests.Editor
 
         private static RectangleF quad(Drawable drawable) => drawable.ScreenSpaceDrawQuad.AABBFloat;
 
+
         /// <summary>Whether the drawable's centre falls in the named quadrant of the dialog panel.</summary>
         private bool inQuadrant(RectangleF target, bool right, bool bottom)
         {

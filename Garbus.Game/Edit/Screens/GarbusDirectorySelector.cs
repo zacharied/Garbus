@@ -16,5 +16,7 @@ namespace Garbus.Game.Edit.Screens
 
         // No in-selector toggle: the hosting dialog owns the show-hidden-items checkbox.
         protected override Drawable CreateHiddenToggleButton() => Empty();
+
+        protected override DirectorySelectorBreadcrumbDisplay CreateBreadcrumb() => new GarbusBreadcrumbDisplay();
     }
 }
