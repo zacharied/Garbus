@@ -12,10 +12,13 @@ public class SliderNodeMarkerTest
         var judged = new SliderNodeMarker { ShapeOnly = false };
         var shapeOnly = new SliderNodeMarker { ShapeOnly = true };
 
-        // Relation, not absolute styling: the judged marker's fill is visible and the shape-only
-        // marker's is not, while only the shape-only marker carries a border ring.
-        Assert.That(judged.FillVisible, Is.True);
-        Assert.That(shapeOnly.FillVisible, Is.False);
+        // Relations, not absolute styling. The polyline draws beneath the markers and is wider than
+        // the ring's interior, so a transparent interior would read as filled — the hollow look
+        // comes from an opaque punch-out fill that must be strictly darker than the judged fill,
+        // and it must stay opaque so the line cannot show through the hole.
+        Assert.That(shapeOnly.FillMaxRgb, Is.LessThan(judged.FillMinRgb));
+        Assert.That(shapeOnly.FillOpaque, Is.True);
+        Assert.That(judged.FillOpaque, Is.True);
         Assert.That(shapeOnly.BorderThickness, Is.GreaterThan(judged.BorderThickness));
     }
 }

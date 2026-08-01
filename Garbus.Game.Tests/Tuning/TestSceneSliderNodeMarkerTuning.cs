@@ -1,16 +1,20 @@
 // Interactive tuning scene for the compose-view slider node markers: a horizontal row alternating
 // judged (filled) and shape-only (hollow ring) markers, with live size/thickness sliders so the two
-// states stay legibly distinct at a glance. No playfield or clock is involved — the markers render
-// their own geometry from ShapeOnly alone — so, unlike TestSceneSliderGlowTuning, there's nothing to
-// rebuild per change: the sliders mutate the existing drawables in place.
+// states stay legibly distinct at a glance. The row sits on a polyline-width strip drawn beneath the
+// markers and everything shares one side-colour tint, reproducing the compose stacking — the line is
+// wider than the ring's interior, so hollowness can only be judged over the line, never on an empty
+// background. No playfield or clock is involved — unlike TestSceneSliderGlowTuning, there's nothing
+// to rebuild per change: the sliders mutate the existing drawables in place.
 
 using System.Collections.Generic;
 using Garbus.Game.Edit.Drawables;
+using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Tests.Visual;
 using NUnit.Framework;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osuTK;
 
 namespace Garbus.Game.Tests.Tuning;
@@ -27,12 +31,33 @@ public partial class TestSceneSliderNodeMarkerTuning : GarbusTestScene
     [SetUp]
     public void SetUp() => Schedule(() =>
     {
-        Child = row = new FillFlowContainer<SliderNodeMarker>
+        // One tint over line and markers, like SliderPolylineVisual's side colour: the punch-out
+        // interior must stay visibly dark under the same tint that colours the ring and the line.
+        Child = new Container
         {
             Anchor = Anchor.Centre,
             Origin = Anchor.Centre,
-            AutoSizeAxes = Axes.Both,
-            Spacing = new Vector2(30),
+            Size = new Vector2(320, 60),
+            Colour = Constants.LeftColour,
+            Children = new Drawable[]
+            {
+                // Stand-in for the SmoothPath: PathRadius 3 in the real visual = a 6px-wide line
+                // drawn beneath the markers.
+                new Box
+                {
+                    RelativeSizeAxes = Axes.X,
+                    Height = 6,
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                },
+                row = new FillFlowContainer<SliderNodeMarker>
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    AutoSizeAxes = Axes.Both,
+                    Spacing = new Vector2(30),
+                },
+            },
         };
 
         var shapeOnlyMarkerList = new List<SliderNodeMarker>();
