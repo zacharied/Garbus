@@ -2443,6 +2443,50 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDeletingFinalNodePromotesShapeOnlySurvivor()
+        {
+            // Invariant: a slider's last control point is never shape-only. Deleting the final judged node
+            // must promote the new final point (previously shape-only) back to judged.
+            waitForComposer();
+
+            AddStep("add slider with shape-only middle node + park clock", () =>
+            {
+                var path = new BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 30 },
+                    new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 60, ShapeOnly = true },
+                    new GarbusPathControlPoint { TimeOffset = 1500, RotationOffset = 90 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            AddStep("select slider via head", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddStep("select final node handle", () => { input.MoveMouseTo(nodeHandleScreen(2)); input.Click(MouseButton.Left); });
+            AddAssert("node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+
+            AddAssert("two control points remain", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+            AddAssert("new final point promoted to judged", () => placedObject<SliderBody>()!.Path.ControlPoints[^1].ShapeOnly, () => Is.False);
+        }
+
+        [Test]
         public void TestDeletingHeadAndAllNodesRemovesSlider()
         {
             waitForComposer();
