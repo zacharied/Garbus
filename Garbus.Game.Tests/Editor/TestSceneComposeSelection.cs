@@ -3155,6 +3155,58 @@ namespace Garbus.Game.Tests.Editor
             });
         }
 
+        /// <summary>
+        /// An open inspector dropdown menu behaves like a desktop combo box: it pops over the rows
+        /// below it rather than growing its own row and reflowing the toolbox. With two slam edges
+        /// selected the inspector shows a Side row above a Direction row; opening the Side menu must
+        /// leave the Direction row in place, overlap it, and draw in front of it.
+        /// </summary>
+        [Test]
+        public void TestInspectorDropdownMenuPopsOverRowsBelow()
+        {
+            waitForComposer();
+
+            AddStep("add two selected slam edges", () =>
+            {
+                var a = new GarbusSlamEdge { AngleDeg = 0, Side = HorizontalDirection.Left, StartTime = 1000 };
+                var b = new GarbusSlamEdge { AngleDeg = 90, Side = HorizontalDirection.Right, StartTime = 2000 };
+                editorChart.Add(a);
+                editorChart.Add(b);
+                editorChart.SelectedHitObjects.Add(a);
+                editorChart.SelectedHitObjects.Add(b);
+            });
+
+            MultiValueEnumDropdown<HorizontalDirection> sideDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Single();
+            MultiValueEnumDropdown<RotationalDirection> directionDropdown() =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Single();
+            Menu sideMenu() => sideDropdown().ChildrenOfType<Menu>().Single();
+
+            AddUntilStep("Side and Direction rows appear", () =>
+                composer.ChildrenOfType<MultiValueEnumDropdown<HorizontalDirection>>().Any() &&
+                composer.ChildrenOfType<MultiValueEnumDropdown<RotationalDirection>>().Any());
+
+            float directionY = 0;
+            AddStep("capture Direction row Y", () => directionY = directionDropdown().ScreenSpaceDrawQuad.TopLeft.Y);
+
+            AddStep("open Side menu", () => sideMenu().Open());
+            AddUntilStep("menu open", () => sideMenu().State == MenuState.Open);
+
+            AddUntilStep("menu overlaps Direction row", () =>
+                sideMenu().ScreenSpaceDrawQuad.AABBFloat.IntersectsWith(directionDropdown().ScreenSpaceDrawQuad.AABBFloat));
+            AddAssert("Direction row did not move", () =>
+                Precision.AlmostEquals(directionY, directionDropdown().ScreenSpaceDrawQuad.TopLeft.Y));
+            AddAssert("inspector rows draw front-to-back downward", () =>
+            {
+                // Draw order of the inspector's control rows (list order, back-to-front) must be the
+                // reverse of layout order (top-to-bottom) so the open menu covers the rows below it.
+                var flow = (FillFlowContainer)sideDropdown().Parent!.Parent!;
+                var rows = flow.Children.Where(c => c.IsPresent).ToList();
+                var topToBottom = rows.OrderBy(r => r.ScreenSpaceDrawQuad.TopLeft.Y).ToList();
+                return rows.Count >= 2 && topToBottom.SequenceEqual(rows.AsEnumerable().Reverse());
+            });
+        }
+
         [Test]
         public void TestSlamEdgeDragDoesNotRecreateInspectorControls()
         {

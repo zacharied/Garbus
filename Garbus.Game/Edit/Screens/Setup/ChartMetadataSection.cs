@@ -1,6 +1,7 @@
 using System;
 using Garbus.Game.Charts;
 using Garbus.Game.Edit;
+using Garbus.Game.UI;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -10,7 +11,8 @@ using osuTK;
 
 namespace Garbus.Game.Edit.Screens.Setup;
 
-public partial class ChartMetadataSection : FillFlowContainer
+// Front-first so the open difficulty menu pops over any rows below it.
+public partial class ChartMetadataSection : FrontFirstFillFlowContainer
 {
     [Resolved] private EditorSong editorSong { get; set; } = null!;
     [Resolved] private IEditorChangeHandler changeHandler { get; set; } = null!;
@@ -46,7 +48,7 @@ public partial class ChartMetadataSection : FillFlowContainer
                 Children = new Drawable[]
                 {
                     new SpriteText { Text = "Difficulty", Width = 160, Font = FontUsage.Default.With(size: 16) },
-                    DifficultyDropdown = new BasicDropdown<Difficulty> { Width = 300, Items = Enum.GetValues<Difficulty>() },
+                    DifficultyDropdown = new PopoverDropdown<Difficulty> { Width = 300, Items = Enum.GetValues<Difficulty>() },
                 },
             },
         };

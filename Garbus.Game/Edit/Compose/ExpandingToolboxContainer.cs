@@ -7,6 +7,7 @@
 // FillFlowContainer (the brief types LeftToolbox/RightToolbox as FillFlowContainer). The hover
 // expand/contract polish is deferred; the toolbox is always at its full width.
 
+using Garbus.Game.UI;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osuTK;
@@ -15,9 +16,9 @@ namespace Garbus.Game.Edit.Compose
 {
     /// <summary>
     /// A fixed-width vertical column that hosts <see cref="EditorToolboxGroup"/>s down one side of the
-    /// composer.
+    /// composer. Front-first so a dropdown menu spilling out of one group pops over the groups below.
     /// </summary>
-    public partial class ExpandingToolboxContainer : FillFlowContainer
+    public partial class ExpandingToolboxContainer : FrontFirstFillFlowContainer
     {
         public ExpandingToolboxContainer(float width)
         {
