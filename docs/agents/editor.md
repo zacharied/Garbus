@@ -197,6 +197,13 @@ viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. 
 - **Lambda event subscriptions leak.** Timeline/metronome components subscribe to
   `ControlPointInfo.ControlPointsChanged`, the clock, selection, `HitObjectUpdated`. Keep a field
   reference and unsubscribe in `Dispose`.
+- **`config.GetBindable(...)` copies need an owner or they are GC'd.** `GetBindable` returns a bound
+  copy the config holds only *weakly*, and `BindTo` links weakly in both directions — so a copy kept
+  alive only by a local, a closure that captures something else, or another bindable's bind link
+  disappears at the next GC and the setting silently stops propagating. Store it in a field.
+  `ToggleMenuItem` now owns the bindable handed to its constructor for exactly this reason (a menu
+  toggle whose copy was collected keeps flipping its own checkbox while writing nowhere, so it reads
+  as an inert setting). Pins: `TestSceneEditorViewMenuConfig`, `TestSceneComposeTabConfig`.
 - **The top/bottom bars must come AFTER the tab container in `GarbusEditor`'s child list** (osu's
   order: content first, bars after). The compose blueprint stack claims positional input over the
   whole screen (`ReceivePositionalInputAt => true`), so bars listed earlier never receive clicks and
