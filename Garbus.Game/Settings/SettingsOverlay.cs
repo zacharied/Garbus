@@ -274,7 +274,7 @@ namespace Garbus.Game.Settings
             controlsScroll = null;
             settingsScroll.Show();
 
-            header.ShowAs("Settings", FontAwesome.Solid.SignOutAlt, Hide);
+            header.ShowAs("Settings", FontAwesome.Solid.Times, Hide);
 
             buttonTestPanel.FadeOut(200, Easing.OutQuint);
         }

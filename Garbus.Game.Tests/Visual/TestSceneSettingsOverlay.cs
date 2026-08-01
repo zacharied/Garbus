@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Configuration;
 using Garbus.Game.Settings;
@@ -69,6 +70,14 @@ namespace Garbus.Game.Tests.Visual
         private SettingsSection section(string title) =>
             overlay.ChildrenOfType<SettingsSection>().Single(s => s.Name == title);
 
+        /// <summary>
+        /// Names in the order they appear down the panel. The flows are front-first, so their child
+        /// lists run back-to-front — the reverse of display order — and tree order would assert the
+        /// opposite of what is on screen.
+        /// </summary>
+        private static IEnumerable<string> topToBottom(IEnumerable<Drawable> drawables) =>
+            drawables.OrderBy(d => d.ScreenSpaceDrawQuad.TopLeft.Y).Select(d => d.Name);
+
         private BasicSliderBar<double> sliderFor(string label) =>
             overlay.ChildrenOfType<SettingsSlider>().Single(s => s.Name == label)
                    .ChildrenOfType<BasicSliderBar<double>>().Single();
@@ -123,16 +132,16 @@ namespace Garbus.Game.Tests.Visual
             AddStep("show", () => overlay.Show());
 
             AddAssert("sections in order", () =>
-                overlay.ChildrenOfType<SettingsSection>().Select(s => s.Name)
-                       .SequenceEqual(new[] { "Audio", "Graphics", "Gameplay" }));
+                topToBottom(overlay.ChildrenOfType<SettingsSection>())
+                    .SequenceEqual(new[] { "Audio", "Graphics", "Gameplay" }));
 
             AddAssert("audio section holds the volume rows", () =>
-                section("Audio").ChildrenOfType<SettingsSlider>().Select(s => s.Name)
-                                .SequenceEqual(new[] { "Master volume", "Music volume", "Hitsound volume" }));
+                topToBottom(section("Audio").ChildrenOfType<SettingsSlider>())
+                    .SequenceEqual(new[] { "Master volume", "Music volume", "Hitsound volume" }));
 
             AddAssert("gameplay section holds scroll speed", () =>
-                section("Gameplay").ChildrenOfType<SettingsSlider>().Select(s => s.Name)
-                                   .SequenceEqual(new[] { "Scroll speed" }));
+                topToBottom(section("Gameplay").ChildrenOfType<SettingsSlider>())
+                    .SequenceEqual(new[] { "Scroll speed" }));
         }
 
         /// <summary>

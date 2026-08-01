@@ -40,6 +40,7 @@ bundled default). Also the target of the editor's F5/Test (an in-memory clone â€
 
 `SettingsOverlay.cs` (a `VisibilityContainer`) opened by `SettingsGearButton` /
 `GlobalSettingsContainer`. The panel is three layers: a background box, a full-height
+`BasicScrollContainer` holding the rows, and a `SettingsPanelHeader` added last so it draws over
 them. The scroll container spans the whole panel and its content carries top padding of the header
 height *plus a gap*, so rows scroll *underneath* the header and pick up its drop shadow rather than
 stopping short of it, while the top row still sits clear of the shadow when the view is unscrolled.

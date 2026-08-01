@@ -27,7 +27,7 @@ namespace Garbus.Game.Tests.Tuning
         private float headerHeight = 56;
         private float headerBrightness = 34;
         private float shadowRadius = 12;
-        private float shadowOffsetY = 3;
+        private float shadowOffsetY = 1.15f;
         private float shadowAlpha = 0.55f;
         private float labelBrightness = 150;
         private float dividerAlpha = 0.47f;

@@ -159,8 +159,11 @@ namespace Garbus.Game.Tests.Visual
 
         private Menu frameLimiterMenu => frameLimiter.ChildrenOfType<Menu>().Single();
 
-        private FillFlowContainer settingsFlow => overlay.ChildrenOfType<FillFlowContainer>()
-                                                         .Single(f => f.Children.Contains(frameLimiterRow));
+        // The flow the dropdown rows actually sit in — the Graphics section's row flow, now that the
+        // panel is sectioned. Taken from the row's own Parent rather than by searching for a flow
+        // that Contains() it: a flow's child list is depth-sorted, so Contains() binary-searches by
+        // Depth and reports a match for any child sharing that depth, not for this instance.
+        private FillFlowContainer settingsFlow => (FillFlowContainer)frameLimiterRow.Parent!;
 
         /// <summary>
         /// A screen that allows settings but sets <see cref="IAllowSettings.ShowSettingsGear"/> to
