@@ -1,0 +1,11 @@
+# Real member addresses belong in terraform.tfvars, which Git ignores.
+administrator_emails = [
+  "maintainer@example.com",
+]
+
+# Defaults are shown for discoverability; omit unchanged values from the real file.
+account_name                   = "Garbus"
+chart_package_bucket_name      = "garbus-chart-packages"
+chart_package_bucket_location  = "enam"
+chart_catalog_database_name    = "garbus-chart-catalog"
+chart_catalog_primary_location = "enam"

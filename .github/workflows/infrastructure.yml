@@ -1,0 +1,40 @@
+name: Infrastructure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/infrastructure.yml
+      - infra/cloudflare/**
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/infrastructure.yml
+      - infra/cloudflare/**
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate OpenTofu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: 1.12.0
+
+      - name: Check formatting
+        run: tofu fmt -check -recursive infra/cloudflare
+
+      - name: Initialize providers
+        run: tofu -chdir=infra/cloudflare init -backend=false -input=false -lockfile=readonly
+
+      - name: Validate configuration
+        run: tofu -chdir=infra/cloudflare validate

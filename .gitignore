@@ -15,3 +15,13 @@ WavGen/obj/
 TestResults/
 *.log
 .superpowers/
+
+# OpenTofu local state and operator-specific configuration
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log

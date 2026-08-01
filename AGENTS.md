@@ -98,6 +98,10 @@ mindmap
       menu → song select → play
       settings overlay
       chart library sources
+    infrastructure
+      Cloudflare account + membership
+      immutable chart packages in R2
+      chart catalog in D1
     testing
       headless vs visual
       manual-clock stepping
@@ -115,6 +119,7 @@ mindmap
 | [docs/agents/timing-audio.md](docs/agents/timing-audio.md) | Touching clocks, offsets, latency, or hitsounds. |
 | [docs/agents/input.md](docs/agents/input.md) | Working on actions, key bindings, or analog/slam input. |
 | [docs/agents/screens.md](docs/agents/screens.md) | Working on the menu, song select, play loop, or settings. |
+| [docs/agents/infrastructure.md](docs/agents/infrastructure.md) | Working on Cloudflare, OpenTofu, hosted chart packages, or the chart catalog. |
 | [docs/agents/testing.md](docs/agents/testing.md) | Writing or debugging tests. |
 | [docs/rules-specs/Judgement.md](docs/rules-specs/Judgement.md) | The authoritative judgement rules (windows, note-lock, slam/slider grading). |
 | [docs/rules-specs/Inputs.md](docs/rules-specs/Inputs.md) | The authoritative input rules. |
