@@ -24,6 +24,8 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
 {
     private readonly IBindable<double> timeRange = new BindableDouble();
     private readonly IBindable<IScrollAlgorithm> algorithm = new Bindable<IScrollAlgorithm>();
+    private readonly IBindable<double> spawnHaloFraction = new BindableDouble();
+    private readonly IBindable<double> spawnDuration = new BindableDouble();
 
     /// <summary>
     /// A set of top-level <see cref="DrawableHitObject"/>s which have an up-to-date layout.
@@ -74,16 +76,31 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
 
         timeRange.BindTo(info.TimeRange);
         algorithm.BindTo(info.Algorithm);
+        spawnHaloFraction.BindTo(info.SpawnHaloFraction);
+        spawnDuration.BindTo(info.SpawnDuration);
 
         timeRange.ValueChanged += _ => layoutCache.Invalidate();
         algorithm.ValueChanged += _ => layoutCache.Invalidate();
+        spawnHaloFraction.ValueChanged += _ => layoutCache.Invalidate();
+        spawnDuration.ValueChanged += _ => layoutCache.Invalidate();
     }
 
+    /// <summary>
+    /// The radius of the spawn halo objects appear on, in local pixels. Objects hold here, motionless,
+    /// while their spawn animation plays. Specified in docs/presentation-specs/Playfield.md.
+    /// </summary>
+    public float HaloRadius => scrollLength * (float)spawnHaloFraction.Value;
+
+    /// <summary>How long an object spends travelling from the halo to the ring (ms).</summary>
+    public double TravelTime => timeRange.Value * (1 - spawnHaloFraction.Value);
+
+    /// <summary>
+    /// How long before its own time an object appears on the halo (ms) — the hold plus the travel.
+    /// </summary>
+    public double LeadTime => TravelTime + spawnDuration.Value;
+
     public float ProgressAtTime(double time, double currentTime, double? originTime = null)
-    {
-        float scrollPosition = algorithm.Value.PositionAt(time, currentTime, timeRange.Value, scrollLength, originTime);
-        return MathF.Min(scrollLength, scrollLength - scrollPosition);
-    }
+        => MathF.Min(scrollLength, DistanceFromCentreAtTime(time, currentTime, originTime));
 
     public float ProgressAtTime(double time) => ProgressAtTime(time, Time.Current);
 
@@ -94,15 +111,16 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     public float ScrollLength => scrollLength;
 
     /// <summary>
-    /// The unclamped distance from the centre at which an object with the given <paramref name="time"/>
-    /// should be drawn. Unlike <see cref="ProgressAtTime(double,double,double?)"/>, this is allowed to
-    /// exceed <see cref="ScrollLength"/> once the time has passed the ring — so callers can clip the
-    /// portion of a shape that has already been consumed by the outer edge, rather than pinning it there.
+    /// The distance from the centre at which an object with the given <paramref name="time"/> should be
+    /// drawn, floored at <see cref="HaloRadius"/> — an object never appears inside the halo, and the floor
+    /// is what holds it still through its spawn animation. Unlike <see cref="ProgressAtTime(double,double,double?)"/>
+    /// this is not bounded above, so once the time has passed the ring it keeps extrapolating outward and
+    /// callers can clip the portion of a shape the outer edge has consumed rather than pinning it there.
     /// </summary>
     public float DistanceFromCentreAtTime(double time, double currentTime, double? originTime = null)
     {
         float scrollPosition = algorithm.Value.PositionAt(time, currentTime, timeRange.Value, scrollLength, originTime);
-        return scrollLength - scrollPosition;
+        return MathF.Max(HaloRadius, scrollLength - scrollPosition);
     }
 
     public float DistanceFromCentreAtTime(double time) => DistanceFromCentreAtTime(time, Time.Current);
@@ -114,11 +132,6 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
 
         var localPosition = new Vector2(MathF.Cos(radians) * distanceFromCentre, -MathF.Sin(radians) * distanceFromCentre);
         return DrawRectangle.Centre + localPosition;
-    }
-
-    public float LengthAtTime(double startTime, double endTime)
-    {
-        return algorithm.Value.GetLength(startTime, endTime, timeRange.Value, scrollLength);
     }
 
     // A length is non-negative by definition. During a transient relayout frame the container's
@@ -234,10 +247,11 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     /// </summary>
     protected virtual RectangleF GetConservativeBoundingBox(HitObjectLifetimeEntry entry) => new RectangleF().Inflate(100);
 
-    private double computeDisplayStartTime(HitObjectLifetimeEntry entry)
-    {
-        return algorithm.Value.GetDisplayStartTime(entry.HitObject.StartTime, 0, timeRange.Value, scrollLength);
-    }
+    // The object appears on the halo one lead time before its own time: the travel, plus the hold it
+    // spends motionless there while its spawn animation plays. Computed directly rather than through
+    // IScrollAlgorithm.GetDisplayStartTime — the algorithm is deliberately halo-unaware, which is what
+    // keeps the editor composer's own ConstantScrollAlgorithm insulated from this behaviour.
+    private double computeDisplayStartTime(HitObjectLifetimeEntry entry) => entry.HitObject.StartTime - LeadTime;
 
     private void setComputedLifetime(HitObjectLifetimeEntry entry)
     {
