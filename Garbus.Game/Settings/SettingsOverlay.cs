@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Garbus.Game.Configuration;
 using Garbus.Game.Input;
+using Garbus.Game.UI;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Bindables;
@@ -83,7 +84,7 @@ namespace Garbus.Game.Settings
                         RelativeSizeAxes = Axes.Both,
                         Colour = new Color4(20, 20, 28, 240),
                     },
-                    settingsView = new FillFlowContainer
+                    settingsView = new FrontFirstFillFlowContainer
                     {
                         RelativeSizeAxes = Axes.X,
                         AutoSizeAxes = Axes.Y,
@@ -145,12 +146,6 @@ namespace Garbus.Game.Settings
             }
 
             rows.Add(new ControlsButton(showControls));
-
-            // Earlier rows draw in front of later ones so an open dropdown menu pops over the rows
-            // below it. Flow order is unaffected: FillFlowContainer lays out by layout position and
-            // insertion order, not depth.
-            for (int i = 0; i < rows.Count; i++)
-                rows[i].Depth = i;
 
             return rows;
         }

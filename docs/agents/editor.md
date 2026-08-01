@@ -74,6 +74,13 @@ the control showing the old value. Pins: `TestSlamEdgeDragDoesNotRecreateInspect
 (controls survive a drag; text still tracks), `TestExternalSideChangeRefreshesInspectorDropdown`
 (signature-covered value change still rebuilds).
 
+Editor dropdowns (`MultiValueEnumDropdown`, the setup tab's difficulty dropdown) derive from
+`UI/PopoverDropdown` so an open menu pops over the content below instead of reflowing it; the flows
+that stack them (the inspector's control rows, `ExpandingToolboxContainer`, the setup tab columns and
+sections) are `UI/FrontFirstFillFlowContainer`s so the menu draws — and receives input — in front of
+that content. Any new vertical stack hosting a dropdown must be front-first too (details in
+[screens.md](screens.md)).
+
 Each control appears only when the selection matches its condition:
 
 - **Side** dropdown — every selected object carries a mutable `Side` (slider + both slam types).

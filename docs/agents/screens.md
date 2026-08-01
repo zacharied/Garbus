@@ -54,12 +54,14 @@ leave icon button (X icon, left of the title) that dismisses the overlay — the
 counterpart to Escape / clicking outside the panel.
 
 Dropdown rows pop their open menu **over** the rows below, combo-box style, instead of growing the
-row and reflowing the panel. Two pieces make that work: `SettingsEnumDropdown` sets
-`Menu.BypassAutoSizeAxes = Axes.Y` so the open menu doesn't contribute to the row's autosize, and
-`buildSettingsRows()` assigns each row an increasing `Depth` so earlier rows draw in front of later
-ones (a framework `FillFlowContainer` flows by layout position and insertion order, never `Depth`,
-so draw order is free to differ from flow order). Drop either piece and an open menu pushes the
-rows below down, or draws underneath them.
+row and reflowing the panel. Two shared pieces in `UI/` make that work everywhere (settings,
+inspector, setup tab): `PopoverDropdown<T>` sets `Menu.BypassAutoSizeAxes = Axes.Y` so the open
+menu doesn't contribute to its row's autosize, and `FrontFirstFillFlowContainer` draws earlier
+children in front of later ones so the spilling menu covers the content below (a framework
+`FillFlowContainer` flows by layout position and insertion order, never `Depth`, so draw order is
+free to differ from flow order; input follows draw order, so the menu also wins clicks). Every
+vertical stack that hosts a dropdown must be front-first — drop either piece and an open menu
+pushes the content below down, or draws underneath it.
 
 ### Screen mode
 

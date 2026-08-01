@@ -1,4 +1,5 @@
 using Garbus.Game.Edit.Screens.Setup;
+using Garbus.Game.UI;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 
@@ -33,10 +34,11 @@ public partial class SetupTab : EditorTabScreen
         };
     }
 
+    // Front-first so an open dropdown menu in one section pops over the sections below it.
     private static Drawable column(params Drawable[] children) => new BasicScrollContainer
     {
         RelativeSizeAxes = Axes.Both,
-        Child = new FillFlowContainer
+        Child = new FrontFirstFillFlowContainer
         {
             RelativeSizeAxes = Axes.X,
             AutoSizeAxes = Axes.Y,
