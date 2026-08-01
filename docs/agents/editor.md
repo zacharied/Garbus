@@ -21,6 +21,13 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   bar); a **File › Game settings** item opens it by resolving the DI-cached `ISettingsOverlayControl`
   (`GlobalSettingsContainer`, see [screens.md](screens.md)). Menu grouping uses `GarbusMenuSpacer`
   (a divider `MenuItem` rendered by `GarbusMenu`).
+- `Edit/Screens/Dialogs/` — the modal stack. `ModalOverlay` is the base every picker derives from: a
+  dim backdrop, a centred `Panel`, and full keyboard ownership (see the gotcha below). `DialogFooter`
+  is the shared bottom strip — setting checkboxes stacking upward from the bottom-left, Cancel then
+  Confirm at the bottom-right. `FileSelectDialog` is the **one** file picker: File › Open, the main
+  menu's Open, and the Setup tab's resource `FileChooserRow` all construct it with their own
+  extensions and confirm label. `SaveAsDialog` adds a filename box above the same footer.
+  `ConfirmDialog` is a plain `VisibilityContainer` and does **not** capture the keyboard.
 - `Edit/EditorClock.cs` + `Edit/BindableBeatDivisor.cs` — vendored transport/beat-snap core.
 - `Edit/EditorChart.cs` — the `EditorBeatmap` counterpart. It **aliases `Chart.HitObjects` directly**
   — no shadow copy; every mutation is exactly what serialization reads. `ApplyDefaults` takes no
@@ -170,6 +177,18 @@ viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. 
 
 ## Gotchas
 
+- **A modal needs three separate mechanisms to actually own the keyboard**, and `ModalOverlay` has
+  all three because each covers a case the others miss. `OnKeyDown` returning `true` unconditionally
+  stops anything unbound from reaching an *ancestor* — that alone silences the editor's hotkeys, so a
+  test that only checks ancestor hotkeys will pass even with the other two removed. Deriving from
+  `FocusedOverlayContainer` takes focus on show, because `InputManager` re-appends the focused
+  drawable to the end of the input queue (dispatched *first*) **after** blocking has filtered it — so
+  a text box focused behind the dialog keeps eating keystrokes otherwise. `BlockNonPositionalInput`
+  strips everything queued before the overlay, covering key bindings and non-ancestor handlers. Pins:
+  `TestSceneFileSelectDialog.TestHostReceivesKeysOnlyWhileDialogIsClosed` (the ancestor case),
+  `TestFocusedTextBoxBehindDialogStopsReceivingInput` (the focus case — probe with Backspace, not a
+  letter; character entry travels the text-input path, not the key path, so `ManualInputManager.Key`
+  never types).
 - **Vertical `FillFlowContainer` collapses the tab content to zero height.** The tab area is a padded
   plain `Container` (bar heights reserved via `Padding`), never a fill flow. Pin:
   `TestSceneEditorShell.TestTabContentHasHeight`.

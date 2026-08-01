@@ -532,7 +532,7 @@ namespace Garbus.Game.Edit.Screens
             {
                 void doOpen()
                 {
-                    var dialog = new OpenChartDialog(path =>
+                    var dialog = new FileSelectDialog(new[] { ".garbus" }, "Open", path =>
                     {
                         try
                         {

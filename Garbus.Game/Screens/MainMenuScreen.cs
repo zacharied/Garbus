@@ -169,7 +169,7 @@ namespace Garbus.Game.Screens
 
         private void onOpenChart()
         {
-            var dialog = new OpenChartDialog(path =>
+            var dialog = new FileSelectDialog(new[] { ".garbus" }, "Open", path =>
             {
                 try
                 {
