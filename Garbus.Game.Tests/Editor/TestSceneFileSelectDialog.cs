@@ -9,6 +9,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
@@ -216,6 +217,89 @@ namespace Garbus.Game.Tests.Editor
                 quad(settingsFlow()).Right <= quad(cancelButton()).Left);
         }
 
+        [Test]
+        public void TestHeaderLayout()
+        {
+            showDialog();
+
+            AddAssert("both actions in the panel's top-right quadrant", () =>
+                inQuadrant(quad(newFolderButton()), right: true, bottom: false)
+                && inQuadrant(quad(revealButton()), right: true, bottom: false));
+
+            AddAssert("new folder sits left of reveal", () =>
+                quad(newFolderButton()).Right <= quad(revealButton()).Left);
+
+            AddAssert("actions sit above the file listing", () =>
+                quad(newFolderButton()).Bottom <= quad(fileSelector()).Top
+                && quad(revealButton()).Bottom <= quad(fileSelector()).Top);
+        }
+
+        [Test]
+        public void TestHeaderActionsAreLabelledByTooltips()
+        {
+            showDialog();
+
+            // Icon-only buttons carry no readable label of their own, so the tooltip is the label —
+            // and a tooltip only ever appears inside a TooltipContainer.
+            AddAssert("both actions carry tooltip text", () =>
+                newFolderButton().TooltipText.ToString().Length > 0
+                && revealButton().TooltipText.ToString().Length > 0);
+
+            AddAssert("both actions sit inside a tooltip host", () =>
+                hasTooltipHost(newFolderButton()) && hasTooltipHost(revealButton()));
+        }
+
+        [Test]
+        public void TestNewFolderCreatesAndEntersDirectory()
+        {
+            showDialog();
+            openNewFolderDialog();
+
+            AddStep("name it", () => newFolderNameBox().Text = "brand-new");
+            AddStep("create", () => newFolderConfirmButton().TriggerClick());
+
+            AddUntilStep("directory exists on disk", () => Directory.Exists(Path.Combine(tempDirectory!, "brand-new")));
+            AddUntilStep("listing moved into it", () => fileSelector().CurrentPath.Value?.Name == "brand-new");
+            AddAssert("prompt dismissed", () => !dialog.ChildrenOfType<NewFolderDialog>().Any());
+        }
+
+        [Test]
+        public void TestCancellingNewFolderCreatesNothing()
+        {
+            showDialog();
+            openNewFolderDialog();
+
+            AddStep("name it", () => newFolderNameBox().Text = "never-made");
+            AddStep("cancel", () => newFolderCancelButton().TriggerClick());
+
+            AddUntilStep("prompt dismissed", () => !dialog.ChildrenOfType<NewFolderDialog>().Any());
+            AddAssert("nothing created", () => !Directory.Exists(Path.Combine(tempDirectory!, "never-made")));
+            AddAssert("listing did not move", () => fileSelector().CurrentPath.Value?.FullName == tempDirectory);
+        }
+
+        [Test]
+        public void TestNewFolderRefusesAnExistingName()
+        {
+            showDialog();
+
+            AddStep("create the folder behind the dialog's back", () =>
+                Directory.CreateDirectory(Path.Combine(tempDirectory!, "already-here")));
+
+            openNewFolderDialog();
+
+            AddStep("reuse the name", () => newFolderNameBox().Text = "already-here");
+            AddStep("try to create", () => newFolderConfirmButton().TriggerClick());
+
+            AddAssert("prompt stays open", () => dialog.ChildrenOfType<NewFolderDialog>().Any());
+            AddAssert("listing did not move", () => fileSelector().CurrentPath.Value?.FullName == tempDirectory);
+        }
+
+        private void openNewFolderDialog()
+        {
+            AddStep("click new folder", () => newFolderButton().TriggerClick());
+            AddUntilStep("prompt shown", () => dialog.ChildrenOfType<NewFolderDialog>().SingleOrDefault()?.IsLoaded == true);
+        }
+
         private void showDialog()
         {
             AddStep("show dialog", () =>
@@ -245,6 +329,37 @@ namespace Garbus.Game.Tests.Editor
 
         private BasicButton confirmButton() =>
             dialog.ChildrenOfType<BasicButton>().Single(b => b.Name == DialogFooter.ConfirmButtonName);
+
+        private DialogIconButton newFolderButton() =>
+            dialog.ChildrenOfType<DialogIconButton>().Single(b => b.Name == "file select new folder");
+
+        // Never clicked: the headless test host derives from DesktopGameHost, so the reveal action
+        // would shell-execute a real file manager.
+        private DialogIconButton revealButton() =>
+            dialog.ChildrenOfType<DialogIconButton>().Single(b => b.Name == "file select reveal");
+
+        private NewFolderDialog newFolderDialog() => dialog.ChildrenOfType<NewFolderDialog>().Single();
+
+        private BasicTextBox newFolderNameBox() =>
+            newFolderDialog().ChildrenOfType<BasicTextBox>().Single(t => t.Name == "new folder name");
+
+        private BasicButton newFolderConfirmButton() =>
+            newFolderDialog().ChildrenOfType<BasicButton>().Single(b => b.Name == DialogFooter.ConfirmButtonName);
+
+        private BasicButton newFolderCancelButton() =>
+            newFolderDialog().ChildrenOfType<BasicButton>().Single(b => b.Name == DialogFooter.CancelButtonName);
+
+        /// <summary>Whether a tooltip host encloses the drawable — without one, tooltips never appear.</summary>
+        private static bool hasTooltipHost(Drawable drawable)
+        {
+            for (CompositeDrawable? ancestor = drawable.Parent; ancestor != null; ancestor = ancestor.Parent)
+            {
+                if (ancestor is TooltipContainer)
+                    return true;
+            }
+
+            return false;
+        }
 
         private BasicCheckbox showHiddenCheckbox() =>
             dialog.ChildrenOfType<BasicCheckbox>().Single(c => c.Name == FileSelectDialog.ShowHiddenCheckboxName);

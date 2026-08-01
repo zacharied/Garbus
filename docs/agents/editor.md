@@ -22,12 +22,18 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   (`GlobalSettingsContainer`, see [screens.md](screens.md)). Menu grouping uses `GarbusMenuSpacer`
   (a divider `MenuItem` rendered by `GarbusMenu`).
 - `Edit/Screens/Dialogs/` — the modal stack. `ModalOverlay` is the base every picker derives from: a
-  dim backdrop, a centred `Panel`, and full keyboard ownership (see the gotcha below). `DialogFooter`
-  is the shared bottom strip — setting checkboxes stacking upward from the bottom-left, Cancel then
-  Confirm at the bottom-right. `FileSelectDialog` is the **one** file picker: File › Open, the main
-  menu's Open, and the Setup tab's resource `FileChooserRow` all construct it with their own
-  extensions and confirm label. `SaveAsDialog` adds a filename box above the same footer.
-  `ConfirmDialog` is a plain `VisibilityContainer` and does **not** capture the keyboard.
+  dim backdrop, a centred `Panel`, a `TooltipContainer` wrapping both (see the gotcha below), and full
+  keyboard ownership (see the gotcha below). `DialogFooter` is the shared bottom strip — setting
+  checkboxes stacking upward from the bottom-left, Cancel then Confirm at the bottom-right.
+  `DialogHeader` is its mirror at the top: a right-anchored flow of `DialogIconButton`s added through
+  `AddAction(name, icon, tooltip, action)`, each an icon-only `BasicButton` whose tooltip *is* its
+  label. `FileSelectDialog` is the **one** file picker: File › Open, the main menu's Open, and the
+  Setup tab's resource `FileChooserRow` all construct it with their own extensions and confirm label;
+  its header carries **new folder** (opens a `NewFolderDialog` against the selector's `CurrentPath`,
+  then navigates into what it creates) and **open in file manager** (`GameHost.OpenFileExternally` on
+  the current directory). `NewFolderDialog` is a `ModalOverlay` nested *inside* `FileSelectDialog`, so
+  blocking hands it the keyboard over its host. `SaveAsDialog` adds a filename box above the same
+  footer. `ConfirmDialog` is a plain `VisibilityContainer` and does **not** capture the keyboard.
 - `Edit/EditorClock.cs` + `Edit/BindableBeatDivisor.cs` — vendored transport/beat-snap core.
 - `Edit/EditorChart.cs` — the `EditorBeatmap` counterpart. It **aliases `Chart.HitObjects` directly**
   — no shadow copy; every mutation is exactly what serialization reads. `ApplyDefaults` takes no
@@ -189,6 +195,17 @@ viewport anchoring, `PlatformAction` key handling, event-subscription lifetime. 
   `TestFocusedTextBoxBehindDialogStopsReceivingInput` (the focus case — probe with Backspace, not a
   letter; character entry travels the text-input path, not the key path, so `ManualInputManager.Key`
   never types).
+- **`IHasTooltip` alone shows nothing — the game hosts no `TooltipContainer`.** A tooltip is only
+  displayed by an enclosing `TooltipContainer`, and there is none at the game root, so the tooltips on
+  `EditorRadioButton`, `SelectionBoxButton` and `HitObjectCompositionToolButton` are dormant.
+  `ModalOverlay` brings its own, which is why dialog tooltips work. Adding an icon-only control
+  anywhere else means hosting a container too. Pin:
+  `TestSceneFileSelectDialog.TestHeaderActionsAreLabelledByTooltips` walks the ancestors for the host
+  rather than trusting the interface.
+- **A focus request from `PopIn` is undone a frame later.** `FocusedOverlayContainer.UpdateState`
+  schedules `TriggerFocusContention` *after* `PopIn` runs, which drops focus to null; the manager then
+  hands it to the overlay itself. A dialog that wants a specific child focused redirects from
+  `OnFocus` instead — `NewFolderDialog` does this to put the caret in its name box.
 - **Vertical `FillFlowContainer` collapses the tab content to zero height.** The tab area is a padded
   plain `Container` (bar heights reserved via `Padding`), never a fill flow. Pin:
   `TestSceneEditorShell.TestTabContentHasHeight`.

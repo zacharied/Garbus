@@ -2,6 +2,7 @@
 
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
 using osuTK;
@@ -50,25 +51,37 @@ namespace Garbus.Game.Edit.Screens.Dialogs
         {
             RelativeSizeAxes = Axes.Both;
 
-            AddInternal(new Box
+            // The game hosts no tooltip container of its own, so a dialog that wants tooltips has to
+            // bring one. CursorEffectContainer resolves to the nearest enclosing instance, so a modal
+            // nested inside another modal reuses whichever host is closer.
+            var tooltips = new TooltipContainer
             {
                 RelativeSizeAxes = Axes.Both,
-                Colour = Color4.Black,
-                Alpha = 0.6f,
-            });
+            };
 
-            AddInternal(Panel = new Container
+            tooltips.AddRange(new Drawable[]
             {
-                Name = PanelName,
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                Size = default_panel_size,
-                Child = new Box
+                new Box
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Colour = new Color4(30, 30, 40, 255),
+                    Colour = Color4.Black,
+                    Alpha = 0.6f,
+                },
+                Panel = new Container
+                {
+                    Name = PanelName,
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Size = default_panel_size,
+                    Child = new Box
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Colour = new Color4(30, 30, 40, 255),
+                    },
                 },
             });
+
+            AddInternal(tooltips);
         }
 
         /// <summary>

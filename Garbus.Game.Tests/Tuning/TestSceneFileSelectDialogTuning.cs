@@ -31,6 +31,9 @@ namespace Garbus.Game.Tests.Tuning
         private float buttonWidth = 100;
         private float buttonHeight = 36;
         private float buttonSpacing = 8;
+        private float actionSize = 32;
+        private float actionSpacing = 8;
+        private float actionIconScale = 0.5f;
 
         public TestSceneFileSelectDialogTuning()
         {
@@ -39,6 +42,9 @@ namespace Garbus.Game.Tests.Tuning
             AddSliderStep("button width", 60f, 220f, buttonWidth, v => { buttonWidth = v; apply(); });
             AddSliderStep("button height", 20f, 60f, buttonHeight, v => { buttonHeight = v; apply(); });
             AddSliderStep("button spacing", 0f, 40f, buttonSpacing, v => { buttonSpacing = v; apply(); });
+            AddSliderStep("header action size", 16f, 64f, actionSize, v => { actionSize = v; apply(); });
+            AddSliderStep("header action spacing", 0f, 40f, actionSpacing, v => { actionSpacing = v; apply(); });
+            AddSliderStep("header icon scale", 0.2f, 1f, actionIconScale, v => { actionIconScale = v; apply(); });
         }
 
         protected override void LoadComplete()
@@ -60,6 +66,10 @@ namespace Garbus.Game.Tests.Tuning
                 if (checkbox != null)
                     checkbox.Current.Value = v;
             });
+
+            AddStep("open new folder prompt", () =>
+                dialog?.ChildrenOfType<DialogIconButton>()
+                       .FirstOrDefault(b => b.Name == "file select new folder")?.TriggerClick());
         }
 
         private void openDialog()
@@ -87,11 +97,21 @@ namespace Garbus.Game.Tests.Tuning
             dialog.PanelSize = new Vector2(panelWidth, panelHeight);
 
             var footer = dialog.ChildrenOfType<DialogFooter>().FirstOrDefault();
-            if (footer == null)
-                return;
 
-            footer.ButtonSize = new Vector2(buttonWidth, buttonHeight);
-            footer.ButtonSpacing = buttonSpacing;
+            if (footer != null)
+            {
+                footer.ButtonSize = new Vector2(buttonWidth, buttonHeight);
+                footer.ButtonSpacing = buttonSpacing;
+            }
+
+            var header = dialog.ChildrenOfType<DialogHeader>().FirstOrDefault();
+
+            if (header != null)
+            {
+                header.ActionSize = new Vector2(actionSize);
+                header.ActionSpacing = actionSpacing;
+                header.IconScale = actionIconScale;
+            }
         }
     }
 }
