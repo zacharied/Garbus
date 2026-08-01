@@ -52,6 +52,16 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
 
     private readonly GarbusScrollingInfo fallbackScrollingInfo = new GarbusScrollingInfo();
 
+    // The scrolling info actually in effect (scrollingInfo if resolved, otherwise the fallback),
+    // resolved once in load(). TravelTime/LeadTime delegate to it so this container and
+    // GarbusScrollingInfo never carry two separately-maintained copies of the same spec formula.
+    // Internally, computeDisplayStartTime (the only caller of LeadTime pre-load) is reached solely
+    // through Add() (guarded by IsLoaded) and Update() (which never runs before load completes), so
+    // there is no internal pre-load read. TravelTime/LeadTime are public API though, so an external
+    // caller could still read them off a constructed-but-not-yet-loaded container — initialise to the
+    // fallback here (rather than leaving this null) so that stays well-defined instead of throwing.
+    private GarbusScrollingInfo effectiveScrollingInfo;
+
     /// <summary>The visible time range currently in effect (ms). Exposed for tests.</summary>
     internal double CurrentTimeRange => timeRange.Value;
 
@@ -66,18 +76,22 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     {
         RelativeSizeAxes = Axes.Both;
 
+        // Never null before load() resolves the real scrollingInfo/fallback choice — see the field's
+        // doc comment.
+        effectiveScrollingInfo = fallbackScrollingInfo;
+
         AddLayout(layoutCache);
     }
 
     [BackgroundDependencyLoader]
     private void load()
     {
-        var info = scrollingInfo ?? fallbackScrollingInfo;
+        effectiveScrollingInfo = scrollingInfo ?? fallbackScrollingInfo;
 
-        timeRange.BindTo(info.TimeRange);
-        algorithm.BindTo(info.Algorithm);
-        spawnHaloFraction.BindTo(info.SpawnHaloFraction);
-        spawnDuration.BindTo(info.SpawnDuration);
+        timeRange.BindTo(effectiveScrollingInfo.TimeRange);
+        algorithm.BindTo(effectiveScrollingInfo.Algorithm);
+        spawnHaloFraction.BindTo(effectiveScrollingInfo.SpawnHaloFraction);
+        spawnDuration.BindTo(effectiveScrollingInfo.SpawnDuration);
 
         timeRange.ValueChanged += _ => layoutCache.Invalidate();
         algorithm.ValueChanged += _ => layoutCache.Invalidate();
@@ -92,12 +106,12 @@ public partial class GarbusScrollingHitObjectContainer : HitObjectContainer
     public float HaloRadius => scrollLength * (float)spawnHaloFraction.Value;
 
     /// <summary>How long an object spends travelling from the halo to the ring (ms).</summary>
-    public double TravelTime => timeRange.Value * (1 - spawnHaloFraction.Value);
+    public double TravelTime => effectiveScrollingInfo.TravelTime;
 
     /// <summary>
     /// How long before its own time an object appears on the halo (ms) — the hold plus the travel.
     /// </summary>
-    public double LeadTime => TravelTime + spawnDuration.Value;
+    public double LeadTime => effectiveScrollingInfo.LeadTime;
 
     public float ProgressAtTime(double time, double currentTime, double? originTime = null)
         => MathF.Min(scrollLength, DistanceFromCentreAtTime(time, currentTime, originTime));
