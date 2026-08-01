@@ -69,6 +69,9 @@ Each control appears only when the selection matches its condition:
 - **Direction** dropdown — every selected object is a `GarbusSlamEdge` (its `RotationalDirection`).
 - **Easing** (`SweepEasing`) dropdown + **Smoothing** (`Smooth`) checkbox — one or more slider
   control-point nodes are picked.
+  A "Shape only" checkbox sits alongside them; it applies to every selected node except each
+  slider's final control point (never shape-only), aggregating its tri-state over eligible nodes only.
+  Merging sliders preserves the flag.
 - **Merge sliders** button — the selection is ≥2 sliders (all objects sliders), no node/head is
   picked, and the sliders' `[StartTime, EndTime]` spans don't overlap (touching endpoints allowed).
   Pressing it reparents every other slider's nodes — their heads included — onto the earliest slider as

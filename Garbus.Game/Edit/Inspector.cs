@@ -330,6 +330,23 @@ namespace Garbus.Game.Edit
                     foreach (var s in affectedSliders) editorChart.Update(s);
                     changeHandler?.EndChange();
                 });
+
+                // Shape-only: a shape-only point shapes the sweep without being judged. Each slider's final
+                // point is excluded (never shape-only), so select-all-then-toggle keeps the invariant.
+                var eligibleNodes = ShapeOnlyEligible(nodes, affectedSliders);
+
+                if (eligibleNodes.Length > 0)
+                {
+                    var shapeOnlyState = MultiValue.Aggregate(eligibleNodes, n => n.ShapeOnly);
+
+                    addMultiValueCheckbox("Shape only", shapeOnlyState, value =>
+                    {
+                        changeHandler?.BeginChange();
+                        foreach (var n in eligibleNodes) n.ShapeOnly = value;
+                        foreach (var s in affectedSliders) editorChart.Update(s);
+                        changeHandler?.EndChange();
+                    });
+                }
             }
 
             // Decompose into heads: offered when the selection holds any slider with a path to sample. A
@@ -354,6 +371,19 @@ namespace Garbus.Game.Edit
             }
 
             changeHandler?.EndChange();
+        }
+
+        /// <summary>
+        /// The selected nodes eligible for the Shape-only toggle: every node except its owning slider's
+        /// final control point, which is never shape-only.
+        /// </summary>
+        public static GarbusPathControlPoint[] ShapeOnlyEligible(
+            IReadOnlyCollection<GarbusPathControlPoint> nodes, IEnumerable<SliderBody> sliders)
+        {
+            var finals = sliders.Where(s => s.Path.ControlPoints.Count > 0)
+                                .Select(s => s.Path.ControlPoints[^1])
+                                .ToHashSet();
+            return nodes.Where(n => !finals.Contains(n)).ToArray();
         }
 
         /// <summary>
@@ -426,6 +456,7 @@ namespace Garbus.Game.Edit
                         RotationOffset = headOffset + cp.RotationOffset,
                         Smooth = cp.Smooth,
                         SweepEasing = cp.SweepEasing,
+                        ShapeOnly = cp.ShapeOnly,
                     });
                 }
 
