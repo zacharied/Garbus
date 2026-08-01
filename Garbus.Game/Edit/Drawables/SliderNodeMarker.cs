@@ -19,8 +19,9 @@ namespace Garbus.Game.Edit.Drawables;
 public partial class SliderNodeMarker : CircularContainer
 {
     // Near-black punch-out for the hollow interior. Not pure black so it still reads as part of
-    // the slider's UI over the playfield backdrop rather than a literal hole in the screen.
-    private static readonly Colour4 punch_out_colour = new Colour4(25, 25, 32, 255);
+    // the slider's UI over the playfield backdrop rather than a literal hole in the screen. Shared
+    // with NodeDragPiece's shape-only dot so the two indicators read as one signal.
+    internal static readonly Colour4 PunchOutColour = new Colour4(25, 25, 32, 255);
 
     private readonly Box fill;
 
@@ -47,7 +48,7 @@ public partial class SliderNodeMarker : CircularContainer
         set
         {
             BorderThickness = value ? 2.5f : 0;
-            fill.Colour = value ? punch_out_colour : Colour4.White;
+            fill.Colour = value ? PunchOutColour : Colour4.White;
         }
     }
 }

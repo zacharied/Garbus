@@ -3486,6 +3486,43 @@ namespace Garbus.Game.Tests.Editor
                 composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Shape only")?.State == TernaryState.True);
         }
 
+        [Test]
+        public void TestSelectedShapeOnlyNodeHandleShowsDot()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+
+            AddStep("mark node 0 shape-only", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                slider.Path.ControlPoints[0].ShapeOnly = true;
+                editorChart.Update(slider);
+            });
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            selectSliderOnLine();
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            // Mixed selection stays legible: both handles carry the white selected fill, while the
+            // shape-only punch-out dot draws above the fill on the shape-only node's handle only.
+            AddUntilStep("both handles filled", () => primaryNodeHandles().Length == 2 && primaryNodeHandles().All(h => h.NodeSelected));
+            AddAssert("shape-only handle shows the dot", () => primaryNodeHandles().Single(h => h.CpIndex == 0).ShapeOnlyDotVisible, () => Is.True);
+            AddAssert("judged handle shows no dot", () => primaryNodeHandles().Single(h => h.CpIndex == 1).ShapeOnlyDotVisible, () => Is.False);
+        }
+
+        /// <summary>The primary (WrapK 0) node drag handles, one per control point.</summary>
+        private NodeDragPiece[] primaryNodeHandles()
+            => composer.ChildrenOfType<NodeDragPiece>().Where(h => h.WrapK == 0).ToArray();
+
         // ------------------------------------------------------------------
         // Merge sliders (inspector button)
         // ------------------------------------------------------------------

@@ -242,6 +242,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                     DrawWidth / 2 + (EditorAngleMapping.GridOffset(cp.RotationOffset) - k * 360) * pxPerDeg,
                     y);
                 handle.NodeSelected = selected;
+                handle.ShapeOnly = cp.ShapeOnly;
             }
         }
 

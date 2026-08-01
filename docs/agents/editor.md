@@ -44,8 +44,10 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   transitions (per-frame re-asserting allocated a fade transform per drawable per frame — GC churn at
   drag rates; pin: `TestSettledTwinVisibilityIsNotReassertedEveryFrame`). In `SliderPolylineVisual`,
   node dots are `SliderNodeMarker`s: filled for judged nodes, hollow rings for shape-only control
-  points (tuned in `TestSceneSliderNodeMarkerTuning`). Gameplay renders shape-only points seamlessly —
-  the compose dot is the only place the distinction is visible.
+  points, and `NodeDragPiece` draws the same punch-out dot above its white selected fill so mixed
+  multi-node selections keep the distinction (both tuned in `TestSceneSliderNodeMarkerTuning`).
+  Gameplay renders shape-only points seamlessly — compose is the only place the distinction is
+  visible.
 - `Edit/Compose/` — the vendored blueprint/composer stack: `BlueprintContainer`,
   `ComposeBlueprintContainer`, `HitObjectComposer`/`ScrollingHitObjectComposer`, placement/selection
   blueprints, `SelectionBox`, `BeatSnapGrid`, drag box, radio-button toolbox, `GarbusMenu`/toggle
