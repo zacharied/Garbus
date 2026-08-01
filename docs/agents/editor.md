@@ -78,8 +78,9 @@ Editor dropdowns (`MultiValueEnumDropdown`, the setup tab's difficulty dropdown)
 `UI/PopoverDropdown` so an open menu pops over the content below instead of reflowing it; the flows
 that stack them (the inspector's control rows, `ExpandingToolboxContainer`, the setup tab columns and
 sections) are `UI/FrontFirstFillFlowContainer`s so the menu draws — and receives input — in front of
-that content. Any new vertical stack hosting a dropdown must be front-first too (details in
-[screens.md](screens.md)).
+that content. Any new vertical stack hosting a dropdown must be front-first too, and the same base
+caps the open menu's height so a long list (the Easing enum's three dozen entries) scrolls on the
+wheel instead of running off the bottom of the window (details in [screens.md](screens.md)).
 
 Each control appears only when the selection matches its condition:
 

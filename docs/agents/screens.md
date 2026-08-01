@@ -88,6 +88,13 @@ free to differ from flow order; input follows draw order, so the menu also wins 
 vertical stack that hosts a dropdown must be front-first — drop either piece and an open menu
 pushes the content below down, or draws underneath it.
 
+`PopoverDropdown<T>` also caps `Menu.MaxHeight`. The framework leaves it unbounded, which sizes the
+menu to its entire item list: the item flow then fits its scroll container exactly, so the container
+has no scrollable extent and the wheel does nothing. For a list as long as the editor's easing enum
+(three dozen entries, taller than the window) that also puts the tail of the list off-screen with no
+way to reach it. The cap gives the scroll container an extent, so long menus scroll; short menus are
+unaffected. Pinned by `TestSceneMultiValueDropdown`'s two easing-menu scroll tests.
+
 ### Screen mode
 
 The three window modes are the framework's: `Windowed`, `Borderless` (windowed fullscreen) and
