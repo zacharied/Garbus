@@ -19,12 +19,6 @@ namespace Garbus.Game.Settings
     /// </summary>
     public partial class SettingsPanelHeader : CompositeDrawable
     {
-        /// <summary>
-        /// The action button's <see cref="Drawable.Name"/>. Tests locate the button by this rather
-        /// than by its glyph (cosmetic) or its type (which would mean widening visibility for tests).
-        /// </summary>
-        public const string ActionButtonName = "settings header action";
-
         private static readonly Color4 default_background_colour = new Color4(34, 34, 48, 255);
 
         private readonly Box background;
@@ -140,7 +134,7 @@ namespace Garbus.Game.Settings
 
             public ActionButton()
             {
-                Name = ActionButtonName;
+                Name = "settings header action";
 
                 Size = new Vector2(28);
                 CornerRadius = 6;

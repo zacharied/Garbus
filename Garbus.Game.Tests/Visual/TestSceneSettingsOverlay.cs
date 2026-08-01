@@ -59,13 +59,13 @@ namespace Garbus.Game.Tests.Visual
         // Located by name rather than by glyph or by type: which icon the button wears is a cosmetic
         // detail, and matching on type would mean widening a nested type's visibility for the test.
         private Drawable headerButton =>
-            overlay.ChildrenOfType<Drawable>().Single(d => d.Name == SettingsPanelHeader.ActionButtonName);
+            overlay.ChildrenOfType<Drawable>().Single(d => d.Name == "settings header action");
 
         private SettingsPanelHeader header => overlay.ChildrenOfType<SettingsPanelHeader>().Single();
 
         // Dropdown menus carry their own scroll containers, so match on the name too.
         private BasicScrollContainer settingsScroll =>
-            overlay.ChildrenOfType<BasicScrollContainer>().Single(s => s.Name == SettingsOverlay.SettingsScrollName);
+            overlay.ChildrenOfType<BasicScrollContainer>().Single(s => s.Name == "settings scroll");
 
         private SettingsSection section(string title) =>
             overlay.ChildrenOfType<SettingsSection>().Single(s => s.Name == title);
