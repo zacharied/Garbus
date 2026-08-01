@@ -40,7 +40,10 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   after passing it.
 - `Edit/Drawables/` — simplified editor sprites (separate from the gameplay polar drawables); x is
   driven from angle every frame plus a ±360° ghost twin near grid edges. **Non-pooled**, tracked in
-  the composer's per-hit-object `drawableMap`.
+  the composer's per-hit-object `drawableMap`. In `SliderPolylineVisual`, node dots are
+  `SliderNodeMarker`s: filled for judged nodes, hollow rings for shape-only control points (tuned in
+  `TestSceneSliderNodeMarkerTuning`). Gameplay renders shape-only points seamlessly — the compose dot
+  is the only place the distinction is visible.
 - `Edit/Compose/` — the vendored blueprint/composer stack: `BlueprintContainer`,
   `ComposeBlueprintContainer`, `HitObjectComposer`/`ScrollingHitObjectComposer`, placement/selection
   blueprints, `SelectionBox`, `BeatSnapGrid`, drag box, radio-button toolbox, `GarbusMenu`/toggle
