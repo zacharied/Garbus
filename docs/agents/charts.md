@@ -67,6 +67,9 @@ serializers.
   (`tutorial-message`).
 - Timing points serialize as a typed list (`time`, `beatLength`, `timeSignature` numerator — the
   denominator is always 4 — `omitFirstBarLine`). Camel-case property naming, indented output.
+- Slider control points carry a `shapeOnly` flag (default false): a shape-only point shapes the
+  body's sweep but spawns no judged child. **A slider's last control point is never shape-only** —
+  the decoder rejects violating files on every path (chart, song, clipboard).
 
 ## Design points
 

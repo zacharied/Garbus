@@ -163,6 +163,7 @@ public static class GarbusChartSerializer
                     RotationOffset = c.RotationOffset,
                     Smooth = c.Smooth,
                     SweepEasing = c.SweepEasing.ToString(),
+                    ShapeOnly = c.ShapeOnly,
                 }).ToList(),
             },
             GarbusSlamCentered slam => new SlamCenteredDto { AngleDeg = slam.AngleDeg, Side = slam.Side.ToString() },
@@ -221,21 +222,7 @@ public static class GarbusChartSerializer
             CardinalHoldNoteDto hold => new CardinalHoldNote { AngleDeg = hold.AngleDeg, Duration = hold.Duration },
             ShoulderNoteDto shoulder => new ShoulderNote { Side = parseEnum<HorizontalDirection>(shoulder.Side) },
             ShoulderHoldNoteDto shoulderHold => new ShoulderHoldNote { Side = parseEnum<HorizontalDirection>(shoulderHold.Side), Duration = shoulderHold.Duration },
-            SliderBodyDto slider => new SliderBody
-            {
-                AngleDeg = slider.AngleDeg,
-                Side = parseEnum<HorizontalDirection>(slider.Side),
-                Path = new GarbusPath
-                {
-                    ControlPoints = new BindableList<GarbusPathControlPoint>(slider.ControlPoints.Select(c => new GarbusPathControlPoint
-                    {
-                        TimeOffset = c.TimeOffset,
-                        RotationOffset = c.RotationOffset,
-                        Smooth = c.Smooth,
-                        SweepEasing = parseEnum<Easing>(c.SweepEasing),
-                    })),
-                },
-            },
+            SliderBodyDto slider => decodeSlider(slider),
             SlamCenteredDto slam => new GarbusSlamCentered { AngleDeg = slam.AngleDeg, Side = parseEnum<HorizontalDirection>(slam.Side) },
             SlamEdgeDto slam => new GarbusSlamEdge
             {
@@ -248,6 +235,31 @@ public static class GarbusChartSerializer
 
         hitObject.StartTime = dto.Time;
         return hitObject;
+    }
+
+    private static SliderBody decodeSlider(SliderBodyDto dto)
+    {
+        // The last control point is never shape-only — a trailing one would leave the body's tail
+        // ungraded. The editor upholds this, so a violation means a hand-edited file.
+        if (dto.ControlPoints.Count > 0 && dto.ControlPoints[^1].ShapeOnly)
+            throw new InvalidDataException("A slider's last control point cannot be shape-only.");
+
+        return new SliderBody
+        {
+            AngleDeg = dto.AngleDeg,
+            Side = parseEnum<HorizontalDirection>(dto.Side),
+            Path = new GarbusPath
+            {
+                ControlPoints = new BindableList<GarbusPathControlPoint>(dto.ControlPoints.Select(c => new GarbusPathControlPoint
+                {
+                    TimeOffset = c.TimeOffset,
+                    RotationOffset = c.RotationOffset,
+                    Smooth = c.Smooth,
+                    SweepEasing = parseEnum<Easing>(c.SweepEasing),
+                    ShapeOnly = c.ShapeOnly,
+                })),
+            },
+        };
     }
 
     private static T parseEnum<T>(string value) where T : struct, Enum
