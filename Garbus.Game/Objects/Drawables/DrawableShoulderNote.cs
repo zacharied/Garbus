@@ -96,7 +96,7 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>, ISelfPos
         base.UpdateInitialTransforms();
 
         // Spawn pop, scaled about the playfield centre (this drawable's centre origin).
-        this.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+        this.ScaleTo(0).ScaleTo(1, SpawnAnimationDuration, Easing.In);
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)

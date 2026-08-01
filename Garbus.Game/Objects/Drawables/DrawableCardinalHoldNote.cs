@@ -81,8 +81,8 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
     {
         base.UpdateInitialTransforms();
 
-        headSprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
-        body.FadeInFromZero(100, Easing.In);
+        headSprite.ScaleTo(0).ScaleTo(1, SpawnAnimationDuration, Easing.In);
+        body.FadeInFromZero(SpawnAnimationDuration, Easing.In);
     }
 
     protected override void OnHeadHit()

@@ -47,7 +47,7 @@ public partial class DrawableSlamCentered : DrawableGarbusHitObject<GarbusSlamCe
         base.UpdateInitialTransforms();
 
         // Apply note spawn effect
-        sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+        sprite.ScaleTo(0).ScaleTo(1, SpawnAnimationDuration, Easing.In);
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)

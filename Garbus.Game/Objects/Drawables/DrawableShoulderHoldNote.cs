@@ -128,7 +128,7 @@ public partial class DrawableShoulderHoldNote : DrawableHoldNote<ShoulderHoldNot
     protected override void UpdateInitialTransforms()
     {
         base.UpdateInitialTransforms();
-        this.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+        this.ScaleTo(0).ScaleTo(1, SpawnAnimationDuration, Easing.In);
     }
 
     protected override void UpdateHitStateTransforms(ArmedState state)

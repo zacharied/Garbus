@@ -346,9 +346,9 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
         base.UpdateInitialTransforms();
         // Fade the unit wrappers (crisp + glow together), rehomed from PrepareForUse so the spawn
         // replays under rewind. Targets are Persistent containers, so the transform is not pruned.
-        bodyVisual.FadeInFromZero(100, Easing.In);
-        escapeVisual.FadeInFromZero(100, Easing.In);
-        headContainer.FadeInFromZero(100, Easing.In);
+        bodyVisual.FadeInFromZero(SpawnAnimationDuration, Easing.In);
+        escapeVisual.FadeInFromZero(SpawnAnimationDuration, Easing.In);
+        headContainer.FadeInFromZero(SpawnAnimationDuration, Easing.In);
     }
 
     protected override void Update()
