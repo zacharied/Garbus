@@ -149,6 +149,13 @@ harder to track during realtime adjustment (osu's reasoning, kept). The metronom
 window is only readable at width. Pins: `TestSceneWaveformComparison`; tune it in
 `Tuning/TestSceneWaveformComparisonTuning`.
 
+**`TapTimingControl` and `TimingPointSettings` must share one content inset** (12) — they stack in the
+same scroll column, so a mismatch steps every control in the lower panel (the waveform's right edge
+included) in or out relative to the settings above it. The metronome column pads itself
+(`MetronomeDisplay.PADDING`), so its checkbox offsets by that amount to sit flush with the pendulum
+body and the waveform's gutter tops the same padding up to the panel inset. Pin:
+`TestSceneTimingTab.TestRightColumnPanelsShareContentEdges`.
+
 The `Waveform` itself is decoded here from `SongFile.GetAudioStream()` and **shared by all eight
 rows** — `WaveformGraph` is an osu-framework drawable that takes an
 `osu.Framework.Audio.Track.Waveform`, with no osu.Game/`WorkingBeatmap` involvement (the same route

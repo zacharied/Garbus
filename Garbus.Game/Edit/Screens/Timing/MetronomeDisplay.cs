@@ -26,6 +26,12 @@ namespace Garbus.Game.Edit.Screens.Timing
     /// </summary>
     public partial class MetronomeDisplay : CompositeDrawable
     {
+        /// <summary>
+        /// Air this display keeps around its body. Exposed so controls stacked beneath it can offset
+        /// themselves by the same amount and sit flush with the body rather than with the padding.
+        /// </summary>
+        public const float PADDING = 8;
+
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
 
@@ -63,7 +69,7 @@ namespace Garbus.Game.Edit.Screens.Timing
             sampleDownbeat = audio.Samples.Get("Editor/metronome-downbeat");
 
             AutoSizeAxes = Axes.Both;
-            Padding = new MarginPadding(8);
+            Padding = new MarginPadding(PADDING);
 
             const float body_width = 80;
             const float body_height = 120;

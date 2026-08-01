@@ -22,6 +22,18 @@ namespace Garbus.Game.Edit.Screens.Timing
     /// </summary>
     public partial class TapTimingControl : CompositeDrawable
     {
+        /// <summary>
+        /// Inset of this panel's content from its edges. Shared with <see cref="TimingPointSettings"/>
+        /// so both panels' controls line up down the timing tab's right column.
+        /// </summary>
+        private const float panel_inset = 12;
+
+        /// <summary>
+        /// Air between the metronome column and the waveform comparison. The metronome carries its
+        /// own padding, so this tops that up to <see cref="panel_inset"/>.
+        /// </summary>
+        private const float metronome_gutter = 4;
+
         [Resolved]
         private EditorClock editorClock { get; set; } = null!;
 
@@ -60,7 +72,9 @@ namespace Garbus.Game.Edit.Screens.Timing
                 AutoSizeAxes = Axes.Y,
                 Direction = FillDirection.Vertical,
                 Spacing = new Vector2(0, 8),
-                Padding = new MarginPadding(8),
+                // Matches TimingPointSettings' inset — the two panels stack in the same scroll
+                // column, so their content edges have to line up down the whole right side.
+                Padding = new MarginPadding(panel_inset),
                 Children = new Drawable[]
                 {
                     // Metronome + waveform row. The metronome column auto-sizes to the pendulum and
@@ -91,6 +105,9 @@ namespace Garbus.Game.Edit.Screens.Timing
                                         metronome = new MetronomeDisplay(),
                                         clickCheckbox = new BasicCheckbox
                                         {
+                                            // MetronomeDisplay pads itself, so the checkbox needs the
+                                            // same offset to sit flush with the metronome's body.
+                                            Margin = new MarginPadding { Left = MetronomeDisplay.PADDING },
                                             LabelText = "Metronome",
                                             Current = { BindTarget = metronome.EnableClicking },
                                         },
@@ -99,7 +116,7 @@ namespace Garbus.Game.Edit.Screens.Timing
                                 new Container
                                 {
                                     RelativeSizeAxes = Axes.Both,
-                                    Padding = new MarginPadding { Left = 8 },
+                                    Padding = new MarginPadding { Left = metronome_gutter },
                                     Child = waveform = new WaveformComparisonDisplay(),
                                 },
                             },
