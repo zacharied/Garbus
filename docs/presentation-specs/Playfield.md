@@ -41,7 +41,9 @@ travel phase is `ScrollLength / TimeRange`, independent of the halo.
 The spawn animation's duration and the hold are the same quantity, so an object is never still
 growing while it moves, and never fully grown while it is still.
 
-The halo is not drawn. Objects simply appear at that radius.
+The halo is drawn, as a thin translucent gray ring at `haloRadius`. It is furniture: static, with no
+animation, and it reacts to nothing. It draws in front of the centre combo counter so the halo radius
+always reads exactly, and behind hit objects so an object holding on the halo is never sliced by it.
 
 An object with duration is governed point-by-point rather than as a whole, by its **emergence
 front** — the point along it currently at `Δ = travelTime`, which is the point leaving the halo this
