@@ -159,8 +159,10 @@ Judgement, hit windows, and the warning indicator are purely time-based and are 
 
 ## Out of scope
 
-- **No visible halo drawable.** maimai draws no halo; objects simply appear at that radius. Rendering
-  a ring is a separate visual decision.
+- ~~**No visible halo drawable.**~~ Superseded. maimai draws no halo, and this document deferred the
+  question as a separate visual decision. That decision was subsequently made in favour of drawing
+  one — see [2026-08-01-spawn-halo-ring-design.md](2026-08-01-spawn-halo-ring-design.md). It is
+  presentation only; nothing in this document changes.
 - **No user-facing settings.** `SpawnHaloFraction` and `SpawnDuration` are art direction, not player
   preference. They get a tuning scene, not `GarbusSetting` keys.
 - **No scroll-speed-dependent `SpawnDuration`.**
