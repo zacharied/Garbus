@@ -220,7 +220,9 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
         });
 
         AddAssert("rank omitted", () => display.ActiveMessages.Single().RankText == string.Empty);
-        AddAssert("credited activation shown", () => display.ActiveMessages.Single().DetailText == "22%");
+        // The hold received no input, so its grace period is uncredited and nothing is activated
+        // (docs/rules-specs/Judgement.md -> Duration -> Grace period).
+        AddAssert("credited activation shown", () => display.ActiveMessages.Single().DetailText == "0%");
         AddAssert("percentage is white", () => display.ActiveMessages.Single().DetailColour == Color4.White);
     }
 
@@ -236,7 +238,8 @@ public partial class TestSceneJudgementFeedback : GarbusTestScene
         });
 
         AddAssert("bad rank retained", () => display.ActiveMessages.Single().RankText == "BAD");
-        AddAssert("segment activation shown", () => display.ActiveMessages.Single().DetailText == "40%");
+        // The segment received no input, so its grace period is uncredited.
+        AddAssert("segment activation shown", () => display.ActiveMessages.Single().DetailText == "0%");
 
         AddAssert("percentage rounded to integer", () =>
             createMessage(HitResult.Bad, 0, false, activationProgress: 0.555).DetailText == "56%");

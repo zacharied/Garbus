@@ -35,20 +35,6 @@ public class CompositeJudgementTest
         => Assert.That(new SliderNodeHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
     [Test]
-    public void SliderChildrenFormAHeadReferenceChain()
-    {
-        var slider = createSlider(100, 300);
-        slider.ApplyDefaults();
-
-        var head = slider.NestedHitObjects.OfType<SliderHead>().Single();
-        var children = slider.NestedHitObjects.OfType<SliderChild>().OrderBy(c => c.StartTime).ToArray();
-
-        Assert.That(children[0].HeadReference, Is.SameAs(head));
-        Assert.That(children[1].HeadReference, Is.SameAs(children[0]));
-        Assert.That(children.All(c => c.Judgement.MaxResult == HitResult.CriticalPerfect), Is.True);
-    }
-
-    [Test]
     public void ZeroDurationChildCannotTakeCriticalPerfect()
     {
         var slider = createSlider(0, 300);
@@ -87,7 +73,7 @@ public class CompositeJudgementTest
     [TestCase(1000, 500, HitResult.Bad)]
     [TestCase(1000, 499, HitResult.Miss)]
     public void SliderSegmentUsesHoldFamilyThresholds(double duration, double activated, HitResult expected)
-        => Assert.That(DurationJudgement.Resolve(duration, activated, 200, true, false, true, 0.95, 0.90, 0.50), Is.EqualTo(expected));
+        => Assert.That(DurationJudgement.Resolve(duration, activated, false, true, 0.95, 0.90, 0.50), Is.EqualTo(expected));
 
     private static SliderBody createSlider(params double[] offsets)
         => new()

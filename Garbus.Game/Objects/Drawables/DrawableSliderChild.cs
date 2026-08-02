@@ -29,6 +29,7 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
 
     private double lastActivationUpdate = double.NaN;
     private double activatedAfterOpeningGrace;
+    private bool activatedDuringOpeningGrace;
     private bool activatedDuringEndGrace;
     private bool? activatedAtSegmentEnd;
 
@@ -44,8 +45,10 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
             if (duration <= 0)
                 return 1;
 
-            double creditedOpeningGrace = Math.Min(duration, SliderNodeHitWindows.NODE_WINDOW);
-            return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / duration, 0, 1);
+            double credited = DurationJudgement.CreditedActivation(
+                duration, SliderNodeHitWindows.NODE_WINDOW, activatedDuringOpeningGrace, activatedAfterOpeningGrace);
+
+            return Math.Clamp(credited / duration, 0, 1);
         }
     }
 
@@ -74,6 +77,7 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
 
         lastActivationUpdate = double.NaN;
         activatedAfterOpeningGrace = 0;
+        activatedDuringOpeningGrace = false;
         activatedDuringEndGrace = false;
         activatedAtSegmentEnd = null;
         node.Reset();
@@ -103,17 +107,10 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         }
         else
         {
-            bool? referenceWasHit = headReferenceWasHit();
-            if (referenceWasHit is null)
-                return;
-
-            double openingGrace = Math.Min(duration, SliderNodeHitWindows.NODE_WINDOW);
-
             result = DurationJudgement.Resolve(
                 duration,
-                openingGrace + activatedAfterOpeningGrace,
-                SliderNodeHitWindows.NODE_WINDOW,
-                referenceWasHit.Value,
+                DurationJudgement.CreditedActivation(
+                    duration, SliderNodeHitWindows.NODE_WINDOW, activatedDuringOpeningGrace, activatedAfterOpeningGrace),
                 activatedAtSegmentEnd == true,
                 activatedDuringEndGrace || activatedAtSegmentEnd == true,
                 bestThreshold: 0.95,
@@ -132,19 +129,6 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         }
 
         ApplyResult(result);
-    }
-
-    private bool? headReferenceWasHit()
-    {
-        var reference = ParentHitObject!.NestedHitObjects
-                                        .Single(d => ReferenceEquals(d.HitObject, HitObject.HeadReference));
-
-        return reference switch
-        {
-            DrawableSliderHead head when head.Judged => head.IsHit,
-            DrawableSliderChild child => child.NodeResult is null ? null : child.NodeResult != HitResult.Miss,
-            _ => null,
-        };
     }
 
     private void updateActivation()
@@ -167,6 +151,10 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
 
         if (!catching)
             return;
+
+        double openingGraceEnd = segmentStart + Math.Min(segmentEnd - segmentStart, SliderNodeHitWindows.NODE_WINDOW);
+        if (now >= segmentStart && previous <= openingGraceEnd)
+            activatedDuringOpeningGrace = true;
 
         double intervalStart = Math.Max(previous, segmentStart + SliderNodeHitWindows.NODE_WINDOW);
         double intervalEnd = Math.Min(now, segmentEnd);

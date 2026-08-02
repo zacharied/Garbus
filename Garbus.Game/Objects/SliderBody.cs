@@ -113,16 +113,13 @@ public class SliderBody : GarbusHitObject, IHasDuration, IHasMutableAngle, IHasS
         };
         AddNested(head);
 
-        GarbusHitObject previousNode = head;
-
         foreach (var controlPoint in Path.ControlPoints)
         {
-            var childHitObject = new SliderChild(this, controlPoint, previousNode)
+            var childHitObject = new SliderChild(this, controlPoint)
             {
                 StartTime = StartTime + controlPoint.TimeOffset,
             };
             AddNested(childHitObject);
-            previousNode = childHitObject;
         }
     }
 
