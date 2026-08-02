@@ -1,4 +1,5 @@
 using Garbus.Game.Gameplay.Audio;
+using Garbus.Game.Objects.Judgement;
 
 namespace Garbus.Game.Objects;
 
@@ -19,5 +20,5 @@ public class SliderChild : GarbusHitObject, IHasAngle
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.SliderChild;
 
-    public override double MaximumJudgementOffset => global::Garbus.Game.Objects.Judgement.SliderCatchHitWindows.PERFECT_WINDOW;
+    public override double MaximumJudgementOffset => SliderNodeHitWindows.NODE_WINDOW;
 }

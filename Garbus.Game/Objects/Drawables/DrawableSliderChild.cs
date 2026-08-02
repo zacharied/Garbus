@@ -44,7 +44,7 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
             if (duration <= 0)
                 return 1;
 
-            double creditedOpeningGrace = Math.Min(duration, SliderCatchHitWindows.PERFECT_WINDOW);
+            double creditedOpeningGrace = Math.Min(duration, SliderNodeHitWindows.NODE_WINDOW);
             return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / duration, 0, 1);
         }
     }
@@ -94,12 +94,12 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
             return;
 
         double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
-        double openingGrace = Math.Min(duration, SliderCatchHitWindows.PERFECT_WINDOW);
+        double openingGrace = Math.Min(duration, SliderNodeHitWindows.NODE_WINDOW);
 
         HitResult result = DurationJudgement.Resolve(
             duration,
             openingGrace + activatedAfterOpeningGrace,
-            SliderCatchHitWindows.PERFECT_WINDOW,
+            SliderNodeHitWindows.NODE_WINDOW,
             referenceWasHit.Value,
             activatedAtSegmentEnd == true,
             activatedDuringEndGrace || activatedAtSegmentEnd == true,
@@ -140,7 +140,7 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
 
         if (isCatchingNode())
             HeadStyleHit = true;
-        else if (Time.Current > HitObject.StartTime + SliderCatchHitWindows.PERFECT_WINDOW)
+        else if (Time.Current > HitObject.StartTime + SliderNodeHitWindows.NODE_WINDOW)
             HeadStyleHit = false;
     }
 
@@ -165,12 +165,12 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         if (!catching)
             return;
 
-        double intervalStart = Math.Max(previous, segmentStart + SliderCatchHitWindows.PERFECT_WINDOW);
+        double intervalStart = Math.Max(previous, segmentStart + SliderNodeHitWindows.NODE_WINDOW);
         double intervalEnd = Math.Min(now, segmentEnd);
         if (intervalEnd > intervalStart)
             activatedAfterOpeningGrace += intervalEnd - intervalStart;
 
-        double endingGraceStart = Math.Max(segmentStart, segmentEnd - SliderCatchHitWindows.PERFECT_WINDOW);
+        double endingGraceStart = Math.Max(segmentStart, segmentEnd - SliderNodeHitWindows.NODE_WINDOW);
         if (now >= endingGraceStart && previous <= segmentEnd)
             activatedDuringEndGrace = true;
     }

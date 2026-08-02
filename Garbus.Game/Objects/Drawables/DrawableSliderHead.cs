@@ -29,7 +29,7 @@ public partial class DrawableSliderHead : DrawableGarbusHitObject<SliderHead>, I
             return;
         }
 
-        if (timeOffset > SliderCatchHitWindows.PERFECT_WINDOW)
+        if (timeOffset > SliderNodeHitWindows.NODE_WINDOW)
         {
             bool? coincidentSlamHit = slamCoincidenceIndex.SlamHitAt(HitObject.StartTime, HitObject.Parent.Side);
             if (coincidentSlamHit is null)

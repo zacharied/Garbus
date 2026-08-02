@@ -22,12 +22,17 @@ public class CompositeJudgementTest
     public void SlamWindowsAreEarlyPermissive(double offset, HitResult expected)
         => Assert.That(new SlamHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
-    [TestCase(-1, HitResult.None)]
+    // Nodes grade on catch state, not on a signed offset: only offset 0 maps to Perfect, and the Bad
+    // window reaches 200 ms to each side (docs/rules-specs/Judgement.md -> Slider -> Timing).
+    [TestCase(-201, HitResult.None)]
+    [TestCase(-200, HitResult.Bad)]
+    [TestCase(-1, HitResult.Bad)]
     [TestCase(0, HitResult.Perfect)]
-    [TestCase(200, HitResult.Perfect)]
+    [TestCase(1, HitResult.Bad)]
+    [TestCase(200, HitResult.Bad)]
     [TestCase(201, HitResult.None)]
-    public void SliderCatchWindowIsLateOnly(double offset, HitResult expected)
-        => Assert.That(new SliderCatchHitWindows().ResultFor(offset), Is.EqualTo(expected));
+    public void SliderNodeWindowIsSymmetric(double offset, HitResult expected)
+        => Assert.That(new SliderNodeHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
     [Test]
     public void SliderChildrenFormAHeadReferenceChain()

@@ -15,11 +15,11 @@ public class SliderHead : GarbusHitObject, IHasAngle
 
     public int AngleDeg => Parent.AngleDeg;
 
-    public override double MaximumJudgementOffset => SliderCatchHitWindows.PERFECT_WINDOW;
+    public override double MaximumJudgementOffset => SliderNodeHitWindows.NODE_WINDOW;
 
     public override HitsoundFamily Hitsounds => HitsoundFamilies.SliderHead;
 
     public override Gameplay.Judgements.Judgement CreateJudgement() => new PerfectJudgement();
 
-    protected override HitWindows CreateHitWindows() => new SliderCatchHitWindows();
+    protected override HitWindows CreateHitWindows() => new SliderNodeHitWindows();
 }
