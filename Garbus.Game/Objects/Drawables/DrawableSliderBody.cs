@@ -22,8 +22,9 @@ namespace Garbus.Game.Objects.Drawables;
 /// The path is made up of a start node (which fixes the initial direction and time) followed by a
 /// number of child control points. Every node maps to a point <c>(θ, r)</c> where <c>θ</c> is the
 /// node's angle and <c>r</c> is its distance from the centre. The radius is driven by the scrolling
-/// algorithm, so as time advances every node "comes out" from the centre towards the surrounding arc,
-/// giving the whole path the look of a durationed object emerging from the middle of the screen.
+/// algorithm, so every node spawns on the small spawn halo and, once its hold ends, "comes out" from
+/// there towards the surrounding arc, giving the whole path the look of a durationed object emerging
+/// from the halo.
 ///
 /// Rendering is delegated to <see cref="SmoothPath"/> (osu!framework's line renderer), which handles
 /// thickness, rounded joints and anti-aliasing for us. This drawable's job is purely to produce the
@@ -431,7 +432,11 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
                 // spawns.
                 nodeRadii[i] = scrollingContainer.DistanceFromCentreAtTime(nodeTimes[i]);
 
-            // Main body: the emergence front (radius 0) out to the ring, at full alpha, with glow.
+            // Main body: everything that has emerged, out to the ring, at full alpha, with glow. The 0f
+            // inner bound is inert — the radius map floors at HaloRadius, so nothing between 0 and the
+            // halo is ever produced for it to clip — but is kept at 0 rather than HaloRadius so this
+            // call reads uniformly with the escape band below, whose inner bound (ringRadius) does real
+            // clipping work.
             bodyIndex = renderBand(0f, ringRadius, 1f, bodyPaths, pathContainer, bodyIndex, glowPaths, glowContainer);
 
             // The spike follows the body's ring contact for as long as the body is presenting its live,

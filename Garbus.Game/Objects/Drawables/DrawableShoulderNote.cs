@@ -78,9 +78,11 @@ public partial class DrawableShoulderNote : DrawableNote<ShoulderNote>, ISelfPos
 
         float baseAngleDeg = HitObject.AngleDeg;
 
-        // Clamp travel to [0, ring]: below 0 before the arc emerges, and pinned at the ring after StartTime
-        // so the squares/arc stay on the ring while the hit/miss fade plays instead of overshooting past it
-        // (matches how cardinal notes rest at the ring).
+        // Clamp travel to [0, ring]: the lower bound is inert (the radius map floors at haloRadius, always
+        // >= 0, so travel never actually reaches 0) but is kept as an explicit floor rather than removed,
+        // so this reads the same as every other radius clamp in this file. The upper bound does real work,
+        // pinning the arc at the ring after StartTime so the squares/arc stay there while the hit/miss fade
+        // plays instead of overshooting past it (matches how cardinal notes rest at the ring).
         float radius = Math.Clamp(scrollingContainer.DistanceFromCentreAtTime(HitObject.StartTime), 0f, scrollingContainer.ScrollLength);
 
         squareA.Position = ShoulderNoteGeometry.SquarePosition(baseAngleDeg, radius, +1f);

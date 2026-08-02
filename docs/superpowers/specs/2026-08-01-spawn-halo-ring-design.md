@@ -74,7 +74,7 @@ holding on the halo occludes the ring instead of being sliced by it.
 | Name | Type | Default | Why |
 | --- | --- | --- | --- |
 | `Thickness` | `BindableFloat` on `SpawnHaloRing`, bound to the inner `Arc.Thickness` | 2 | The outer ring is 5 and the radial spokes are 3; "thin" sits below both. |
-| Colour | set in the constructor | `Colour4.White.Opacity(0.35f)` | Reads as gray on the dark playfield. Translucency matters here specifically because the ring draws in front of the combo — it tints the digits rather than slicing them. |
+| Alpha | set in the constructor | 0.35 | Reads as gray on the dark playfield through translucency, not a tinted colour. Matters specifically because the ring draws in front of the combo — it dims the digits rather than slicing them. |
 | `Resolution` | fixed on the inner `Arc` | 64 | At ~120 px diameter, `Arc`'s default 32 gives ~12 px chords and visible faceting. Not tunable; there is no reason to lower it. |
 
 `Thickness` is a bindable rather than an `init` property so the tuning scene can drive it live, which

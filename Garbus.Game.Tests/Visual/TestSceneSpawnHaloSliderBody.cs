@@ -119,8 +119,10 @@ namespace Garbus.Game.Tests.Visual
 
         // Path vertices live in polar-origin-centred space (vertex (0,0) is the playfield centre), and
         // polarToCartesian maps (theta, r) to (cos * r, -sin * r) — so a vertex decodes straight back.
-        private List<Vector2> drawnVertices()
-            => body.BodyPaths.Where(p => p.Vertices.Count >= 2).SelectMany(p => p.Vertices).ToList();
+        private List<Vector2> drawnVertices() => drawnVertices(body);
+
+        private static List<Vector2> drawnVertices(Objects.Drawables.DrawableSliderBody b)
+            => b.BodyPaths.Where(p => p.Vertices.Count >= 2).SelectMany(p => p.Vertices).ToList();
 
         private static float radiusOf(Vector2 v) => v.Length;
 
@@ -128,6 +130,37 @@ namespace Garbus.Game.Tests.Visual
         {
             float deg = MathF.Atan2(-v.Y, v.X) * 180f / MathF.PI;
             return deg < 0 ? deg + 360 : deg;
+        }
+
+        /// <summary>
+        /// Linearly interpolates the drawn angle at <paramref name="radius"/> between the two consecutive
+        /// vertices of a single drawn run whose radii bracket it. Radius runs monotonically along a run
+        /// (see <c>pointAt</c> in <see cref="Objects.Drawables.DrawableSliderBody"/>), so exactly one
+        /// consecutive pair brackets any radius within the run's span.
+        /// </summary>
+        private static float interpolatedAngleAtRadius(IReadOnlyList<Vector2> vertices, float radius)
+        {
+            for (int i = 0; i < vertices.Count - 1; i++)
+            {
+                float rA = radiusOf(vertices[i]);
+                float rB = radiusOf(vertices[i + 1]);
+
+                // Skip pairs that don't straddle the target radius. A small epsilon absorbs the case
+                // where the target sits (up to float error) exactly at one endpoint rather than strictly
+                // between the two — e.g. a clip boundary vertex computed to land within ~1e-4 of it.
+                float lo = MathF.Min(rA, rB) - 0.01f;
+                float hi = MathF.Max(rA, rB) + 0.01f;
+
+                if (radius < lo || radius > hi)
+                    continue;
+
+                float t = Precision.AlmostEquals(rA, rB, 0.0001f) ? 0f : (radius - rA) / (rB - rA);
+                float aA = angleOf(vertices[i]);
+                float aB = angleOf(vertices[i + 1]);
+                return aA + (aB - aA) * t;
+            }
+
+            throw new InvalidOperationException($"no consecutive vertex pair in the drawn run brackets radius {radius}");
         }
 
         /// <summary>
@@ -184,6 +217,89 @@ namespace Garbus.Game.Tests.Visual
             AddAssert("sweep reaches the tail's angle", () => Precision.AlmostEquals(drawnVertices().Max(angleOf), 90, 1.0));
             AddAssert("outer end is the head", () => Precision.AlmostEquals(drawnVertices().Max(radiusOf), 175, 0.5));
             AddAssert("inner end is the tail, clear of the halo", () => Precision.AlmostEquals(drawnVertices().Min(radiusOf), 75, 0.5));
+        }
+
+        /// <summary>
+        /// Pins the design doc's second claim about the emergence front (Playfield.md, "Spawn halo and
+        /// spawn phase": "the point drawn at the ring stops being the point whose time is now" if the
+        /// split-at-front interpolation is wrong): the vertex the body draws exactly at the ring radius is
+        /// the point whose node time equals <see cref="osu.Framework.Timing.IClock.CurrentTime"/> right
+        /// now — not merely some point inside the drawn range. The slider catcher tests
+        /// <c>AngleDegAt(Time.Current)</c> against this rendered geometry, so a regression here would
+        /// silently break catching rather than visibly looking wrong.
+        ///
+        /// This needs a link straddling both the ring and the emergence front at once, which requires a
+        /// link longer than travelTime (600 ms) — the 400 ms link from <see cref="SetUpSteps"/> can't
+        /// reach past the ring while still holding its far end, so this test builds its own slider (head
+        /// at 10000 on angle 0, one control point 800 ms later at angle 90) on its own playfield, reusing
+        /// the same 200/50/600/0.25 calibration.
+        ///
+        /// Hand-derived at Time.Current = 10100:
+        ///   head delta -100 -> radius 200 - (-100) * 0.25 = 225 (already past the ring)
+        ///   tail delta  700 -> still held (&gt; travelTime 600), floored to 50
+        ///   emergence front = 10100 + 600 = 10700 -> link parameter (10700 - 10000) / 800 = 0.875
+        ///   drawn radius runs linearly from 225 (link parameter 0) to 50 (link parameter 0.875); it
+        ///   crosses the ring's 200 at sub-range parameter (225 - 200) / (225 - 50) = 25 / 175 = 1/7 of
+        ///   that span, i.e. link parameter 0.875 * 1/7 = 0.125
+        ///   link parameter 0.125 -> time 10000 + 800 * 0.125 = 10100 = now (the property under test)
+        ///   the control point does not opt into smoothing, so the angle is linear along the link:
+        ///   90 * 0.125 = 11.25 degrees
+        /// </summary>
+        [Test]
+        public void TestRingVertexAngleMatchesTheAngleAtNow()
+        {
+            GarbusPlayfield longLinkPlayfield = null!;
+            Objects.Drawables.DrawableSliderBody longLinkBody = null!;
+
+            AddStep("build playfield with a halo-and-ring-straddling slider", () =>
+            {
+                var slider = new SliderBody
+                {
+                    StartTime = head_time,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 800, RotationOffset = 90 },
+                        },
+                    },
+                };
+                slider.ApplyDefaults();
+
+                // Park the clock before the slider exists so the drawable applies with the parameters
+                // set in SetUpSteps.
+                manualClock.CurrentTime = head_time - 2000;
+
+                Child = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Clock = new FramedClock(manualClock),
+                    Child = new GarbusInputManager
+                    {
+                        Child = longLinkPlayfield = new GarbusPlayfield
+                        {
+                            RelativeSizeAxes = Axes.None,
+                            Size = new Vector2(460),
+                        },
+                    },
+                };
+
+                longLinkPlayfield.Add(PlayScreen.CreateDrawableRepresentation(slider));
+            });
+
+            AddUntilStep("slider body present", () =>
+            {
+                longLinkBody = longLinkPlayfield.AllHitObjects.OfType<Objects.Drawables.DrawableSliderBody>().FirstOrDefault()!;
+                return longLinkBody != null;
+            });
+
+            seek(10100);
+
+            AddAssert("a sweep is drawn", () => drawnVertices(longLinkBody).Count >= 2);
+            AddAssert("the vertex at the ring radius has the angle of now (11.25 degrees)",
+                () => Precision.AlmostEquals(interpolatedAngleAtRadius(drawnVertices(longLinkBody), 200f), 11.25f, 0.5f));
         }
     }
 }
