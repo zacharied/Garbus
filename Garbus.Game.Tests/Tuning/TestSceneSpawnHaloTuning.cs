@@ -1,8 +1,8 @@
-// Interactive tuning scene for the spawn halo: halo radius, spawn duration and scroll speed are
-// sliders in the test browser's step sidebar, over a looping stream of mixed objects on all four
-// cardinal angles plus both shoulders — so the hold reads on point notes and durationed objects at
-// once. All three parameters are live bindables, so nothing rebuilds on change. [Explicit] so it
-// never runs in a headless "run all"; pick it in the test browser.
+// Interactive tuning scene for the spawn halo: halo radius, spawn duration, scroll speed and the
+// halo ring's thickness and alpha are sliders in the test browser's step sidebar, over a looping
+// stream of mixed objects on all four cardinal angles plus both shoulders — so the hold reads on
+// point notes and durationed objects at once. Every parameter is live, so nothing rebuilds on
+// change. [Explicit] so it never runs in a headless "run all"; pick it in the test browser.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +18,7 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Testing;
 using osu.Framework.Timing;
 using osuTK;
 
@@ -37,6 +38,7 @@ namespace Garbus.Game.Tests.Tuning
         private double loopStart;
         private double loopEnd;
         private float playbackRate = 1;
+        private GarbusPlayfield playfield = null!;
 
         [Resolved]
         private GarbusScrollingInfo scrollingInfo { get; set; } = null!;
@@ -51,6 +53,12 @@ namespace Garbus.Game.Tests.Tuning
 
             AddSliderStep("scroll time range (ms)", 200f, 2000f, (float)GarbusScrollingInfo.DEFAULT_TIME_RANGE,
                 v => { if (IsLoaded) scrollingInfo.TimeRange.Value = v; });
+
+            AddSliderStep("halo ring thickness", 0f, 10f, 2f,
+                v => { if (IsLoaded && haloRing() is { } ring) ring.Thickness.Value = v; });
+
+            AddSliderStep("halo ring alpha", 0f, 1f, 0.35f,
+                v => { if (IsLoaded && haloRing() is { } ring) ring.Alpha = v; });
 
             AddSliderStep("playback rate", 0f, 2f, 1f, v => playbackRate = v);
         }
@@ -70,8 +78,6 @@ namespace Garbus.Game.Tests.Tuning
 
             manualClock.CurrentTime = loopStart;
 
-            GarbusPlayfield playfield;
-
             Child = new Container
             {
                 RelativeSizeAxes = Axes.Both,
@@ -85,6 +91,8 @@ namespace Garbus.Game.Tests.Tuning
             foreach (var hitObject in objects)
                 playfield.Add(PlayScreen.CreateDrawableRepresentation(hitObject));
         }
+
+        private SpawnHaloRing? haloRing() => playfield?.ChildrenOfType<SpawnHaloRing>().SingleOrDefault();
 
         // Cardinal notes cycling the four angles, a shoulder note every fourth beat, and a cardinal
         // hold every eighth — enough variety to see the halo hold on point and durationed objects.
