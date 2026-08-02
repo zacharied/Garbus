@@ -99,10 +99,13 @@ pair). Windows are asymmetric `(Early, Late)` ranges (`HitWindowRange`) with an 
 window; hittability keys off `HitWindows.LateEligibilityEdge`. Notes carry `CardinalNoteHitWindows` /
 `ShoulderNoteHitWindows` (hold heads share the parent's instance). Note-lock is the spec's
 oldest-eligible-containing rule with no force-missing (`UI/GarbusOrderedHitPolicy.cs`).
-`Objects/Judgement/DurationJudgement.cs` applies hold/slider grace, short-duration, end-floor, and
-ending-grace rules. Slider heads use a late-only 200 ms catch window (`SliderCatchHitWindows`);
-children use hold-family segment proportions plus a catch-style pseudo-head chain with
-same-time/same-side slam floors. Slams use timestamped early-permissive `SlamHitWindows`. **The spec
+`Objects/Judgement/DurationJudgement.cs` applies the gated opening grace (`CreditedActivation`),
+end-floor, and ending-grace rules — there is no short-duration special case and no head reference.
+Every slider node is judged by `SliderNodeJudgement` over a symmetric 200 ms window
+(`SliderNodeHitWindows`): Perfect for covering the node's angle as StartTime is reached, Bad for
+covering it anywhere else inside the window, Miss otherwise. A child takes that node judgement when
+its segment has no duration, and the hold-family segment proportion otherwise; same-time/same-side
+slams floor either away from a Miss. Slams use timestamped early-permissive `SlamHitWindows`. **The spec
 is authoritative — change behavior there and here together.**
 
 ## Judgement feedback halo

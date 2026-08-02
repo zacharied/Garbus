@@ -334,16 +334,17 @@ In `Garbus.Game/Objects/SliderChild.cs`, add:
 
     // A jump has no segment to grade, so the child is judged as a node — Perfect, Bad or Miss.
     public override Gameplay.Judgements.Judgement CreateJudgement()
-        => SegmentDuration <= 0 ? new PerfectJudgement() : new();
+        => SegmentDuration <= 0 ? new PerfectJudgement() : new Gameplay.Judgements.Judgement();
 ```
 
-Add `using Garbus.Game.Objects.Judgement;` if it is not already present.
+Add `using Garbus.Game.Objects.Judgement;` if it is not already present. Spell the false branch's type
+out: a target-typed `new()` in a conditional binds to the other branch's type, so
+`... ? new PerfectJudgement() : new()` silently caps *every* child at Perfect.
 
 - [ ] **Step 4: Run the test**
 
 Run: `dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter ZeroDurationChildCannotTakeCriticalPerfect`
-Expected: PASS. If it fails because `StartTime` is still 0 when `CreateJudgement` runs, move the
-judgement selection to `ApplyDefaultsToSelf` instead and re-run.
+Expected: PASS.
 
 - [ ] **Step 5: Judge the head from its node tracker**
 

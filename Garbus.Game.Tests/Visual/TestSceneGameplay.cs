@@ -622,6 +622,52 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
+        public void TestShortSegmentWithoutInputMisses()
+        {
+            Objects.Drawables.DrawableSliderBody body = null!;
+
+            // A slider ending in a 250 ms segment. The opening grace is 200 ms, so an ungated grace
+            // would credit 200/250 = 80% and hand the last child a Bad with no input whatsoever
+            // (docs/rules-specs/Judgement.md -> Duration -> Grace period).
+            AddStep("add slider with a short tail segment", () =>
+            {
+                var slider = new SliderBody
+                {
+                    StartTime = 5050,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new osu.Framework.Bindables.BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 600, RotationOffset = 30 },
+                            new GarbusPathControlPoint { TimeOffset = 850, RotationOffset = 60 },
+                        },
+                    },
+                };
+                slider.ApplyDefaults();
+                playfield.Add(PlayScreen.CreateDrawableRepresentation(slider));
+            });
+
+            AddUntilStep("slider body present", () =>
+            {
+                body = playfield.AllHitObjects
+                                .OfType<Objects.Drawables.DrawableSliderBody>()
+                                .FirstOrDefault(b => b.HitObject.StartTime == 5050)!;
+                return body != null;
+            });
+
+            playThrough(20000);
+
+            AddUntilStep("children judged", () => body.NestedHitObjects
+                                                      .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                      .All(c => c.Judged));
+            AddAssert("untouched short segment misses", () => body.NestedHitObjects
+                                                                  .OfType<Objects.Drawables.DrawableSliderChild>()
+                                                                  .All(c => c.Result?.Type == HitResult.Miss));
+        }
+
+        [Test]
         public void TestZeroDurationSliderNodesMissWithoutInput()
         {
             Objects.Drawables.DrawableSliderBody body = null!;
