@@ -43,8 +43,21 @@ growing while it moves, and never fully grown while it is still.
 
 The halo is not drawn. Objects simply appear at that radius.
 
-An object with duration whose span falls entirely inside the hold window renders as a stub at the
-halo before extending outward, because every point along it maps to `haloRadius`.
+An object with duration is governed point-by-point rather than as a whole, by its **emergence
+front** — the point along it currently at `Δ = travelTime`, which is the point leaving the halo this
+instant. Everything later than the front is still inside the hold window and maps to `haloRadius`;
+it does not draw. The object therefore unfurls outward from its front rather than appearing at full
+extent.
+
+While every point of the object is still held — which is true of every object at the instant it
+appears, whatever its duration — there is no emerged portion to draw and it renders as a stub on the
+halo at its own Angle, exactly like a point note. A short object whose whole span fits inside the
+hold window stays a stub for its entire spawn.
+
+Because the radius function is flat before the front and linear after it, a durationed object is
+only linear in time on its emerged side. Presentation that interpolates along it (the slider body's
+polyline) must split at the front rather than interpolating across it, or the drawn shape bows away
+from the radius map and the point drawn at the ring stops being the point whose time is now.
 
 ## Hit object presentation
 

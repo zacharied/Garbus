@@ -116,11 +116,31 @@ second literal to drift.
 
 Every drawable already clamps defensively against the centre — `Math.Clamp(dist, 0f, ring)` in the
 shoulder and hold notes, `renderBand(0f, ringRadius, …)` in the slider body. Flooring at the source
-makes those lower bounds dead but harmless, so no geometry code changes.
+makes those lower bounds dead but harmless.
 
-Hold and slider bodies extrude out of the halo automatically: both band endpoints already resolve
-through `DistanceFromCentreAtTime`, so while a tail is still inside the hold window the band's inner
-edge pins at the halo and the body stretches outward from it.
+Point objects and hold bodies need no geometry change. A point object is a single node, so it lands
+on the halo by construction. A hold body is radial at a fixed angle, so its band is fully determined
+by its two endpoints — both resolve through `DistanceFromCentreAtTime`, and there is nothing between
+them to interpolate. While its tail is inside the hold window the band's inner edge pins at the halo
+and the body stretches outward from it, exactly as intended; when both ends are held the band
+collapses to a stub.
+
+**The slider body does need one.** Its endpoints resolve correctly, but it interpolates *between*
+them, and the floor makes a link non-linear in time whenever it straddles `Δ = travelTime`. Two
+consequences, both wrong:
+
+- Two nodes inside the hold window both read `haloRadius`, so the link between them draws at constant
+  radius — the body paints its whole angular sweep as an arc around the halo the instant it appears,
+  rather than unfurling. This affects every slider at its spawn instant, not just short ones.
+- A link with one node held and one emerged is drawn as a straight radius lerp between them, bowing
+  away from the true flat-then-ramp map. Where such a link also crosses the ring, the point drawn at
+  the ring is no longer the point whose time is now, so `AngleDegAt` — which is what the catcher is
+  tested against — disagrees with the rendered geometry.
+
+The fix is one change serving both: split each link at the emergence front (`Δ = travelTime`) and
+draw only the emerged side. What is dropped is exactly the portion that would have been painted flat
+along the halo, and what remains is linear in time, so the Liang–Barsky clip and `AngleDegAt` are
+exact again. A body with nothing emerged draws the head disc as its stub.
 
 Rewind, restart, and editor-preview scrubbing stay correct. `UpdateInitialTransforms` is
 absolute-sequenced, and its window is exactly the flat region of the map, so any seek lands on a
@@ -130,9 +150,9 @@ Judgement, hit windows, and the warning indicator are purely time-based and are 
 
 ## Behaviour changes
 
-- A slider or hold whose entire duration falls inside the hold window renders as a stub at the halo
-  before extruding. Previously its nodes had negative radii and were clipped away entirely. This is
-  correct for the model — a short object should look like a point note during its spawn.
+- A durationed object renders as a stub at the halo while all of it is still held, then unfurls from
+  its emergence front. Previously its nodes had negative radii and were clipped away entirely. This
+  is correct for the model — a short object should look like a point note during its spawn.
 - The chord connector polygon opens at halo radius instead of growing from a point.
 - The editor Mini preview inherits all of the above, since it reuses the gameplay drawables and the
   polar container.

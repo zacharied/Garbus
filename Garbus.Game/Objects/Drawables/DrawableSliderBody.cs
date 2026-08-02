@@ -256,6 +256,10 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     // Reused each frame to accumulate the vertices of the contiguous run currently being built.
     private readonly List<Vector2> scratchVertices = new();
 
+    // Time of the emergence front for the current frame — the path point leaving the halo right now.
+    // Assigned at the top of updatePath; see there.
+    private double emergenceFrontTime;
+
     public DrawableSliderBody(SliderBody hitObject)
         : base(hitObject)
     {
@@ -401,6 +405,11 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     /// </summary>
     private void updatePath()
     {
+        // The emergence front: the path point that is exactly leaving the halo this frame. Everything
+        // later than this is still inside its hold window (see emergedSubRange). Computed once here
+        // because updateHeadCircle, renderBand and tryGetLeadingTip all key off it.
+        emergenceFrontTime = Time.Current + scrollingContainer.TravelTime;
+
         updateHeadCircle();
 
         int bodyIndex = 0;
@@ -412,12 +421,14 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
             float catcherRadius = ringRadius * catcher_radius_scale;
 
             for (int i = 0; i < nodeTimes.Length; i++)
-                // Raw, unclamped distance from the centre. Negative means the node has not yet emerged
-                // from the centre; greater than the ring radius means it has already been consumed by
-                // the outer edge. Both ends are handled by clipping each link to the visible band
-                // below — NOT by clamping the node. Clamping a not-yet-emerged node to the centre would
-                // draw the whole link from the emerged node straight to the centre at once, instead of
-                // letting the curve creep outward from the middle a little at a time.
+                // Distance from the centre, floored at the spawn halo by DistanceFromCentreAtTime: a
+                // node still inside its hold window reads exactly haloRadius, never less. Greater than
+                // the ring radius means the node has already been consumed by the outer edge, which is
+                // handled by clipping each link to the visible band below. The inner end is handled
+                // earlier, by emergedSubRange, which drops a link's held portion rather than drawing it
+                // flat along the halo — that is what makes the body unfurl from the emergence front a
+                // little at a time instead of painting its whole sweep onto the halo the moment it
+                // spawns.
                 nodeRadii[i] = scrollingContainer.DistanceFromCentreAtTime(nodeTimes[i]);
 
             // Main body: the emergence front (radius 0) out to the ring, at full alpha, with glow.
@@ -498,15 +509,19 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     }
 
     /// <summary>
-    /// A head-only slider (no control points) has no path to render; show its single node as a glow
-    /// disc of the tube's full cross-section (plus the crisp circle when <see cref="ShowLine"/> is on),
-    /// travelling centre→ring like a body head would, then dissolving over the same
-    /// <see cref="EscapeFadeScale"/> runway as an escaping tube. Hidden for any slider that has a real
-    /// path (its line already draws the head).
+    /// Shows the body's head node as a glow disc of the tube's full cross-section (plus the crisp circle
+    /// when <see cref="ShowLine"/> is on), travelling halo→ring like a body head would, then dissolving
+    /// over the same <see cref="EscapeFadeScale"/> runway as an escaping tube.
+    ///
+    /// Drawn in two cases. A head-only slider (no control points) has no path to render at all, so this
+    /// is its whole visual. A slider that does have a path draws this only while every node is still
+    /// inside the hold window: nothing has emerged for <see cref="renderBand"/> to draw, and the spec
+    /// calls for it to present as a stub on the halo until the emergence front reaches it. Once any part
+    /// has emerged the line takes over and this hides again.
     /// </summary>
     private void updateHeadCircle()
     {
-        if (nodeTimes.Length >= 2)
+        if (nodeTimes.Length >= 2 && !isFullyHeld())
         {
             headCircle.Alpha = 0;
             headGlow.Alpha = 0;
@@ -515,9 +530,12 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
         float ringRadius = scrollingContainer.ScrollLength;
         float fadeOuter = ringRadius * EscapeFadeScale;
+
+        // Floored at the halo, so this is never negative — the disc has no "not yet emerged" state to
+        // hide for; it appears on the halo and stays until the outer edge dissolves it.
         float r = scrollingContainer.DistanceFromCentreAtTime(nodeTimes[0]);
 
-        float alpha = r < 0 || r > fadeOuter ? 0
+        float alpha = r > fadeOuter ? 0
             : r <= ringRadius ? 1
             : 1 - (r - ringRadius) / (fadeOuter - ringRadius);
 
@@ -553,19 +571,26 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
         for (int i = 0; i < nodeTimes.Length - 1; i++)
         {
-            float rA = nodeRadii[i];
-            float rB = nodeRadii[i + 1];
+            // Restrict the link to the portion that has left the halo. Nothing still inside the hold
+            // window is drawn, and within what remains radius is linear in time — which is what the
+            // clip below assumes.
+            if (!emergedSubRange(i, out float e0, out float e1, out float rA, out float rB))
+            {
+                // This link is entirely inside the hold window; the run cannot continue past it.
+                poolIndex = flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
+                continue;
+            }
 
-            // Draw only the part of the link whose radius lies within the band. Radius varies linearly
-            // along the link, so this is a plain 1-D clip of the parameter range.
-            if (!clipToBand(rA, rB, innerRadius, outerRadius, out float tLo, out float tHi))
+            // Draw only the part of the emerged sub-range whose radius lies within the band. Radius
+            // varies linearly across the sub-range, so this is a plain 1-D clip of its parameter range.
+            if (!clipToBand(rA, rB, innerRadius, outerRadius, out float sLo, out float sHi))
             {
                 // This link is entirely outside the band; the run cannot continue past it.
                 poolIndex = flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
                 continue;
             }
 
-            Vector2 startPoint = pointAt(i, rA, rB, tLo);
+            Vector2 startPoint = pointAt(i, e0, e1, rA, rB, sLo);
 
             // Continue the current run only if this link's visible portion begins exactly where the last
             // one ended (a shared, fully-visible node). Otherwise there is a gap — flush and start a
@@ -578,12 +603,13 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
             for (int k = 1; k <= segments_per_link; k++)
             {
-                float t = tLo + (tHi - tLo) * ((float)k / segments_per_link);
-                scratchVertices.Add(pointAt(i, rA, rB, t));
+                float s = sLo + (sHi - sLo) * ((float)k / segments_per_link);
+                scratchVertices.Add(pointAt(i, e0, e1, rA, rB, s));
             }
 
-            // Clipped before reaching its end node: the curve leaves the band here, so the run ends.
-            if (tHi < 1f)
+            // The run ends if the curve left the band before the sub-range's end (sHi < 1), or if the
+            // sub-range itself stopped short of the end node (e1 < 1) because the rest is still held.
+            if (sHi < 1f || e1 < 1f)
                 poolIndex = flushRun(pool, container, alpha, poolIndex, glowPool, glowTarget, glowAlpha);
         }
 
@@ -618,14 +644,16 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
 
         for (int i = 0; i < nodeTimes.Length - 1; i++)
         {
-            float rA = nodeRadii[i];
-            float rB = nodeRadii[i + 1];
-
-            if (!clipToBand(rA, rB, ringRadius, catcherRadius, out float tLo, out float tHi))
+            // Anything out at the catcher band has long since emerged, but route through the same
+            // sub-range split as renderBand so the tip is taken from exactly the geometry that is drawn.
+            if (!emergedSubRange(i, out float e0, out float e1, out float rA, out float rB))
                 continue;
 
-            Vector2 lo = pointAt(i, rA, rB, tLo);
-            Vector2 hi = pointAt(i, rA, rB, tHi);
+            if (!clipToBand(rA, rB, ringRadius, catcherRadius, out float sLo, out float sHi))
+                continue;
+
+            Vector2 lo = pointAt(i, e0, e1, rA, rB, sLo);
+            Vector2 hi = pointAt(i, e0, e1, rA, rB, sHi);
 
             if (lo.LengthSquared > bestRadiusSq)
             {
@@ -832,19 +860,86 @@ public partial class DrawableSliderBody : DrawableGarbusHitObject<SliderBody>, I
     private static Vector2 polarToCartesian(float radians, float radius)
         => new Vector2(MathF.Cos(radians) * radius, -MathF.Sin(radians) * radius);
 
-    // Point at parameter t along a link, in polar-origin-centred space (vertex (0,0) is the centre).
-    // Angle is smoothed/eased per the link's control point; radius stays linear so the time→radius
-    // mapping the clip relies on is exact.
-    private Vector2 pointAt(int link, float rA, float rB, float t)
-        => polarToCartesian(thetaAt(link, t), lerp(rA, rB, t));
+    /// <summary>
+    /// The sub-range of a link that has left the spawn halo, as parameters <paramref name="e0"/> ..
+    /// <paramref name="e1"/> along the link, together with the true radii at those two parameters.
+    /// Returns false when the whole link is still inside the hold window.
+    ///
+    /// The radius map is flat at <c>haloRadius</c> until <c>Δ = travelTime</c> and linear after it, so
+    /// a link straddling that boundary is not linear in time end-to-end — and both the Liang–Barsky
+    /// clip and <see cref="AngleDegAt"/> assume it is. Splitting the link at the crossing restores that
+    /// assumption on the part that is drawn, and the part that is dropped is exactly the part that
+    /// would otherwise have been painted flat along the halo.
+    /// </summary>
+    private bool emergedSubRange(int link, out float e0, out float e1, out float rA, out float rB)
+    {
+        e0 = 0f;
+        e1 = 1f;
+        rA = nodeRadii[link];
+        rB = nodeRadii[link + 1];
+
+        double tA = nodeTimes[link];
+        double tB = nodeTimes[link + 1];
+
+        bool aEmerged = tA <= emergenceFrontTime;
+        bool bEmerged = tB <= emergenceFrontTime;
+
+        if (aEmerged && bEmerged)
+            return true;
+
+        if (!aEmerged && !bEmerged)
+            return false;
+
+        // Exactly one end has emerged, so the times differ and the crossing parameter is well defined.
+        // At the crossing the radius is haloRadius by construction — that is where the floor meets the
+        // ramp — so the emerged end keeps its node radius and the crossing end takes the halo.
+        float cross = (float)((emergenceFrontTime - tA) / (tB - tA));
+
+        if (aEmerged)
+        {
+            e1 = cross;
+            rB = scrollingContainer.HaloRadius;
+        }
+        else
+        {
+            e0 = cross;
+            rA = scrollingContainer.HaloRadius;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Whether every node of this body is still inside its hold window, so nothing has emerged to draw.
+    /// </summary>
+    private bool isFullyHeld()
+    {
+        foreach (double time in nodeTimes)
+        {
+            if (time <= emergenceFrontTime)
+                return false;
+        }
+
+        return true;
+    }
+
+    // Point at parameter s along a link's emerged sub-range [e0, e1], in polar-origin-centred space
+    // (vertex (0,0) is the centre). The angle is evaluated at the corresponding link parameter, so it
+    // keeps the link's own smoothing/easing; the radius interpolates across the sub-range, where it is
+    // linear in time by construction (see emergedSubRange), so the time→radius mapping the clip relies
+    // on is exact.
+    private Vector2 pointAt(int link, float e0, float e1, float rA, float rB, float s)
+        => polarToCartesian(thetaAt(link, e0 + (e1 - e0) * s), lerp(rA, rB, s));
 
     /// <summary>
     /// The angle of the slider body at the given <paramref name="time"/>, in degrees, matching the
     /// swept geometry the body is rendered with (same per-link easing / smoothing). This is the angle a
     /// <see cref="Input.AnalogInputManager.SliderCatcher"/> must be pointing at to be catching the body there.
     ///
-    /// Because node radius is linear in time, the link parameter <c>t</c> is just the fraction of the
-    /// link's time span elapsed. Times before the start node or after the last node clamp to the
+    /// Because radius is linear in time across every portion of a link that is actually drawn — links
+    /// are split at the halo crossing and the held remainder dropped, see <see cref="emergedSubRange"/>
+    /// — the link parameter <c>t</c> is just the fraction of the link's time span elapsed, and the point
+    /// drawn at the ring is the one whose time is now. Times before the start node or after the last node clamp to the
     /// respective end node's angle. The result may fall outside [0, 360) — callers that compare against
     /// a catcher angle should wrap (see <see cref="Input.AnalogInputManager.SliderCatcher.IsCatchingAt"/>).
     /// </summary>
