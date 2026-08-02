@@ -96,12 +96,29 @@ only a successful push to `master` can publish the commit-specific prerelease.
   `TestSceneHeadOnlySliderStream`) that isolates it and exposes **every configurable parameter as a
   live test control** — `AddSliderStep` for numbers, `AddToggleStep`/checkboxes for booleans,
   dropdowns for enums — so the look can be tuned by hand in the visual test browser and regressions
-  caught.
+  caught. **Run the scene you just added before calling it done** (below) — a plain `dotnet test`
+  never touches it.
 - **Keep build and test output warning-clean (enforced — see** [AGENTS.md](../../AGENTS.md) **Rules).**
   Don't introduce compiler or analyzer warnings in production or test code; fix any you add before
   calling the work done.
 - Every gotcha fix in the domain docs is pinned by a named test — when you change that behavior,
   update the test in the same commit.
+
+## Running the `[Explicit]` scenes
+
+A plain `dotnet test` **silently excludes every `[Explicit]` fixture** — they are not discovered, so
+they do not even appear in the `Skipped` count, and a green "all tests passed" says nothing about
+them. Since every tuning and profiling scene is `[Explicit]`, a broken one ships unnoticed. Select
+them by namespace to actually run them:
+
+```
+dotnet test Garbus.Game.Tests\Garbus.Game.Tests.csproj --filter "FullyQualifiedName~Garbus.Game.Tests.Tuning"
+```
+
+Each fixture's generated `TestConstructor` runs its constructor steps followed by its `[SetUpSteps]`,
+which is exactly the order the visual browser uses on load — so that one run reproduces a
+crash-on-load without opening the browser. Do this whenever you add or touch a scene under `Tuning/`
+or `Profiling/`.
 
 ## Timing & harness traps
 
@@ -138,6 +155,14 @@ game-base runner so cached dependencies (config, chart store, clocks) are availa
   inspector's 250ms roll). Instead drive a state where the element IS shown (`AddUntilStep` shown),
   change to the state under test, then `AddUntilStep` hidden — the shown→hidden transition is
   race-free. See `TestSceneComposeSelection.TestMergeButtonHiddenForSingleSlider`.
+- **Steps added in a tuning scene's constructor run BEFORE its `[SetUpSteps]`.** The visual browser
+  runs the whole step list in order, and constructor steps (`AddSliderStep` and friends) were queued
+  first — so a slider callback fires while the scene it configures does not exist yet. Reaching for
+  the subject with `Single()`/`First()` there throws "Sequence contains no elements" the moment the
+  scene loads. Callbacks must tolerate a not-yet-built scene (store the value, `SingleOrDefault`,
+  bail), with a setup step re-applying them once it is built. The same ordering means **every step
+  auto-runs on load**, so a step that toggles state blindly leaves the scene in that state before it
+  has been looked at — drive that kind of interaction by pointing at the element instead.
 - Use `[Explicit]` for tests that are user-initiated such as profiling and tuning scenes — **no
   exceptions**. An eyeball scene (no assertion that can meaningfully fail) without `[Explicit]` runs
   in CI as noise. The only sanctioned unmarked no-assert scenes are the `Visual/HitObjects/*Stream`
