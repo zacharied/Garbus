@@ -622,14 +622,13 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
-        public void TestZeroDurationSliderResolvesFromMissedHead()
+        public void TestZeroDurationSliderNodesMissWithoutInput()
         {
             Objects.Drawables.DrawableSliderBody body = null!;
 
-            // A slider whose only child sits at TimeOffset 0 (a zero-duration constant-radius arc, as a
-            // slam's coincident children also are): its catch window [StartTime, StartTime] has zero
-            // width, so its duration judgement resolves directly from the head reference. With no input,
-            // both the catch-timed head and the zero-duration child must miss.
+            // A slider whose only child sits at TimeOffset 0 — a jump. The segment has no duration, so
+            // the child is graded purely as a node. With no input at all, neither node's angle is ever
+            // covered inside its window, so head and child both miss.
             AddStep("add zero-duration slider", () =>
             {
                 var slider = new SliderBody
@@ -662,7 +661,7 @@ namespace Garbus.Game.Tests.Visual
             AddUntilStep("child judged", () => body.NestedHitObjects
                                                    .OfType<Objects.Drawables.DrawableSliderChild>()
                                                    .All(c => c.Judged));
-            AddAssert("child inherits missed head", () => body.NestedHitObjects
+            AddAssert("untouched child node misses", () => body.NestedHitObjects
                                                                .OfType<Objects.Drawables.DrawableSliderChild>()
                                                                .All(c => !c.IsHit));
             AddAssert("missed child stays silent", () => body.NestedHitObjects

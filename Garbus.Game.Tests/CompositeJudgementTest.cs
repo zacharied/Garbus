@@ -49,6 +49,20 @@ public class CompositeJudgementTest
     }
 
     [Test]
+    public void ZeroDurationChildCannotTakeCriticalPerfect()
+    {
+        var slider = createSlider(0, 300);
+        slider.ApplyDefaults();
+
+        var children = slider.NestedHitObjects.OfType<SliderChild>().OrderBy(c => c.StartTime).ToArray();
+
+        // Child 0 sits at TimeOffset 0 — a jump, graded as a node, so Perfect is its ceiling.
+        Assert.That(children[0].Judgement.MaxResult, Is.EqualTo(HitResult.Perfect));
+        // Child 1 ends a 300 ms segment, graded on activation, so the hold family's ceiling applies.
+        Assert.That(children[1].Judgement.MaxResult, Is.EqualTo(HitResult.CriticalPerfect));
+    }
+
+    [Test]
     public void CoincidentSlamOnlyFloorsSameTimeAndSide()
     {
         var index = new SlamCoincidenceIndex();

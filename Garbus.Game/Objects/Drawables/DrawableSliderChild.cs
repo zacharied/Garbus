@@ -1,5 +1,5 @@
-// Each child is a hold-family duration judgement, while HeadStyleHit is the
-// distinct catch-style pseudo-judgement used only as the next segment's head reference.
+// A child grades the segment ending at it, or — at a jump, where that segment has no duration —
+// its own node judgement. See docs/rules-specs/Judgement.md.
 
 using System;
 using System.Linq;
@@ -40,7 +40,7 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     {
         get
         {
-            double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
+            double duration = HitObject.SegmentDuration;
             if (duration <= 0)
                 return 1;
 
@@ -49,8 +49,10 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         }
     }
 
-    /// <summary>The catch-style pseudo-judgement at this node; never applied as a real result.</summary>
-    public bool? HeadStyleHit { get; private set; }
+    private readonly SliderNodeJudgement node = new();
+
+    /// <summary>This child's node judgement, or null while it is still undecided.</summary>
+    public HitResult? NodeResult => node.Result;
 
     public DrawableSliderChild(SliderChild hitObject)
         : base(hitObject)
@@ -74,38 +76,50 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         activatedAfterOpeningGrace = 0;
         activatedDuringEndGrace = false;
         activatedAtSegmentEnd = null;
-        HeadStyleHit = null;
+        node.Reset();
     }
 
     protected override void Update()
     {
         updateActivation();
-        updateHeadStyleJudgement();
+        node.Update(Time.Current - Time.Elapsed, Time.Current, HitObject.StartTime, isCatchingNode());
         base.Update();
     }
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
-        if (timeOffset < 0 || HeadStyleHit is null)
+        if (timeOffset < 0)
             return;
 
-        bool? referenceWasHit = headReferenceWasHit();
-        if (referenceWasHit is null)
-            return;
+        double duration = HitObject.SegmentDuration;
+        HitResult result;
 
-        double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
-        double openingGrace = Math.Min(duration, SliderNodeHitWindows.NODE_WINDOW);
+        if (duration <= 0)
+        {
+            if (node.Result is null)
+                return;
 
-        HitResult result = DurationJudgement.Resolve(
-            duration,
-            openingGrace + activatedAfterOpeningGrace,
-            SliderNodeHitWindows.NODE_WINDOW,
-            referenceWasHit.Value,
-            activatedAtSegmentEnd == true,
-            activatedDuringEndGrace || activatedAtSegmentEnd == true,
-            bestThreshold: 0.95,
-            perfectThreshold: 0.90,
-            badThreshold: 0.50);
+            result = node.Result.Value;
+        }
+        else
+        {
+            bool? referenceWasHit = headReferenceWasHit();
+            if (referenceWasHit is null)
+                return;
+
+            double openingGrace = Math.Min(duration, SliderNodeHitWindows.NODE_WINDOW);
+
+            result = DurationJudgement.Resolve(
+                duration,
+                openingGrace + activatedAfterOpeningGrace,
+                SliderNodeHitWindows.NODE_WINDOW,
+                referenceWasHit.Value,
+                activatedAtSegmentEnd == true,
+                activatedDuringEndGrace || activatedAtSegmentEnd == true,
+                bestThreshold: 0.95,
+                perfectThreshold: 0.90,
+                badThreshold: 0.50);
+        }
 
         if (result == HitResult.Miss)
         {
@@ -128,20 +142,9 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         return reference switch
         {
             DrawableSliderHead head when head.Judged => head.IsHit,
-            DrawableSliderChild child => child.HeadStyleHit,
+            DrawableSliderChild child => child.NodeResult is null ? null : child.NodeResult != HitResult.Miss,
             _ => null,
         };
-    }
-
-    private void updateHeadStyleJudgement()
-    {
-        if (HeadStyleHit is not null || Time.Current < HitObject.StartTime)
-            return;
-
-        if (isCatchingNode())
-            HeadStyleHit = true;
-        else if (Time.Current > HitObject.StartTime + SliderNodeHitWindows.NODE_WINDOW)
-            HeadStyleHit = false;
     }
 
     private void updateActivation()
