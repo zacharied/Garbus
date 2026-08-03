@@ -15,7 +15,11 @@ This is the canonical reference for the timing and judgement behaviour of every 
   begins and (for duration objects) ends.
 - **Head** — the part of an object judged around its StartTime.
 - **Tail** — the part of a duration object judged at its EndTime
-- **Child** — one of a Slider's consecutive tails.
+- **Node** — a Slider's head, or one of its children. Every node is judged the same way, by
+  [catch timing](#catch-timing).
+- **Child** — one of a Slider's nodes after the head. A child is also the tail of the segment ending
+  at it.
+- **Segment** — the span between two consecutive Slider nodes. A segment may have a duration of 0.
 - **Duration object** — an object whose EndTime differs from its StartTime (see [Duration](#duration)).
 - **Lane** — an independent track that objects occupy for note-lock purposes; a single input belongs to
   exactly one lane.
@@ -36,12 +40,12 @@ different families are never ranked against one another.
 
 - **Note** — Critical Perfect, Perfect, Near, Miss. Used by CardinalNotes, ShoulderNotes, and HoldNote
   heads.
-- **Hold** — Critical Perfect, Perfect, Bad, Miss. Used by HoldNote tails and Slider children (their
-  duration judgements).
+- **Hold** — Critical Perfect, Perfect, Bad, Miss. Used by HoldNote tails, Slider segments, and Slider
+  nodes.
 - **Early-permissive** — Perfect, Near, Miss. Used by Slam objects.
 
-Catch-timed heads (a Slider head, and the head-style pseudo-judgements of Slider children) yield only
-**Perfect** or **Miss**, which are shared by every family.
+Slider nodes draw from the hold family but can never take **Critical Perfect** — a node is graded
+Perfect, Bad, or Miss (see [Catch timing](#catch-timing)).
 
 ## Timing windows
 
@@ -99,9 +103,9 @@ Some objects have a duration; that is, their EndTime differs from their StartTim
 and EndTime, an object with duration is **Activated** while the player performs its input and
 **Deactivated** while they do not.
 
-A duration object is a composite of a **head** (judged around StartTime) and a **tail** (judged at
-EndTime, receiving the duration judgement). Sliders have multiple consecutive tails, called
-**children**.
+A HoldNote is a composite of a **head** (judged around StartTime) and a **tail** (judged at EndTime,
+receiving the duration judgement). A Slider is instead a chain of **nodes** joined by **segments**,
+each segment being a duration whose tail is the node it ends at (see [Slider](#slider)).
 
 ### Duration judgement
 
@@ -120,36 +124,53 @@ Activated for at least 900 ms → Good; at least 300 ms but less than 900 ms →
 
 ### Grace period
 
-Some duration object types have a **grace period** in milliseconds. When present, the first *x*
-milliseconds of the duration are always treated as Activated. The grace period also affects the final
-judgement (see below).
+Some duration object types have a **grace period** in milliseconds: an opening span, starting at
+StartTime and capped at the object's duration, that forgives a player who begins the input a little
+after StartTime.
+
+The grace period is credited **only if the object was Activated at some point within it**. When it is
+credited, the whole grace period counts as Activated. When it is not, none of it does. An object that
+received no input during its grace period is therefore graded on its real activation alone, and one
+that received no input at all is Missed rather than carried by free credit.
+
+The credit is all-or-nothing, so there is a step at the grace period's outer edge: a player who first
+Activates just inside it keeps the full credit, and one who first Activates just outside it keeps none.
+This is deliberate — past that edge the player has missed the object's start.
+
+The grace period also affects the final judgement (see below).
 
 ### Final judgement
 
 The duration judgement is conceptual; it is not necessarily the final Judgement assigned to the tail.
-By default the final judgement **is** the duration judgement, adjusted by a **head reference** — whether
-the object's head was hit or missed — per the rules below. Where a rule refers to the head reference's
-*largest non-Miss timing window*, it means that window's late (positive) extent — the time after
-StartTime by which the head's input must land (e.g. 110 ms for a CardinalNote head, 200 ms for a Slider
-head).
+By default the final judgement **is** the duration judgement, adjusted per the rules below.
 
 - If the object is Activated at the moment EndTime arrives, the final judgement must be better than a
   Miss (in the example above, at least Bad).
-- If the object's duration is **shorter** than the head reference's largest non-Miss timing window, the
-  duration judgement is discarded: the tail takes the best Judgement if the head was hit, or a Miss if
-  the head was missed — the Miss still subject to the floor set by the preceding rule.
-- If the object's duration is **at least as long as** the head reference's largest non-Miss timing
-  window, and the object was never Activated during `[EndTime - GracePeriod, EndTime]`, the tail cannot
-  take the best judgement (in the example above, Bad at best).
+- If the object was never Activated during `[EndTime - GracePeriod, EndTime]`, the tail cannot take the
+  best judgement (in the example above, Bad at best).
+
+A tail's Judgement never depends on how its head, or any neighbouring object, was judged — it follows
+from the input performed over its own duration. A duration shorter than the grace period needs no
+special case: the grace period is capped at the duration, so a player who arrives in time is credited
+the whole span and a player who never arrives is credited none of it.
 
 ## Catch timing
 
-Some objects have **catch timing**: their Judgement depends on whether the input is active during the
-object's timing window, not on activating it at a precise instant. A catch window has **no early-miss
-region** — holding the input from before StartTime is fine and yields a Perfect immediately at
-StartTime. The window instead extends late, an asymmetric **(late only)** Perfect window: the player
-may begin the input any time up to its late edge and still earn a Perfect. If the input is never active
-by that edge, the object is Missed. That late edge is the object's largest non-Miss timing window.
+Some objects have **catch timing**: their Judgement depends on whether the input — a sustained state
+rather than a triggered action — was active at the object's position, not on triggering it at a precise
+instant. A catch window has **no early-miss region**: holding the input from before StartTime is fine
+and is in fact how a catch-timed object is played best.
+
+A catch window is **symmetric**, and grades on when the input covered the object's position:
+
+- **Perfect** — the input covers the object's position at StartTime itself.
+- The family's **worst non-Miss** Judgement — otherwise, if the input covered the object's position at
+  some point within the window.
+- **Miss** — otherwise.
+
+The window's extent to each side is the object's largest non-Miss timing window. Arriving after
+StartTime and leaving before it grade alike; only covering the position across StartTime earns a
+Perfect.
 
 ## Early-permissive timing
 
@@ -225,20 +246,28 @@ its parent `*Note` type.
 
 ### Slider
 
-Sliders are catch-timed at the head. A Slider has a head and zero or more children; a **node** is either
-the head or a child. **Every node yields exactly one Judgement**, so a Slider's Judgement count always
-equals its node count: the head's Judgement is catch-timed (Perfect or Miss), and each child's is the
-duration judgement of the body segment ending at that child, judged in the **hold** family. The body is
-the set of line segments connecting the head to the first child, and each child to the next. A
-head-only Slider — no children — is judged by its head alone.
+A Slider is a chain of **nodes** — a head, then zero or more children — joined by **segments**. Every
+node is catch-timed, and every node **yields exactly one Judgement**, so a Slider's Judgement count
+always equals its node count. A head-only Slider — no children — is judged by its head alone.
+
+The head and the children are judged identically as nodes; the head is distinguished only by having no
+segment before it. The Slider's drawn path between nodes is presentation, not a judgement surface: what
+is judged is the nodes, and the input held across the time between them.
 
 #### Timing
 
-A Slider head is catch-timed: it yields **Perfect** unless Missed. Its Perfect window is asymmetric —
-the input may be caught from before StartTime (as a held state) through **200 ms** after StartTime;
-failing to catch it by then is a Miss. This 200 ms late extent is the head's largest non-Miss timing
-window, used by the Final-judgement rules. Each child's head-style pseudo-judgement uses the same
-200 ms window.
+Every node is catch-timed with a **200 ms** window to each side of its StartTime:
+
+| Judgement | Condition                                                                              |
+|-----------|----------------------------------------------------------------------------------------|
+| Perfect   | the input covers the node's angle at the node's StartTime                                |
+| Bad       | otherwise, the input covered the node's angle at some point within 200 ms of StartTime   |
+| Miss      | otherwise                                                                                |
+
+Reaching a node early and leaving before its StartTime grades the same as arriving after it. Perfect is
+a check of the input's *state* as StartTime is reached, not of an action performed at that instant: a
+player who covers the node's angle before StartTime and is still covering it when StartTime arrives
+earns the Perfect. This 200 ms is the node window, and is also the Slider segment grace period below.
 
 One final rule applies to Slider judgement: if a Slam with the same **Side** exists at the same
 StartTime as a node (head or child) and that Slam is not a Miss, the node cannot be a Miss either.
@@ -247,6 +276,13 @@ hit object.
 
 #### Duration
 
+Each child owns the segment ending at it. That child's Judgement is:
+
+- its **node judgement**, if the segment's duration is 0;
+- the segment's **duration judgement**, otherwise.
+
+The head's Judgement is always its node judgement — it has no segment before it.
+
 | Judgement        | Proportion |
 |------------------|------------|
 | Critical Perfect | 95%        |
@@ -254,27 +290,14 @@ hit object.
 | Bad              | 50%        |
 | Miss             | 0%         |
 
-A body segment may be **zero-length** — its child sits at the same time as the preceding node
-(TimeOffset 0), giving the segment a duration of 0. Such a segment computes no activation proportion;
-the Final-judgement rule for a duration shorter than the head reference's largest non-Miss window
-resolves its child straight from the head reference — the best Judgement if that reference was hit, a
-Miss if it was missed. The child is still judged, so the one-Judgement-per-node relationship holds even
-for zero-length segments.
+A Slider segment has a grace period of 200 ms, equal to the node window, capped at the segment's
+duration. Every segment is judged by the standard duration rules, independently of the other segments
+and of how any node was judged.
 
-A Slider body has a grace period of 200 ms, equal to the Slider head's late Perfect extent.
-
-Multi-child Sliders extend the duration rules across the body. Each body segment is judged by the
-standard duration rules, and the head reference for each segment is:
-
-- for the **first** segment, the Slider head's judgement (Perfect or Miss);
-- for every **subsequent** segment, a **head-style pseudo-judgement** of the child at the segment's
-  start.
-
-The head-style pseudo-judgement is derived the way a Slider head is — a catch-style Perfect or Miss
-based on whether the input was correctly active at that child's point — and is distinct from that
-child's own duration judgement. The pseudo-judgement must not be applied as a real judgement; child
-objects are already judged as duration objects, so applying the pseudo-judgement would cause them to
-appear to be judged twice.
+A segment is **zero-length** when its child sits at the same time as the preceding node (TimeOffset 0)
+— a **jump**, which may occur between two children as readily as after the head. A zero-length segment
+spans no time and so computes no activation proportion; its child is graded purely as a node. Reaching
+a jump's angle late, or early and then leaving, is therefore a Bad rather than a Perfect or a Miss.
 
 ### SlamCentered
 

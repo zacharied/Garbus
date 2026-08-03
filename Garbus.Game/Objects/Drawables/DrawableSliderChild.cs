@@ -1,5 +1,5 @@
-// Each child is a hold-family duration judgement, while HeadStyleHit is the
-// distinct catch-style pseudo-judgement used only as the next segment's head reference.
+// A child grades the segment ending at it, or — at a jump, where that segment has no duration —
+// its own node judgement. See docs/rules-specs/Judgement.md.
 
 using System;
 using System.Linq;
@@ -29,6 +29,7 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
 
     private double lastActivationUpdate = double.NaN;
     private double activatedAfterOpeningGrace;
+    private bool activatedDuringOpeningGrace;
     private bool activatedDuringEndGrace;
     private bool? activatedAtSegmentEnd;
 
@@ -40,17 +41,21 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
     {
         get
         {
-            double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
+            double duration = HitObject.SegmentDuration;
             if (duration <= 0)
                 return 1;
 
-            double creditedOpeningGrace = Math.Min(duration, SliderCatchHitWindows.PERFECT_WINDOW);
-            return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / duration, 0, 1);
+            double credited = DurationJudgement.CreditedActivation(
+                duration, SliderNodeHitWindows.NODE_WINDOW, activatedDuringOpeningGrace, activatedAfterOpeningGrace);
+
+            return Math.Clamp(credited / duration, 0, 1);
         }
     }
 
-    /// <summary>The catch-style pseudo-judgement at this node; never applied as a real result.</summary>
-    public bool? HeadStyleHit { get; private set; }
+    private readonly SliderNodeJudgement node = new();
+
+    /// <summary>This child's node judgement, or null while it is still undecided.</summary>
+    public HitResult? NodeResult => node.Result;
 
     public DrawableSliderChild(SliderChild hitObject)
         : base(hitObject)
@@ -72,40 +77,46 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
 
         lastActivationUpdate = double.NaN;
         activatedAfterOpeningGrace = 0;
+        activatedDuringOpeningGrace = false;
         activatedDuringEndGrace = false;
         activatedAtSegmentEnd = null;
-        HeadStyleHit = null;
+        node.Reset();
     }
 
     protected override void Update()
     {
         updateActivation();
-        updateHeadStyleJudgement();
+        node.Update(Time.Current - Time.Elapsed, Time.Current, HitObject.StartTime, isCatchingNode());
         base.Update();
     }
 
     protected override void CheckForResult(bool userTriggered, double timeOffset)
     {
-        if (timeOffset < 0 || HeadStyleHit is null)
+        if (timeOffset < 0)
             return;
 
-        bool? referenceWasHit = headReferenceWasHit();
-        if (referenceWasHit is null)
-            return;
+        double duration = HitObject.SegmentDuration;
+        HitResult result;
 
-        double duration = HitObject.StartTime - HitObject.Parent.GetSegmentStartTime(HitObject);
-        double openingGrace = Math.Min(duration, SliderCatchHitWindows.PERFECT_WINDOW);
+        if (duration <= 0)
+        {
+            if (node.Result is null)
+                return;
 
-        HitResult result = DurationJudgement.Resolve(
-            duration,
-            openingGrace + activatedAfterOpeningGrace,
-            SliderCatchHitWindows.PERFECT_WINDOW,
-            referenceWasHit.Value,
-            activatedAtSegmentEnd == true,
-            activatedDuringEndGrace || activatedAtSegmentEnd == true,
-            bestThreshold: 0.95,
-            perfectThreshold: 0.90,
-            badThreshold: 0.50);
+            result = node.Result.Value;
+        }
+        else
+        {
+            result = DurationJudgement.Resolve(
+                duration,
+                DurationJudgement.CreditedActivation(
+                    duration, SliderNodeHitWindows.NODE_WINDOW, activatedDuringOpeningGrace, activatedAfterOpeningGrace),
+                activatedAtSegmentEnd == true,
+                activatedDuringEndGrace || activatedAtSegmentEnd == true,
+                bestThreshold: 0.95,
+                perfectThreshold: 0.90,
+                badThreshold: 0.50);
+        }
 
         if (result == HitResult.Miss)
         {
@@ -118,30 +129,6 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         }
 
         ApplyResult(result);
-    }
-
-    private bool? headReferenceWasHit()
-    {
-        var reference = ParentHitObject!.NestedHitObjects
-                                        .Single(d => ReferenceEquals(d.HitObject, HitObject.HeadReference));
-
-        return reference switch
-        {
-            DrawableSliderHead head when head.Judged => head.IsHit,
-            DrawableSliderChild child => child.HeadStyleHit,
-            _ => null,
-        };
-    }
-
-    private void updateHeadStyleJudgement()
-    {
-        if (HeadStyleHit is not null || Time.Current < HitObject.StartTime)
-            return;
-
-        if (isCatchingNode())
-            HeadStyleHit = true;
-        else if (Time.Current > HitObject.StartTime + SliderCatchHitWindows.PERFECT_WINDOW)
-            HeadStyleHit = false;
     }
 
     private void updateActivation()
@@ -165,12 +152,16 @@ public partial class DrawableSliderChild : DrawableHitObject<SliderChild>, ISelf
         if (!catching)
             return;
 
-        double intervalStart = Math.Max(previous, segmentStart + SliderCatchHitWindows.PERFECT_WINDOW);
+        double openingGraceEnd = segmentStart + Math.Min(segmentEnd - segmentStart, SliderNodeHitWindows.NODE_WINDOW);
+        if (now >= segmentStart && previous <= openingGraceEnd)
+            activatedDuringOpeningGrace = true;
+
+        double intervalStart = Math.Max(previous, segmentStart + SliderNodeHitWindows.NODE_WINDOW);
         double intervalEnd = Math.Min(now, segmentEnd);
         if (intervalEnd > intervalStart)
             activatedAfterOpeningGrace += intervalEnd - intervalStart;
 
-        double endingGraceStart = Math.Max(segmentStart, segmentEnd - SliderCatchHitWindows.PERFECT_WINDOW);
+        double endingGraceStart = Math.Max(segmentStart, segmentEnd - SliderNodeHitWindows.NODE_WINDOW);
         if (now >= endingGraceStart && previous <= segmentEnd)
             activatedDuringEndGrace = true;
     }

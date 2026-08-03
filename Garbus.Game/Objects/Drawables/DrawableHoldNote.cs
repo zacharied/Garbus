@@ -40,6 +40,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
     private int holdPresses;
     private double lastActivationUpdate = double.NaN;
     private double activatedAfterOpeningGrace;
+    private bool activatedDuringOpeningGrace;
     private bool activatedDuringEndGrace;
     private bool? activatedAtEnd;
     private bool headPopPlayed;
@@ -62,8 +63,13 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
             if (HitObject.Duration <= 0)
                 return 1;
 
-            double creditedOpeningGrace = Math.Min(HitObject.Duration, HitObject.HitWindows.LateEligibilityEdge);
-            return Math.Clamp((creditedOpeningGrace + activatedAfterOpeningGrace) / HitObject.Duration, 0, 1);
+            double credited = DurationJudgement.CreditedActivation(
+                HitObject.Duration,
+                HitObject.HitWindows.LateEligibilityEdge,
+                activatedDuringOpeningGrace,
+                activatedAfterOpeningGrace);
+
+            return Math.Clamp(credited / HitObject.Duration, 0, 1);
         }
     }
 
@@ -90,6 +96,7 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
         headPopPlayed = false;
         lastActivationUpdate = double.NaN;
         activatedAfterOpeningGrace = 0;
+        activatedDuringOpeningGrace = false;
         activatedDuringEndGrace = false;
         activatedAtEnd = null;
     }
@@ -139,6 +146,11 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
             return;
 
         double grace = Head.HitObject.HitWindows.LateEligibilityEdge;
+
+        double openingGraceEnd = HitObject.StartTime + Math.Min(HitObject.Duration, grace);
+        if (now >= HitObject.StartTime && previous <= openingGraceEnd)
+            activatedDuringOpeningGrace = true;
+
         double intervalStart = Math.Max(previous, HitObject.StartTime + grace);
         double intervalEnd = Math.Min(now, HitObject.EndTime);
 
@@ -182,13 +194,10 @@ public abstract partial class DrawableHoldNote<THitObject, THead> : DrawableNote
             return;
 
         double grace = Head.HitObject.HitWindows.LateEligibilityEdge;
-        double creditedOpeningGrace = Math.Min(HitObject.Duration, grace);
 
         ApplyResult(DurationJudgement.Resolve(
             HitObject.Duration,
-            creditedOpeningGrace + activatedAfterOpeningGrace,
-            grace,
-            Head.IsHit,
+            DurationJudgement.CreditedActivation(HitObject.Duration, grace, activatedDuringOpeningGrace, activatedAfterOpeningGrace),
             activatedAtEnd == true,
             activatedDuringEndGrace,
             bestThreshold: 1,

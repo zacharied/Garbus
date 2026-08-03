@@ -22,25 +22,30 @@ public class CompositeJudgementTest
     public void SlamWindowsAreEarlyPermissive(double offset, HitResult expected)
         => Assert.That(new SlamHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
-    [TestCase(-1, HitResult.None)]
+    // Nodes grade on catch state, not on a signed offset: only offset 0 maps to Perfect, and the Bad
+    // window reaches 200 ms to each side (docs/rules-specs/Judgement.md -> Slider -> Timing).
+    [TestCase(-201, HitResult.None)]
+    [TestCase(-200, HitResult.Bad)]
+    [TestCase(-1, HitResult.Bad)]
     [TestCase(0, HitResult.Perfect)]
-    [TestCase(200, HitResult.Perfect)]
+    [TestCase(1, HitResult.Bad)]
+    [TestCase(200, HitResult.Bad)]
     [TestCase(201, HitResult.None)]
-    public void SliderCatchWindowIsLateOnly(double offset, HitResult expected)
-        => Assert.That(new SliderCatchHitWindows().ResultFor(offset), Is.EqualTo(expected));
+    public void SliderNodeWindowIsSymmetric(double offset, HitResult expected)
+        => Assert.That(new SliderNodeHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
     [Test]
-    public void SliderChildrenFormAHeadReferenceChain()
+    public void ZeroDurationChildCannotTakeCriticalPerfect()
     {
-        var slider = createSlider(100, 300);
+        var slider = createSlider(0, 300);
         slider.ApplyDefaults();
 
-        var head = slider.NestedHitObjects.OfType<SliderHead>().Single();
         var children = slider.NestedHitObjects.OfType<SliderChild>().OrderBy(c => c.StartTime).ToArray();
 
-        Assert.That(children[0].HeadReference, Is.SameAs(head));
-        Assert.That(children[1].HeadReference, Is.SameAs(children[0]));
-        Assert.That(children.All(c => c.Judgement.MaxResult == HitResult.CriticalPerfect), Is.True);
+        // Child 0 sits at TimeOffset 0 — a jump, graded as a node, so Perfect is its ceiling.
+        Assert.That(children[0].Judgement.MaxResult, Is.EqualTo(HitResult.Perfect));
+        // Child 1 ends a 300 ms segment, graded on activation, so the hold family's ceiling applies.
+        Assert.That(children[1].Judgement.MaxResult, Is.EqualTo(HitResult.CriticalPerfect));
     }
 
     [Test]
@@ -68,7 +73,7 @@ public class CompositeJudgementTest
     [TestCase(1000, 500, HitResult.Bad)]
     [TestCase(1000, 499, HitResult.Miss)]
     public void SliderSegmentUsesHoldFamilyThresholds(double duration, double activated, HitResult expected)
-        => Assert.That(DurationJudgement.Resolve(duration, activated, 200, true, false, true, 0.95, 0.90, 0.50), Is.EqualTo(expected));
+        => Assert.That(DurationJudgement.Resolve(duration, activated, false, true, 0.95, 0.90, 0.50), Is.EqualTo(expected));
 
     private static SliderBody createSlider(params double[] offsets)
         => new()
