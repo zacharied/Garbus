@@ -249,12 +249,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  0,
+                                              "angleDeg":  180,
                                               "time":  18940
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  0,
                                               "time":  18940
                                           },
                                           {
@@ -339,12 +339,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  0,
+                                              "angleDeg":  180,
                                               "time":  24700
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  0,
                                               "time":  24700
                                           },
                                           {
@@ -558,12 +558,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  90,
+                                              "angleDeg":  180,
                                               "time":  35260
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  90,
                                               "time":  35260
                                           },
                                           {
@@ -2527,6 +2527,11 @@
                                               "time":  137980
                                           },
                                           {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  138940
+                                          },
+                                          {
                                               "type":  "slider",
                                               "angleDeg":  0,
                                               "side":  "Right",
@@ -2574,11 +2579,6 @@
                                                                         "sweepEasing":  "None"
                                                                     }
                                                                 ],
-                                              "time":  138940
-                                          },
-                                          {
-                                              "type":  "cardinal",
-                                              "angleDeg":  180,
                                               "time":  138940
                                           },
                                           {
@@ -2659,12 +2659,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  90,
                                               "time":  150460
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  90,
+                                              "angleDeg":  180,
                                               "time":  150460
                                           },
                                           {
@@ -2797,12 +2797,12 @@
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  180,
+                                              "angleDeg":  270,
                                               "time":  156220
                                           },
                                           {
                                               "type":  "cardinal",
-                                              "angleDeg":  270,
+                                              "angleDeg":  180,
                                               "time":  156220
                                           },
                                           {
