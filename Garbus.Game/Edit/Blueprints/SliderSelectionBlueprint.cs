@@ -242,6 +242,7 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
                     DrawWidth / 2 + (EditorAngleMapping.GridOffset(cp.RotationOffset) - k * 360) * pxPerDeg,
                     y);
                 handle.NodeSelected = selected;
+                handle.ShapeOnly = cp.ShapeOnly;
             }
         }
 
@@ -723,6 +724,11 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             foreach (var cp in nodes)
                 controlPoints.Remove(cp);
 
+            // The last control point is never shape-only; deleting the final judged node promotes the new
+            // final point so the invariant survives every delete.
+            if (controlPoints.Count > 0)
+                controlPoints[^1].ShapeOnly = false;
+
             editorChart.Update(HitObject);
         }
 
@@ -784,6 +790,10 @@ internal partial class SliderSelectionBlueprint : GarbusSelectionBlueprint<Slide
             cp.TimeOffset -= deltaTime;
             cp.RotationOffset -= deltaAngle;
         }
+
+        // Same invariant guard as removeNodes: the dropped selection may have included the final point.
+        if (controlPoints.Count > 0)
+            controlPoints[^1].ShapeOnly = false;
 
         selectedNodes.Clear();
         headSelected = false;

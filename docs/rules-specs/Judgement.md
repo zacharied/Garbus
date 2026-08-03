@@ -225,12 +225,16 @@ its parent `*Note` type.
 
 ### Slider
 
-Sliders are catch-timed at the head. A Slider has a head and zero or more children; a **node** is either
-the head or a child. **Every node yields exactly one Judgement**, so a Slider's Judgement count always
-equals its node count: the head's Judgement is catch-timed (Perfect or Miss), and each child's is the
-duration judgement of the body segment ending at that child, judged in the **hold** family. The body is
-the set of line segments connecting the head to the first child, and each child to the next. A
-head-only Slider — no children — is judged by its head alone.
+Sliders are catch-timed at the head. A Slider's path is a sequence of control points, each either a
+child-bearing point or **shape-only**. A **node** is the head or a non-shape-only control point; a
+**child** is a node other than the head. **Every node yields exactly one Judgement**, so a Slider's
+Judgement count always equals its node count: the head's Judgement is catch-timed (Perfect or Miss),
+and each child's is the duration judgement of the body segment ending at that child, judged in the
+**hold** family. A shape-only control point shapes the body's sweep but is not a node — it yields no
+Judgement and no hitsound, and the body segment it sits in merges into the segment ending at the
+next child. The last control point of a path is never shape-only. The body is the swept path
+connecting the head through every control point (shape-only included) in time order. A head-only
+Slider — no children — is judged by its head alone.
 
 #### Timing
 
@@ -275,6 +279,10 @@ based on whether the input was correctly active at that child's point — and is
 child's own duration judgement. The pseudo-judgement must not be applied as a real judgement; child
 objects are already judged as duration objects, so applying the pseudo-judgement would cause them to
 appear to be judged twice.
+
+A segment that spans shape-only control points is graded as one segment from its starting node to
+its ending child: the activation requirement follows the swept angle through the shape-only points,
+and the opening/ending grace windows apply at the segment's node endpoints only.
 
 ### SlamCentered
 

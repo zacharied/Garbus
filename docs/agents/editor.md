@@ -55,7 +55,12 @@ the general framework traps these gotchas instantiate are in [osu-framework.md](
   driven from angle every frame plus a ±360° ghost twin near grid edges. **Non-pooled**, tracked in
   the composer's per-hit-object `drawableMap`. The twin's `Show`/`Hide` fires only on visibility
   transitions (per-frame re-asserting allocated a fade transform per drawable per frame — GC churn at
-  drag rates; pin: `TestSettledTwinVisibilityIsNotReassertedEveryFrame`).
+  drag rates; pin: `TestSettledTwinVisibilityIsNotReassertedEveryFrame`). In `SliderPolylineVisual`,
+  node dots are `SliderNodeMarker`s: filled for judged nodes, hollow rings for shape-only control
+  points, and `NodeDragPiece` draws the same punch-out dot above its white selected fill so mixed
+  multi-node selections keep the distinction (both tuned in `TestSceneSliderNodeMarkerTuning`).
+  Gameplay renders shape-only points seamlessly — compose is the only place the distinction is
+  visible.
 - `Edit/Compose/` — the vendored blueprint/composer stack: `BlueprintContainer`,
   `ComposeBlueprintContainer`, `HitObjectComposer`/`ScrollingHitObjectComposer`, placement/selection
   blueprints, `SelectionBox`, `BeatSnapGrid`, drag box, radio-button toolbox, `GarbusMenu`/toggle
@@ -103,6 +108,11 @@ Each control appears only when the selection matches its condition:
 - **Direction** dropdown — every selected object is a `GarbusSlamEdge` (its `RotationalDirection`).
 - **Easing** (`SweepEasing`) dropdown + **Smoothing** (`Smooth`) checkbox — one or more slider
   control-point nodes are picked.
+  A "Shape only" checkbox sits alongside them; it applies to every selected node except each
+  slider's final control point (never shape-only), aggregating its tri-state over eligible nodes only.
+  Merging sliders preserves the flag. Deleting the head (`SliderSelectionBlueprint.removeSelection`)
+  promotes the first control point into the head, which is implicitly judged (not a control point) —
+  so a shape-only first point loses its flag by becoming the head.
 - **Merge sliders** button — the selection is ≥2 sliders (all objects sliders), no node/head is
   picked, and the sliders' `[StartTime, EndTime]` spans don't overlap (touching endpoints allowed).
   Pressing it reparents every other slider's nodes — their heads included — onto the earliest slider as

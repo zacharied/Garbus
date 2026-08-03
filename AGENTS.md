@@ -40,7 +40,7 @@ area leans on, and its gotchas.
 - **Test expectations are independent and spec-anchored.** Pinned constants trace to a spec doc or a
   commented calibration anchor; expected values are hand-derived, never computed with the
   implementation's own constants or functions; no test may be a strict subset of a sibling; bare
-  styling values (colours, glyph icons, alphas, layout offsets) are never asserted — assert relations 
+  styling values (colours, glyph icons, alphas, layout offsets) are never asserted — assert relations
   instead. Details in [testing.md](docs/agents/testing.md).
 - **UI tests locate drawables by `Name`.** A drawable a test needs to reach sets `Name` to a
   role-describing string literal in its constructor, and the test matches that literal. No name constants

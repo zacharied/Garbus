@@ -1,6 +1,7 @@
 // The border colour is inlined as new Colour4(255, 196, 40, 255), matching EditSquarePiece.
 
 using System;
+using Garbus.Game.Edit.Drawables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -30,8 +31,10 @@ internal partial class NodeDragPiece : CompositeDrawable
     public int WrapK { get; set; }
 
     private readonly Box fill;
+    private readonly Circle shapeOnlyDot;
 
     private bool nodeSelected;
+    private bool shapeOnly;
 
     /// <summary>True between a delivered <see cref="OnDragStart"/> and the single <see cref="DragEnded"/> that
     /// balances it — so the callback fires exactly once whether the drag ends normally or this handle is
@@ -52,6 +55,27 @@ internal partial class NodeDragPiece : CompositeDrawable
         }
     }
 
+    /// <summary>
+    /// Whether this handle's node is shape-only; draws the punch-out dot above the selected fill so a
+    /// mixed multi-node selection keeps the judged-vs-shape distinction the fill would otherwise cover.
+    /// Reassigned every frame alongside <see cref="CpIndex"/>.
+    /// </summary>
+    public bool ShapeOnly
+    {
+        get => shapeOnly;
+        set
+        {
+            if (shapeOnly == value)
+                return;
+
+            shapeOnly = value;
+            shapeOnlyDot.Alpha = value ? 1 : 0;
+        }
+    }
+
+    /// <summary>Whether the shape-only dot is currently drawn (test seam for the mixed-selection relation).</summary>
+    public bool ShapeOnlyDotVisible => shapeOnlyDot.Alpha > 0;
+
     public NodeDragPiece()
     {
         Size = new Vector2(16);
@@ -62,11 +86,22 @@ internal partial class NodeDragPiece : CompositeDrawable
             Masking = true,
             BorderThickness = 3,
             BorderColour = new Colour4(255, 196, 40, 255),
-            Child = fill = new Box
+            Children = new Drawable[]
             {
-                RelativeSizeAxes = Axes.Both,
-                Alpha = 0,
-                AlwaysPresent = true,
+                fill = new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Alpha = 0,
+                    AlwaysPresent = true,
+                },
+                shapeOnlyDot = new Circle
+                {
+                    Size = new Vector2(6),
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Colour = SliderNodeMarker.PunchOutColour,
+                    Alpha = 0,
+                },
             },
         };
     }

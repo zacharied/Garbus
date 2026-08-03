@@ -30,6 +30,26 @@ public class CompositeJudgementTest
         => Assert.That(new SliderCatchHitWindows().ResultFor(offset), Is.EqualTo(expected));
 
     [Test]
+    public void ShapeOnlyControlPointsSpawnNoChildren()
+    {
+        var slider = createSlider(100, 300, 500);
+        slider.Path.ControlPoints[1].ShapeOnly = true;
+        slider.ApplyDefaults();
+
+        var head = slider.NestedHitObjects.OfType<SliderHead>().Single();
+        var children = slider.NestedHitObjects.OfType<SliderChild>().OrderBy(c => c.StartTime).ToArray();
+
+        // Judged nodes are CP[0] (offset 100) and CP[2] (offset 500); CP[1] shapes only.
+        Assert.That(children, Has.Length.EqualTo(2));
+        Assert.That(children[0].StartTime, Is.EqualTo(1100));
+        Assert.That(children[1].StartTime, Is.EqualTo(1500));
+
+        // The head-reference chain skips the shape-only point.
+        Assert.That(children[0].HeadReference, Is.SameAs(head));
+        Assert.That(children[1].HeadReference, Is.SameAs(children[0]));
+    }
+
+    [Test]
     public void SliderChildrenFormAHeadReferenceChain()
     {
         var slider = createSlider(100, 300);
@@ -69,6 +89,36 @@ public class CompositeJudgementTest
     [TestCase(1000, 499, HitResult.Miss)]
     public void SliderSegmentUsesHoldFamilyThresholds(double duration, double activated, HitResult expected)
         => Assert.That(DurationJudgement.Resolve(duration, activated, 200, true, false, true, 0.95, 0.90, 0.50), Is.EqualTo(expected));
+
+    [Test]
+    public void SegmentStartSkipsShapeOnlyPoints()
+    {
+        var slider = createSlider(100, 300, 500, 700);
+        slider.Path.ControlPoints[1].ShapeOnly = true;
+        slider.Path.ControlPoints[2].ShapeOnly = true;
+        slider.ApplyDefaults();
+
+        var children = slider.NestedHitObjects.OfType<SliderChild>().OrderBy(c => c.StartTime).ToArray();
+
+        // First segment: head (1000) → CP[0] (1100).
+        Assert.That(slider.GetSegmentStartTime(children[0]), Is.EqualTo(1000));
+        // Merged segment: CP[0] (1100) → CP[3] (1700), spanning both shape-only points.
+        Assert.That(slider.GetSegmentStartTime(children[1]), Is.EqualTo(1100));
+    }
+
+    [Test]
+    public void ShapeOnlyPointsStillShapeTheSweep()
+    {
+        var slider = createSlider(200, 400);
+        slider.Path.ControlPoints[0].RotationOffset = 90;
+        slider.Path.ControlPoints[0].ShapeOnly = true;
+        slider.Path.ControlPoints[1].RotationOffset = 0;
+        slider.ApplyDefaults();
+
+        Assert.That(slider.AngleDegAt(1100), Is.EqualTo(45f).Within(0.001f));
+        Assert.That(slider.AngleDegAt(1200), Is.EqualTo(90f).Within(0.001f));
+        Assert.That(slider.AngleDegAt(1300), Is.EqualTo(45f).Within(0.001f));
+    }
 
     private static SliderBody createSlider(params double[] offsets)
         => new()

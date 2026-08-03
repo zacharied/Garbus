@@ -44,7 +44,7 @@ public class GarbusTestChartGenerator
                             },
                             new GarbusPathControlPoint()
                             {
-                                RotationOffset = 90, TimeOffset = 2000, SweepEasing = Easing.None
+                                RotationOffset = 90, TimeOffset = 2000, SweepEasing = Easing.None, ShapeOnly = true
                             },
                             new GarbusPathControlPoint()
                             {

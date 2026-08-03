@@ -2443,6 +2443,50 @@ namespace Garbus.Game.Tests.Editor
         }
 
         [Test]
+        public void TestDeletingFinalNodePromotesShapeOnlySurvivor()
+        {
+            // Invariant: a slider's last control point is never shape-only. Deleting the final judged node
+            // must promote the new final point (previously shape-only) back to judged.
+            waitForComposer();
+
+            AddStep("add slider with shape-only middle node + park clock", () =>
+            {
+                var path = new BindableList<GarbusPathControlPoint>
+                {
+                    new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 30 },
+                    new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 60, ShapeOnly = true },
+                    new GarbusPathControlPoint { TimeOffset = 1500, RotationOffset = 90 },
+                };
+                editorChart.Add(new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath { ControlPoints = path },
+                });
+                editorClock.Stop();
+                editorClock.Seek(2000);
+            });
+            AddUntilStep("drawable exists", () => composer.HitObjects.Any());
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            AddStep("select slider via head", () =>
+            {
+                input.MoveMouseTo(sliderBlueprint().ScreenSpaceSelectionPoint);
+                input.Click(MouseButton.Left);
+            });
+            AddAssert("slider selected", () => editorChart.SelectedHitObjects.SingleOrDefault() == placedObject<SliderBody>());
+
+            AddStep("select final node handle", () => { input.MoveMouseTo(nodeHandleScreen(2)); input.Click(MouseButton.Left); });
+            AddAssert("node selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(1));
+
+            AddStep("press delete", () => input.Key(Key.Delete));
+
+            AddAssert("two control points remain", () => placedObject<SliderBody>()!.Path.ControlPoints.Count, () => Is.EqualTo(2));
+            AddAssert("new final point promoted to judged", () => placedObject<SliderBody>()!.Path.ControlPoints[^1].ShapeOnly, () => Is.False);
+        }
+
+        [Test]
         public void TestDeletingHeadAndAllNodesRemovesSlider()
         {
             waitForComposer();
@@ -3391,13 +3435,13 @@ namespace Garbus.Game.Tests.Editor
             AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
 
             AddUntilStep("Smoothing checkbox shows the mixed dash", () =>
-                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault()?.State == TernaryState.Indeterminate);
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Smoothing")?.State == TernaryState.Indeterminate);
 
             // The inspector rebuilds on a 250ms roll, so the checkbox drawable under the cursor may be a
             // fresh instance by click time — it occupies the same slot, so the click still lands on one.
             AddStep("click the checkbox", () =>
             {
-                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First());
+                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First(c => c.Label == "Smoothing"));
                 input.Click(MouseButton.Left);
             });
 
@@ -3413,6 +3457,71 @@ namespace Garbus.Game.Tests.Editor
                 return !points[0].Smooth && points[1].Smooth;
             });
         }
+
+        [Test]
+        public void TestShapeOnlyCheckboxRefreshesOnClick()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode(); // two control points: node 0 is eligible, node 1 is the (excluded) final point.
+
+            selectSliderOnLine();
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+
+            AddUntilStep("Shape only checkbox appears unchecked", () =>
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Shape only")?.State == TernaryState.False);
+
+            AddStep("click the checkbox", () =>
+            {
+                input.MoveMouseTo(composer.ChildrenOfType<MultiValueCheckbox>().First(c => c.Label == "Shape only"));
+                input.Click(MouseButton.Left);
+            });
+
+            AddAssert("node 0 marked shape-only", () =>
+                placedObject<SliderBody>()!.Path.ControlPoints[0].ShapeOnly, () => Is.True);
+
+            // The display must follow the model without touching the selection: the model change fires
+            // HitObjectUpdated, whose rebuild reconstructs the checkbox with the new aggregate state.
+            AddUntilStep("Shape only checkbox shows checked", () =>
+                composer.ChildrenOfType<MultiValueCheckbox>().FirstOrDefault(c => c.Label == "Shape only")?.State == TernaryState.True);
+        }
+
+        [Test]
+        public void TestSelectedShapeOnlyNodeHandleShowsDot()
+        {
+            waitForComposer();
+            placeDiagonalSlider();
+            addSecondNode();
+
+            AddStep("mark node 0 shape-only", () =>
+            {
+                var slider = placedObject<SliderBody>()!;
+                slider.Path.ControlPoints[0].ShapeOnly = true;
+                editorChart.Update(slider);
+            });
+            settleWith(() => placedObject<SliderBody>()!.StartTime);
+
+            selectSliderOnLine();
+            AddStep("select node 0", () => { input.MoveMouseTo(nodeHandleScreen(0)); input.Click(MouseButton.Left); });
+            AddStep("ctrl+click node 1", () =>
+            {
+                input.MoveMouseTo(nodeHandleScreen(1));
+                input.PressKey(Key.LControl);
+                input.Click(MouseButton.Left);
+                input.ReleaseKey(Key.LControl);
+            });
+            AddAssert("both nodes selected", () => sliderBlueprint().SelectedNodes.Count, () => Is.EqualTo(2));
+
+            // Mixed selection stays legible: both handles carry the white selected fill, while the
+            // shape-only punch-out dot draws above the fill on the shape-only node's handle only.
+            AddUntilStep("both handles filled", () => primaryNodeHandles().Length == 2 && primaryNodeHandles().All(h => h.NodeSelected));
+            AddAssert("shape-only handle shows the dot", () => primaryNodeHandles().Single(h => h.CpIndex == 0).ShapeOnlyDotVisible, () => Is.True);
+            AddAssert("judged handle shows no dot", () => primaryNodeHandles().Single(h => h.CpIndex == 1).ShapeOnlyDotVisible, () => Is.False);
+        }
+
+        /// <summary>The primary (WrapK 0) node drag handles, one per control point.</summary>
+        private NodeDragPiece[] primaryNodeHandles()
+            => composer.ChildrenOfType<NodeDragPiece>().Where(h => h.WrapK == 0).ToArray();
 
         // ------------------------------------------------------------------
         // Merge sliders (inspector button)
@@ -3655,6 +3764,65 @@ namespace Garbus.Game.Tests.Editor
                 // cps: [base node 0, joined head, joined node]. The joined node must sit exactly 400° from the
                 // joined head, preserving the internal winding regardless of how the head connected.
                 return cps.Count == 3 && cps[2].RotationOffset - cps[1].RotationOffset == 400;
+            });
+        }
+
+        [Test]
+        public void TestMergePropagatesShapeOnlyFlag()
+        {
+            waitForComposer();
+
+            // Base has one own node (not shape-only). The joined slider carries two own nodes: a
+            // shape-only middle deflection point, then a judged final point — the last control point of
+            // a slider is never shape-only, so this one starts (and must stay) false.
+            AddStep("add base + joined slider with a shape-only middle node, select both", () =>
+            {
+                var baseSlider = new SliderBody
+                {
+                    StartTime = 1000,
+                    AngleDeg = 0,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 0 },
+                        },
+                    },
+                };
+                var joined = new SliderBody
+                {
+                    StartTime = 2000,
+                    AngleDeg = 10,
+                    Side = HorizontalDirection.Left,
+                    Path = new GarbusPath
+                    {
+                        ControlPoints = new BindableList<GarbusPathControlPoint>
+                        {
+                            new GarbusPathControlPoint { TimeOffset = 200, RotationOffset = 20, ShapeOnly = true },
+                            new GarbusPathControlPoint { TimeOffset = 400, RotationOffset = -10, ShapeOnly = false },
+                        },
+                    },
+                };
+                editorChart.Add(baseSlider);
+                editorChart.Add(joined);
+                editorChart.SelectedHitObjects.Add(baseSlider);
+                editorChart.SelectedHitObjects.Add(joined);
+            });
+            AddUntilStep("merge button shown", () => mergeButton() != null);
+
+            AddStep("merge", () => mergeButton()!.Action!.Invoke());
+            AddAssert("shape-only middle node propagates; merged final node stays judged", () =>
+            {
+                var cps = editorChart.HitObjects.OfType<SliderBody>().Single().Path.ControlPoints;
+
+                // mergeSliders appends, for each joined slider: one reparented head CP, then that
+                // slider's own control points in order. Base contributes its 1 own CP first, so the
+                // merged order is [0] base's own node, [1] joined's reparented head, [2] joined's own
+                // first node (the shape-only middle point), [3] joined's own second node (its final
+                // point). Hence cps.Count == 4, the shape-only point lands at index 2, and the merged
+                // path's final point (index 3 == cps[^1]) is the one that must stay non-shape-only.
+                return cps.Count == 4 && cps[2].ShapeOnly && !cps[^1].ShapeOnly;
             });
         }
 

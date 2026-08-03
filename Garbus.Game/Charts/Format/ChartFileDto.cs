@@ -104,6 +104,7 @@ public class PathControlPointDto
 
     /// <summary>An osu.Framework <c>Easing</c> name; "None" for constant-velocity linear.</summary>
     public string SweepEasing { get; set; } = "None";
+    public bool ShapeOnly { get; set; }
 }
 
 public class SlamCenteredDto : HitObjectDto

@@ -4,7 +4,6 @@ using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Lines;
-using osu.Framework.Graphics.Shapes;
 using osu.Framework.Statistics;
 using Garbus.Game.Gameplay.UI;
 using Garbus.Game.Objects;
@@ -33,6 +32,9 @@ public partial class SliderPolylineVisual : CompositeDrawable
     // One entry per real node (head + each control point) — where the dot markers go. Distinct from
     // `vertices`, which is the subdivided polyline fed to the SmoothPath.
     private readonly List<Vector2> nodePositions = new List<Vector2>();
+
+    // Parallel to nodePositions: whether each node is a shape-only control point (never the head).
+    private readonly List<bool> nodeShapeFlags = new List<bool>();
     private readonly List<int> wrapCopies = new List<int>();
 
     // Wrap copies are pooled and reused: each copy owns a buffered SmoothPath (its own framebuffer), so
@@ -69,7 +71,11 @@ public partial class SliderPolylineVisual : CompositeDrawable
         buildGeometry(pxPerDeg, newVertices, newNodes);
         var newCopies = computeWrapCopies();
 
-        if (vertexListEquals(newVertices) && wrapCopies.SequenceEqual(newCopies))
+        var newFlags = new List<bool>(1 + slider.Path.ControlPoints.Count) { false }; // head is always judged
+        foreach (var cp in slider.Path.ControlPoints)
+            newFlags.Add(cp.ShapeOnly);
+
+        if (vertexListEquals(newVertices) && wrapCopies.SequenceEqual(newCopies) && nodeShapeFlags.SequenceEqual(newFlags))
             return;
 
         vertices.Clear();
@@ -78,6 +84,8 @@ public partial class SliderPolylineVisual : CompositeDrawable
         nodePositions.AddRange(newNodes);
         wrapCopies.Clear();
         wrapCopies.AddRange(newCopies);
+        nodeShapeFlags.Clear();
+        nodeShapeFlags.AddRange(newFlags);
 
         rebuildCopies(pxPerDeg);
     }
@@ -95,7 +103,7 @@ public partial class SliderPolylineVisual : CompositeDrawable
                 AddInternal(created);
             }
 
-            copyPool[i].SetGeometry(vertices, nodePositions, -wrapCopies[i] * 360 * pxPerDeg);
+            copyPool[i].SetGeometry(vertices, nodePositions, nodeShapeFlags, -wrapCopies[i] * 360 * pxPerDeg);
         }
 
         // hide any pooled copies not needed this frame (cheaper than removing/recreating them).
@@ -107,7 +115,7 @@ public partial class SliderPolylineVisual : CompositeDrawable
     private partial class PathCopy : CompositeDrawable
     {
         private readonly SmoothPath path;
-        private readonly Container<Circle> markers;
+        private readonly Container<SliderNodeMarker> markers;
 
         public PathCopy()
         {
@@ -115,11 +123,11 @@ public partial class SliderPolylineVisual : CompositeDrawable
             InternalChildren = new Drawable[]
             {
                 path = new SmoothPath { PathRadius = 3 },
-                markers = new Container<Circle> { RelativeSizeAxes = Axes.Both },
+                markers = new Container<SliderNodeMarker> { RelativeSizeAxes = Axes.Both },
             };
         }
 
-        public void SetGeometry(IReadOnlyList<Vector2> pathVertices, IReadOnlyList<Vector2> nodePositions, float offsetX)
+        public void SetGeometry(IReadOnlyList<Vector2> pathVertices, IReadOnlyList<Vector2> nodePositions, IReadOnlyList<bool> nodeShapeFlags, float offsetX)
         {
             Alpha = 1;
             X = offsetX;
@@ -132,10 +140,13 @@ public partial class SliderPolylineVisual : CompositeDrawable
             while (markers.Count > nodePositions.Count)
                 markers.Remove(markers[^1], true);
             while (markers.Count < nodePositions.Count)
-                markers.Add(new Circle { Size = new Vector2(10), Origin = Anchor.Centre });
+                markers.Add(new SliderNodeMarker());
 
             for (int i = 0; i < nodePositions.Count; i++)
+            {
                 markers[i].Position = nodePositions[i];
+                markers[i].ShapeOnly = nodeShapeFlags[i];
+            }
         }
 
         public void ClearGeometry()

@@ -13,6 +13,7 @@ using Garbus.Game.Core;
 using Garbus.Game.Objects;
 using Garbus.Resources;
 using NUnit.Framework;
+using osu.Framework.Bindables;
 using osu.Framework.IO.Stores;
 
 namespace Garbus.Game.Tests
@@ -85,6 +86,48 @@ namespace Garbus.Game.Tests
             File.WriteAllText(path, json);
 
             TestContext.Out.WriteLine($"wrote {path}");
+        }
+
+        [Test]
+        public void ShapeOnlyControlPointRoundtrips()
+        {
+            var slider = new SliderBody
+            {
+                StartTime = 1000, AngleDeg = 0, Side = HorizontalDirection.Right,
+                Path = new GarbusPath
+                {
+                    ControlPoints = new BindableList<GarbusPathControlPoint>([
+                        new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45, ShapeOnly = true },
+                        new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 90 },
+                    ]),
+                },
+            };
+
+            var decoded = (SliderBody)GarbusChartSerializer.DecodeHitObjects(
+                GarbusChartSerializer.EncodeHitObjects(new[] { slider }))[0];
+
+            Assert.That(decoded.Path.ControlPoints[0].ShapeOnly, Is.True);
+            Assert.That(decoded.Path.ControlPoints[1].ShapeOnly, Is.False);
+        }
+
+        [Test]
+        public void TrailingShapeOnlyControlPointRejected()
+        {
+            var slider = new SliderBody
+            {
+                StartTime = 1000, AngleDeg = 0, Side = HorizontalDirection.Left,
+                Path = new GarbusPath
+                {
+                    ControlPoints = new BindableList<GarbusPathControlPoint>([
+                        new GarbusPathControlPoint { TimeOffset = 500, RotationOffset = 45 },
+                        new GarbusPathControlPoint { TimeOffset = 1000, RotationOffset = 90, ShapeOnly = true },
+                    ]),
+                },
+            };
+
+            string json = GarbusChartSerializer.EncodeHitObjects(new[] { slider });
+
+            Assert.Throws<InvalidDataException>(() => GarbusChartSerializer.DecodeHitObjects(json));
         }
 
         [Test]
@@ -228,6 +271,7 @@ namespace Garbus.Game.Tests
                         Assert.That(ac.RotationOffset, Is.EqualTo(ec.RotationOffset));
                         Assert.That(ac.Smooth, Is.EqualTo(ec.Smooth));
                         Assert.That(ac.SweepEasing, Is.EqualTo(ec.SweepEasing));
+                        Assert.That(ac.ShapeOnly, Is.EqualTo(ec.ShapeOnly));
                     }
 
                     break;

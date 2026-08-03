@@ -8,6 +8,14 @@ public class GarbusPathControlPoint
     public int RotationOffset;
 
     /// <summary>
+    /// Shapes the body's sweep without being a node: no <see cref="SliderChild"/> is created for this
+    /// point, so it yields no judgement, hitsound, or gameplay nub, and the body segment it sits in
+    /// merges into the segment ending at the next judged node. The last control point of a path is
+    /// never shape-only (the editor upholds this; the chart decoder rejects violations).
+    /// </summary>
+    public bool ShapeOnly;
+
+    /// <summary>
     /// Interpolation applied to the segment leading INTO this control point (from the previous node),
     /// letting a single path mix methods at different points.
     /// </summary>
