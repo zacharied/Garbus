@@ -1,0 +1,1041 @@
+﻿{
+    "version":  2,
+    "id":  "222d15b9-d9af-4c9b-8c84-86e3c22245f3",
+    "metadata":  {
+                     "title":  "Silent Rush",
+                     "artist":  "Soleily",
+                     "titleRomanized":  "",
+                     "artistRomanized":  "",
+                     "source":  "Arcaea"
+                 },
+    "resources":  {
+                      "track":  "silent rush.ogg",
+                      "background":  "silent rush.png"
+                  },
+    "previewTime":  null,
+    "timingPoints":  [
+                         {
+                             "time":  468,
+                             "beatLength":  379.746835443038,
+                             "timeSignature":  4,
+                             "omitFirstBarLine":  false
+                         }
+                     ],
+    "charts":  [
+                   {
+                       "id":  "66df9316-cd42-448a-821a-2a5fa598165f",
+                       "metadata":  {
+                                        "chartName":  "",
+                                        "charter":  "",
+                                        "level":  2,
+                                        "difficulty":  "Novice"
+                                    },
+                       "hitObjects":  [
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  468
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  1227.493670886076
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  1986.987341772152
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  2746.481012658228
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  3505.974683544304
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  4265.46835443038
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  5024.962025316456
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  5784.455696202532
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  6543.949367088608
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  7303.443037974684
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  8062.93670886076
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  8822.430379746835
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  9581.924050632912
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  10341.417721518988
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  759.493670886075,
+                                              "time":  11100.911392405063
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.987341772152,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  12619.898734177215
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.987341772152,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  14138.886075949367
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.98734177215,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  15657.87341772152
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  17176.86075949367
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  -45,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  18695.848101265823
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.98734177215,
+                                                                        "rotationOffset":  45,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  20214.835443037977
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.98734177215,
+                                                                        "rotationOffset":  45,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  21733.822784810127
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  -45,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  23252.810126582277
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  3037.974683544304,
+                                                                        "rotationOffset":  -90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  4556.962025316454,
+                                                                        "rotationOffset":  -90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  24771.79746835443
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  30847.74683544304
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  31607.240506329115
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  32366.734177215192
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  33126.22784810126
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  33885.72151898734
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  34645.215189873416
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  90,
+                                              "duration":  759.4936708860769,
+                                              "time":  35404.70886075949
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  3037.974683544304,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  4556.962025316454,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  36923.696202531646
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  42999.645569620254
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  43759.13924050633
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  44518.63291139241
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  45278.12658227848
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  46037.620253164554
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  46797.11392405063
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  90,
+                                              "duration":  759.4936708860769,
+                                              "time":  47556.60759493671
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  49075.59493670886
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  49645.215189873416
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  50594.582278481015
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  51164.20253164557
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  52113.56962025317
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  52683.18987341772
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  53632.556962025315
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  54202.17721518988
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  55151.54430379747
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  55721.16455696202
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  56670.53164556962
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  57240.15189873418
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  58189.51898734177
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  58759.13924050633
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  59708.50632911392
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  60278.126582278484
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  569.620253164554,
+                                              "time":  61227.49367088608
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  61797.11392405063
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  569.620253164554,
+                                              "time":  62746.48101265823
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  63316.101265822785
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  569.620253164554,
+                                              "time":  64265.468354430384
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  64835.08860759494
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  569.620253164554,
+                                              "time":  65784.45569620254
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  66354.07594936709
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  569.620253164554,
+                                              "time":  67303.44303797468
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  67873.06329113923
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  569.620253164554,
+                                              "time":  68822.43037974683
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  69392.05063291139
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  569.620253164554,
+                                              "time":  70341.41772151898
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  70911.03797468354
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  1518.9873417721537,
+                                              "time":  71860.40506329114
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  3037.9746835443075,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  4556.962025316461,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  6075.949367088615,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  73379.39240506329
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721392,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  3037.974683544293,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  4556.962025316447,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  79455.3417721519
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  85531.29113924051
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  85911.03797468354
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  0,
+                                              "time":  86290.78481012658
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  87050.27848101266
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  87430.02531645569
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  180,
+                                              "time":  87809.77215189874
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  88569.26582278482
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  88949.01265822785
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  89328.75949367089
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  90088.25316455697
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  90468
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  90847.74683544305
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  759.4936708860769,
+                                              "time":  91607.24050632911
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  92366.73417721518
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  759.4936708860769,
+                                              "time":  93126.22784810126
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  93885.72151898734
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  94645.21518987342
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1139.2405063291226,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  96164.20253164557
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  759.4936708860769,
+                                              "time":  97683.18987341772
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  98442.6835443038
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  759.4936708860769,
+                                              "time":  99202.17721518988
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  99961.67088607595
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  759.4936708860769,
+                                              "time":  100721.16455696203
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  101480.65822784811
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  759.4936708860769,
+                                              "time":  102240.15189873418
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  102999.64556962026
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  759.4936708860769,
+                                              "time":  103759.13924050634
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  104518.63291139241
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  0,
+                                              "duration":  759.4936708860769,
+                                              "time":  105278.12658227849
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  106037.62025316457
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  759.4936708860769,
+                                              "time":  106797.11392405065
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  107556.60759493672
+                                          },
+                                          {
+                                              "type":  "cardinal-hold",
+                                              "angleDeg":  180,
+                                              "duration":  759.4936708860769,
+                                              "time":  108316.1012658228
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  109075.59493670888
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  109835.08860759494
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  110594.58227848102
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  111354.07594936709
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  112113.56962025317
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  112873.06329113925
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  113632.55696202532
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  114392.0506329114
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  270,
+                                              "time":  115151.54430379748
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  115911.03797468354
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  116670.53164556962
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  117430.02531645569
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  118189.51898734177
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  118949.01265822785
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  119708.50632911392
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  759.4936708860769,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  120468
+                                          },
+                                          {
+                                              "type":  "cardinal",
+                                              "angleDeg":  90,
+                                              "time":  121227.49367088608
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  180,
+                                              "side":  "Left",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  1518.9873417721537,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  3037.9746835443075,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  4556.962025316461,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  6075.949367088615,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  13670.886075949355,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  15189.873417721508,
+                                                                        "rotationOffset":  -90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  16708.860759493662,
+                                                                        "rotationOffset":  -90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  18227.848101265816,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  121986.98734177215
+                                          },
+                                          {
+                                              "type":  "slider",
+                                              "angleDeg":  0,
+                                              "side":  "Right",
+                                              "controlPoints":  [
+                                                                    {
+                                                                        "timeOffset":  7594.936708860754,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  9113.924050632893,
+                                                                        "rotationOffset":  -90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  10632.911392405033,
+                                                                        "rotationOffset":  -90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  12151.898734177215,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  19746.83544303797,
+                                                                        "rotationOffset":  0,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  21265.822784810123,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  22784.810126582277,
+                                                                        "rotationOffset":  90,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  24303.79746835443,
+                                                                        "rotationOffset":  180,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    },
+                                                                    {
+                                                                        "timeOffset":  26962.025316455693,
+                                                                        "rotationOffset":  180,
+                                                                        "smooth":  false,
+                                                                        "sweepEasing":  "None"
+                                                                    }
+                                                                ],
+                                              "time":  121986.98734177215
+                                          }
+                                      ],
+                       "designPoints":  [
+
+                                        ]
+                   }
+               ]
+}
