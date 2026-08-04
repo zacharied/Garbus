@@ -30,8 +30,12 @@ test,"* the tuning scene below is required, not optional.
 
 - A head-only slider is `SliderBody` with no path control points (`nodeTimes.Length == 1`,
   `Duration == 0`). It carries one nested `SliderHead` and no `SliderChild`ren.
-  `DrawableSliderBody` already special-cases it (a `headContainer`/`headCircle` travelling
-  centre→ring, plus `if (nodeTimes.Length >= 2)` guards in `updatePath`/`AngleDegAt`).
+  `DrawableSliderBody` already special-cases it (`rebuildNodes` → a `headContainer`/`headCircle`
+  **plus a `headGlow` `GlowPath` disc** travelling centre→ring via `updateHeadCircle`, plus
+  `if (nodeTimes.Length >= 2)` guards in `updatePath`/`AngleDegAt`). The empty-path `SliderBody` *is*
+  the canonical head-only representation — see `SliderDecomposition.DecomposeIntoHeads`, which turns a
+  drawn slider into a run of exactly these. (So a decomposed slider becomes several head-only
+  sliders, each of which fires its own pulse; the Ring wiring treats them independently.)
 - A zero-length **chord** slider (`nodeTimes.Length >= 2`, all node times equal) is *not* the
   head-circle branch: `DrawableSliderBody.renderBand` draws its nodes as a **co-radial fan** — all
   nodes share the same radius at any instant (equal times → equal `DistanceFromCentreAtTime`) but sit
@@ -49,9 +53,13 @@ test,"* the tuning scene below is required, not optional.
 - `JudgementFeedbackDisplay` (on `Ring`) is the canonical "consume `NewResult`/`RevertResult`,
   place a visual at an `IHasAngle` direction" pattern — the model the eventual Ring wiring follows.
 - Reusable ring↔centre primitives: `SpikeBlade` (anti-aliased inward triangle blade, in
-  `SliderContactSpikes`), `StickCentreSpike`/`Blade.SetGeometry(angle, inner, outer)` (centre→ring
-  wedge), `Arc` (tessellated `SmoothPath` arc/ring, `positionAt` polar mapping), `PlayfieldKeybeam`
-  (additive `CircularProgress` pie slice with a transparent-centre→white-ring radial gradient).
+  `SliderContactSpikes`) — it now takes a `useGlow` ctor flag; the slider-spikes context builds it
+  with `useGlow: false` (the old blurred halo was dropped for perf), while `StickCentreSpike` builds
+  it with glow on. `StickCentreSpike` calls `Blade.SetGeometry(angleRad, baseRadius, tipRadius,
+  halfWidthDeg, opacity)` for a centre→ring wedge. `Arc` (tessellated `SmoothPath` arc/ring, polar
+  mapping `positionAt(radians, radius)`). `PlayfieldKeybeam` (additive `CircularProgress` pie slice
+  with a transparent-centre→white-ring radial gradient). If the beam/arc variants want a glow, drive
+  it explicitly — do not assume `SpikeBlade` brings one.
 - Polar convention across the codebase: `x = cos θ · r`, `y = −sin θ · r` (θ=0 → right, CCW).
   Ring radius = `min(DrawWidth, DrawHeight) / 2`.
 
@@ -143,6 +151,10 @@ job in the follow-up.
 - A pure-logic **unit test** for `CircularMeanDeg` (root `*Test.cs` style): single angle → itself;
   a symmetric fan → its centre; a wrap-straddling pair (e.g. 350° & 10° → 0°); and a degenerate
   cancelling set → the fallback.
+- **UI-test drawable lookup by `Name`** (enforced AGENTS.md rule): any pulse drawable a test needs to
+  reach sets a role-describing `Name` literal in its constructor (e.g. the base sets
+  `Name = "slider catch pulse"`), and tests match that literal via `AddUntilStep` + `Single` after
+  load — no widened visibility, no container indexing, no matching on colour/label.
 - Build and test output stays **warning-clean** (enforced AGENTS.md rule); verification is via the
   headless tests and eyeballing the Tuning scene in the visual browser — the app is not run.
 
