@@ -61,6 +61,34 @@ namespace Garbus.Game.Tests
         }
 
         [Test]
+        public void SpawnArcCollapsedAtProgressZero()
+        {
+            // At spawn start each half-arc has zero span: its inner end sits on its own square's
+            // diagonal (base ± 45°), so nothing is drawn.
+            Assert.That(ShoulderNoteGeometry.SpawnArcInnerAngleDeg(0f, +1f, 0f), Is.EqualTo(45f).Within(0.001f));
+            Assert.That(ShoulderNoteGeometry.SpawnArcInnerAngleDeg(0f, -1f, 0f), Is.EqualTo(-45f).Within(0.001f));
+        }
+
+        [Test]
+        public void SpawnArcHalvesMeetAtBaseAtProgressOne()
+        {
+            // At full progress both inner ends land on the base angle, so the two halves touch.
+            Assert.That(ShoulderNoteGeometry.SpawnArcInnerAngleDeg(30f, +1f, 1f), Is.EqualTo(30f).Within(0.001f));
+            Assert.That(ShoulderNoteGeometry.SpawnArcInnerAngleDeg(30f, -1f, 1f), Is.EqualTo(30f).Within(0.001f));
+        }
+
+        [Test]
+        public void SpawnArcInnerSweepsInwardPartway()
+        {
+            // Half-way, the +45° half's inner end sits strictly between its square (base + 45°) and
+            // the meeting point (base).
+            float inner = ShoulderNoteGeometry.SpawnArcInnerAngleDeg(0f, +1f, 0.5f);
+            Assert.That(inner, Is.GreaterThan(0f));
+            Assert.That(inner, Is.LessThan(45f));
+            Assert.That(inner, Is.EqualTo(22.5f).Within(0.001f));
+        }
+
+        [Test]
         public void SectorRotationCentresOnCardinalDirection()
         {
             // CircularProgress fills a 0.25 (90°) wedge clockwise from local up; the rotation places the

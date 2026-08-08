@@ -1,15 +1,8 @@
-// Pins the coupling specified in docs/presentation-specs/Playfield.md ("Spawn halo and spawn phase"):
-// the spawn animation's duration and the motionless hold are one quantity, so the tween reaches full
-// scale exactly when the object starts moving — never still growing while it moves, never fully grown
-// while still.
-//
-// Calibration anchor — SpawnHaloFraction 0.25 and TimeRange 800 ms give travelTime = 800 * 0.75 =
-// 600 ms, so a note at StartTime 10000 leaves the halo at t = 9400 whatever SpawnDuration is. The
-// spawn instant moves with it: leadTime = 600 + SpawnDuration, so 100 ms spawns at 9300 and 300 ms
-// spawns at 9100, and both must land full scale on 9400.
-//
-// The subject is a shoulder note: its two squares grow in place (SpawnSquareScale) and its arc halves
-// grow out of each square, meeting only once the squares are full (SpawnArcSpanDeg reaching 90°).
+// The shoulder hold note's head shares the two-square-plus-arc spawn of the tap ShoulderNote (see
+// TestSceneSpawnTween): the squares grow in place and the arc halves grow out of each square, meeting
+// only as the squares reach full scale. Same calibration anchor — TimeRange 800 / SpawnHaloFraction
+// 0.25 give travelTime 600, so a note at StartTime 10000 leaves the halo at 9400 whatever SpawnDuration
+// is, and leadTime = 600 + SpawnDuration moves the spawn instant to match.
 
 using Garbus.Game.Core;
 using Garbus.Game.Gameplay.UI.Scrolling;
@@ -29,7 +22,7 @@ using osuTK;
 namespace Garbus.Game.Tests.Visual
 {
     [TestFixture]
-    public partial class TestSceneSpawnTween : GarbusTestScene
+    public partial class TestSceneShoulderHoldSpawnTween : GarbusTestScene
     {
         private const double note_start_time = 10_000;
 
@@ -38,7 +31,7 @@ namespace Garbus.Game.Tests.Visual
 
         private readonly ManualClock manualClock = new ManualClock { Rate = 0 };
 
-        private DrawableShoulderNote drawable = null!;
+        private DrawableShoulderHoldNote drawable = null!;
 
         private void setUpScene(double spawnDuration)
         {
@@ -51,7 +44,7 @@ namespace Garbus.Game.Tests.Visual
 
             AddStep("build playfield", () =>
             {
-                var note = new ShoulderNote { StartTime = note_start_time, Side = HorizontalDirection.Right };
+                var note = new ShoulderHoldNote { StartTime = note_start_time, Duration = 1000, Side = HorizontalDirection.Right };
                 note.ApplyDefaults();
 
                 // Park the clock before the note exists so the drawable applies with the parameters above.
@@ -69,14 +62,14 @@ namespace Garbus.Game.Tests.Visual
                     },
                 };
 
-                playfield.Add(drawable = (DrawableShoulderNote)PlayScreen.CreateDrawableRepresentation(note));
+                playfield.Add(drawable = (DrawableShoulderHoldNote)PlayScreen.CreateDrawableRepresentation(note));
             });
         }
 
         private void seek(double time) => AddStep($"seek {time}", () => manualClock.CurrentTime = time);
 
         [Test]
-        public void TestSquaresReachFullScaleWhenMotionBegins()
+        public void TestHeadSquaresReachFullScaleWhenMotionBegins()
         {
             setUpScene(100);
 
@@ -93,37 +86,16 @@ namespace Garbus.Game.Tests.Visual
         }
 
         [Test]
-        public void TestLongerSpawnDurationMovesSpawnEarlierAndStillLandsOnMotion()
-        {
-            setUpScene(300);
-
-            // leadTime = 600 + 300 = 900, so the note appears at 10000 - 900 = 9100.
-            seek(9100);
-            AddAssert("squares start from nothing", () => Precision.AlmostEquals(drawable.SpawnSquareScale, 0, 0.01));
-
-            // 9300 is the spawn instant of the 100 ms case; with a 300 ms tween it is only partway.
-            seek(9300);
-            AddAssert("squares still growing where the short tween would have started", () => drawable.SpawnSquareScale > 0 && drawable.SpawnSquareScale < 1);
-
-            // Motion still begins at 9400, so the longer tween must still land exactly there.
-            seek(9400);
-            AddAssert("squares full scale as motion begins", () => Precision.AlmostEquals(drawable.SpawnSquareScale, 1, 0.01));
-        }
-
-        [Test]
-        public void TestArcHalvesCollapsedAtSpawnAndMeetOnMotion()
+        public void TestHeadArcHalvesCollapsedAtSpawnAndMeetOnMotion()
         {
             setUpScene(100);
 
-            // At the spawn instant the two half-arcs have no span: each sits collapsed on its square.
             seek(9300);
             AddAssert("arc collapsed at spawn", () => Precision.AlmostEquals(drawable.SpawnArcSpanDeg, 0, 0.5));
 
-            // Mid-hold the halves have grown but not yet met (combined span below the full 90°).
             seek(9350);
             AddAssert("arc growing but not met", () => drawable.SpawnArcSpanDeg > 0 && drawable.SpawnArcSpanDeg < 90);
 
-            // As motion begins the halves meet: together they cover the full ±45° (90°).
             seek(9400);
             AddAssert("arc halves meet as motion begins", () => Precision.AlmostEquals(drawable.SpawnArcSpanDeg, 90, 0.5));
         }

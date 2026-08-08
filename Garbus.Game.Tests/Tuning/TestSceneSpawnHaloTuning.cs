@@ -88,14 +88,20 @@ namespace Garbus.Game.Tests.Tuning
                 },
             };
 
+            // Nothing scores in here, so the centre ComboDisplay would sit hidden at combo 0. Pin it to a
+            // three-digit value — the widest the number ever gets — so the halo is tuned against the
+            // busiest thing it has to read over.
+            playfield.Combo.Value = 999;
+
             foreach (var hitObject in objects)
                 playfield.Add(PlayScreen.CreateDrawableRepresentation(hitObject));
         }
 
         private SpawnHaloRing? haloRing() => playfield?.ChildrenOfType<SpawnHaloRing>().SingleOrDefault();
 
-        // Cardinal notes cycling the four angles, a shoulder note every fourth beat, and a cardinal
-        // hold every eighth — enough variety to see the halo hold on point and durationed objects.
+        // Cardinal notes cycling the four angles, a shoulder note every fourth beat, and a hold every
+        // eighth — alternating cardinal and shoulder holds — enough variety to see the halo hold on
+        // point and durationed objects, and the two-square-plus-arc spawn on both shoulder shapes.
         private static IEnumerable<GarbusHitObject> buildStream()
         {
             int[] angles = { 0, 90, 180, 270 };
@@ -105,7 +111,9 @@ namespace Garbus.Game.Tests.Tuning
             {
                 if (i % 8 == 7)
                 {
-                    yield return new CardinalHoldNote { StartTime = t, AngleDeg = angles[i % 4], Duration = hold_length };
+                    yield return i % 16 == 7
+                        ? new CardinalHoldNote { StartTime = t, AngleDeg = angles[i % 4], Duration = hold_length }
+                        : new ShoulderHoldNote { StartTime = t, Side = HorizontalDirection.Right, Duration = hold_length };
                     continue;
                 }
 
