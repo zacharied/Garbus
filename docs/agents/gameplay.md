@@ -12,22 +12,24 @@ points there for authority. The data model is in [charts.md](charts.md); actions
 
 ## Layout: playfield → ring → lanes
 
-Objects spawn at the **centre** of a circular playfield and travel **outward** to the ring, where
-they are judged in time with the music.
+Objects spawn on a small **halo** around the centre of a circular playfield, hold still there while
+their spawn animation plays, then travel **outward** to the ring, where they are judged in time with
+the music. The halo radius, the hold duration, and the time→radius map are specified in
+[`docs/presentation-specs/Playfield.md`](../presentation-specs/Playfield.md).
 
 - `UI/JacketBackground.cs` — the static jacket background under the playfield (hosted by `PlayScreen`, outside the gameplay-clock subtree): the song jacket circle-clipped to the ring's disc (sharing `GarbusPlayfield.SCREEN_PADDING` for alignment) plus a one-shot cached downscale+blur color wash behind it. Tuned in `Tuning/TestSceneJacketBackgroundTuning`.
 - `UI/GarbusPlayfield.cs` — the top-level playfield (a `ScrollingPlayfield`).
 - `UI/Ring.cs` — the judgement ring at the playfield edge. It owns the hit-object layers and, above
   them, the `JudgementFeedbackDisplay` (below). It also hosts the keybeams (`PlayfieldKeybeam`),
-  radial lines (`PlayfieldRadialLines`), stick indicator (`StickIndicator`/`StickCentreSpike`), and
-  warning indicators (`WarningIndicatorDisplay`). The warning glow's blur/mask `BufferedContainer`s
-  cache their framebuffers and are force-redrawn only when a side's revealed angle changes — an
-  uncached buffer re-blurs the whole playfield every frame, which cripples integrated GPUs (see the
-  gotcha in [osu-framework.md](osu-framework.md)).
+  radial lines (`PlayfieldRadialLines`), the spawn halo ring (`SpawnHaloRing`), stick indicator
+  (`StickIndicator`/`StickCentreSpike`), and warning indicators (`WarningIndicatorDisplay`). The
+  warning glow's blur/mask `BufferedContainer`s cache their framebuffers and are force-redrawn only
+  when a side's revealed angle changes — an uncached buffer re-blurs the whole playfield every frame,
+  which cripples integrated GPUs (see the gotcha in [osu-framework.md](osu-framework.md)).
 - `UI/Lane.cs` — the directional lanes objects travel along.
 - `UI/GarbusScrollingHitObjectContainer.cs` — the polar container. Instead of osu's linear
-  time→position scroll, it maps each object's remaining time-to-judgement to a **radius** (centre =
-  far future, ring = now) at the object's angle, using the visible `timeRange` and the constant
+  time→position scroll, it maps each object's remaining time-to-judgement to a **radius** (halo =
+  spawn, ring = now) at the object's angle, using the visible `timeRange` and the constant
   scroll algorithm from `GarbusScrollingInfo`. It keeps a `layoutComputed` set and re-lays-out only
   what changed.
 

@@ -16,7 +16,7 @@ namespace Garbus.Game.Objects.Drawables;
 
 /// <summary>
 /// A held cardinal note: a square head sprite trailing a straight radial line (the hold body). The head
-/// emerges from the centre and reaches the ring at StartTime; the trailing line runs inward toward the tail.
+/// emerges from the spawn halo and reaches the ring at StartTime; the trailing line runs inward toward the tail.
 /// </summary>
 public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNote, HoldNoteHead<CardinalHoldNote>>
 {
@@ -81,8 +81,8 @@ public partial class DrawableCardinalHoldNote : DrawableHoldNote<CardinalHoldNot
     {
         base.UpdateInitialTransforms();
 
-        headSprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
-        body.FadeInFromZero(100, Easing.In);
+        headSprite.ScaleTo(0).ScaleTo(1, SpawnAnimationDuration, Easing.In);
+        body.FadeInFromZero(SpawnAnimationDuration, Easing.In);
     }
 
     protected override void OnHeadHit()

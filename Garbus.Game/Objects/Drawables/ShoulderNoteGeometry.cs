@@ -27,6 +27,15 @@ public static class ShoulderNoteGeometry
         => Polar(ToRadians(baseAngleDeg + offsetSign * DiagonalOffsetDeg), radius);
 
     /// <summary>
+    /// Inner-end angle (degrees) of a growing spawn half-arc. The outer end stays pinned to its square at
+    /// <paramref name="baseAngleDeg"/> + <paramref name="offsetSign"/>·45°; the inner end sweeps from there
+    /// toward <paramref name="baseAngleDeg"/> as <paramref name="easedProgress"/> runs 0 → 1. At 0 the span
+    /// is zero (nothing drawn); at 1 both halves' inner ends meet on the base angle.
+    /// </summary>
+    public static float SpawnArcInnerAngleDeg(float baseAngleDeg, float offsetSign, float easedProgress)
+        => baseAngleDeg + offsetSign * DiagonalOffsetDeg * (1f - easedProgress);
+
+    /// <summary>
     /// Rotation (degrees) for a <see cref="osu.Framework.Graphics.UserInterface.CircularProgress"/> whose
     /// 0.25 progress wedge should be centred on <paramref name="baseAngleDeg"/>'s screen direction, spanning
     /// ±45°. CircularProgress fills clockwise from local up; screen-clockwise angle for playfield angle θ is

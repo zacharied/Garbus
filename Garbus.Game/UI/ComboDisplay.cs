@@ -8,8 +8,9 @@ namespace Garbus.Game.UI;
 
 /// <summary>
 /// The current combo drawn as large text at the geometric centre of the <see cref="Ring"/> — behind
-/// every hit object (objects spawn at the centre and travel outward, so this reads as a number the
-/// notes emerge from). Hidden at combo 0 so the empty centre reads clean before the first hit.
+/// the <see cref="SpawnHaloRing"/> and every hit object. Objects spawn on the halo and travel
+/// outward, so the halo ring draws in front of this to keep its radius reading exactly against the
+/// digits. Hidden at combo 0 so the empty centre reads clean before the first hit.
 /// </summary>
 public partial class ComboDisplay : SpriteText
 {

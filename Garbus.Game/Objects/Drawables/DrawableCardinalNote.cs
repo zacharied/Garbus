@@ -59,7 +59,7 @@ namespace Garbus.Game.Objects.Drawables
         protected override void UpdateInitialTransforms()
         {
             base.UpdateInitialTransforms();
-            sprite.ScaleTo(0).ScaleTo(1, 125, Easing.In);
+            sprite.ScaleTo(0).ScaleTo(1, SpawnAnimationDuration, Easing.In);
         }
 
         protected override void UpdateHitStateTransforms(ArmedState state)

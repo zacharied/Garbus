@@ -6,9 +6,60 @@ This is the canonical reference for how every Garbus hit object is presented vis
 
 ## Playfield model
 
-The gameplay is presented as a large circle (the playfield) on the player's display. Small visuals (hit objects) emerge from the center of the circle and move toward the outer circumference. The shape and color of a hit object represents a prompt that requests some action to be performed (see `../rules-specs/Inputs.md` for the physical mapping).
+The gameplay is presented as a large circle (the playfield) on the player's display. Small visuals (hit objects) appear on the **spawn halo** — a small circle concentric with the playfield — and move outward toward the outer circumference. The shape and color of a hit object represents a prompt that requests some action to be performed (see `../rules-specs/Inputs.md` for the physical mapping).
 
 The playfield circle is divided at the center into a Cartesian grid rotated 45 degrees, such that it forms four quadrants with each quadrant opening towards a unique cardinal direction. A hit object's Angle is the direction from center along which it travels; the outer circumference serves as the judgement line, which the object reaches at its StartTime.
+
+## Spawn halo and spawn phase
+
+A hit object does not appear at the playfield centre. It appears on the **spawn halo**, a circle
+concentric with the playfield whose radius is a fixed fraction of the playfield radius, at the
+object's own Angle. It holds that position, motionless, while its spawn animation plays. The instant
+that animation completes it begins travelling outward, reaching the ring at its StartTime.
+
+Three parameters govern this:
+
+| Parameter | Meaning |
+| --- | --- |
+| `TimeRange` | Sets radial velocity: one playfield radius per `TimeRange`. |
+| `SpawnHaloFraction` | Halo radius as a fraction of the playfield radius. |
+| `SpawnDuration` | How long an object holds on the halo — and how long its spawn animation runs. |
+
+Writing `ScrollLength` for the playfield radius and `Δ` for the time remaining until an object's
+StartTime, the derived quantities and the radius function are:
+
+    haloRadius = ScrollLength × SpawnHaloFraction
+    travelTime = TimeRange × (1 − SpawnHaloFraction)
+    leadTime   = travelTime + SpawnDuration
+
+    radius(Δ) = max(haloRadius, ScrollLength − Δ × ScrollLength / TimeRange)
+
+An object appears at `Δ = leadTime` and holds at `haloRadius` until `Δ = travelTime`, where the floor
+and the ramp meet without a seam. It reaches `ScrollLength` at `Δ = 0`. Radial velocity through the
+travel phase is `ScrollLength / TimeRange`, independent of the halo.
+
+The spawn animation's duration and the hold are the same quantity, so an object is never still
+growing while it moves, and never fully grown while it is still.
+
+The halo is drawn, as a thin translucent gray ring at `haloRadius`. It is furniture: static, with no
+animation, and it reacts to nothing. It draws in front of the centre combo counter so the halo radius
+always reads exactly, and behind hit objects so an object holding on the halo is never sliced by it.
+
+An object with duration is governed point-by-point rather than as a whole, by its **emergence
+front** — the point along it currently at `Δ = travelTime`, which is the point leaving the halo this
+instant. Everything later than the front is still inside the hold window and maps to `haloRadius`;
+it does not draw. The object therefore unfurls outward from its front rather than appearing at full
+extent.
+
+While every point of the object is still held — which is true of every object at the instant it
+appears, whatever its duration — there is no emerged portion to draw and it renders as a stub on the
+halo at its own Angle, exactly like a point note. A short object whose whole span fits inside the
+hold window stays a stub for its entire spawn.
+
+Because the radius function is flat before the front and linear after it, a durationed object is
+only linear in time on its emerged side. Presentation that interpolates along it (the slider body's
+polyline) must split at the front rather than interpolating across it, or the drawn shape bows away
+from the radius map and the point drawn at the ring stops being the point whose time is now.
 
 ## Hit object presentation
 

@@ -67,12 +67,20 @@ public partial class Ring : Playfield
         }
 
         // Back-to-front: radial spokes, chord connectors (under all notes), the centre combo counter
-        // (drawn beneath every note), cross-lane paths, the lanes, judgement feedback above every hit
-        // object, then the ring.
+        // (drawn beneath every note), the spawn halo ring, cross-lane paths, the lanes, judgement
+        // feedback above every hit object, then the ring.
+        //
+        // The halo ring draws in FRONT of the combo counter — at the default halo fraction it lands
+        // almost exactly around the combo digits, and the halo radius should read exactly rather than
+        // be broken up by whatever the combo currently is. It draws BEHIND the hit objects, though:
+        // unlike the outer ring, which only ever clips an object in passing, objects sit on the halo
+        // for their whole spawn hold, so a front-most halo would put a line through every spawning
+        // note for the duration of it.
         AddRangeInternal([
             new PlayfieldRadialLines(),
             new ChordConnectorOverlay(),
             new ComboDisplay(),
+            new SpawnHaloRing(),
             HitObjectContainer,
             laneContainer,
             judgementFeedback,

@@ -85,8 +85,11 @@ namespace Garbus.Game.Tests.Editor
         [Test]
         public void TestAutoHitSpawnReplaysAfterScrubPastCompletion()
         {
-            // Seek past spawn completion (1300 + 125 = 1425), so a Sprite that discarded its transform
-            // would show scale 1 on return. With RemoveCompletedTransforms=false it persists and replays.
+            // Seek past spawn completion. LeadTime = TimeRange × (1 − SpawnHaloFraction) + SpawnDuration =
+            // 700 × 0.88 + 125 = 741, so the note (StartTime 2000) spawns at 2000 − 741 = 1259 and its
+            // tween completes at 1259 + 125 = 1384 — 1600 is safely past that, so a Sprite that discarded
+            // its transform would show scale 1 on return. With RemoveCompletedTransforms=false it persists
+            // and replays.
             AddStep("seek past spawn completion", () => manualClock.CurrentTime = 1600);
             AddStep("rewind to start", () => manualClock.CurrentTime = 0);
             AddStep("seek back into spawn window", () => manualClock.CurrentTime = 1360);
