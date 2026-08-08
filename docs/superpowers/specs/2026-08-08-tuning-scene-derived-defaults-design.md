@@ -57,9 +57,34 @@ Scene (`TestSceneSliderGlowTuning`): field initializers become
 `DrawableSliderBody.DEFAULT_*`; the "Defaults mirror … tweak there" comment goes away.
 `timeRange` and the scroll-time-range slider's `700` literals become
 `GarbusScrollingInfo.DEFAULT_TIME_RANGE` (constant already exists). `showLine` initializes
-to `DEFAULT_SHOW_LINE`; `AddToggleStep` has no initial-value parameter, so the button
-renders unchecked while the state is `true` — first click is a no-op. Comment this at the
-toggle.
+to `DEFAULT_SHOW_LINE` and its toggle uses the initial-value toggle step below, so the
+button starts lit and in agreement with the state.
+
+### Initial-value toggle steps (`Garbus.Game.Tests`)
+
+The framework's `AddToggleStep` cannot represent a `true` default: `ToggleStepButton`'s
+`state` field is private, starts `false`, and only its private click handler flips it
+(verified against ppy.osu.framework 2026.629.0). Two additions in the test project fix
+this locally:
+
+- **`GarbusToggleStepButton`** (new, `Garbus.Game.Tests/Visual/`): extends the public
+  `osu.Framework.Testing.Drawables.Steps.StepButton`, replicating the framework
+  `ToggleStepButton`'s ~20 lines — private `bool state`, `RequiredRepetitions => 2`,
+  click flips the state, fades `Light` between the same red/off and yellow-green/on
+  colours (re-declared; they're private upstream), invokes an `Action<bool>` callback,
+  calls `Success()` when toggled off, `ToString()` reports on/off — plus a constructor
+  taking the initial state, which also sets `LightColour` to match from the start.
+- **`GarbusTestScene.AddToggleStep(string description, bool initialValue, Action<bool>
+  action)`**: schedules `StepsContainer.Add(new GarbusToggleStepButton(initialValue) …)`
+  the same way the framework's `AddSliderStep` schedules its slider, with
+  `IsSetupStep = false` (ctor-added tuning steps are never setup steps). The framework's
+  two-argument `AddToggleStep` stays available for default-false toggles; the overloads
+  differ in arity, so there is no ambiguity.
+
+The button does **not** invoke the callback at construction: the class default already
+reigns in the tuned drawable, and the button starts in the matching state, so there is
+nothing to synchronise — it only reports user changes. If osu-framework later gains
+initial-value toggle support, `GarbusToggleStepButton` can be deleted.
 
 ### SettingsPanelHeader (`Garbus.Game/Settings/SettingsPanelHeader.cs`)
 
@@ -106,4 +131,6 @@ after the owning types' static initializers have run.
 The tuning scenes are `[Explicit]` visual scenes with no assertions; the guarantee here is
 structural (one shared constant, no second literal to drift). Verification is: solution
 builds, existing test suite passes, and a spot-check that each scene compiles against the
-new constant names.
+new constant names. `GarbusToggleStepButton` is exercised by the glow scene's crisp-line
+toggle; its behaviour is visual (light state, toggling), verified in the test browser
+rather than by unit test.
